@@ -1,28 +1,17 @@
 <aside class="mtt-merchant-sidebar">
-  <section class="mtt-merchant-sidebar-panel">
-    <h2 class="mtt-merchant-section-title">{{localize "mtt.manager.title"}}</h2>
-
-    {{#if system.manager.displayName}}
-      <p
-        class="mtt-merchant-sidebar-summary-text"
-      >{{system.manager.displayName}}</p>
-    {{else}}
-      <p class="mtt-merchant-sidebar-summary-text">{{localize
-          "mtt.manager.empty"
-        }}</p>
-    {{/if}}
-  </section>
-  <section class="mtt-merchant-manager-block">
+  <section class="mtt-merchant-sidebar-panel mtt-merchant-manager-block">
     <h2 class="mtt-merchant-section-title">{{localize "mtt.manager.title"}}</h2>
 
     {{#if mtt.isUnlocked}}
       <div class="mtt-merchant-manager-fields">
         <label class="mtt-merchant-field">
           <span class="mtt-merchant-field-label">{{localize "mtt.manager.mode.label"}}</span>
+
           <select class="mtt-merchant-field-input" name="system.manager.mode">
             <option value="text" {{#if (eq system.manager.mode "text")}}selected{{/if}}>
               {{localize "mtt.manager.mode.text"}}
             </option>
+
             <option value="actor" {{#if (eq system.manager.mode "actor")}}selected{{/if}}>
               {{localize "mtt.manager.mode.actor"}}
             </option>
@@ -31,6 +20,7 @@
 
         <label class="mtt-merchant-field">
           <span class="mtt-merchant-field-label">{{localize "mtt.manager.displayName.label"}}</span>
+
           <input
             class="mtt-merchant-field-input"
             type="text"
@@ -51,7 +41,7 @@
     {{/if}}
   </section>
 
-  <section class="mtt-merchant-description-block">
+  <section class="mtt-merchant-sidebar-panel mtt-merchant-description-block">
     <h2 class="mtt-merchant-section-title">{{localize "mtt.merchant.description.title"}}</h2>
 
     {{#if mtt.isUnlocked}}
@@ -63,7 +53,13 @@
       ></prose-mirror>
     {{else}}
       <div class="mtt-merchant-description-content">
-        {{{system.merchant.description}}}
+        {{#if system.merchant.description}}
+          {{{system.merchant.description}}}
+        {{else}}
+          <p class="mtt-merchant-description-empty">
+            {{localize "mtt.merchant.description.empty"}}
+          </p>
+        {{/if}}
       </div>
     {{/if}}
   </section>

@@ -65,22 +65,58 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     return context;
   }
+  _canDragDrop(selector) {
+    return super._canDragDrop(selector);
+  }
+
+  async _onDropDocument(event, document) {
+    if (this.actor.system.sheet.isLocked) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
+      return;
+    }
+
+    if (document.documentName !== "Item") {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeDropped"));
+      return;
+    }
+
+    const itemData = document.toObject();
+    delete itemData._id;
+
+    this.#createProductFlags(itemData);
+
+    await this.actor.createEmbeddedDocuments("Item", [itemData]);
+  }
 
   #prepareItems() {
     return this.actor.items.map((item) => {
-      const quantity = foundry.utils.getProperty(item, "system.quantity");
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const quantity = product.quantity ?? foundry.utils.getProperty(item, "system.quantity");
 
       return {
         id: item.id,
         uuid: item.uuid,
         name: item.name,
+        displayName: product.displayName || item.name,
         type: item.type,
         img: item.img,
         quantity: quantity ?? null,
         hasQuantity: quantity !== null && quantity !== undefined,
+        isHidden: product.isHidden ?? false,
+        requiresApproval: product.requiresApproval ?? false,
         document: item,
       };
     });
+  }
+
+  #createProductFlags(itemData) {
+    const productFlags = foundry.utils.deepClone(MTT.PRODUCT_DEFAULTS);
+
+    productFlags.displayName = itemData.name ?? "";
+
+    foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags);
+
+    return itemData;
   }
 
   static async #onCreateItem(event, target) {
@@ -90,12 +126,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const type = target.dataset.type || "loot";
 
-    await this.actor.createEmbeddedDocuments("Item", [
-      {
-        name: game.i18n.localize("mtt.items.newItem"),
-        type,
-      },
-    ]);
+    const itemData = this.#createProductFlags({
+      name: game.i18n.localize("mtt.items.newItem"),
+      type,
+    });
+
+    await this.actor.createEmbeddedDocuments("Item", [itemData]);
   }
 
   static async #onEditItem(event, target) {

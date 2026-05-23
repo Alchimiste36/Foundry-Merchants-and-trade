@@ -29,7 +29,8 @@
         "closed": "Closed"
       },
       "description": {
-        "title": "Merchant description"
+        "title": "Merchant description",
+        "empty": "No description provided"
       }
     },
     "manager": {
@@ -58,7 +59,8 @@
       }
     },
     "notifications": {
-      "sheetLocked": "The merchant sheet is locked."
+      "sheetLocked": "The merchant sheet is locked.",
+      "onlyItemsCanBeDropped": "Seuls les objets peuvent être ajoutés au marchand."
     },
     "navigation": {
       "label": "Merchant sheet navigation"
@@ -83,6 +85,7 @@
     "products": {
       "title": "Products",
       "subtitle": "Items currently offered or stored by this merchant.",
+      "dropHelp": "Drop items here from the sidebar or a compendium.",
       "quantity": {
         "short": "Qty",
         "undefined": "Quantity undefined"

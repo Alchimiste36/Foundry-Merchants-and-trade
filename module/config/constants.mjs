@@ -6,6 +6,17 @@ export const MTT = {
     MERCHANT: "mtt-merchants.merchant",
   },
 
+  FLAGS: {
+    PRODUCT: "product",
+  },
+
+  PRODUCT_DEFAULTS: {
+    displayName: "",
+    quantity: 1,
+    isHidden: false,
+    requiresApproval: false,
+  },
+
   TEMPLATES: {
     MERCHANT_SHEET: "modules/mtt-merchants/templates/actors/merchant-sheet.hbs",
     MERCHANT_HEADER: "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs",

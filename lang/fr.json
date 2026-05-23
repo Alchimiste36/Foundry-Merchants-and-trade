@@ -29,7 +29,8 @@
         "closed": "Fermé"
       },
       "description": {
-        "title": "Description du marchand"
+        "title": "Description du marchand",
+        "empty": "Aucune description renseignée"
       }
     },
     "manager": {
@@ -58,7 +59,8 @@
       }
     },
     "notifications": {
-      "sheetLocked": "La feuille du marchand est verrouillée."
+      "sheetLocked": "La feuille du marchand est verrouillée.",
+      "onlyItemsCanBeDropped": "Only items can be added to the merchant."
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"
@@ -83,9 +85,14 @@
     "products": {
       "title": "Produits",
       "subtitle": "Objets actuellement proposés ou stockés par ce marchand.",
+      "dropHelp": "Déposez ici des objets depuis la sidebar ou un compendium.",
       "quantity": {
         "short": "Qté",
         "undefined": "Quantité non définie"
+      },
+      "tags": {
+        "hidden": "Masqué",
+        "requiresApproval": "Validation MJ"
       },
       "empty": {
         "title": "Aucun produit",

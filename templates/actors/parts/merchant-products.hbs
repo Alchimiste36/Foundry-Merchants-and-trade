@@ -43,8 +43,7 @@
                     class="mtt-merchant-product-name-input"
                     type="text"
                     value="{{item.name}}"
-                    data-action="updateProductField"
-                    data-field="name"
+                    data-mtt-product-field="name"
                   />
                 {{else}}
                   <span class="mtt-merchant-product-name">{{item.name}}</span>
@@ -71,8 +70,7 @@
                   type="number"
                   min="0"
                   value="{{item.quantity}}"
-                  data-action="updateProductField"
-                  data-field="quantity"
+                  data-mtt-product-field="quantity"
                 />
               {{else}}
                 {{#if item.hasQuantity}}

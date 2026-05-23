@@ -26,7 +26,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleOpen: MerchantSheet.#onToggleOpen,
       toggleLock: MerchantSheet.#onToggleLock,
       selectTab: MerchantSheet.#onSelectTab,
-      updateProductField: MerchantSheet.#onUpdateProductField,
     },
   };
 
@@ -66,6 +65,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     return context;
   }
+
+  _onRender(context, options) {
+    super._onRender(context, options);
+
+    this.element
+      .querySelectorAll("[data-mtt-product-field]")
+      .forEach((input) => input.addEventListener("change", (event) => this.#onProductFieldChange(event)));
+  }
+
   _canDragDrop(selector) {
     return super._canDragDrop(selector);
   }
@@ -114,45 +122,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return this.actor.items.get(itemId) ?? null;
   }
 
-  static async #onUpdateProductField(event, target) {
-    event.preventDefault();
-
-    if (!this.#canModifyMerchant()) return;
-
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
-
-    const field = target.dataset.field;
-    const value = target.value;
-
-    if (field === "name") {
-      await item.update({
-        name: value?.trim() || item.name,
-      });
-      return;
-    }
-
-    if (field === "quantity") {
-      const quantity = Number(value);
-
-      if (!Number.isFinite(quantity) || quantity < 0) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
-        return;
-      }
-
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        quantity,
-      });
-    }
-  }
-
   #createProductFlags(itemData) {
     const productFlags = foundry.utils.deepClone(MTT.PRODUCT_DEFAULTS);
-
-    productFlags.displayName = itemData.name ?? "";
 
     foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags);
 
@@ -177,8 +148,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onEditItem(event, target) {
     event.preventDefault();
 
-    const itemId = target.closest("[data-item-id]")?.dataset.itemId;
-    const item = this.actor.items.get(itemId);
+    const item = this.#getItemFromEvent(target);
 
     item?.sheet?.render(true);
   }
@@ -188,9 +158,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const itemId = target.closest("[data-item-id]")?.dataset.itemId;
-    const item = this.actor.items.get(itemId);
-
+    const item = this.#getItemFromEvent(target);
     if (!item) return;
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -241,6 +209,46 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     this.#activeTab = tab;
     this.render();
+  }
+
+  async #onProductFieldChange(event) {
+    const target = event.currentTarget;
+
+    if (!this.#canModifyMerchant()) return;
+
+    const item = this.#getItemFromEvent(target);
+    if (!item) return;
+
+    const field = target.dataset.mttProductField;
+
+    if (field === "name") {
+      const name = target.value?.trim();
+
+      if (!name) {
+        target.value = item.name;
+        return;
+      }
+
+      await item.update({ name });
+      return;
+    }
+
+    if (field === "quantity") {
+      const quantity = Number(target.value);
+
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
+        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
+        return;
+      }
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        quantity,
+      });
+    }
   }
 
   #canModifyMerchant() {

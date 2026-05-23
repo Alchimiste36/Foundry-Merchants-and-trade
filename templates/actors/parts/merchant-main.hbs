@@ -1,0 +1,45 @@
+<section class="mtt-merchant-main-zone">
+  <header class="mtt-merchant-main-header">
+    {{> "modules/mtt-merchants/templates/actors/parts/merchant-navigation.hbs"}}
+  </header>
+
+  <section class="mtt-merchant-tab-content">
+    {{#if (eq mtt.activeTab "products")}}
+      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-products" data-tab="products">
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-products.hbs"}}
+      </section>
+    {{/if}}
+
+    {{#if (eq mtt.activeTab "services")}}
+      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
+        <div class="mtt-merchant-empty-tab">
+          <i class="fas fa-handshake"></i>
+          <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.services.empty.title"}}</h2>
+          <p class="mtt-merchant-empty-tab-text">{{localize "mtt.services.empty.text"}}</p>
+        </div>
+      </section>
+    {{/if}}
+
+    {{#if (eq mtt.activeTab "sessions")}}
+      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-sessions" data-tab="sessions">
+        <div class="mtt-merchant-empty-tab">
+          <i class="fas fa-basket-shopping"></i>
+          <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.sessions.empty.title"}}</h2>
+          <p class="mtt-merchant-empty-tab-text">{{localize "mtt.sessions.empty.text"}}</p>
+        </div>
+      </section>
+    {{/if}}
+
+    {{#if mtt.canConfigureMerchant}}
+      {{#if (eq mtt.activeTab "configuration")}}
+        <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-configuration" data-tab="configuration">
+          <div class="mtt-merchant-empty-tab">
+            <i class="fas fa-gear"></i>
+            <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.configuration.empty.title"}}</h2>
+            <p class="mtt-merchant-empty-tab-text">{{localize "mtt.configuration.empty.text"}}</p>
+          </div>
+        </section>
+      {{/if}}
+    {{/if}}
+  </section>
+</section>

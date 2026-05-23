@@ -1,0 +1,115 @@
+{
+  "mtt": {
+    "log": {
+      "initializing": "Initialisation",
+      "initialized": "Initialisé",
+      "ready": "Prêt"
+    },
+    "sheets": {
+      "merchant": "Feuille de marchand"
+    },
+    "settings": {
+      "debug": {
+        "name": "Mode debug MTT",
+        "hint": "Active des informations supplémentaires dans la console pour le module Merchants, Trades and Transactions."
+      }
+    },
+    "sheet": {
+      "lock": "Verrouiller",
+      "unlock": "Déverrouiller",
+      "locked": "Verrouillé",
+      "unlocked": "Déverrouillé"
+    },
+    "merchant": {
+      "name": {
+        "placeholder": "Nom du marchand"
+      },
+      "status": {
+        "open": "Ouvert",
+        "closed": "Fermé"
+      },
+      "description": {
+        "title": "Description du marchand"
+      }
+    },
+    "manager": {
+      "title": "Gérant",
+      "mode": {
+        "label": "Type de gérant",
+        "text": "Texte libre",
+        "actor": "Acteur lié"
+      },
+      "displayName": {
+        "label": "Nom affiché",
+        "placeholder": "Nom du gérant"
+      },
+      "empty": "Aucun gérant renseigné"
+    },
+    "actions": {
+      "createItem": "Créer un objet",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "cancel": "Annuler"
+    },
+    "dialog": {
+      "deleteItem": {
+        "title": "Supprimer l’objet",
+        "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
+      }
+    },
+    "notifications": {
+      "sheetLocked": "La feuille du marchand est verrouillée."
+    },
+    "navigation": {
+      "label": "Navigation de la feuille marchand"
+    },
+    "tabs": {
+      "products": "Produits",
+      "services": "Services",
+      "sessions": "Sessions",
+      "configuration": "Configuration"
+    },
+    "items": {
+      "newItem": "Nouvel objet",
+      "title": "Objets du marchand",
+      "subtitle": "Objets actuellement contenus dans ce marchand.",
+      "empty": "Aucun objet dans ce marchand.",
+      "emptyHelp": "Déverrouillez la feuille pour créer ou ajouter des objets.",
+      "quantity": {
+        "short": "Qté",
+        "none": "Quantité non définie"
+      }
+    },
+    "products": {
+      "title": "Produits",
+      "subtitle": "Objets actuellement proposés ou stockés par ce marchand.",
+      "quantity": {
+        "short": "Qté",
+        "undefined": "Quantité non définie"
+      },
+      "empty": {
+        "title": "Aucun produit",
+        "text": "Ce marchand ne contient encore aucun objet.",
+        "help": "Déverrouillez la feuille pour créer ou ajouter des objets."
+      }
+    },
+    "services": {
+      "empty": {
+        "title": "Services",
+        "text": "La gestion des services sera ajoutée dans une prochaine étape."
+      }
+    },
+    "sessions": {
+      "empty": {
+        "title": "Sessions",
+        "text": "Les sessions joueur / marchand seront ajoutées plus tard."
+      }
+    },
+    "configuration": {
+      "empty": {
+        "title": "Configuration",
+        "text": "Les options générales du marchand et le journal des transactions seront regroupés ici."
+      }
+    }
+  }
+}

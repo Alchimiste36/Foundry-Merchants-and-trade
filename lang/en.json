@@ -1,0 +1,115 @@
+{
+  "mtt": {
+    "log": {
+      "initializing": "Initializing",
+      "initialized": "Initialized",
+      "ready": "Ready"
+    },
+    "sheets": {
+      "merchant": "Merchant Sheet"
+    },
+    "settings": {
+      "debug": {
+        "name": "MTT debug mode",
+        "hint": "Enables additional console information for the Merchants, Trades and Transactions module."
+      }
+    },
+    "sheet": {
+      "lock": "Lock",
+      "unlock": "Unlock",
+      "locked": "Locked",
+      "unlocked": "Unlocked"
+    },
+    "merchant": {
+      "name": {
+        "placeholder": "Merchant name"
+      },
+      "status": {
+        "open": "Open",
+        "closed": "Closed"
+      },
+      "description": {
+        "title": "Merchant description"
+      }
+    },
+    "manager": {
+      "title": "Manager",
+      "mode": {
+        "label": "Manager type",
+        "text": "Free text",
+        "actor": "Linked actor"
+      },
+      "displayName": {
+        "label": "Displayed name",
+        "placeholder": "Manager name"
+      },
+      "empty": "No manager defined"
+    },
+    "actions": {
+      "createItem": "Create item",
+      "edit": "Edit",
+      "delete": "Delete",
+      "cancel": "Cancel"
+    },
+    "dialog": {
+      "deleteItem": {
+        "title": "Delete item",
+        "content": "Do you really want to delete this item from the merchant?"
+      }
+    },
+    "notifications": {
+      "sheetLocked": "The merchant sheet is locked."
+    },
+    "navigation": {
+      "label": "Merchant sheet navigation"
+    },
+    "tabs": {
+      "products": "Products",
+      "services": "Services",
+      "sessions": "Sessions",
+      "configuration": "Configuration"
+    },
+    "items": {
+      "newItem": "New item",
+      "title": "Merchant items",
+      "subtitle": "Items currently stored in this merchant.",
+      "empty": "No item in this merchant.",
+      "emptyHelp": "Unlock the sheet to create or add items.",
+      "quantity": {
+        "short": "Qty",
+        "none": "No quantity defined"
+      }
+    },
+    "products": {
+      "title": "Products",
+      "subtitle": "Items currently offered or stored by this merchant.",
+      "quantity": {
+        "short": "Qty",
+        "undefined": "Quantity undefined"
+      },
+      "empty": {
+        "title": "No products",
+        "text": "This merchant does not contain any item yet.",
+        "help": "Unlock the sheet to create or add items."
+      }
+    },
+    "services": {
+      "empty": {
+        "title": "Services",
+        "text": "Service management will be added in a later step."
+      }
+    },
+    "sessions": {
+      "empty": {
+        "title": "Sessions",
+        "text": "Player / merchant sessions will be added later."
+      }
+    },
+    "configuration": {
+      "empty": {
+        "title": "Configuration",
+        "text": "General merchant options and the transaction log will be grouped here."
+      }
+    }
+  }
+}

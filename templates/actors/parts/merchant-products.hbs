@@ -1,0 +1,87 @@
+<section class="mtt-merchant-products">
+  <header class="mtt-merchant-products-header">
+    <div class="mtt-merchant-products-title-block">
+      <h2 class="mtt-merchant-section-title">{{localize "mtt.products.title"}}</h2>
+      <p class="mtt-merchant-section-subtitle">{{localize "mtt.products.subtitle"}}</p>
+    </div>
+
+    {{#if mtt.canEditMerchant}}
+      <button
+        class="mtt-merchant-product-create-button"
+        type="button"
+        data-action="createItem"
+        data-tooltip="{{localize 'mtt.actions.createItem'}}"
+      >
+        <i class="fas fa-plus"></i>
+        <span>{{localize "mtt.actions.createItem"}}</span>
+      </button>
+    {{/if}}
+  </header>
+
+  {{#if items.length}}
+    <ol class="mtt-merchant-product-list">
+      {{#each items as |item|}}
+        <li class="mtt-merchant-product-row" data-item-id="{{item.id}}">
+          <div class="mtt-merchant-product-main">
+            <img
+              class="mtt-merchant-product-image"
+              src="{{item.img}}"
+              alt="{{item.name}}"
+              data-tooltip="{{item.name}}"
+            />
+
+            <div class="mtt-merchant-product-identity">
+              <span class="mtt-merchant-product-name">{{item.name}}</span>
+              <span class="mtt-merchant-product-type">{{item.type}}</span>
+            </div>
+          </div>
+
+          <div class="mtt-merchant-product-details">
+            {{#if item.hasQuantity}}
+              <span class="mtt-merchant-product-quantity">
+                {{localize "mtt.products.quantity.short"}}
+                {{item.quantity}}
+              </span>
+            {{else}}
+              <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
+                {{localize "mtt.products.quantity.undefined"}}
+              </span>
+            {{/if}}
+          </div>
+
+          <div class="mtt-merchant-product-actions">
+            <button
+              class="mtt-merchant-product-action"
+              type="button"
+              data-action="editItem"
+              data-tooltip="{{localize 'mtt.actions.edit'}}"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+
+            {{#if @root.mtt.canEditMerchant}}
+              <button
+                class="mtt-merchant-product-action mtt-merchant-product-delete"
+                type="button"
+                data-action="deleteItem"
+                data-tooltip="{{localize 'mtt.actions.delete'}}"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            {{/if}}
+          </div>
+        </li>
+      {{/each}}
+    </ol>
+  {{else}}
+    <div class="mtt-merchant-products-empty">
+      <i class="fas fa-box-open"></i>
+      <h3 class="mtt-merchant-products-empty-title">{{localize "mtt.products.empty.title"}}</h3>
+      <p class="mtt-merchant-products-empty-text">{{localize "mtt.products.empty.text"}}</p>
+
+      {{#if mtt.canEditMerchant}}
+        <p class="mtt-merchant-products-empty-help">{{localize "mtt.products.empty.help"}}</p>
+      {{/if}}
+    </div>
+  {{/if}}
+</section>

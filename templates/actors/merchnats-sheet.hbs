@@ -1,0 +1,13 @@
+<form class="mtt-merchant-form {{#if mtt.isLocked}}mtt-is-locked{{else}}mtt-is-unlocked{{/if}}" autocomplete="off">
+  <section class="mtt-merchant-layout">
+    {{> (lookup @root.partials "header")}}
+
+    <section class="mtt-merchant-content">
+      {{> (lookup @root.partials "sidebar")}}
+
+      <main class="mtt-merchant-main">
+        {{> (lookup @root.partials "main")}}
+      </main>
+    </section>
+  </section>
+</form>

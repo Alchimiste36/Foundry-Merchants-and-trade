@@ -54,12 +54,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const isLocked = this.actor.system.sheet.isLocked;
     const canEditMerchant = this.isEditable && !isLocked;
+    const canConfigureMerchant = this.isEditable;
 
     context.mtt = {
       css: MTT.CSS,
       isLocked,
       isUnlocked: !isLocked,
       canEditMerchant,
+      canConfigureMerchant,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         open: "mtt.merchant.status.open",
@@ -79,15 +81,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareItems() {
-    return this.actor.items.map((item) => ({
-      id: item.id,
-      uuid: item.uuid,
-      name: item.name,
-      type: item.type,
-      img: item.img,
-      quantity: foundry.utils.getProperty(item, "system.quantity") ?? null,
-      document: item,
-    }));
+    return this.actor.items.map((item) => {
+      const quantity = foundry.utils.getProperty(item, "system.quantity");
+      return {
+        id: item.id,
+        uuid: item.uuid,
+        name: item.name,
+        type: item.type,
+        img: item.img,
+        quantity: quantity ?? null,
+        hasQuantity: quantity !== null && quantity !== undefined,
+        document: item,
+      };
+    });
   }
 
   static async #onCreateItem(event, target) {
@@ -180,9 +186,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return false;
 
     if (this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return false;
     }
 

@@ -55,4 +55,12 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
       }),
     };
   }
+
+  /**
+   * Placeholder method for CO2 system compatibility.
+   * MTT merchants don't use CO2 actions, so this is a no-op.
+   */
+  updateAllActionsUuid() {
+    // No-op: MTT merchants don't use CO2 action system
+  }
 }

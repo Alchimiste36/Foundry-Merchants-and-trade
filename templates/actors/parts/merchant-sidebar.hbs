@@ -3,9 +3,13 @@
     <h2 class="mtt-merchant-section-title">{{localize "mtt.manager.title"}}</h2>
 
     {{#if system.manager.displayName}}
-      <p class="mtt-merchant-sidebar-summary-text">{{system.manager.displayName}}</p>
+      <p
+        class="mtt-merchant-sidebar-summary-text"
+      >{{system.manager.displayName}}</p>
     {{else}}
-      <p class="mtt-merchant-sidebar-summary-text">{{localize "mtt.manager.empty"}}</p>
+      <p class="mtt-merchant-sidebar-summary-text">{{localize
+          "mtt.manager.empty"
+        }}</p>
     {{/if}}
   </section>
 </aside>

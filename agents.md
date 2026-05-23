@@ -63,6 +63,55 @@ Les fonctionnalités avancées viennent plus tard.
 
 ---
 
+## Règle de simplicité des outils de développement
+
+Le projet MTT doit rester simple dans ses outils de développement.
+
+Ne pas ajouter de dépendance npm, de plugin Gulp, de configuration de build ou d’outil supplémentaire sans nécessité claire et explicitement demandée.
+
+Pour la phase actuelle, les outils autorisés sont :
+
+- `gulp`
+- `gulp-less`
+- `less`
+- `prettier`
+- `eslint`
+- `@eslint/js`
+- `globals`
+
+Le fichier `gulpfile.mjs` doit rester minimal.
+
+Il doit uniquement compiler :
+
+````text
+styles/mtt.less
+
+vers :
+
+css/mtt.css
+
+et permettre un mode watch sur les fichiers .less.
+
+Ne pas ajouter automatiquement :
+
+gulp-sourcemaps
+gulp-clean-css
+minification CSS
+sourcemaps
+bundler JavaScript
+transpiler
+framework CSS
+dépendance liée à Steam, au commerce en ligne ou à un sujet externe
+outil de packaging non demandé
+
+Si une nouvelle dépendance semble utile, proposer d’abord l’ajout avec une justification courte, puis attendre validation avant de modifier package.json, package-lock.json ou gulpfile.mjs.
+
+Principe général :
+
+Commencer par la solution la plus simple qui fonctionne, puis complexifier seulement si un besoin réel apparaît.
+
+En cas de doute, ne pas ajouter de dépendance.
+
 ## 4. Type d’acteur marchand
 
 Le module doit fournir son propre sous-type d’acteur marchand.
@@ -71,7 +120,7 @@ Type attendu :
 
 ```text
 mtt-merchants.merchant
-```
+````
 
 Le module ne doit pas modifier les types d’acteurs du système actif.
 

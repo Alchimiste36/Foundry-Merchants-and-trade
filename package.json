@@ -1,0 +1,23 @@
+{
+  "name": "mtt-merchants",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Merchants, Trades and Transactions module for Foundry VTT.",
+  "scripts": {
+    "compile": "gulp compile",
+    "watch": "gulp watch",
+    "format": "prettier --write \"**/*.{js,mjs,json,md,hbs,less,css}\"",
+    "format:check": "prettier --check \"**/*.{js,mjs,json,md,hbs,less,css}\"",
+    "lint": "eslint \"**/*.{js,mjs}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "gulp": "^5.0.1",
+    "gulp-less": "^5.0.0",
+    "less": "^4.2.0",
+    "prettier": "^3.2.5"
+  }
+}

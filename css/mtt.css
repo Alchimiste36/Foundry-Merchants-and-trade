@@ -1,0 +1,267 @@
+.mtt-sheet {
+  font-family: var(--font-family);
+  color: var(--text-color);
+}
+.mtt-merchant-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.mtt-merchant-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mtt-merchant-content {
+  display: flex;
+  gap: 1rem;
+}
+.mtt-merchant-sidebar {
+  width: 280px;
+  min-width: 240px;
+}
+.mtt-merchant-main {
+  flex: 1;
+  min-width: 0;
+}
+.mtt-merchant-header,
+.mtt-merchant-main-zone,
+.mtt-merchant-products,
+.mtt-merchant-sidebar,
+.mtt-merchant-services {
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.06);
+}
+.mtt-merchant-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mtt-merchant-identity {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.mtt-merchant-image-container {
+  width: 120px;
+  height: 120px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.05);
+}
+.mtt-merchant-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mtt-merchant-image-editable {
+  cursor: pointer;
+  opacity: 0.9;
+}
+.mtt-merchant-title-block {
+  flex: 1;
+}
+.mtt-merchant-name {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.mtt-merchant-name-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 0.5rem;
+  background: #fbfbfb;
+  color: inherit;
+}
+.mtt-merchant-state-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.mtt-merchant-lock-button,
+.mtt-merchant-open-button,
+.mtt-merchant-product-create-button,
+.mtt-merchant-product-action {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.5rem;
+  background: #f7f7f7;
+  color: inherit;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+}
+.mtt-merchant-lock-button:hover,
+.mtt-merchant-open-button:hover,
+.mtt-merchant-product-create-button:hover,
+.mtt-merchant-product-action:hover {
+  background: #f0f0f0;
+}
+.mtt-merchant-lock-button i,
+.mtt-merchant-open-button i,
+.mtt-merchant-product-action i {
+  margin-right: 0.35rem;
+}
+.mtt-merchant-manager-block,
+.mtt-merchant-description-block,
+.mtt-merchant-sidebar-panel {
+  margin-top: 0.5rem;
+}
+.mtt-merchant-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.mtt-merchant-manager-fields,
+.mtt-merchant-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mtt-merchant-field-label {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.7);
+}
+.mtt-merchant-field-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0.5rem;
+  background: #fff;
+}
+.mtt-merchant-manager-summary,
+.mtt-merchant-description-content,
+.mtt-merchant-sidebar-summary-text {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+  background: #fafafa;
+}
+.mtt-merchant-description-editor,
+.mtt-merchant-description-content {
+  min-height: 120px;
+}
+.mtt-merchant-main-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mtt-merchant-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mtt-merchant-navigation-tab {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f3f3;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  color: inherit;
+  cursor: pointer;
+}
+.mtt-merchant-navigation-tab-active {
+  background: #e6e6ff;
+  border: 1px solid #d6d6ff;
+}
+.mtt-merchant-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mtt-merchant-products-header,
+.mtt-merchant-empty-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.mtt-merchant-product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+.mtt-merchant-product-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
+  background: #fafafa;
+}
+.mtt-merchant-product-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.mtt-merchant-product-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+.mtt-merchant-product-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.mtt-merchant-product-name {
+  font-weight: 600;
+}
+.mtt-merchant-product-type {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+.mtt-merchant-product-details,
+.mtt-merchant-product-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mtt-merchant-product-quantity {
+  font-size: 0.9rem;
+}
+.mtt-merchant-product-quantity-empty {
+  color: rgba(0, 0, 0, 0.5);
+}
+.mtt-merchant-product-action {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 0.5rem;
+}
+.mtt-merchant-product-delete {
+  color: #b03a2e;
+}
+.mtt-merchant-empty-tab {
+  flex-direction: column;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+.mtt-merchant-empty-tab-title {
+  margin: 0.5rem 0 0.25rem;
+}
+.mtt-merchant-empty-tab-text {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.65);
+}
+@media (max-width: 980px) {
+  .mtt-merchant-content {
+    flex-direction: column;
+  }
+  .mtt-merchant-sidebar {
+    width: 100%;
+  }
+}

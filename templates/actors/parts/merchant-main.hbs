@@ -6,7 +6,7 @@
   <section class="mtt-merchant-tab-content">
     {{#if (eq mtt.activeTab "products")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-products" data-tab="products">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-products.hbs"}}
+        {{> (lookup @root.partials "products")}}
       </section>
     {{/if}}
 

@@ -14,11 +14,15 @@ Hooks.once("init", async function () {
 
   CONFIG.Actor.dataModels[MTT.ACTOR_TYPES.MERCHANT] = models.MerchantData;
 
-  foundry.documents.collections.Actors.registerSheet(MTT.ID, applications.MerchantSheet, {
-    types: [MTT.ACTOR_TYPES.MERCHANT],
-    makeDefault: true,
-    label: "mtt.sheets.merchant",
-  });
+  foundry.documents.collections.Actors.registerSheet(
+    MTT.ID,
+    applications.MerchantSheet,
+    {
+      types: [MTT.ACTOR_TYPES.MERCHANT],
+      makeDefault: true,
+      label: "mtt.sheets.merchant",
+    },
+  );
 
   registerSettings();
 

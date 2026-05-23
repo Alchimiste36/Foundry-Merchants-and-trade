@@ -1,8 +1,12 @@
 <section class="mtt-merchant-products">
   <header class="mtt-merchant-products-header">
     <div class="mtt-merchant-products-title-block">
-      <h2 class="mtt-merchant-section-title">{{localize "mtt.products.title"}}</h2>
-      <p class="mtt-merchant-section-subtitle">{{localize "mtt.products.subtitle"}}</p>
+      <h2 class="mtt-merchant-section-title">{{localize
+          "mtt.products.title"
+        }}</h2>
+      <p class="mtt-merchant-section-subtitle">{{localize
+          "mtt.products.subtitle"
+        }}</p>
     </div>
 
     {{#if mtt.canEditMerchant}}
@@ -43,7 +47,9 @@
                 {{item.quantity}}
               </span>
             {{else}}
-              <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
+              <span
+                class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty"
+              >
                 {{localize "mtt.products.quantity.undefined"}}
               </span>
             {{/if}}
@@ -76,11 +82,17 @@
   {{else}}
     <div class="mtt-merchant-products-empty">
       <i class="fas fa-box-open"></i>
-      <h3 class="mtt-merchant-products-empty-title">{{localize "mtt.products.empty.title"}}</h3>
-      <p class="mtt-merchant-products-empty-text">{{localize "mtt.products.empty.text"}}</p>
+      <h3 class="mtt-merchant-products-empty-title">{{localize
+          "mtt.products.empty.title"
+        }}</h3>
+      <p class="mtt-merchant-products-empty-text">{{localize
+          "mtt.products.empty.text"
+        }}</p>
 
       {{#if mtt.canEditMerchant}}
-        <p class="mtt-merchant-products-empty-help">{{localize "mtt.products.empty.help"}}</p>
+        <p class="mtt-merchant-products-empty-help">{{localize
+            "mtt.products.empty.help"
+          }}</p>
       {{/if}}
     </div>
   {{/if}}

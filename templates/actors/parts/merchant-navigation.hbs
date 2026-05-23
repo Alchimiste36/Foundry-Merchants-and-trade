@@ -29,13 +29,15 @@
     <span>{{localize "mtt.tabs.sessions"}}</span>
   </button>
 
-  <button
-  class="mtt-merchant-navigation-tab {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-navigation-tab-active{{/if}}"
-  type="button"
-  data-action="selectTab"
-  data-tab="configuration"
->
-  <i class="fas fa-gear"></i>
-  <span>{{localize "mtt.tabs.configuration"}}</span>
-</button>
+  {{#if mtt.canConfigureMerchant}}
+    <button
+      class="mtt-merchant-navigation-tab {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-navigation-tab-active{{/if}}"
+      type="button"
+      data-action="selectTab"
+      data-tab="configuration"
+    >
+      <i class="fas fa-gear"></i>
+      <span>{{localize "mtt.tabs.configuration"}}</span>
+    </button>
+  {{/if}}
 </nav>

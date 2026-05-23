@@ -4,23 +4,29 @@ const { ActorSheetV2 } = foundry.applications.sheets;
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
-  static DEFAULT_OPTIONS = {
-    classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET],
-    position: {
-      width: 760,
-      height: 640,
-    },
-    window: {
-      title: "mtt.sheets.merchant",
-    },
-    actions: {
-      createItem: MerchantSheet.#onCreateItem,
-      editItem: MerchantSheet.#onEditItem,
-      deleteItem: MerchantSheet.#onDeleteItem,
-      toggleOpen: MerchantSheet.#onToggleOpen,
-      toggleLock: MerchantSheet.#onToggleLock,
-    },
-  };
+  #activeTab = "products";
+
+  static get defaultOptions() {
+    return mergeObject(super.defaultOptions, {
+      classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET],
+      template: MTT.TEMPLATES.MERCHANT_SHEET,
+      position: {
+        width: 760,
+        height: 640,
+      },
+      window: {
+        title: "mtt.sheets.merchant",
+      },
+      actions: {
+        createItem: MerchantSheet.#onCreateItem,
+        editItem: MerchantSheet.#onEditItem,
+        deleteItem: MerchantSheet.#onDeleteItem,
+        toggleOpen: MerchantSheet.#onToggleOpen,
+        toggleLock: MerchantSheet.#onToggleLock,
+        selectTab: MerchantSheet.#onSelectTab,
+      },
+    });
+  }
 
   static PARTS = {
     header: {
@@ -34,6 +40,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     },
     navigation: {
       template: MTT.TEMPLATES.MERCHANT_NAVIGATION,
+    },
+    products: {
+      template: MTT.TEMPLATES.MERCHANT_PRODUCTS,
     },
     services: {
       template: MTT.TEMPLATES.MERCHANT_SERVICES,
@@ -64,6 +73,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.system = this.actor.system;
     context.items = this.#prepareItems();
+    context.mtt.activeTab = this.#activeTab;
 
     return context;
   }
@@ -152,11 +162,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  static #onSelectTab(event, target) {
+    event.preventDefault();
+
+    const tab = target.dataset.tab;
+    if (!tab) return;
+
+    this.#setActiveTab(tab);
+  }
+
+  #setActiveTab(tab) {
+    this.#activeTab = tab;
+    this.render();
+  }
+
   #canModifyMerchant() {
     if (!this.isEditable) return false;
 
     if (this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
+      ui.notifications.warn(
+        game.i18n.localize("mtt.notifications.sheetLocked"),
+      );
       return false;
     }
 

@@ -60,7 +60,8 @@
     },
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",
-      "onlyItemsCanBeDropped": "Only items can be added to the merchant."
+      "onlyItemsCanBeDropped": "Only items can be added to the merchant.",
+      "invalidQuantity": "La quantité doit être un nombre positif ou égal à zéro."
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"

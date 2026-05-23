@@ -26,6 +26,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleOpen: MerchantSheet.#onToggleOpen,
       toggleLock: MerchantSheet.#onToggleLock,
       selectTab: MerchantSheet.#onSelectTab,
+      updateProductField: MerchantSheet.#onUpdateProductField,
     },
   };
 
@@ -91,22 +92,61 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #prepareItems() {
     return this.actor.items.map((item) => {
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-      const quantity = product.quantity ?? foundry.utils.getProperty(item, "system.quantity");
+      const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
 
       return {
         id: item.id,
         uuid: item.uuid,
         name: item.name,
-        displayName: product.displayName || item.name,
         type: item.type,
         img: item.img,
-        quantity: quantity ?? null,
+        quantity,
         hasQuantity: quantity !== null && quantity !== undefined,
-        isHidden: product.isHidden ?? false,
-        requiresApproval: product.requiresApproval ?? false,
         document: item,
       };
     });
+  }
+
+  #getItemFromEvent(target) {
+    const itemId = target.closest("[data-item-id]")?.dataset.itemId;
+    if (!itemId) return null;
+
+    return this.actor.items.get(itemId) ?? null;
+  }
+
+  static async #onUpdateProductField(event, target) {
+    event.preventDefault();
+
+    if (!this.#canModifyMerchant()) return;
+
+    const item = this.#getItemFromEvent(target);
+    if (!item) return;
+
+    const field = target.dataset.field;
+    const value = target.value;
+
+    if (field === "name") {
+      await item.update({
+        name: value?.trim() || item.name,
+      });
+      return;
+    }
+
+    if (field === "quantity") {
+      const quantity = Number(value);
+
+      if (!Number.isFinite(quantity) || quantity < 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
+        return;
+      }
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        quantity,
+      });
+    }
   }
 
   #createProductFlags(itemData) {

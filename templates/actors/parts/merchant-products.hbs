@@ -38,7 +38,17 @@
               />
 
               <div class="mtt-merchant-product-identity">
-                <span class="mtt-merchant-product-name">{{item.displayName}}</span>
+                {{#if @root.mtt.canEditMerchant}}
+                  <input
+                    class="mtt-merchant-product-name-input"
+                    type="text"
+                    value="{{item.name}}"
+                    data-action="updateProductField"
+                    data-field="name"
+                  />
+                {{else}}
+                  <span class="mtt-merchant-product-name">{{item.name}}</span>
+                {{/if}}
                 <span class="mtt-merchant-product-type">{{item.type}}</span>
                 {{#if item.isHidden}}
                   <span class="mtt-merchant-product-tag mtt-merchant-product-tag-hidden">
@@ -55,15 +65,26 @@
             </div>
 
             <div class="mtt-merchant-product-details">
-              {{#if item.hasQuantity}}
-                <span class="mtt-merchant-product-quantity">
-                  {{localize "mtt.products.quantity.short"}}
-                  {{item.quantity}}
-                </span>
+              {{#if @root.mtt.canEditMerchant}}
+                <input
+                  class="mtt-merchant-product-quantity-input"
+                  type="number"
+                  min="0"
+                  value="{{item.quantity}}"
+                  data-action="updateProductField"
+                  data-field="quantity"
+                />
               {{else}}
-                <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
-                  {{localize "mtt.products.quantity.undefined"}}
-                </span>
+                {{#if item.hasQuantity}}
+                  <span class="mtt-merchant-product-quantity">
+                    {{localize "mtt.products.quantity.short"}}
+                    {{item.quantity}}
+                  </span>
+                {{else}}
+                  <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
+                    {{localize "mtt.products.quantity.undefined"}}
+                  </span>
+                {{/if}}
               {{/if}}
             </div>
 

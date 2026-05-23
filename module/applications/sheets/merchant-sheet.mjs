@@ -6,46 +6,32 @@ const { HandlebarsApplicationMixin } = foundry.applications.api;
 export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #activeTab = "products";
 
-  static get defaultOptions() {
-    return mergeObject(super.defaultOptions, {
-      classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET],
-      template: MTT.TEMPLATES.MERCHANT_SHEET,
-      position: {
-        width: 760,
-        height: 640,
-      },
-      window: {
-        title: "mtt.sheets.merchant",
-      },
-      actions: {
-        createItem: MerchantSheet.#onCreateItem,
-        editItem: MerchantSheet.#onEditItem,
-        deleteItem: MerchantSheet.#onDeleteItem,
-        toggleOpen: MerchantSheet.#onToggleOpen,
-        toggleLock: MerchantSheet.#onToggleLock,
-        selectTab: MerchantSheet.#onSelectTab,
-      },
-    });
-  }
+  static DEFAULT_OPTIONS = {
+    classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET],
+    position: {
+      width: 920,
+      height: 720,
+    },
+    form: {
+      submitOnChange: true,
+    },
+    window: {
+      title: "mtt.sheets.merchant",
+      resizable: true,
+    },
+    actions: {
+      createItem: MerchantSheet.#onCreateItem,
+      editItem: MerchantSheet.#onEditItem,
+      deleteItem: MerchantSheet.#onDeleteItem,
+      toggleOpen: MerchantSheet.#onToggleOpen,
+      toggleLock: MerchantSheet.#onToggleLock,
+      selectTab: MerchantSheet.#onSelectTab,
+    },
+  };
 
   static PARTS = {
-    header: {
-      template: MTT.TEMPLATES.MERCHANT_HEADER,
-    },
-    sidebar: {
-      template: MTT.TEMPLATES.MERCHANT_SIDEBAR,
-    },
-    main: {
-      template: MTT.TEMPLATES.MERCHANT_MAIN,
-    },
-    navigation: {
-      template: MTT.TEMPLATES.MERCHANT_NAVIGATION,
-    },
-    products: {
-      template: MTT.TEMPLATES.MERCHANT_PRODUCTS,
-    },
-    services: {
-      template: MTT.TEMPLATES.MERCHANT_SERVICES,
+    body: {
+      template: MTT.TEMPLATES.MERCHANT_SHEET,
     },
   };
 
@@ -58,6 +44,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     context.mtt = {
       css: MTT.CSS,
+      activeTab: this.#activeTab,
       isLocked,
       isUnlocked: !isLocked,
       canEditMerchant,
@@ -75,7 +62,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.system = this.actor.system;
     context.items = this.#prepareItems();
-    context.mtt.activeTab = this.#activeTab;
 
     return context;
   }
@@ -83,6 +69,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #prepareItems() {
     return this.actor.items.map((item) => {
       const quantity = foundry.utils.getProperty(item, "system.quantity");
+
       return {
         id: item.id,
         uuid: item.uuid,
@@ -174,10 +161,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const tab = target.dataset.tab;
     if (!tab) return;
 
-    this.#setActiveTab(tab);
-  }
+    if (tab === "configuration" && !this.isEditable) return;
 
-  #setActiveTab(tab) {
     this.#activeTab = tab;
     this.render();
   }

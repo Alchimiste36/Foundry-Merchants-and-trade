@@ -12,8 +12,8 @@ Hooks.once("init", async function () {
     applications,
   };
 
-  // Register the custom Actor class for merchants to bypass system-specific logic
-  CONFIG.Actor.documentClasses[MTT.ACTOR_TYPES.MERCHANT] = models.MerchantActor;
+  await foundry.applications.handlebars.loadTemplates(Object.values(MTT.TEMPLATES));
+
   CONFIG.Actor.dataModels[MTT.ACTOR_TYPES.MERCHANT] = models.MerchantData;
 
   foundry.documents.collections.Actors.registerSheet(MTT.ID, applications.MerchantSheet, {

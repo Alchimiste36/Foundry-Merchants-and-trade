@@ -1,18 +1,18 @@
 <section class="mtt-merchant-main-zone">
   <header class="mtt-merchant-main-header">
-    {{> "navigation"}}
+    {{> "modules/mtt-merchants/templates/actors/parts/merchant-navigation.hbs"}}
   </header>
 
   <section class="mtt-merchant-tab-content">
     {{#if (eq mtt.activeTab "products")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-products" data-tab="products">
-        {{> "products"}}
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-products.hbs"}}
       </section>
     {{/if}}
 
     {{#if (eq mtt.activeTab "services")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
-        {{> "services"}}
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs"}}
       </section>
     {{/if}}
 

@@ -1,12 +1,12 @@
 <form class="mtt-merchant-form {{#if mtt.isLocked}}mtt-is-locked{{else}}mtt-is-unlocked{{/if}}" autocomplete="off">
   <section class="mtt-merchant-layout">
-    {{> "header"}}
+    {{> "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs"}}
 
     <section class="mtt-merchant-content">
-      {{> "sidebar"}}
+      {{> "modules/mtt-merchants/templates/actors/parts/merchant-sidebar.hbs"}}
 
       <main class="mtt-merchant-main">
-        {{> "main"}}
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
       </main>
     </section>
   </section>

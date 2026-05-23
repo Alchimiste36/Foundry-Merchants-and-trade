@@ -13,6 +13,9 @@ export const MTT = {
   PRODUCT_DEFAULTS: {
     displayName: "",
     quantity: 1,
+    secretName: "",
+    secretPrice: "",
+    secretDescription: "",
     isHidden: false,
     requiresApproval: false,
   },

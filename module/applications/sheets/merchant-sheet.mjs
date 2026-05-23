@@ -101,20 +101,26 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return this.actor.items.map((item) => {
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
+      const displayName = product.displayName || item.name;
 
       return {
         id: item.id,
         uuid: item.uuid,
         name: item.name,
+        displayName,
+        hasCustomDisplayName: displayName !== item.name,
         type: item.type,
         img: item.img,
         quantity,
         hasQuantity: quantity !== null && quantity !== undefined,
         document: item,
+        secretName: product.secretName ?? "",
+        secretPrice: product.secretPrice ?? "",
+        secretDescription: product.secretDescription ?? "",
+        hasSecretInfos: Boolean(product.secretName || product.secretPrice || product.secretDescription),
       };
     });
   }
-
   #getItemFromEvent(target) {
     const itemId = target.closest("[data-item-id]")?.dataset.itemId;
     if (!itemId) return null;
@@ -124,6 +130,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #createProductFlags(itemData) {
     const productFlags = foundry.utils.deepClone(MTT.PRODUCT_DEFAULTS);
+
+    productFlags.displayName = itemData.name ?? "";
 
     foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags);
 
@@ -221,15 +229,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const field = target.dataset.mttProductField;
 
-    if (field === "name") {
-      const name = target.value?.trim();
+    if (field === "displayName") {
+      const displayName = target.value?.trim();
 
-      if (!name) {
-        target.value = item.name;
-        return;
-      }
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
 
-      await item.update({ name });
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        displayName: displayName || item.name,
+      });
+
       return;
     }
 
@@ -247,6 +256,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         quantity,
+      });
+    }
+    if (["secretName", "secretPrice", "secretDescription"].includes(field)) {
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        [field]: target.value?.trim() ?? "",
       });
     }
   }

@@ -42,11 +42,17 @@
                   <input
                     class="mtt-merchant-product-name-input"
                     type="text"
-                    value="{{item.name}}"
-                    data-mtt-product-field="name"
+                    value="{{item.displayName}}"
+                    data-mtt-product-field="displayName"
                   />
                 {{else}}
-                  <span class="mtt-merchant-product-name">{{item.name}}</span>
+                  <span class="mtt-merchant-product-name">{{item.displayName}}</span>
+                {{/if}}
+                {{#if (ne item.displayName item.name)}}
+                  <span class="mtt-merchant-product-source-name">
+                    {{localize "mtt.products.sourceName"}}
+                    {{item.name}}
+                  </span>
                 {{/if}}
                 <span class="mtt-merchant-product-type">{{item.type}}</span>
                 {{#if item.isHidden}}
@@ -107,6 +113,59 @@
                 </button>
               {{/if}}
             </div>
+            {{#if @root.mtt.canEditMerchant}}
+              <div class="mtt-merchant-product-secret">
+                <h4 class="mtt-merchant-product-secret-title">
+                  {{localize "mtt.products.secret.title"}}
+                </h4>
+
+                <label class="mtt-merchant-product-secret-field">
+                  <span>{{localize "mtt.products.secret.name"}}</span>
+                  <input
+                    class="mtt-merchant-product-secret-input"
+                    type="text"
+                    value="{{item.secretName}}"
+                    data-mtt-product-field="secretName"
+                  />
+                </label>
+
+                <label class="mtt-merchant-product-secret-field">
+                  <span>{{localize "mtt.products.secret.price"}}</span>
+                  <input
+                    class="mtt-merchant-product-secret-input"
+                    type="text"
+                    value="{{item.secretPrice}}"
+                    data-mtt-product-field="secretPrice"
+                  />
+                </label>
+
+                <label class="mtt-merchant-product-secret-field">
+                  <span>{{localize "mtt.products.secret.description"}}</span>
+                  <textarea
+                    class="mtt-merchant-product-secret-textarea"
+                    data-mtt-product-field="secretDescription"
+                  >{{item.secretDescription}}</textarea>
+                </label>
+              </div>
+            {{else if item.hasSecretInfos}}
+              <div class="mtt-merchant-product-secret mtt-merchant-product-secret-readonly">
+                <h4 class="mtt-merchant-product-secret-title">
+                  {{localize "mtt.products.secret.title"}}
+                </h4>
+
+                {{#if item.secretName}}
+                  <p><strong>{{localize "mtt.products.secret.name"}}</strong> {{item.secretName}}</p>
+                {{/if}}
+
+                {{#if item.secretPrice}}
+                  <p><strong>{{localize "mtt.products.secret.price"}}</strong> {{item.secretPrice}}</p>
+                {{/if}}
+
+                {{#if item.secretDescription}}
+                  <p><strong>{{localize "mtt.products.secret.description"}}</strong> {{item.secretDescription}}</p>
+                {{/if}}
+              </div>
+            {{/if}}
           </li>
         {{/each}}
       </ol>

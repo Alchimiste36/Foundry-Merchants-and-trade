@@ -1,0 +1,118 @@
+<header class="mtt-merchant-header">
+  <div class="mtt-merchant-identity">
+    <div class="mtt-merchant-image-container">
+      <img
+        class="mtt-merchant-image {{#if mtt.isUnlocked}}mtt-merchant-image-editable{{/if}}"
+        src="{{actor.img}}"
+        data-tooltip="{{actor.name}}"
+        {{#if mtt.isUnlocked}}
+          data-edit="img"
+        {{/if}}
+      />
+    </div>
+
+    <div class="mtt-merchant-title-block">
+      {{#if mtt.isUnlocked}}
+        <input
+          class="mtt-merchant-name-input"
+          name="name"
+          type="text"
+          value="{{actor.name}}"
+          placeholder="{{localize 'mtt.merchant.name.placeholder'}}"
+          spellcheck="false"
+        />
+      {{else}}
+        <h1 class="mtt-merchant-name">{{actor.name}}</h1>
+      {{/if}}
+
+      <div class="mtt-merchant-state-row">
+        <button
+          class="mtt-merchant-lock-button"
+          type="button"
+          data-action="toggleLock"
+          data-tooltip="{{#if mtt.isLocked}}{{localize 'mtt.sheet.unlock'}}{{else}}{{localize 'mtt.sheet.lock'}}{{/if}}"
+        >
+          {{#if mtt.isLocked}}
+            <i class="fas fa-lock"></i>
+            <span>{{localize "mtt.sheet.locked"}}</span>
+          {{else}}
+            <i class="fas fa-lock-open"></i>
+            <span>{{localize "mtt.sheet.unlocked"}}</span>
+          {{/if}}
+        </button>
+
+        <button
+          class="mtt-merchant-open-button"
+          type="button"
+          data-action="toggleOpen"
+          {{#unless mtt.canEditMerchant}}disabled{{/unless}}
+          data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.merchant.status.open'}}{{else}}{{localize 'mtt.merchant.status.closed'}}{{/if}}"
+        >
+          {{#if system.status.isOpen}}
+            <i class="fas fa-door-open"></i>
+            <span>{{localize "mtt.merchant.status.open"}}</span>
+          {{else}}
+            <i class="fas fa-door-closed"></i>
+            <span>{{localize "mtt.merchant.status.closed"}}</span>
+          {{/if}}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <section class="mtt-merchant-manager-block">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.manager.title"}}</h2>
+
+    {{#if mtt.isUnlocked}}
+      <div class="mtt-merchant-manager-fields">
+        <label class="mtt-merchant-field">
+          <span class="mtt-merchant-field-label">{{localize "mtt.manager.mode.label"}}</span>
+          <select class="mtt-merchant-field-input" name="system.manager.mode">
+            <option value="text" {{#if (eq system.manager.mode "text")}}selected{{/if}}>
+              {{localize "mtt.manager.mode.text"}}
+            </option>
+            <option value="actor" {{#if (eq system.manager.mode "actor")}}selected{{/if}}>
+              {{localize "mtt.manager.mode.actor"}}
+            </option>
+          </select>
+        </label>
+
+        <label class="mtt-merchant-field">
+          <span class="mtt-merchant-field-label">{{localize "mtt.manager.displayName.label"}}</span>
+          <input
+            class="mtt-merchant-field-input"
+            type="text"
+            name="system.manager.displayName"
+            value="{{system.manager.displayName}}"
+            placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
+          />
+        </label>
+      </div>
+    {{else}}
+      <div class="mtt-merchant-manager-summary">
+        {{#if system.manager.displayName}}
+          <span class="mtt-merchant-manager-name">{{system.manager.displayName}}</span>
+        {{else}}
+          <span class="mtt-merchant-manager-empty">{{localize "mtt.manager.empty"}}</span>
+        {{/if}}
+      </div>
+    {{/if}}
+  </section>
+
+  <section class="mtt-merchant-description-block">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.merchant.description.title"}}</h2>
+
+    {{#if mtt.isUnlocked}}
+      <prose-mirror
+        class="mtt-merchant-description-editor"
+        name="system.merchant.description"
+        value="{{system.merchant.description}}"
+        toggled="true"
+      ></prose-mirror>
+    {{else}}
+      <div class="mtt-merchant-description-content">
+        {{{system.merchant.description}}}
+      </div>
+    {{/if}}
+  </section>
+</header>

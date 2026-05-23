@@ -32,6 +32,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     main: {
       template: MTT.TEMPLATES.MERCHANT_MAIN,
     },
+    navigation: {
+      template: MTT.TEMPLATES.MERCHANT_NAVIGATION,
+    },
+    services: {
+      template: MTT.TEMPLATES.MERCHANT_SERVICES,
+    },
   };
 
   async _prepareContext(options) {

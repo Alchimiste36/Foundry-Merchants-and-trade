@@ -1,6 +1,6 @@
 <section class="mtt-merchant-main-zone">
   <header class="mtt-merchant-main-header">
-    {{> "modules/mtt-merchants/templates/actors/parts/merchant-navigation.hbs"}}
+    {{> (lookup @root.partials "navigation")}}
   </header>
 
   <section class="mtt-merchant-tab-content">
@@ -12,11 +12,7 @@
 
     {{#if (eq mtt.activeTab "services")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
-        <div class="mtt-merchant-empty-tab">
-          <i class="fas fa-handshake"></i>
-          <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.services.empty.title"}}</h2>
-          <p class="mtt-merchant-empty-tab-text">{{localize "mtt.services.empty.text"}}</p>
-        </div>
+        {{> (lookup @root.partials "services")}}
       </section>
     {{/if}}
 

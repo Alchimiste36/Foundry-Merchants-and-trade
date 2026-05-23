@@ -11,6 +11,7 @@ export const MTT = {
     MERCHANT_HEADER: "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs",
     MERCHANT_SIDEBAR: "modules/mtt-merchants/templates/actors/parts/merchant-sidebar.hbs",
     MERCHANT_MAIN: "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs",
+    MERCHANT_NAVIGATION: "modules/mtt-merchants/templates/actors/parts/merchant-navigation.hbs",
     MERCHANT_PRODUCTS: "modules/mtt-merchants/templates/actors/parts/merchant-products.hbs",
     MERCHANT_SERVICES: "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs",
   },
@@ -18,7 +19,5 @@ export const MTT = {
   CSS: {
     SHEET: "mtt-sheet",
     MERCHANT_SHEET: "mtt-merchant-sheet",
-    MERCHANT_HEADER: "mtt-merchant-header",
-    MERCHANT_ITEMS: "mtt-merchant-items",
   },
 };

@@ -49,11 +49,7 @@
     {{#if mtt.canConfigureMerchant}}
       {{#if (eq mtt.activeTab "configuration")}}
         <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-configuration" data-tab="configuration">
-          <div class="mtt-merchant-empty-tab">
-            <i class="fas fa-gear"></i>
-            <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.configuration.empty.title"}}</h2>
-            <p class="mtt-merchant-empty-tab-text">{{localize "mtt.configuration.empty.text"}}</p>
-          </div>
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs"}}
         </section>
       {{/if}}
     {{/if}}

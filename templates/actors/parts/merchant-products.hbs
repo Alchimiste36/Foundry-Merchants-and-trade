@@ -161,7 +161,7 @@
 
                         <div class="mtt-merchant-product-price">
                           <label class="mtt-merchant-product-price-field">
-                            <span class="mtt-merchant-product-price-label">{{localize "mtt.products.price.label"}}</span>
+                            <span class="mtt-merchant-product-price-label">{{localize "mtt.products.price.base"}}</span>
                             <input
                               class="mtt-merchant-product-price-value"
                               type="number"
@@ -179,6 +179,17 @@
                               data-mtt-product-field="priceCurrency"
                             />
                           </label>
+                          <span
+                            class="mtt-merchant-product-adjusted-price"
+                            data-tooltip="{{localize 'mtt.configuration.sellPercentApplied'}}"
+                          >
+                            {{localize "mtt.products.price.adjusted"}}
+                            {{#if item.hasPrice}}
+                              {{item.displayPriceLabel}}
+                            {{else}}
+                              {{localize "mtt.products.price.undefined"}}
+                            {{/if}}
+                          </span>
                         </div>
                       {{else}}
                         {{#if item.hasQuantity}}
@@ -194,7 +205,7 @@
 
                         <div class="mtt-merchant-product-price-readonly">
                           {{#if item.hasPrice}}
-                            <span class="mtt-merchant-product-price-display">{{item.priceLabel}}</span>
+                            <span class="mtt-merchant-product-price-display">{{item.displayPriceLabel}}</span>
                           {{else}}
                             <span class="mtt-merchant-product-price-undefined">{{localize "mtt.products.price.undefined"}}</span>
                           {{/if}}
@@ -203,6 +214,17 @@
                     </div>
 
                     <div class="mtt-merchant-product-actions">
+                      {{#unless item.isHidden}}
+                        <button
+                          class="mtt-merchant-product-action"
+                          type="button"
+                          data-action="addProductToSession"
+                          data-tooltip="{{localize 'mtt.sessions.actions.addProduct'}}"
+                        >
+                          <i class="fas fa-cart-plus"></i>
+                        </button>
+                      {{/unless}}
+
                       <button
                         class="mtt-merchant-product-action"
                         type="button"

@@ -1,28 +1,66 @@
 <header class="mtt-merchant-header">
   <div class="mtt-merchant-header-left">
-    <div class="mtt-merchant-image-container">
+    <button
+      class="mtt-merchant-image-button"
+      type="button"
+      {{#if mtt.isUnlocked}}
+        data-action="editMerchantImage"
+        data-tooltip="{{localize 'mtt.merchant.image.edit'}}"
+      {{else}}
+        disabled
+        data-tooltip="{{actor.name}}"
+      {{/if}}
+    >
       <img
         class="mtt-merchant-image {{#if mtt.isUnlocked}}mtt-merchant-image-editable{{/if}}"
         src="{{actor.img}}"
-        data-tooltip="{{actor.name}}"
-        {{#if mtt.isUnlocked}}
-          data-edit="img"
-        {{/if}}
+        alt="{{actor.name}}"
       />
-    </div>
+    </button>
 
-    {{#if mtt.isUnlocked}}
-      <input
-        class="mtt-merchant-name-input"
-        name="name"
-        type="text"
-        value="{{actor.name}}"
-        placeholder="{{localize 'mtt.merchant.name.placeholder'}}"
-        spellcheck="false"
-      />
-    {{else}}
-      <h1 class="mtt-merchant-name">{{actor.name}}</h1>
-    {{/if}}
+    <div class="mtt-merchant-header-title-area">
+      {{#if mtt.isUnlocked}}
+        <input
+          class="mtt-merchant-name-input"
+          name="name"
+          type="text"
+          value="{{actor.name}}"
+          placeholder="{{localize 'mtt.merchant.name.placeholder'}}"
+          spellcheck="false"
+        />
+      {{else}}
+        <h1 class="mtt-merchant-name">{{actor.name}}</h1>
+      {{/if}}
+
+      <div class="mtt-merchant-state-row">
+        <button
+          class="mtt-merchant-lock-button"
+          type="button"
+          data-action="toggleLock"
+          data-tooltip="{{#if mtt.isLocked}}{{localize 'mtt.sheet.unlock'}}{{else}}{{localize 'mtt.sheet.lock'}}{{/if}}"
+        >
+          {{#if mtt.isLocked}}
+            <i class="fas fa-lock"></i>
+          {{else}}
+            <i class="fas fa-lock-open"></i>
+          {{/if}}
+        </button>
+
+        <button
+          class="mtt-merchant-open-button"
+          type="button"
+          data-action="toggleOpen"
+          {{#unless mtt.canEditMerchant}}disabled{{/unless}}
+          data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.sheet.closeMerchant'}}{{else}}{{localize 'mtt.sheet.openMerchant'}}{{/if}}"
+        >
+          {{#if system.status.isOpen}}
+            <i class="fas fa-door-open"></i>
+          {{else}}
+            <i class="fas fa-door-closed"></i>
+          {{/if}}
+        </button>
+      </div>
+    </div>
   </div>
 
   <div class="mtt-merchant-header-right">
@@ -53,6 +91,13 @@
         </div>
       {{else}}
         <div class="mtt-merchant-manager-summary">
+          <span class="mtt-merchant-manager-mode">
+            {{#if (eq system.manager.mode "actor")}}
+              {{localize "mtt.manager.mode.actor"}}
+            {{else}}
+              {{localize "mtt.manager.mode.text"}}
+            {{/if}}
+          </span>
           {{#if system.manager.displayName}}
             <span class="mtt-merchant-manager-name">{{system.manager.displayName}}</span>
           {{else}}
@@ -62,33 +107,19 @@
       {{/if}}
     </div>
 
-    <div class="mtt-merchant-state-row">
-      <button
-        class="mtt-merchant-lock-button"
-        type="button"
-        data-action="toggleLock"
-        data-tooltip="{{#if mtt.isLocked}}{{localize 'mtt.sheet.unlock'}}{{else}}{{localize 'mtt.sheet.lock'}}{{/if}}"
-      >
-        {{#if mtt.isLocked}}
-          <i class="fas fa-lock"></i>
-        {{else}}
-          <i class="fas fa-lock-open"></i>
-        {{/if}}
-      </button>
-
-      <button
-        class="mtt-merchant-open-button"
-        type="button"
-        data-action="toggleOpen"
-        {{#unless mtt.canEditMerchant}}disabled{{/unless}}
-        data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.sheet.closeMerchant'}}{{else}}{{localize 'mtt.sheet.openMerchant'}}{{/if}}"
-      >
-        {{#if system.status.isOpen}}
-          <i class="fas fa-door-open"></i>
-        {{else}}
-          <i class="fas fa-door-closed"></i>
-        {{/if}}
-      </button>
+    <div class="mtt-merchant-header-wallet-summary">
+      {{#if mtt.hasHeaderCurrencies}}
+        {{#each mtt.headerCurrencies as |currency|}}
+          <span class="mtt-merchant-header-wallet-currency">
+            <strong>{{currency.label}}</strong>
+            {{currency.amount}}
+          </span>
+        {{/each}}
+      {{else}}
+        <span class="mtt-merchant-header-wallet-empty">
+          {{localize "mtt.configuration.walletSummaryEmpty"}}
+        </span>
+      {{/if}}
     </div>
   </div>
 </header>

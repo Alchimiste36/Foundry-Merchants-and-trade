@@ -47,6 +47,32 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
         }),
       }),
 
+      trade: new fields.SchemaField({
+        buyPercent: new fields.NumberField({
+          required: true,
+          initial: 50,
+          min: 0,
+        }),
+        sellPercent: new fields.NumberField({
+          required: true,
+          initial: 100,
+          min: 0,
+        }),
+        negotiationFormula: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+      }),
+
+      wallet: new fields.SchemaField({
+        currencies: new fields.ObjectField({
+          required: false,
+          blank: true,
+          initial: {},
+        }),
+      }),
+
       catalog: new fields.SchemaField({
         keepEmptyItems: new fields.BooleanField({
           required: true,

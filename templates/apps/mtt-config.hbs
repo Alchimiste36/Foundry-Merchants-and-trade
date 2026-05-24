@@ -1,51 +1,97 @@
 <div class="mtt-config-body">
   <form class="mtt-config-form">
 
-    {{!-- Section : Chemins des objets --}}
+    {{! Section : Chemins des objets }}
     <section class="mtt-config-section">
-      <h3 class="mtt-config-section-title">{{localize "mtt.config.sections.items"}}</h3>
+      <h3 class="mtt-config-section-title">{{localize
+          "mtt.config.sections.items"
+        }}</h3>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.itemPriceValuePath.name"}}</label>
-        <input type="text" name="itemPriceValuePath" value="{{itemPriceValuePath}}" placeholder="system.price.value" />
-        <p class="mtt-config-hint">{{localize "mtt.settings.itemPriceValuePath.hint"}}</p>
+        <input
+          type="text"
+          name="itemPriceValuePath"
+          value="{{itemPriceValuePath}}"
+          placeholder="system.price.value"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.itemPriceValuePath.hint"
+          }}</p>
       </div>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.itemPriceCurrencyPath.name"}}</label>
-        <input type="text" name="itemPriceCurrencyPath" value="{{itemPriceCurrencyPath}}" placeholder="system.price.currency" />
-        <p class="mtt-config-hint">{{localize "mtt.settings.itemPriceCurrencyPath.hint"}}</p>
+        <input
+          type="text"
+          name="itemPriceCurrencyPath"
+          value="{{itemPriceCurrencyPath}}"
+          placeholder="system.price.currency"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.itemPriceCurrencyPath.hint"
+          }}</p>
       </div>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.itemQuantityPath.name"}}</label>
-        <input type="text" name="itemQuantityPath" value="{{itemQuantityPath}}" placeholder="system.quantity" />
-        <p class="mtt-config-hint">{{localize "mtt.settings.itemQuantityPath.hint"}}</p>
+        <input
+          type="text"
+          name="itemQuantityPath"
+          value="{{itemQuantityPath}}"
+          placeholder="system.quantity"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.itemQuantityPath.hint"
+          }}</p>
       </div>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.itemDescriptionPath.name"}}</label>
-        <input type="text" name="itemDescriptionPath" value="{{itemDescriptionPath}}" placeholder="system.description.value" />
-        <p class="mtt-config-hint">{{localize "mtt.settings.itemDescriptionPath.hint"}}</p>
+        <input
+          type="text"
+          name="itemDescriptionPath"
+          value="{{itemDescriptionPath}}"
+          placeholder="system.description.value"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.itemDescriptionPath.hint"
+          }}</p>
       </div>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.allowedProductTypes.name"}}</label>
-        <input type="text" name="allowedProductTypes" value="{{allowedProductTypes}}" />
-        <p class="mtt-config-hint">{{localize "mtt.settings.allowedProductTypes.hint"}}</p>
+        <input
+          type="text"
+          name="allowedProductTypes"
+          value="{{allowedProductTypes}}"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.allowedProductTypes.hint"
+          }}</p>
       </div>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.allowedServiceTypes.name"}}</label>
-        <input type="text" name="allowedServiceTypes" value="{{allowedServiceTypes}}" />
-        <p class="mtt-config-hint">{{localize "mtt.settings.allowedServiceTypes.hint"}}</p>
+        <input
+          type="text"
+          name="allowedServiceTypes"
+          value="{{allowedServiceTypes}}"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.allowedServiceTypes.hint"
+          }}</p>
       </div>
     </section>
 
-    {{!-- Section : Devises et conversion --}}
+    {{! Section : Devises et conversion }}
     <section class="mtt-config-section">
-      <h3 class="mtt-config-section-title">{{localize "mtt.config.sections.currencies"}}</h3>
-      <p class="mtt-config-explanation">{{localize "mtt.config.currencies.explanation"}}</p>
+      <h3 class="mtt-config-section-title">{{localize
+          "mtt.config.sections.currencies"
+        }}</h3>
+      <p class="mtt-config-explanation">{{localize
+          "mtt.config.currencies.explanation"
+        }}</p>
 
       <div class="mtt-config-currencies-header">
         <span>{{localize "mtt.config.currencies.columns.name"}}</span>
@@ -56,49 +102,51 @@
       </div>
 
       {{#each currencies as |currency|}}
-      <div class="mtt-config-currency-row" data-currency-id="{{currency.id}}">
-        <input
-          type="text"
-          class="mtt-config-currency-input"
-          data-mtt-currency-field="name"
-          value="{{currency.name}}"
-          placeholder="{{localize 'mtt.config.currencies.namePlaceholder'}}"
-        />
-        <input
-          type="text"
-          class="mtt-config-currency-input mtt-config-currency-abbr"
-          data-mtt-currency-field="abbreviation"
-          value="{{currency.abbreviation}}"
-          placeholder="{{localize 'mtt.config.currencies.abbrPlaceholder'}}"
-        />
-        <input
-          type="text"
-          class="mtt-config-currency-input mtt-config-currency-path"
-          data-mtt-currency-field="actorPath"
-          value="{{currency.actorPath}}"
-          placeholder="{{localize 'mtt.config.currencies.pathPlaceholder'}}"
-        />
-        <input
-          type="number"
-          class="mtt-config-currency-input mtt-config-currency-rate"
-          data-mtt-currency-field="rate"
-          value="{{currency.rate}}"
-          min="0.0001"
-          step="0.0001"
-          placeholder="{{localize 'mtt.config.currencies.ratePlaceholder'}}"
-        />
-        <button
-          type="button"
-          class="mtt-config-currency-delete"
-          data-action="deleteCurrency"
-          data-currency-id="{{currency.id}}"
-          data-tooltip="{{localize 'mtt.config.currencies.delete'}}"
-        >
-          <i class="fas fa-trash"></i>
-        </button>
-      </div>
+        <div class="mtt-config-currency-row" data-currency-id="{{currency.id}}">
+          <input
+            type="text"
+            class="mtt-config-currency-input"
+            data-mtt-currency-field="name"
+            value="{{currency.name}}"
+            placeholder="{{localize 'mtt.config.currencies.namePlaceholder'}}"
+          />
+          <input
+            type="text"
+            class="mtt-config-currency-input mtt-config-currency-abbr"
+            data-mtt-currency-field="abbreviation"
+            value="{{currency.abbreviation}}"
+            placeholder="{{localize 'mtt.config.currencies.abbrPlaceholder'}}"
+          />
+          <input
+            type="text"
+            class="mtt-config-currency-input mtt-config-currency-path"
+            data-mtt-currency-field="actorPath"
+            value="{{currency.actorPath}}"
+            placeholder="{{localize 'mtt.config.currencies.pathPlaceholder'}}"
+          />
+          <input
+            type="number"
+            class="mtt-config-currency-input mtt-config-currency-rate"
+            data-mtt-currency-field="rate"
+            value="{{currency.rate}}"
+            min="0.0001"
+            step="0.0001"
+            placeholder="{{localize 'mtt.config.currencies.ratePlaceholder'}}"
+          />
+          <button
+            type="button"
+            class="mtt-config-currency-delete"
+            data-action="deleteCurrency"
+            data-currency-id="{{currency.id}}"
+            data-tooltip="{{localize 'mtt.config.currencies.delete'}}"
+          >
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       {{else}}
-      <p class="mtt-config-currencies-empty">{{localize "mtt.config.currencies.empty"}}</p>
+        <p class="mtt-config-currencies-empty">{{localize
+            "mtt.config.currencies.empty"
+          }}</p>
       {{/each}}
 
       <button
@@ -112,7 +160,7 @@
       </button>
     </section>
 
-    {{!-- Footer --}}
+    {{! Footer }}
     <footer class="mtt-config-footer">
       <button
         type="button"

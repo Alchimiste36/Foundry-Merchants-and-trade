@@ -1,0 +1,119 @@
+<section class="mtt-merchant-configuration">
+  <section class="mtt-merchant-configuration-section">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.configuration.merchantSection"}}</h2>
+
+    <label class="mtt-merchant-configuration-field">
+      <span class="mtt-merchant-field-label">{{localize "mtt.configuration.merchantDescription"}}</span>
+      {{#if mtt.canEditMerchant}}
+        <textarea
+          class="mtt-merchant-configuration-textarea"
+          data-mtt-merchant-config-field="merchant.description"
+        >{{system.merchant.description}}</textarea>
+      {{else}}
+        <div class="mtt-merchant-configuration-readonly">
+          {{#if system.merchant.description}}
+            {{{system.merchant.description}}}
+          {{else}}
+            <span class="mtt-merchant-configuration-empty">{{localize "mtt.merchant.description.empty"}}</span>
+          {{/if}}
+        </div>
+      {{/if}}
+    </label>
+  </section>
+
+  <section class="mtt-merchant-configuration-section">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.configuration.tradeSection"}}</h2>
+
+    <div class="mtt-merchant-configuration-grid">
+      <label class="mtt-merchant-configuration-field">
+        <span class="mtt-merchant-field-label">{{localize "mtt.configuration.buyPercent"}}</span>
+        {{#if mtt.canEditMerchant}}
+          <input
+            class="mtt-merchant-configuration-input"
+            type="number"
+            min="0"
+            step="1"
+            value="{{trade.buyPercent}}"
+            data-mtt-merchant-config-field="trade.buyPercent"
+          />
+        {{else}}
+          <div class="mtt-merchant-configuration-readonly">{{trade.buyPercent}}</div>
+        {{/if}}
+        <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.buyPercentHint"}}</span>
+      </label>
+
+      <label class="mtt-merchant-configuration-field">
+        <span class="mtt-merchant-field-label">{{localize "mtt.configuration.sellPercent"}}</span>
+        {{#if mtt.canEditMerchant}}
+          <input
+            class="mtt-merchant-configuration-input"
+            type="number"
+            min="0"
+            step="1"
+            value="{{trade.sellPercent}}"
+            data-mtt-merchant-config-field="trade.sellPercent"
+          />
+        {{else}}
+          <div class="mtt-merchant-configuration-readonly">{{trade.sellPercent}}</div>
+        {{/if}}
+        <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.sellPercentHint"}}</span>
+      </label>
+    </div>
+
+    <label class="mtt-merchant-configuration-field">
+      <span class="mtt-merchant-field-label">{{localize "mtt.configuration.negotiationFormula"}}</span>
+      <div class="mtt-merchant-configuration-inline">
+        {{#if mtt.canEditMerchant}}
+          <input
+            class="mtt-merchant-configuration-input"
+            type="text"
+            value="{{trade.negotiationFormula}}"
+            data-mtt-merchant-config-field="trade.negotiationFormula"
+            placeholder="/roll 1d20 + 5"
+          />
+        {{else}}
+          <div class="mtt-merchant-configuration-readonly">{{trade.negotiationFormula}}</div>
+        {{/if}}
+
+        <button
+          class="mtt-merchant-configuration-action"
+          type="button"
+          data-action="rollNegotiation"
+          data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
+        >
+          <i class="fas fa-dice-d20"></i>
+        </button>
+      </div>
+      <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.negotiationFormulaHint"}}</span>
+      <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.sellPercentApplied"}}</span>
+    </label>
+  </section>
+
+  <section class="mtt-merchant-configuration-section">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.configuration.walletSection"}}</h2>
+
+    {{#if mtt.walletCurrencies.length}}
+      <div class="mtt-merchant-wallet-grid">
+        {{#each mtt.walletCurrencies as |currency|}}
+          <label class="mtt-merchant-wallet-currency">
+            <span class="mtt-merchant-wallet-currency-code">{{currency.label}}</span>
+            {{#if @root.mtt.canEditMerchant}}
+              <input
+                class="mtt-merchant-wallet-currency-input"
+                type="number"
+                min="0"
+                step="1"
+                value="{{currency.amount}}"
+                data-mtt-wallet-currency="{{currency.id}}"
+              />
+            {{else}}
+              <span class="mtt-merchant-wallet-readonly">{{currency.amount}}</span>
+            {{/if}}
+          </label>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="mtt-merchant-configuration-empty">{{localize "mtt.configuration.walletNoCurrencies"}}</p>
+    {{/if}}
+  </section>
+</section>

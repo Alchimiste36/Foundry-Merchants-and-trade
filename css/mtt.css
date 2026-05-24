@@ -44,45 +44,54 @@
 .mtt-merchant-main-zone,
 .mtt-merchant-session-sidebar,
 .mtt-merchant-products,
-.mtt-merchant-services {
+.mtt-merchant-services,
+.mtt-merchant-configuration {
   background: var(--mtt-bg-panel);
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.5rem;
   box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.24);
 }
 .mtt-merchant-header {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 0.5rem;
 }
 .mtt-merchant-header-left {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  flex: 0 0 auto;
-  min-width: 96px;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-width: 0;
 }
 .mtt-merchant-header-right {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.55rem;
 }
 .mtt-merchant-header-manager {
   flex: 1;
 }
-.mtt-merchant-image-container {
+.mtt-merchant-image-button {
   width: 96px;
   height: 96px;
   flex: 0 0 96px;
+  padding: 0;
   border-radius: 0.6rem;
   overflow: hidden;
   background: var(--mtt-bg-field);
   border: 1px solid var(--mtt-border);
+  cursor: default;
+}
+.mtt-merchant-image-button:not(:disabled) {
+  cursor: pointer;
+}
+.mtt-merchant-image-button:disabled {
+  opacity: 1;
+}
+.mtt-merchant-image-button:not(:disabled):hover {
+  border-color: var(--mtt-accent);
 }
 .mtt-merchant-image {
   width: 100%;
@@ -95,6 +104,13 @@
 }
 .mtt-merchant-image-editable:hover {
   filter: brightness(1.15);
+}
+.mtt-merchant-header-title-area {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 .mtt-merchant-title-block {
   flex: 1;
@@ -120,7 +136,34 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  margin-top: 0.6rem;
+}
+.mtt-merchant-header-wallet-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+}
+.mtt-merchant-header-wallet-currency {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.mtt-merchant-header-wallet-currency + .mtt-merchant-header-wallet-currency::before {
+  content: "·";
+  margin-right: 0.1rem;
+  color: var(--mtt-text-soft);
+}
+.mtt-merchant-header-wallet-currency strong {
+  color: var(--mtt-text);
+}
+.mtt-merchant-header-wallet-empty {
+  color: var(--mtt-text-soft);
+  font-style: italic;
 }
 .mtt-merchant-lock-button,
 .mtt-merchant-open-button,
@@ -201,18 +244,240 @@
   display: flex;
   flex-direction: column;
 }
+.mtt-merchant-session {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 100%;
+}
+.mtt-merchant-session-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--mtt-border-soft);
+}
+.mtt-merchant-session-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mtt-merchant-session-title {
+  margin: 0;
+  color: var(--mtt-accent);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.mtt-merchant-session-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  min-height: 1.7rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.8rem;
+}
+.mtt-merchant-session-status-label {
+  color: var(--mtt-text-soft);
+}
+.mtt-merchant-session-status-value {
+  color: var(--mtt-text);
+  font-weight: 700;
+}
+.mtt-merchant-session-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.12);
+}
+.mtt-merchant-session-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--mtt-text);
+}
+.mtt-merchant-session-section-header i {
+  color: var(--mtt-accent);
+}
+.mtt-merchant-session-section-title {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.mtt-merchant-session-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mtt-merchant-session-list-item,
+.mtt-merchant-session-empty {
+  min-height: 1.65rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.8rem;
+}
+.mtt-merchant-session-empty {
+  color: var(--mtt-text-soft);
+  font-style: italic;
+}
+.mtt-merchant-session-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.4rem;
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.78rem;
+}
+.mtt-merchant-session-item-image {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.3rem;
+  background: var(--mtt-bg-panel-soft);
+}
+.mtt-merchant-session-item-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.mtt-merchant-session-item-main strong {
+  color: var(--mtt-text);
+  overflow-wrap: anywhere;
+}
+.mtt-merchant-session-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.45rem;
+  color: var(--mtt-text-soft);
+}
+.mtt-merchant-session-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.8rem;
+}
+.mtt-merchant-session-total strong {
+  color: var(--mtt-text);
+}
+.mtt-merchant-session-total span span + span::before {
+  content: "·";
+  margin: 0 0.25rem;
+  color: var(--mtt-text-soft);
+}
+.mtt-merchant-session-notice {
+  margin: 0;
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+  font-style: italic;
+  text-align: center;
+}
 .mtt-merchant-session-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  padding: 1.5rem 0.5rem;
+  padding: 0.75rem 0.5rem;
+  border: 1px dashed var(--mtt-border-soft);
+  border-radius: 0.45rem;
   text-align: center;
   color: var(--mtt-text-muted);
   font-size: 0.86rem;
 }
+.mtt-merchant-session-placeholder i {
+  color: var(--mtt-accent);
+}
 .mtt-merchant-session-placeholder-text {
   margin: 0;
+}
+.mtt-merchant-session-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding-top: 0.15rem;
+}
+.mtt-merchant-session-action {
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.mtt-merchant-session-action:not(:disabled):hover {
+  background: var(--mtt-bg-hover);
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-session-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.mtt-merchant-session-action-refuse {
+  color: var(--mtt-danger);
+}
+.mtt-session-dialog-form {
+  display: grid;
+  gap: 0.75rem;
+}
+.mtt-session-dialog-summary {
+  display: grid;
+  gap: 0.35rem;
+}
+.mtt-session-dialog-title {
+  margin: 0;
+  color: var(--mtt-text, #e5e0d6);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.mtt-session-dialog-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--mtt-text-muted, #b6afa3);
+}
+.mtt-session-dialog-line strong {
+  color: var(--mtt-text, #e5e0d6);
+}
+.mtt-session-dialog-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.mtt-session-dialog-field span {
+  color: var(--mtt-text-muted, #b6afa3);
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 .mtt-merchant-main {
   flex: 1;
@@ -301,6 +566,15 @@
   border-radius: 0.45rem;
   background: var(--mtt-bg-field);
   color: var(--mtt-text-muted);
+}
+.mtt-merchant-manager-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.mtt-merchant-manager-mode {
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
 }
 .mtt-merchant-manager-empty,
 .mtt-merchant-description-empty,
@@ -591,6 +865,125 @@
   color: var(--mtt-text-soft);
   font-style: italic;
 }
+.mtt-merchant-configuration {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  overflow: auto;
+}
+.mtt-merchant-configuration-section {
+  display: grid;
+  gap: 0.65rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--mtt-border-soft);
+}
+.mtt-merchant-configuration-section:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.mtt-merchant-configuration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.mtt-merchant-configuration-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.mtt-merchant-configuration-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+.mtt-merchant-configuration-input,
+.mtt-merchant-configuration-textarea,
+.mtt-merchant-wallet-currency-input {
+  border: 1px solid var(--mtt-border);
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+  border-radius: 0.35rem;
+}
+.mtt-merchant-configuration-input,
+.mtt-merchant-wallet-currency-input {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+}
+.mtt-merchant-configuration-textarea {
+  min-height: 5.5rem;
+  padding: 0.45rem;
+  resize: vertical;
+}
+.mtt-merchant-configuration-input:focus,
+.mtt-merchant-configuration-textarea:focus,
+.mtt-merchant-wallet-currency-input:focus {
+  border-color: var(--mtt-accent);
+  box-shadow: 0 0 0 2px var(--mtt-accent-soft);
+  outline: none;
+}
+.mtt-merchant-configuration-readonly,
+.mtt-merchant-wallet-readonly {
+  min-height: 1.9rem;
+  padding: 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+}
+.mtt-merchant-configuration-hint {
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+}
+.mtt-merchant-configuration-action {
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--mtt-border);
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text);
+  border-radius: 0.45rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mtt-merchant-configuration-action:hover {
+  background: var(--mtt-bg-hover);
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-wallet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.mtt-merchant-wallet-currency {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, 92px);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-merchant-wallet-currency-code {
+  color: var(--mtt-text);
+  font-weight: 700;
+}
+.mtt-merchant-configuration-empty {
+  color: var(--mtt-text-soft);
+  font-size: 0.86rem;
+}
+.mtt-merchant-wallet-currency-input {
+  text-align: right;
+}
+.mtt-merchant-product-adjusted-price {
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
 .mtt-merchant-empty-tab,
 .mtt-merchant-products-empty {
   display: flex;
@@ -841,6 +1234,12 @@
   }
 }
 @media (max-width: 980px) {
+  .mtt-merchant-header {
+    grid-template-columns: 1fr;
+  }
+  .mtt-merchant-wallet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .mtt-merchant-body {
     flex-direction: column;
   }
@@ -850,6 +1249,14 @@
   }
 }
 @media (max-width: 720px) {
+  .mtt-merchant-configuration-grid,
+  .mtt-merchant-wallet-grid,
+  .mtt-merchant-wallet-currency {
+    grid-template-columns: 1fr;
+  }
+  .mtt-merchant-header-left {
+    flex-direction: column;
+  }
   .mtt-merchant-product-row {
     grid-template-columns: 1fr;
     grid-template-areas: "main" "details" "actions" "secret";

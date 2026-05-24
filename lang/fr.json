@@ -70,6 +70,9 @@
       "description": {
         "title": "Description du marchand",
         "empty": "Aucune description renseignée"
+      },
+      "image": {
+        "edit": "Changer l’image du marchand"
       }
     },
     "manager": {
@@ -107,7 +110,18 @@
       "invalidServiceQuantity": "La quantité du service doit être un nombre positif ou égal à zéro.",
       "onlyItemsCanCreateServices": "Seuls les objets peuvent être utilisés pour créer un service.",
       "productTypeNotAllowed": "Ce type d’objet n’est pas autorisé comme produit.",
-      "serviceTypeNotAllowed": "Ce type d’objet n’est pas autorisé comme service."
+      "serviceTypeNotAllowed": "Ce type d’objet n’est pas autorisé comme service.",
+      "invalidTradePercent": "Le pourcentage doit être un nombre positif ou égal à zéro.",
+      "invalidWalletAmount": "Le montant de monnaie doit être un nombre positif ou égal à zéro.",
+      "invalidNegotiationFormula": "La formule de négociation est invalide.",
+      "emptyNegotiationFormula": "Aucune formule de négociation n’est renseignée.",
+      "invalidSessionQuantity": "La quantité demandée doit être un nombre positif.",
+      "notEnoughQuantity": "La quantité demandée dépasse la quantité disponible.",
+      "sessionAddNotImplemented": "L’ajout à la session sera implémenté dans une prochaine étape.",
+      "productAddedToSession": "Produit ajouté à la session.",
+      "serviceAddedToSession": "Service ajouté à la session.",
+      "sessionItemRemoved": "Élément retiré de la session.",
+      "sessionCleared": "Session vidée."
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"
@@ -159,6 +173,8 @@
       },
       "price": {
         "label": "Prix",
+        "base": "Prix de base",
+        "adjusted": "Prix ajusté",
         "valuePlaceholder": "Montant",
         "currencyPlaceholder": "Monnaie",
         "undefined": "Prix non défini"
@@ -190,7 +206,10 @@
       "deleteContent": "Voulez-vous vraiment supprimer ce service ?",
       "name": "Nom du service",
       "description": "Description",
-      "price": "Prix",
+      "price": {
+        "base": "Prix de base",
+        "adjusted": "Prix ajusté"
+      },
       "currency": "Monnaie",
       "quantity": "Quantité",
       "unlimited": "Illimité",
@@ -213,12 +232,77 @@
       }
     },
     "sessions": {
+      "title": "Session de transaction",
+      "status": {
+        "label": "État",
+        "active": "En cours",
+        "pending": "En attente d’une décision",
+        "validated": "Validée",
+        "refused": "Refusée"
+      },
+      "buyerSide": {
+        "title": "Le PJ achète / reçoit"
+      },
+      "sellerSide": {
+        "title": "Le PJ vend / donne"
+      },
+      "emptyBuyer": "Aucun élément reçu pour le moment.",
+      "emptySeller": "Aucun élément donné pour le moment.",
+      "placeholder": "La transaction active sera affichée ici.",
+      "moneyAdjustmentHint": "Les ajustements monétaires seront ajoutés automatiquement dans l’une des deux parties.",
+      "item": {
+        "product": "Produit",
+        "service": "Service",
+        "quantity": "Qté",
+        "unitPrice": "Unité",
+        "totalPrice": "Total"
+      },
+      "total": "Total",
+      "removeItem": "Retirer de la session",
+      "clear": "Vider la session",
+      "clearTitle": "Vider la session",
+      "clearContent": "Voulez-vous vraiment vider la session en cours ?",
+      "draftNotice": "Session temporaire : aucun achat réel n’est encore effectué.",
+      "actions": {
+        "propose": "Proposer",
+        "validate": "Valider",
+        "refuse": "Refuser",
+        "addProduct": "Ajouter le produit à la session",
+        "addService": "Ajouter le service à la session",
+        "add": "Ajouter",
+        "cancel": "Annuler"
+      },
+      "dialog": {
+        "productTitle": "Ajouter un produit à la session",
+        "serviceTitle": "Ajouter un service à la session",
+        "quantity": "Quantité",
+        "proposedPrice": "Prix proposé",
+        "availableQuantity": "Quantité disponible",
+        "unlimitedQuantity": "Illimité",
+        "notImplemented": "L’ajout à la session sera implémenté dans une prochaine étape."
+      },
       "empty": {
         "title": "Sessions",
         "text": "Les sessions joueur / marchand seront ajoutées plus tard."
       }
     },
     "configuration": {
+      "merchantSection": "Marchand et gérant",
+      "tradeSection": "Règles commerciales",
+      "walletSection": "Monnaie du marchand",
+      "merchantDescription": "Description du marchand",
+      "buyPercent": "Pourcentage de rachat",
+      "buyPercentHint": "Pourcentage du prix de base auquel le marchand rachète les objets aux joueurs.",
+      "sellPercent": "Pourcentage de vente",
+      "sellPercentHint": "Pourcentage appliqué au prix de base lorsque le marchand vend aux acheteurs.",
+      "negotiationFormula": "Jet de négociation",
+      "negotiationFormulaHint": "Formule lancée dans le chat pour le gérant, par exemple /roll 1d20 + 5.",
+      "rollNegotiation": "Lancer le jet de négociation",
+      "noCurrencies": "Aucune monnaie n’est configurée dans les options du module.",
+      "sellPercentApplied": "Prix ajustés selon le pourcentage de vente du marchand.",
+      "walletNoCurrencies": "Aucune monnaie configurée.",
+      "walletSummaryEmpty": "Aucune monnaie",
+      "currencyAmount": "Montant",
       "empty": {
         "title": "Configuration",
         "text": "Les options générales du marchand et le journal des transactions seront regroupés ici."

@@ -69,6 +69,18 @@
             {{/if}}
 
             <div class="mtt-merchant-service-actions">
+              {{#unless service.isHidden}}
+                <button
+                  class="mtt-merchant-service-action"
+                  type="button"
+                  data-action="addServiceToSession"
+                  data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
+                  title="{{localize 'mtt.sessions.actions.addService'}}"
+                >
+                  <i class="fas fa-cart-plus"></i>
+                </button>
+              {{/unless}}
+
               <button
                 class="mtt-merchant-service-action"
                 type="button"
@@ -108,9 +120,11 @@
               {{/if}}
 
               <div class="mtt-merchant-service-price">
-                <strong>{{service.priceValue}}</strong>
-                {{#if service.priceCurrency}}
-                  <span>{{service.priceCurrency}}</span>
+                <span>{{localize "mtt.services.price.adjusted"}}</span>
+                {{#if service.hasPrice}}
+                  <strong>{{service.displayPriceLabel}}</strong>
+                {{else}}
+                  <strong>{{localize "mtt.products.price.undefined"}}</strong>
                 {{/if}}
               </div>
 
@@ -131,7 +145,7 @@
                     value="{{service.priceValue}}"
                     min="0"
                     step="0.01"
-                    placeholder="{{localize 'mtt.services.price'}}"
+                    placeholder="{{localize 'mtt.services.price.base'}}"
                   />
 
                   <input

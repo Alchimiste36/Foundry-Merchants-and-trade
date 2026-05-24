@@ -1,66 +1,38 @@
 <aside class="mtt-merchant-sidebar">
-  <section class="mtt-merchant-sidebar-panel mtt-merchant-manager-block">
-    <h2 class="mtt-merchant-section-title">{{localize "mtt.manager.title"}}</h2>
+  <nav class="mtt-merchant-nav" aria-label="{{localize 'mtt.navigation.label'}}">
+    <button
+      class="mtt-merchant-nav-tab {{#if (eq mtt.activeTab 'products')}}mtt-merchant-nav-tab-active{{/if}}"
+      type="button"
+      data-action="selectTab"
+      data-tab="products"
+      data-tooltip="{{localize 'mtt.tabs.products'}}"
+    >
+      <i class="fas fa-box"></i>
+      <span>{{localize 'mtt.tabs.products'}}</span>
+    </button>
 
-    {{#if mtt.isUnlocked}}
-      <div class="mtt-merchant-manager-fields">
-        <label class="mtt-merchant-field">
-          <span class="mtt-merchant-field-label">{{localize "mtt.manager.mode.label"}}</span>
+    <button
+      class="mtt-merchant-nav-tab {{#if (eq mtt.activeTab 'services')}}mtt-merchant-nav-tab-active{{/if}}"
+      type="button"
+      data-action="selectTab"
+      data-tab="services"
+      data-tooltip="{{localize 'mtt.tabs.services'}}"
+    >
+      <i class="fas fa-handshake"></i>
+      <span>{{localize 'mtt.tabs.services'}}</span>
+    </button>
 
-          <select class="mtt-merchant-field-input" name="system.manager.mode">
-            <option value="text" {{#if (eq system.manager.mode "text")}}selected{{/if}}>
-              {{localize "mtt.manager.mode.text"}}
-            </option>
-
-            <option value="actor" {{#if (eq system.manager.mode "actor")}}selected{{/if}}>
-              {{localize "mtt.manager.mode.actor"}}
-            </option>
-          </select>
-        </label>
-
-        <label class="mtt-merchant-field">
-          <span class="mtt-merchant-field-label">{{localize "mtt.manager.displayName.label"}}</span>
-
-          <input
-            class="mtt-merchant-field-input"
-            type="text"
-            name="system.manager.displayName"
-            value="{{system.manager.displayName}}"
-            placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
-          />
-        </label>
-      </div>
-    {{else}}
-      <div class="mtt-merchant-manager-summary">
-        {{#if system.manager.displayName}}
-          <span class="mtt-merchant-manager-name">{{system.manager.displayName}}</span>
-        {{else}}
-          <span class="mtt-merchant-manager-empty">{{localize "mtt.manager.empty"}}</span>
-        {{/if}}
-      </div>
+    {{#if mtt.canConfigureMerchant}}
+      <button
+        class="mtt-merchant-nav-tab {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-nav-tab-active{{/if}}"
+        type="button"
+        data-action="selectTab"
+        data-tab="configuration"
+        data-tooltip="{{localize 'mtt.tabs.configuration'}}"
+      >
+        <i class="fas fa-gear"></i>
+        <span>{{localize 'mtt.tabs.configuration'}}</span>
+      </button>
     {{/if}}
-  </section>
-
-  <section class="mtt-merchant-sidebar-panel mtt-merchant-description-block">
-    <h2 class="mtt-merchant-section-title">{{localize "mtt.merchant.description.title"}}</h2>
-
-    {{#if mtt.isUnlocked}}
-      <prose-mirror
-        class="mtt-merchant-description-editor"
-        name="system.merchant.description"
-        value="{{system.merchant.description}}"
-        toggled="true"
-      ></prose-mirror>
-    {{else}}
-      <div class="mtt-merchant-description-content">
-        {{#if system.merchant.description}}
-          {{{system.merchant.description}}}
-        {{else}}
-          <p class="mtt-merchant-description-empty">
-            {{localize "mtt.merchant.description.empty"}}
-          </p>
-        {{/if}}
-      </div>
-    {{/if}}
-  </section>
+  </nav>
 </aside>

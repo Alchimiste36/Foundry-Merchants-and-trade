@@ -1,5 +1,5 @@
 <header class="mtt-merchant-header">
-  <div class="mtt-merchant-identity">
+  <div class="mtt-merchant-header-left">
     <div class="mtt-merchant-image-container">
       <img
         class="mtt-merchant-image {{#if mtt.isUnlocked}}mtt-merchant-image-editable{{/if}}"
@@ -11,50 +11,84 @@
       />
     </div>
 
-    <div class="mtt-merchant-title-block">
-      {{#if mtt.isUnlocked}}
-        <input
-          class="mtt-merchant-name-input"
-          name="name"
-          type="text"
-          value="{{actor.name}}"
-          placeholder="{{localize 'mtt.merchant.name.placeholder'}}"
-          spellcheck="false"
-        />
-      {{else}}
-        <h1 class="mtt-merchant-name">{{actor.name}}</h1>
-      {{/if}}
-
-      <div class="mtt-merchant-state-row">
-        <button
-          class="mtt-merchant-lock-button"
-          type="button"
-          data-action="toggleLock"
-          data-tooltip="{{#if mtt.isLocked}}{{localize 'mtt.sheet.unlock'}}{{else}}{{localize 'mtt.sheet.lock'}}{{/if}}"
-        >
-          {{#if mtt.isLocked}}
-            <i class="fas fa-lock"></i>
-          {{else}}
-            <i class="fas fa-lock-open"></i>
-          {{/if}}
-        </button>
-
-        <button
-          class="mtt-merchant-open-button"
-          type="button"
-          data-action="toggleOpen"
-          {{#unless mtt.canEditMerchant}}disabled{{/unless}}
-          data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.sheet.closeMerchant'}}{{else}}{{localize 'mtt.sheet.openMerchant'}}{{/if}}"
-        >
-          {{#if system.status.isOpen}}
-            <i class="fas fa-door-open"></i>
-          {{else}}
-            <i class="fas fa-door-closed"></i>
-          {{/if}}
-        </button>
-      </div>
-    </div>
+    {{#if mtt.isUnlocked}}
+      <input
+        class="mtt-merchant-name-input"
+        name="name"
+        type="text"
+        value="{{actor.name}}"
+        placeholder="{{localize 'mtt.merchant.name.placeholder'}}"
+        spellcheck="false"
+      />
+    {{else}}
+      <h1 class="mtt-merchant-name">{{actor.name}}</h1>
+    {{/if}}
   </div>
 
-  
+  <div class="mtt-merchant-header-right">
+    <div class="mtt-merchant-header-manager">
+      {{#if mtt.isUnlocked}}
+        <div class="mtt-merchant-manager-fields">
+          <label class="mtt-merchant-field">
+            <span class="mtt-merchant-field-label">{{localize "mtt.manager.mode.label"}}</span>
+            <select class="mtt-merchant-field-input" name="system.manager.mode">
+              <option value="text" {{#if (eq system.manager.mode "text")}}selected{{/if}}>
+                {{localize "mtt.manager.mode.text"}}
+              </option>
+              <option value="actor" {{#if (eq system.manager.mode "actor")}}selected{{/if}}>
+                {{localize "mtt.manager.mode.actor"}}
+              </option>
+            </select>
+          </label>
+          <label class="mtt-merchant-field">
+            <span class="mtt-merchant-field-label">{{localize "mtt.manager.displayName.label"}}</span>
+            <input
+              class="mtt-merchant-field-input"
+              type="text"
+              name="system.manager.displayName"
+              value="{{system.manager.displayName}}"
+              placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
+            />
+          </label>
+        </div>
+      {{else}}
+        <div class="mtt-merchant-manager-summary">
+          {{#if system.manager.displayName}}
+            <span class="mtt-merchant-manager-name">{{system.manager.displayName}}</span>
+          {{else}}
+            <span class="mtt-merchant-manager-empty">{{localize "mtt.manager.empty"}}</span>
+          {{/if}}
+        </div>
+      {{/if}}
+    </div>
+
+    <div class="mtt-merchant-state-row">
+      <button
+        class="mtt-merchant-lock-button"
+        type="button"
+        data-action="toggleLock"
+        data-tooltip="{{#if mtt.isLocked}}{{localize 'mtt.sheet.unlock'}}{{else}}{{localize 'mtt.sheet.lock'}}{{/if}}"
+      >
+        {{#if mtt.isLocked}}
+          <i class="fas fa-lock"></i>
+        {{else}}
+          <i class="fas fa-lock-open"></i>
+        {{/if}}
+      </button>
+
+      <button
+        class="mtt-merchant-open-button"
+        type="button"
+        data-action="toggleOpen"
+        {{#unless mtt.canEditMerchant}}disabled{{/unless}}
+        data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.sheet.closeMerchant'}}{{else}}{{localize 'mtt.sheet.openMerchant'}}{{/if}}"
+      >
+        {{#if system.status.isOpen}}
+          <i class="fas fa-door-open"></i>
+        {{else}}
+          <i class="fas fa-door-closed"></i>
+        {{/if}}
+      </button>
+    </div>
+  </div>
 </header>

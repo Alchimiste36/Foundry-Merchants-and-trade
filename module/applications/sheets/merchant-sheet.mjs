@@ -47,6 +47,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
 
+    if (this.#activeTab === "sessions") this.#activeTab = "products";
+
     const isLocked = this.actor.system.sheet.isLocked;
     const canEditMerchant = this.isEditable && !isLocked;
     const canConfigureMerchant = this.isEditable;
@@ -454,28 +456,37 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       [MTT.FLAGS.PRODUCT]: productFlags,
     };
 
+    const sourceConfiguredPrice = this.#getConfiguredItemValue(productData, "itemPriceValuePath");
+    const sourcePriceValue = this.#parsePriceValue(sourceConfiguredPrice) ?? MTT.PRODUCT_DEFAULTS.priceValue;
+
+    const sourceConfiguredCurrency = this.#getConfiguredItemValue(productData, "itemPriceCurrencyPath");
+    const sourcePriceCurrency = typeof sourceConfiguredCurrency === "string"
+      ? sourceConfiguredCurrency.trim()
+      : MTT.PRODUCT_DEFAULTS.priceCurrency;
+
     const existingProduct = this.actor.items.find((item) => {
       if (item.type !== productData.type) return false;
       if (item.name !== productData.name) return false;
 
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-      const existingCategory = (product.category ?? "").trim();
-      if (existingCategory !== (categoryValue ?? "")) return false;
 
-      const existingDisplayName = product.displayName?.trim() ?? "";
-      if (existingDisplayName && existingDisplayName !== item.name) return false;
+      const existingCategory = (product.category ?? "").trim();
+      if (existingCategory !== (categoryValue ?? "").trim()) return false;
+
+      const existingDisplayName = (product.displayName ?? "").trim();
+      if (existingDisplayName && existingDisplayName !== item.name.trim()) return false;
 
       const existingPriceValue = Number.isFinite(Number(product.priceValue))
         ? Number(product.priceValue)
         : MTT.PRODUCT_DEFAULTS.priceValue;
-      if (existingPriceValue !== 0) return false;
+      if (existingPriceValue !== sourcePriceValue) return false;
 
-      if ((product.priceCurrency?.trim() ?? "") !== "") return false;
-      if ((product.secretName ?? "") !== "") return false;
-      if ((product.secretPrice ?? "") !== "") return false;
-      if ((product.secretDescription ?? "") !== "") return false;
-      if (product.isHidden) return false;
-      if (product.requiresApproval) return false;
+      const existingPriceCurrency = (product.priceCurrency ?? "").trim();
+      if (existingPriceCurrency !== sourcePriceCurrency) return false;
+
+      if ((product.secretName ?? "").trim()) return false;
+      if ((product.secretPrice ?? "").trim()) return false;
+      if ((product.secretDescription ?? "").trim()) return false;
 
       return true;
     });
@@ -496,6 +507,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     this.#createProductFlags(productData);
+    foundry.utils.setProperty(
+      productData,
+      `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`,
+      categoryValue ?? ""
+    );
 
     await this.actor.createEmbeddedDocuments("Item", [productData]);
   }
@@ -794,7 +810,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     const tab = target.dataset.tab;
-    if (!tab) return;
+    if (!tab || tab === "sessions") return;
 
     if (tab === "configuration" && !this.isEditable) return;
 

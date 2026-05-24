@@ -1,7 +1,37 @@
 <section class="mtt-merchant-main-zone">
-  <header class="mtt-merchant-main-header">
-    {{> "modules/mtt-merchants/templates/actors/parts/merchant-navigation.hbs"}}
-  </header>
+  <nav class="mtt-merchant-tab-nav" aria-label="{{localize 'mtt.navigation.label'}}">
+    <button
+      class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'products')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+      type="button"
+      data-action="selectTab"
+      data-tab="products"
+      data-tooltip="{{localize 'mtt.tabs.products'}}"
+    >
+      <i class="fas fa-box"></i>
+    </button>
+
+    <button
+      class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'services')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+      type="button"
+      data-action="selectTab"
+      data-tab="services"
+      data-tooltip="{{localize 'mtt.tabs.services'}}"
+    >
+      <i class="fas fa-handshake"></i>
+    </button>
+
+    {{#if mtt.canConfigureMerchant}}
+      <button
+        class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+        type="button"
+        data-action="selectTab"
+        data-tab="configuration"
+        data-tooltip="{{localize 'mtt.tabs.configuration'}}"
+      >
+        <i class="fas fa-gear"></i>
+      </button>
+    {{/if}}
+  </nav>
 
   <section class="mtt-merchant-tab-content">
     {{#if (eq mtt.activeTab "products")}}
@@ -13,16 +43,6 @@
     {{#if (eq mtt.activeTab "services")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
         {{> "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs"}}
-      </section>
-    {{/if}}
-
-    {{#if (eq mtt.activeTab "sessions")}}
-      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-sessions" data-tab="sessions">
-        <div class="mtt-merchant-empty-tab">
-          <i class="fas fa-basket-shopping"></i>
-          <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.sessions.empty.title"}}</h2>
-          <p class="mtt-merchant-empty-tab-text">{{localize "mtt.sessions.empty.text"}}</p>
-        </div>
       </section>
     {{/if}}
 

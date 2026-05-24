@@ -1,4 +1,5 @@
 import { MTT } from "./constants.mjs";
+import { MttConfigApp } from "../applications/mtt-config-app.mjs";
 
 export function registerSettings() {
   game.settings.register(MTT.ID, "debug", {
@@ -63,4 +64,43 @@ export function registerSettings() {
     type: String,
     default: "",
   });
+
+  game.settings.register(MTT.ID, "actorCurrencyPath", {
+    name: "mtt.settings.actorCurrencyPath.name",
+    hint: "mtt.settings.actorCurrencyPath.hint",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "currencies", {
+    name: "mtt.settings.currencies.name",
+    hint: "mtt.settings.currencies.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "[]",
+  });
+
+  game.settings.registerMenu(MTT.ID, "openConfigWindow", {
+    name: "mtt.settings.openConfigWindow.name",
+    label: "mtt.settings.openConfigWindow.label",
+    hint: "mtt.settings.openConfigWindow.hint",
+    icon: "fas fa-shop",
+    type: MttConfigApp,
+    restricted: true,
+  });
+}
+
+export function getCurrencies() {
+  try {
+    return JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+export function setCurrencies(currencies) {
+  return game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
 }

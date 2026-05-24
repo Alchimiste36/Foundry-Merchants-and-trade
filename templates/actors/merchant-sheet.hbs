@@ -2,12 +2,12 @@
   <section class="mtt-merchant-layout">
     {{> "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs"}}
 
-    <section class="mtt-merchant-content">
-      {{> "modules/mtt-merchants/templates/actors/parts/merchant-sidebar.hbs"}}
-
+    <section class="mtt-merchant-body">
       <main class="mtt-merchant-main">
         {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
       </main>
+
+      {{> "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs"}}
     </section>
   </section>
 </form>

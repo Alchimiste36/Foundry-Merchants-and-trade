@@ -36,6 +36,19 @@
       "allowedServiceTypes": {
         "name": "Types d’items autorisés comme services",
         "hint": "Liste de types séparés par des virgules. Laisser vide pour autoriser tous les types."
+      },
+      "actorCurrencyPath": {
+        "name": "Chemin de la monnaie principale de l’acteur",
+        "hint": "Chemin pour lire la monnaie principale sur un acteur. Exemple : system.currency.gp. Laisser vide si la monnaie est gérée par devises séparées."
+      },
+      "openConfigWindow": {
+        "name": "Configuration MTT",
+        "label": "Ouvrir la configuration",
+        "hint": "Ouvre la fenêtre de configuration avancée du module MTT."
+      },
+      "currencies": {
+        "name": "Devises configurées",
+        "hint": "Liste des devises du module MTT. Géré via la fenêtre de configuration MTT."
       }
     },
     "sheet": {
@@ -209,6 +222,31 @@
       "empty": {
         "title": "Configuration",
         "text": "Les options générales du marchand et le journal des transactions seront regroupés ici."
+      }
+    },
+    "config": {
+      "title": "Configuration — Merchants, Trades and Transactions",
+      "save": "Sauvegarder",
+      "cancel": "Annuler",
+      "sections": {
+        "items": "Chemins des objets",
+        "currencies": "Devises et conversion"
+      },
+      "currencies": {
+        "explanation": "Définissez les devises utilisées dans votre système de jeu. Chaque devise a un nom, une abréviation, un chemin pour lire la valeur sur l'acteur, et une valeur de conversion relative. Exemple : si la pièce de base vaut 1, une pièce valant le double vaut 2, une pièce valant la moitié vaut 0.5.",
+        "add": "Ajouter une devise",
+        "delete": "Supprimer cette devise",
+        "empty": "Aucune devise configurée.",
+        "namePlaceholder": "Nom (ex : Pièce d'or)",
+        "abbrPlaceholder": "Abrév. (ex : PO)",
+        "pathPlaceholder": "Chemin (ex : system.wealth.gp.value)",
+        "ratePlaceholder": "Valeur (ex : 10)",
+        "columns": {
+          "name": "Nom",
+          "abbreviation": "Abrév.",
+          "actorPath": "Chemin acteur",
+          "rate": "Valeur"
+        }
       }
     }
   }

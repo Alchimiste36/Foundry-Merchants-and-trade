@@ -346,6 +346,73 @@ css/mtt.css
 
 Le projet utilise Gulp pour compiler les fichiers `.less` en `.css`.
 
+Règle d’interface pour les boutons MTT :
+
+Dans les feuilles du module MTT, privilégier des boutons compacts avec icône Font Awesome et info-bulle, plutôt que de grands boutons contenant du texte.
+
+Objectif :
+
+- éviter d’encombrer les lignes de produits ;
+- garder une interface compacte ;
+- rendre la feuille plus lisible ;
+- faciliter la mise en page finale.
+
+Convention attendue :
+
+- Le bouton affiche principalement une icône `<i class="fas ..."></i>`.
+- Le texte du bouton doit être évité dans les zones compactes comme les lignes de produits, la navigation secondaire ou les actions rapides.
+- Le sens du bouton doit être donné par `data-tooltip="{{localize '...'}}"`.
+- Les labels doivent rester localisés dans `lang/fr.json`.
+- Utiliser du texte visible uniquement pour les gros boutons d’action principaux si c’est vraiment nécessaire.
+
+Les icônes peuvent changer selon l’état du bouton.
+
+Exemples de logique attendue :
+
+- verrouillé :
+  - icône : `fa-lock`
+  - tooltip : “Déverrouiller”
+- déverrouillé :
+  - icône : `fa-lock-open`
+  - tooltip : “Verrouiller”
+- marchand ouvert :
+  - icône : `fa-door-open`
+  - tooltip : “Fermer le marchand”
+- marchand fermé :
+  - icône : `fa-door-closed`
+  - tooltip : “Ouvrir le marchand”
+- bloc secret replié :
+  - icône : `fa-eye`
+  - tooltip : “Afficher les informations secrètes”
+- bloc secret déplié :
+  - icône : `fa-eye-slash`
+  - tooltip : “Masquer les informations secrètes”
+- modifier :
+  - icône : `fa-pen-to-square` ou `fa-edit`
+  - tooltip : “Modifier”
+- supprimer :
+  - icône : `fa-trash`
+  - tooltip : “Supprimer”
+- ajouter :
+  - icône : `fa-plus`
+  - tooltip : “Ajouter”
+
+Exemple de bouton attendu :
+
+````hbs
+<button
+  class="mtt-merchant-product-action"
+  type="button"
+  data-action="toggleProductSecret"
+  data-tooltip="{{#if item.isSecretExpanded}}{{localize 'mtt.products.secret.toggleHide'}}{{else}}{{localize 'mtt.products.secret.toggleShow'}}{{/if}}"
+>
+  {{#if item.isSecretExpanded}}
+    <i class="fas fa-eye-slash"></i>
+  {{else}}
+    <i class="fas fa-eye"></i>
+  {{/if}}
+</button>
+
 ---
 
 ## 10. Structure initiale du module
@@ -406,7 +473,7 @@ docs/
 
 .github/
   copilot-instructions.md
-```
+````
 
 ---
 

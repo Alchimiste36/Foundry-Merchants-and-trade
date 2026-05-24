@@ -52,6 +52,11 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           required: true,
           initial: true,
         }),
+        collapsedCategories: new fields.ObjectField({
+          required: false,
+          blank: true,
+          initial: {},
+        }),
       }),
     };
   }

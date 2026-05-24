@@ -25,6 +25,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       deleteItem: MerchantSheet.#onDeleteItem,
       toggleOpen: MerchantSheet.#onToggleOpen,
       toggleLock: MerchantSheet.#onToggleLock,
+      toggleProductSecret: MerchantSheet.#onToggleProductSecret,
+      toggleProductCategory: MerchantSheet.#onToggleProductCategory,
       selectTab: MerchantSheet.#onSelectTab,
     },
   };
@@ -62,6 +64,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.system = this.actor.system;
     context.items = this.#prepareItems();
+    context.productCategories = this.#prepareProductCategories(context.items);
 
     return context;
   }
@@ -72,6 +75,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element
       .querySelectorAll("[data-mtt-product-field]")
       .forEach((input) => input.addEventListener("change", (event) => this.#onProductFieldChange(event)));
+
+    this.element
+      .querySelectorAll("[data-mtt-product-id]")
+      .forEach((row) => row.addEventListener("dragstart", (event) => this.#onProductDragStart(event)));
+
+    this.element.querySelectorAll("[data-mtt-category-drop]").forEach((dropZone) => {
+      dropZone.addEventListener("dragover", (event) => this.#onCategoryDragOver(event));
+      dropZone.addEventListener("drop", (event) => this.#onCategoryDrop(event));
+    });
   }
 
   _canDragDrop(selector) {
@@ -117,7 +129,20 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         secretName: product.secretName ?? "",
         secretPrice: product.secretPrice ?? "",
         secretDescription: product.secretDescription ?? "",
+        priceValue:
+          Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
+            ? Number(product.priceValue)
+            : MTT.PRODUCT_DEFAULTS.priceValue,
+        priceCurrency: product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency,
+        category: (product.category ?? "").trim(),
+        hasCategory: Boolean((product.category ?? "").trim()),
+        hasPrice: Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) > 0,
+        priceLabel:
+          Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) > 0
+            ? `${Number(product.priceValue)}${product.priceCurrency ? ` ${product.priceCurrency.trim()}` : ""}`
+            : "",
         hasSecretInfos: Boolean(product.secretName || product.secretPrice || product.secretDescription),
+        isSecretExpanded: product.isSecretExpanded ?? MTT.PRODUCT_DEFAULTS.isSecretExpanded,
       };
     });
   }
@@ -126,6 +151,107 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!itemId) return null;
 
     return this.actor.items.get(itemId) ?? null;
+  }
+
+  #prepareProductCategories(items) {
+    const categories = new Map();
+
+    items.forEach((item) => {
+      const categoryValue = item.category || "";
+      const name = categoryValue || game.i18n.localize("mtt.products.category.undefined");
+      if (!categories.has(categoryValue)) {
+        categories.set(categoryValue, {
+          id: `category-${categoryValue || "uncategorized"}`,
+          name,
+          categoryValue,
+          items: [],
+          count: 0,
+          isCollapsed: false,
+        });
+      }
+
+      const group = categories.get(categoryValue);
+      group.items.push(item);
+      group.count += 1;
+    });
+
+    const collapsedCategories = this.actor.system.catalog?.collapsedCategories ?? {};
+
+    const sortedCategories = Array.from(categories.values()).map((group) => ({
+      ...group,
+      isCollapsed: Boolean(collapsedCategories[group.categoryValue]),
+    }));
+
+    sortedCategories.sort((a, b) => {
+      if (a.categoryValue === "" && b.categoryValue !== "") return -1;
+      if (a.categoryValue !== "" && b.categoryValue === "") return 1;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+    });
+
+    return sortedCategories;
+  }
+
+  static async #onToggleProductCategory(event, target) {
+    event.preventDefault();
+
+    if (!this.isEditable) return;
+
+    const categoryValue = target.dataset.category ?? "";
+    const collapsedCategories = foundry.utils.deepClone(this.actor.system.catalog.collapsedCategories ?? {});
+    collapsedCategories[categoryValue] = !Boolean(collapsedCategories[categoryValue]);
+
+    await this.actor.update({
+      "system.catalog.collapsedCategories": collapsedCategories,
+    });
+
+    this.render();
+  }
+
+  #onProductDragStart(event) {
+    const target = event.currentTarget;
+    const itemId = target.dataset.mttProductId;
+    if (!itemId || this.actor.system.sheet.isLocked) return;
+
+    event.dataTransfer.setData("application/json", JSON.stringify({ type: "mtt.product", itemId }));
+    event.dataTransfer.effectAllowed = "move";
+  }
+
+  #onCategoryDragOver(event) {
+    if (this.actor.system.sheet.isLocked) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  async #onCategoryDrop(event) {
+    const categoryValue = event.currentTarget.dataset.category ?? "";
+    let payload = null;
+
+    try {
+      payload = JSON.parse(event.dataTransfer.getData("application/json"));
+    } catch {
+      return;
+    }
+
+    if (!payload || payload.type !== "mtt.product") return;
+    if (this.actor.system.sheet.isLocked) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
+      return;
+    }
+
+    await this.#moveProductToCategory(payload.itemId, categoryValue);
+    event.preventDefault();
+  }
+
+  async #moveProductToCategory(itemId, categoryValue) {
+    const item = this.actor.items.get(itemId);
+    if (!item) return;
+
+    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+      ...product,
+      category: categoryValue ?? "",
+    });
+    this.render();
   }
 
   #createProductFlags(itemData) {
@@ -207,6 +333,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  static async #onToggleProductSecret(event, target) {
+    event.preventDefault();
+
+    if (!this.isEditable) return;
+
+    const item = this.#getItemFromEvent(target);
+    if (!item) return;
+
+    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const isSecretExpanded = Boolean(product.isSecretExpanded);
+
+    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+      ...product,
+      isSecretExpanded: !isSecretExpanded,
+    });
+
+    this.render();
+  }
+
   static #onSelectTab(event, target) {
     event.preventDefault();
 
@@ -257,6 +402,41 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...product,
         quantity,
       });
+    }
+    if (field === "priceValue") {
+      const rawValue = Number(target.value);
+
+      if (!Number.isFinite(rawValue) || rawValue < 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
+        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.priceValue ?? MTT.PRODUCT_DEFAULTS.priceValue;
+        return;
+      }
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        priceValue: rawValue,
+      });
+      return;
+    }
+    if (field === "priceCurrency") {
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        priceCurrency: target.value?.trim() ?? "",
+      });
+      return;
+    }
+    if (field === "category") {
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        category: target.value?.trim() ?? "",
+      });
+      return;
     }
     if (["secretName", "secretPrice", "secretDescription"].includes(field)) {
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};

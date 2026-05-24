@@ -18,7 +18,9 @@
       "lock": "Verrouiller",
       "unlock": "Déverrouiller",
       "locked": "Verrouillé",
-      "unlocked": "Déverrouillé"
+      "unlocked": "Déverrouillé",
+      "openMerchant": "Ouvrir le marchand",
+      "closeMerchant": "Fermer le marchand"
     },
     "merchant": {
       "name": {
@@ -61,7 +63,8 @@
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",
       "onlyItemsCanBeDropped": "Only items can be added to the merchant.",
-      "invalidQuantity": "La quantité doit être un nombre positif ou égal à zéro."
+      "invalidQuantity": "La quantité doit être un nombre positif ou égal à zéro.",
+      "invalidPrice": "Le prix doit être un nombre positif ou égal à zéro."
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"
@@ -105,7 +108,24 @@
         "title": "Informations secrètes",
         "name": "Nom secret :",
         "price": "Prix réel / secret :",
-        "description": "Description secrète :"
+        "description": "Description secrète :",
+        "toggleShow": "Afficher les informations secrètes",
+        "toggleHide": "Masquer les informations secrètes",
+        "hasSecret": "Secret renseigné",
+        "empty": "Aucune information secrète"
+      },
+      "price": {
+        "label": "Prix",
+        "valuePlaceholder": "Montant",
+        "currencyPlaceholder": "Monnaie",
+        "undefined": "Prix non défini"
+      },
+      "category": {
+        "label": "Catégorie",
+        "placeholder": "Catégorie",
+        "undefined": "Sans catégorie",
+        "toggleShow": "Déplier la catégorie",
+        "toggleHide": "Plier la catégorie"
       }
     },
     "services": {

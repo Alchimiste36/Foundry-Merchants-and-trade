@@ -86,6 +86,13 @@
       "title": "Products",
       "subtitle": "Items currently offered or stored by this merchant.",
       "dropHelp": "Drop items here from the sidebar or a compendium.",
+      "category": {
+        "label": "Category",
+        "placeholder": "Category",
+        "undefined": "Uncategorized",
+        "toggleShow": "Expand category",
+        "toggleHide": "Collapse category"
+      },
       "quantity": {
         "short": "Qty",
         "undefined": "Quantity undefined"

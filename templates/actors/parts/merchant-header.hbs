@@ -34,10 +34,8 @@
         >
           {{#if mtt.isLocked}}
             <i class="fas fa-lock"></i>
-            <span>{{localize "mtt.sheet.locked"}}</span>
           {{else}}
             <i class="fas fa-lock-open"></i>
-            <span>{{localize "mtt.sheet.unlocked"}}</span>
           {{/if}}
         </button>
 
@@ -46,14 +44,12 @@
           type="button"
           data-action="toggleOpen"
           {{#unless mtt.canEditMerchant}}disabled{{/unless}}
-          data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.merchant.status.open'}}{{else}}{{localize 'mtt.merchant.status.closed'}}{{/if}}"
+          data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.sheet.closeMerchant'}}{{else}}{{localize 'mtt.sheet.openMerchant'}}{{/if}}"
         >
           {{#if system.status.isOpen}}
             <i class="fas fa-door-open"></i>
-            <span>{{localize "mtt.merchant.status.open"}}</span>
           {{else}}
             <i class="fas fa-door-closed"></i>
-            <span>{{localize "mtt.merchant.status.closed"}}</span>
           {{/if}}
         </button>
       </div>

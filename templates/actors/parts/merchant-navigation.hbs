@@ -4,9 +4,9 @@
     type="button"
     data-action="selectTab"
     data-tab="products"
+    data-tooltip="{{localize 'mtt.tabs.products'}}"
   >
     <i class="fas fa-box"></i>
-    <span>{{localize "mtt.tabs.products"}}</span>
   </button>
 
   <button
@@ -14,9 +14,9 @@
     type="button"
     data-action="selectTab"
     data-tab="services"
+    data-tooltip="{{localize 'mtt.tabs.services'}}"
   >
     <i class="fas fa-handshake"></i>
-    <span>{{localize "mtt.tabs.services"}}</span>
   </button>
 
   <button
@@ -24,9 +24,9 @@
     type="button"
     data-action="selectTab"
     data-tab="sessions"
+    data-tooltip="{{localize 'mtt.tabs.sessions'}}"
   >
     <i class="fas fa-basket-shopping"></i>
-    <span>{{localize "mtt.tabs.sessions"}}</span>
   </button>
 
   {{#if mtt.canConfigureMerchant}}
@@ -35,9 +35,9 @@
       type="button"
       data-action="selectTab"
       data-tab="configuration"
+      data-tooltip="{{localize 'mtt.tabs.configuration'}}"
     >
       <i class="fas fa-gear"></i>
-      <span>{{localize "mtt.tabs.configuration"}}</span>
     </button>
   {{/if}}
 </nav>

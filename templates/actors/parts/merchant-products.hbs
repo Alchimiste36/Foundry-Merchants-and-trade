@@ -6,14 +6,24 @@
     </div>
 
     {{#if mtt.canEditMerchant}}
-      <button
-        class="mtt-merchant-product-create-button"
-        type="button"
-        data-action="createItem"
-        data-tooltip="{{localize 'mtt.actions.createItem'}}"
-      >
-        <i class="fas fa-plus"></i>
-      </button>
+      <div class="mtt-merchant-products-actions-row">
+        <button
+          class="mtt-merchant-product-create-button"
+          type="button"
+          data-action="createItem"
+          data-tooltip="{{localize 'mtt.actions.createItem'}}"
+        >
+          <i class="fas fa-plus"></i>
+        </button>
+        <button
+          class="mtt-merchant-product-create-button"
+          type="button"
+          data-action="createProductCategory"
+          data-tooltip="{{localize 'mtt.products.category.add'}}"
+        >
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
     {{/if}}
   </header>
 
@@ -31,25 +41,63 @@
             class="mtt-merchant-product-category-group {{#if category.isCollapsed}}mtt-merchant-product-category-collapsed{{/if}}"
             data-mtt-category-drop
             data-category="{{category.categoryValue}}"
+            data-tooltip="{{localize 'mtt.products.category.dropTooltip'}}"
           >
             <header class="mtt-merchant-product-category-header">
-              <button
-                class="mtt-merchant-product-category-toggle"
-                type="button"
-                data-action="toggleProductCategory"
-                data-category="{{category.categoryValue}}"
-                data-tooltip="{{#if category.isCollapsed}}{{localize 'mtt.products.category.toggleShow'}}{{else}}{{localize 'mtt.products.category.toggleHide'}}{{/if}}"
-              >
-                {{#if category.isCollapsed}}
-                  <i class="fas fa-chevron-right"></i>
-                {{else}}
-                  <i class="fas fa-chevron-down"></i>
-                {{/if}}
-              </button>
-              <h3 class="mtt-merchant-product-category-title">
-                {{category.name}}
-                <span class="mtt-merchant-product-category-count">({{category.count}})</span>
-              </h3>
+              <div class="mtt-merchant-product-category-header-main">
+                <button
+                  class="mtt-merchant-product-category-toggle"
+                  type="button"
+                  data-action="toggleProductCategory"
+                  data-category="{{category.categoryValue}}"
+                  data-tooltip="{{#if category.isCollapsed}}{{localize 'mtt.products.category.toggleShow'}}{{else}}{{localize 'mtt.products.category.toggleHide'}}{{/if}}"
+                >
+                  {{#if category.isCollapsed}}
+                    <i class="fas fa-chevron-right"></i>
+                  {{else}}
+                    <i class="fas fa-chevron-down"></i>
+                  {{/if}}
+                </button>
+
+                <div class="mtt-merchant-product-category-title-block">
+                  {{#if @root.mtt.canEditMerchant}}
+                    {{#if category.isSystemCategory}}
+                      <h3 class="mtt-merchant-product-category-title">
+                        {{category.name}}
+                        <span class="mtt-merchant-product-category-count">({{category.count}})</span>
+                      </h3>
+                    {{else}}
+                      <input
+                        class="mtt-merchant-product-category-input"
+                        type="text"
+                        value="{{category.name}}"
+                        data-mtt-category-name
+                        data-category-id="{{category.categoryValue}}"
+                        data-tooltip="{{localize 'mtt.products.category.rename'}}"
+                      />
+                    {{/if}}
+                  {{else}}
+                    <h3 class="mtt-merchant-product-category-title">
+                      {{category.name}}
+                      <span class="mtt-merchant-product-category-count">({{category.count}})</span>
+                    </h3>
+                  {{/if}}
+                </div>
+              </div>
+
+              {{#if @root.mtt.canEditMerchant}}
+                {{#unless category.isSystemCategory}}
+                  <button
+                    class="mtt-merchant-product-action mtt-merchant-product-category-delete"
+                    type="button"
+                    data-action="deleteProductCategory"
+                    data-category-id="{{category.categoryValue}}"
+                    data-tooltip="{{localize 'mtt.products.category.delete'}}"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                {{/unless}}
+              {{/if}}
             </header>
 
             {{#unless category.isCollapsed}}

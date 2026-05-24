@@ -1,11 +1,189 @@
 <section class="mtt-merchant-services">
-  <div class="mtt-merchant-empty-tab">
-    <i class="fas fa-handshake"></i>
-    <h2 class="mtt-merchant-empty-tab-title">{{localize
-        "mtt.services.empty.title"
-      }}</h2>
-    <p class="mtt-merchant-empty-tab-text">{{localize
-        "mtt.services.empty.text"
-      }}</p>
-  </div>
+  {{#if @root.mtt.canEditMerchant}}
+    <div class="mtt-merchant-services-actions-row">
+      <button
+        class="mtt-merchant-services-create"
+        type="button"
+        data-action="createService"
+        data-tooltip="{{localize 'mtt.services.add'}}"
+        title="{{localize 'mtt.services.add'}}"
+      >
+        <i class="fas fa-plus"></i>
+      </button>
+    </div>
+
+    <div class="mtt-merchant-services-drop-zone" data-mtt-service-drop>
+      <p class="mtt-merchant-services-drop-help">{{localize "mtt.services.dropHelp"}}</p>
+    </div>
+  {{else}}
+    <div class="mtt-merchant-services-drop-zone mtt-merchant-services-drop-zone-disabled">
+      <p class="mtt-merchant-services-drop-help">{{localize "mtt.services.dropHelp"}}</p>
+    </div>
+  {{/if}}
+
+  {{#if @root.services}}
+    <h2 class="mtt-merchant-services-title">{{localize "mtt.services.title"}}</h2>
+    <p class="mtt-merchant-services-subtitle">{{localize "mtt.services.subtitle"}}</p>
+
+    <ol class="mtt-merchant-service-list">
+      {{#each @root.services as |service|}}
+        <li class="mtt-merchant-service-row" data-service-id="{{service.id}}">
+          <div class="mtt-merchant-service-main">
+            <button
+              class="mtt-merchant-service-action"
+              type="button"
+              data-action="toggleServiceExpanded"
+              data-tooltip="{{#if service.isExpanded}}{{localize 'mtt.services.toggleHide'}}{{else}}{{localize 'mtt.services.toggleShow'}}{{/if}}"
+              title="{{#if service.isExpanded}}{{localize 'mtt.services.toggleHide'}}{{else}}{{localize 'mtt.services.toggleShow'}}{{/if}}"
+            >
+              {{#if service.isExpanded}}
+                <i class="fas fa-chevron-down"></i>
+              {{else}}
+                <i class="fas fa-chevron-right"></i>
+              {{/if}}
+            </button>
+
+            {{#if service.hasSource}}
+              {{#if service.sourceImg}}
+                <img src="{{service.sourceImg}}" class="mtt-merchant-service-source-image" alt="{{service.sourceName}}" />
+              {{/if}}
+              <span class="mtt-merchant-service-source-tag">
+                {{#if service.sourceType}}
+                  {{localize "mtt.services.sourceType"}}: {{service.sourceType}}
+                {{else}}
+                  {{localize "mtt.services.linkedItem"}}
+                {{/if}}
+              </span>
+            {{/if}}
+
+            {{#if @root.mtt.canEditMerchant}}
+              <input
+                type="text"
+                class="mtt-merchant-service-name"
+                data-mtt-service-field="name"
+                value="{{service.name}}"
+                placeholder="{{localize 'mtt.services.name'}}"
+              />
+            {{else}}
+              <span class="mtt-merchant-service-name-readonly">{{service.name}}</span>
+            {{/if}}
+
+            <div class="mtt-merchant-service-actions">
+              <button
+                class="mtt-merchant-service-action"
+                type="button"
+                data-action="toggleServiceHidden"
+                data-tooltip="{{#if service.isHidden}}{{localize 'mtt.services.show'}}{{else}}{{localize 'mtt.services.hide'}}{{/if}}"
+                title="{{#if service.isHidden}}{{localize 'mtt.services.show'}}{{else}}{{localize 'mtt.services.hide'}}{{/if}}"
+              >
+                {{#if service.isHidden}}
+                  <i class="fas fa-eye-slash"></i>
+                {{else}}
+                  <i class="fas fa-eye"></i>
+                {{/if}}
+              </button>
+
+              <button
+                class="mtt-merchant-service-action"
+                type="button"
+                data-action="toggleServiceApproval"
+                data-tooltip="{{#if service.requiresApproval}}{{localize 'mtt.services.disableApproval'}}{{else}}{{localize 'mtt.services.requireApproval'}}{{/if}}"
+                title="{{#if service.requiresApproval}}{{localize 'mtt.services.disableApproval'}}{{else}}{{localize 'mtt.services.requireApproval'}}{{/if}}"
+              >
+                {{#if service.requiresApproval}}
+                  <i class="fas fa-user-check"></i>
+                {{else}}
+                  <i class="fas fa-user-clock"></i>
+                {{/if}}
+              </button>
+            </div>
+          </div>
+
+          {{#if service.isExpanded}}
+            <div class="mtt-merchant-service-details mtt-merchant-service-expanded">
+              {{#if service.description}}
+                <div class="mtt-merchant-service-description">
+                  {{{service.description}}}
+                </div>
+              {{/if}}
+
+              <div class="mtt-merchant-service-price">
+                <strong>{{service.priceValue}}</strong>
+                {{#if service.priceCurrency}}
+                  <span>{{service.priceCurrency}}</span>
+                {{/if}}
+              </div>
+
+              <div class="mtt-merchant-service-fields">
+                {{#if @root.mtt.canEditMerchant}}
+                  <input
+                    type="text"
+                    class="mtt-merchant-service-description-input"
+                    data-mtt-service-field="description"
+                    value="{{service.description}}"
+                    placeholder="{{localize 'mtt.services.description'}}"
+                  />
+
+                  <input
+                    type="number"
+                    class="mtt-merchant-service-price-value"
+                    data-mtt-service-field="priceValue"
+                    value="{{service.priceValue}}"
+                    min="0"
+                    step="0.01"
+                    placeholder="{{localize 'mtt.services.price'}}"
+                  />
+
+                  <input
+                    type="text"
+                    class="mtt-merchant-service-price-currency"
+                    data-mtt-service-field="priceCurrency"
+                    value="{{service.priceCurrency}}"
+                    placeholder="{{localize 'mtt.services.currency'}}"
+                  />
+
+                  <input
+                    type="number"
+                    class="mtt-merchant-service-quantity"
+                    data-mtt-service-field="quantity"
+                    value="{{service.quantity}}"
+                    min="0"
+                    step="1"
+                    placeholder="{{localize 'mtt.services.unlimited'}}"
+                  />
+
+                  <button
+                    class="mtt-merchant-service-delete"
+                    type="button"
+                    data-action="deleteService"
+                    data-tooltip="{{localize 'mtt.services.delete'}}"
+                    title="{{localize 'mtt.services.delete'}}"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                {{else}}
+                  <div class="mtt-merchant-service-price">
+                    {{#if service.hasQuantity}}
+                      <span>{{service.quantity}}</span>
+                    {{else}}
+                      <span>{{localize 'mtt.services.unlimited'}}</span>
+                    {{/if}}
+                  </div>
+                {{/if}}
+              </div>
+            </div>
+          {{/if}}
+        </li>
+      {{/each}}
+    </ol>
+  {{else}}
+    <div class="mtt-merchant-empty-tab">
+      <i class="fas fa-handshake"></i>
+      <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.services.empty.title"}}</h2>
+      <p class="mtt-merchant-empty-tab-text">{{localize "mtt.services.empty.text"}}</p>
+      {{#if @root.mtt.canEditMerchant}}
+        <p class="mtt-merchant-empty-tab-help">{{localize "mtt.services.empty.help"}}</p>
+      {{/if}}
+    </div>
+  {{/if}}
 </section>

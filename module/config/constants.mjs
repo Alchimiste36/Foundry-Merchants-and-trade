@@ -24,6 +24,21 @@ export const MTT = {
     requiresApproval: false,
   },
 
+  SERVICE_DEFAULTS: {
+    name: "",
+    description: "",
+    priceValue: 0,
+    priceCurrency: "",
+    quantity: null,
+    isHidden: false,
+    requiresApproval: false,
+    isExpanded: true,
+    sourceUuid: null,
+    sourceName: "",
+    sourceType: "",
+    sourceImg: "",
+  },
+
   TEMPLATES: {
     MERCHANT_SHEET: "modules/mtt-merchants/templates/actors/merchant-sheet.hbs",
     MERCHANT_HEADER: "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs",

@@ -12,6 +12,30 @@
       "debug": {
         "name": "Mode debug MTT",
         "hint": "Active des informations supplémentaires dans la console pour le module Merchants, Trades and Transactions."
+      },
+      "itemPriceValuePath": {
+        "name": "Chemin du prix du produit / service",
+        "hint": "Chemin du système de l’item pour lire la valeur numérique du prix. Exemple : system.price.value"
+      },
+      "itemPriceCurrencyPath": {
+        "name": "Chemin de la monnaie",
+        "hint": "Chemin du système de l’item pour lire le code ou le sigle de la monnaie. Exemple : system.price.currency"
+      },
+      "itemQuantityPath": {
+        "name": "Chemin de la quantité",
+        "hint": "Chemin du système de l’item pour lire la quantité disponible. Exemple : system.quantity"
+      },
+      "itemDescriptionPath": {
+        "name": "Chemin de la description",
+        "hint": "Chemin du système de l’item pour lire la description. Exemple : system.description.value"
+      },
+      "allowedProductTypes": {
+        "name": "Types d’items autorisés comme produits",
+        "hint": "Liste de types séparés par des virgules. Laisser vide pour autoriser tous les types."
+      },
+      "allowedServiceTypes": {
+        "name": "Types d’items autorisés comme services",
+        "hint": "Liste de types séparés par des virgules. Laisser vide pour autoriser tous les types."
       }
     },
     "sheet": {
@@ -63,8 +87,14 @@
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",
       "onlyItemsCanBeDropped": "Only items can be added to the merchant.",
+      "productQuantityIncreased": "La quantité du produit existant a été augmentée.",
       "invalidQuantity": "La quantité doit être un nombre positif ou égal à zéro.",
-      "invalidPrice": "Le prix doit être un nombre positif ou égal à zéro."
+      "invalidPrice": "Le prix doit être un nombre positif ou égal à zéro.",
+      "invalidServicePrice": "Le prix du service doit être un nombre positif ou égal à zéro.",
+      "invalidServiceQuantity": "La quantité du service doit être un nombre positif ou égal à zéro.",
+      "onlyItemsCanCreateServices": "Seuls les objets peuvent être utilisés pour créer un service.",
+      "productTypeNotAllowed": "Ce type d’objet n’est pas autorisé comme produit.",
+      "serviceTypeNotAllowed": "Ce type d’objet n’est pas autorisé comme service."
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"
@@ -124,14 +154,49 @@
         "label": "Catégorie",
         "placeholder": "Catégorie",
         "undefined": "Sans catégorie",
+        "add": "Ajouter une catégorie",
+        "new": "Nouvelle catégorie",
+        "delete": "Supprimer la catégorie",
+        "deleteTitle": "Supprimer la catégorie",
+        "deleteContent": "Voulez-vous vraiment supprimer cette catégorie ?",
+        "notEmpty": "La catégorie doit être vide pour être supprimée.",
+        "rename": "Renommer la catégorie",
         "toggleShow": "Déplier la catégorie",
-        "toggleHide": "Plier la catégorie"
+        "toggleHide": "Plier la catégorie",
+        "dropTooltip": "Déposer dans cette catégorie",
+        "countLabel": "produit(s)"
       }
     },
     "services": {
+      "title": "Services",
+      "subtitle": "Services proposés par ce marchand.",
+      "new": "Nouveau service",
+      "add": "Ajouter un service",
+      "delete": "Supprimer le service",
+      "deleteTitle": "Supprimer le service",
+      "deleteContent": "Voulez-vous vraiment supprimer ce service ?",
+      "name": "Nom du service",
+      "description": "Description",
+      "price": "Prix",
+      "currency": "Monnaie",
+      "quantity": "Quantité",
+      "unlimited": "Illimité",
+      "dropHelp": "Déposez ici un objet pour créer un service lié à un item.",
+      "linkedItem": "Service lié à un item",
+      "sourceType": "Type source",
+      "sourceName": "Source",
+      "toggleShow": "Afficher les détails du service",
+      "toggleHide": "Masquer les détails du service",
+      "hide": "Masquer le service",
+      "show": "Afficher le service",
+      "requireApproval": "Demander une validation MJ",
+      "disableApproval": "Retirer la validation MJ",
+      "hidden": "Masqué",
+      "requiresApproval": "Validation MJ",
       "empty": {
-        "title": "Services",
-        "text": "La gestion des services sera ajoutée dans une prochaine étape."
+        "title": "Aucun service",
+        "text": "Ce marchand ne propose encore aucun service.",
+        "help": "Déverrouillez la feuille pour ajouter un service."
       }
     },
     "sessions": {

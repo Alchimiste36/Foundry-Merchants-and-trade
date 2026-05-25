@@ -1,0 +1,42 @@
+<section class="mtt-dialog mtt-dialog-{{variant}}">
+  {{#if hasHeader}}
+    <header class="mtt-dialog-header">
+      {{#if icon}}
+        <i class="fas {{icon}} mtt-dialog-icon"></i>
+      {{/if}}
+      {{#if title}}
+        <h2 class="mtt-dialog-title">{{title}}</h2>
+      {{/if}}
+    </header>
+  {{/if}}
+
+  <div class="mtt-dialog-content">
+    {{#if message}}
+      <p class="mtt-dialog-message">{{message}}</p>
+    {{/if}}
+
+    {{#if details}}
+      <p class="mtt-dialog-details">{{details}}</p>
+    {{/if}}
+
+    {{#if entity}}
+      <section class="mtt-dialog-entity">
+        {{#if entity.img}}
+          <img class="mtt-dialog-entity-image" src="{{entity.img}}" alt="{{entity.name}}" />
+        {{/if}}
+        <div class="mtt-dialog-entity-main">
+          <strong class="mtt-dialog-entity-name">{{entity.name}}</strong>
+          {{#if entity.meta}}
+            <span class="mtt-dialog-entity-meta">{{entity.meta}}</span>
+          {{/if}}
+        </div>
+      </section>
+    {{/if}}
+
+    {{#if form}}
+      <form class="mtt-dialog-form">
+        {{{form}}}
+      </form>
+    {{/if}}
+  </div>
+</section>

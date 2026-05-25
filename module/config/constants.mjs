@@ -19,6 +19,9 @@ export const MTT = {
     priceValue: 0,
     priceCurrency: "",
     category: "",
+    systemCategoryKey: "",
+    systemCategoryLabel: "",
+    systemCategoryPath: "",
     isSecretExpanded: false,
     isHidden: false,
     requiresApproval: false,
@@ -37,6 +40,10 @@ export const MTT = {
     sourceName: "",
     sourceType: "",
     sourceImg: "",
+    category: "",
+    systemCategoryKey: "",
+    systemCategoryLabel: "",
+    systemCategoryPath: "",
   },
 
   TEMPLATES: {
@@ -54,6 +61,7 @@ export const MTT = {
     MERCHANT_SESSION:
       "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",
+    MTT_DIALOG: "modules/mtt-merchants/templates/apps/mtt-dialog.hbs",
   },
 
   CSS: {

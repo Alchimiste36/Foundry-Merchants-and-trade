@@ -17,7 +17,7 @@
   font-family: var(--font-family);
   color: var(--mtt-text);
 }
-.window-content {
+.mtt-sheet .window-content {
   padding: 0;
 }
 .mtt-merchant-window {
@@ -214,6 +214,42 @@
   background: var(--mtt-bg-hover);
   transform: translateX(-0.2rem);
 }
+.mtt-merchant-access-context-menu {
+  position: fixed;
+  z-index: 130;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel);
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+.mtt-merchant-access-context-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--mtt-text);
+  text-align: left;
+  cursor: pointer;
+}
+.mtt-merchant-access-context-menu-button:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+}
+.mtt-merchant-access-card-selected {
+  border-color: var(--mtt-accent);
+  box-shadow: 0 0 0 2px var(--mtt-accent-soft), 0 0.35rem 1rem rgba(199, 154, 72, 0.28);
+  transform: translateX(-0.25rem);
+}
 .mtt-merchant-access-card-image {
   width: 100%;
   height: 100%;
@@ -234,19 +270,31 @@
 .mtt-merchant-access-card-unauthorized .mtt-merchant-access-card-image {
   filter: grayscale(1);
 }
-.mtt-merchant-access-card-check {
+.mtt-merchant-access-session-badge {
   position: absolute;
   right: 0.05rem;
   bottom: 0.05rem;
   width: 1.05rem;
   height: 1.05rem;
   border-radius: 999px;
-  background: #2f8f55;
   color: #ffffff;
   font-size: 0.68rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+.mtt-merchant-access-session-active {
+  background: #5f86d3;
+}
+.mtt-merchant-access-session-pending {
+  background: #d6a84f;
+  color: #261b0a;
+}
+.mtt-merchant-access-session-validated {
+  background: #2f8f55;
+}
+.mtt-merchant-access-session-refused {
+  background: var(--mtt-danger);
 }
 .mtt-merchant-access-drop-card {
   border: 1px dashed var(--mtt-border);
@@ -854,6 +902,121 @@
 }
 .mtt-merchant-session-action-delete {
   color: var(--mtt-danger);
+}
+.mtt-dialog {
+  display: grid;
+  gap: 0.75rem;
+  min-width: min(420px, 100%);
+  color: var(--mtt-text, #e5e0d6);
+}
+.mtt-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--mtt-border-soft, #3a3f46);
+}
+.mtt-dialog-icon {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel-soft, #32363b);
+  color: var(--mtt-accent, #c79a48);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mtt-dialog-title {
+  margin: 0;
+  color: var(--mtt-text, #e5e0d6);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.mtt-dialog-content {
+  display: grid;
+  gap: 0.65rem;
+}
+.mtt-dialog-message,
+.mtt-dialog-details {
+  margin: 0;
+  color: var(--mtt-text-muted, #b6afa3);
+  line-height: 1.35;
+}
+.mtt-dialog-details {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.4rem;
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--mtt-text-soft, #948d82);
+  font-size: 0.85rem;
+}
+.mtt-dialog-warning .mtt-dialog-icon {
+  border-color: #d6a84f;
+  color: #d6a84f;
+}
+.mtt-dialog-danger .mtt-dialog-icon {
+  border-color: var(--mtt-danger, #d36b5f);
+  color: var(--mtt-danger, #d36b5f);
+}
+.mtt-dialog-entity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field, #1f2125);
+}
+.mtt-dialog-entity-image {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft, #32363b);
+}
+.mtt-dialog-entity-main {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.mtt-dialog-entity-name {
+  color: var(--mtt-text, #e5e0d6);
+  overflow-wrap: anywhere;
+}
+.mtt-dialog-entity-meta {
+  color: var(--mtt-text-soft, #948d82);
+  font-size: 0.82rem;
+}
+.mtt-dialog-form {
+  display: grid;
+  gap: 0.6rem;
+}
+.mtt-dialog-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 140px);
+  gap: 0.55rem;
+  align-items: center;
+}
+.mtt-dialog-field-label {
+  color: var(--mtt-text-muted, #b6afa3);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.mtt-dialog-field-value {
+  color: var(--mtt-text, #e5e0d6);
+  text-align: right;
+}
+.mtt-dialog-field input {
+  min-height: 1.85rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field, #1f2125);
+  color: var(--mtt-text, #e5e0d6);
 }
 .mtt-session-dialog-form {
   display: grid;
@@ -1686,4 +1849,13 @@
 }
 .mtt-config-app .window-content {
   overflow-y: scroll;
+}
+.mtt-config-textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+.mtt-config-checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
 }

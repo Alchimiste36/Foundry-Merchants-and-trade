@@ -84,6 +84,49 @@
       </div>
     </section>
 
+    {{! Section : Catégories automatiques }}
+    <section class="mtt-config-section">
+      <h3 class="mtt-config-section-title">{{localize
+          "mtt.configuration.automaticCategories"
+        }}</h3>
+
+      <div class="mtt-config-field">
+        <label>{{localize "mtt.settings.itemCategoryPaths.name"}}</label>
+        <textarea
+          name="itemCategoryPaths"
+          class="mtt-config-textarea"
+          placeholder="{{localize 'mtt.configuration.categoryPathsPlaceholder'}}"
+        >{{itemCategoryPaths}}</textarea>
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.itemCategoryPaths.hint"
+          }}</p>
+      </div>
+
+      <label class="mtt-config-checkbox-field">
+        <input
+          type="checkbox"
+          name="useItemTypeAsCategoryFallback"
+          {{#if useItemTypeAsCategoryFallback}}checked{{/if}}
+        />
+        <span>{{localize "mtt.settings.useItemTypeAsCategoryFallback.name"}}</span>
+      </label>
+      <p class="mtt-config-hint">{{localize
+          "mtt.settings.useItemTypeAsCategoryFallback.hint"
+        }}</p>
+
+      <div class="mtt-config-field">
+        <label>{{localize "mtt.settings.categoryLabelMap.name"}}</label>
+        <textarea
+          name="categoryLabelMap"
+          class="mtt-config-textarea"
+          placeholder="{{localize 'mtt.configuration.categoryLabelMapPlaceholder'}}"
+        >{{categoryLabelMap}}</textarea>
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.categoryLabelMap.hint"
+          }}</p>
+      </div>
+    </section>
+
     {{! Section : Devises et conversion }}
     <section class="mtt-config-section">
       <h3 class="mtt-config-section-title">{{localize

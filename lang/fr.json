@@ -37,6 +37,18 @@
         "name": "Types d’items autorisés comme services",
         "hint": "Liste de types séparés par des virgules. Laisser vide pour autoriser tous les types."
       },
+      "itemCategoryPaths": {
+        "name": "Chemins des catégories automatiques",
+        "hint": "Chemins à tester pour déterminer automatiquement la catégorie d’un objet ou service. Un chemin par ligne. Le premier chemin non vide est utilisé."
+      },
+      "useItemTypeAsCategoryFallback": {
+        "name": "Utiliser le type d’objet comme catégorie de secours",
+        "hint": "Si aucun chemin de catégorie ne donne de résultat, utilise le type Foundry de l’objet comme catégorie automatique."
+      },
+      "categoryLabelMap": {
+        "name": "Libellés des catégories automatiques",
+        "hint": "Correspondances entre valeurs techniques et libellés affichés. Format : valeur=Libellé, une ligne par correspondance."
+      },
       "actorCurrencyPath": {
         "name": "Chemin de la monnaie principale de l’acteur",
         "hint": "Chemin pour lire la monnaie principale sur un acteur. Exemple : system.currency.gp. Laisser vide si la monnaie est gérée par devises séparées."
@@ -95,6 +107,24 @@
       "cancel": "Annuler"
     },
     "dialog": {
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "removeAuthorizationTitle": "Retirer l’autorisation",
+      "removeAuthorizationMessage": "Retirer l’autorisation de ce client annulera sa session en cours sans effectuer de transaction.",
+      "removeAuthorizationConfirm": "Retirer l’autorisation",
+      "removeActorTitle": "Supprimer l’acteur du marchand",
+      "removeActorMessage": "L’acteur Foundry ne sera pas supprimé. Seule son entrée sur ce marchand sera retirée.",
+      "removeActorConfirm": "Supprimer du marchand",
+      "sellerItemTitle": "Ajouter un objet vendu ou donné",
+      "sellerItemQuantity": "Quantité proposée",
+      "sellerItemAvailableQuantity": "Quantité disponible",
+      "sellerItemUnitValue": "Valeur unitaire proposée",
+      "sellerItemCurrency": "Monnaie",
+      "sellerItemAdd": "Ajouter à la session",
+      "clearSessionTitle": "Vider la session",
+      "clearSessionMessage": "La session sera remise à zéro. Aucune transaction ne sera effectuée.",
+      "clearSessionConfirm": "Vider la session",
+      "noTransactionNoJournal": "Aucune transaction ne sera effectuée et aucune entrée de journal ne sera créée.",
       "deleteItem": {
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
@@ -145,7 +175,22 @@
       "clientAuthorized": "Client autorisé à commercer.",
       "clientUnauthorized": "Autorisation du client retirée.",
       "clientAlreadyExists": "Ce client est déjà présent sur le marchand.",
-      "clientAccessSessionRemoved": "La session en cours du client a été supprimée."
+      "clientAccessSessionRemoved": "La session en cours du client a été supprimée.",
+      "clientSessionCreated": "Session créée pour ce client.",
+      "clientSessionSelected": "Session sélectionnée.",
+      "clientAlreadyTrading": "Ce client a déjà une session en cours avec un autre marchand.",
+      "actorRemovedFromMerchant": "Acteur supprimé du marchand.",
+      "actorRemoveCancelled": "Suppression annulée.",
+      "selectClientBeforeAdding": "Sélectionnez un client avant d’ajouter un élément.",
+      "selectClientFirst": "Sélectionnez d’abord un client autorisé.",
+      "createSessionBeforeAdding": "Créez une session pour ce client avant d’ajouter un élément.",
+      "selectSessionBeforeAdding": "Sélectionnez une session avant d’ajouter un élément.",
+      "clientHasNoSession": "Ce client n’a pas encore de session.",
+      "sessionCreatedForClient": "Session créée pour ce client.",
+      "sessionSelectedForClient": "Session sélectionnée pour ce client.",
+      "clientAuthorizedSessionCreated": "Client autorisé et session ouverte.",
+      "clientSessionOpened": "Session du client ouverte.",
+      "authorizationRemovedSessionDeleted": "Autorisation retirée et session supprimée."
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"
@@ -161,6 +206,15 @@
       "noClient": "Client non défini",
       "playerCharacter": "Personnage joueur",
       "manualActor": "Acteur ajouté",
+      "openSession": "Ouvrir la session",
+      "createSession": "Créer une session",
+      "selectedSession": "Session sélectionnée",
+      "contextTitle": "Actions client",
+      "removeAuthorization": "Retirer l’autorisation",
+      "removeActor": "Supprimer l’acteur du marchand",
+      "removeActorTitle": "Supprimer l’acteur du marchand",
+      "removeActorContent": "Voulez-vous vraiment supprimer cet acteur du marchand ?",
+      "removeActorWithSessionContent": "Une session en cours existe pour cet acteur. Voulez-vous supprimer l’acteur du marchand et supprimer la session en cours ?",
       "removeAuthorizationTitle": "Retirer l’autorisation",
       "removeAuthorizationContent": "Une session de transaction est en cours pour ce client. Voulez-vous retirer l’autorisation et supprimer la session en cours ?",
       "cancelRemoveAuthorization": "Annuler",
@@ -168,7 +222,15 @@
       "notAuthorizedForTrade": "Ce client n’est pas autorisé à commercer avec ce marchand.",
       "noAuthorizedClient": "Aucun client n’est autorisé à commercer avec ce marchand.",
       "multipleAuthorizedClients": "Plusieurs clients sont autorisés. Sélectionnez un client ou une session avant d’ajouter des éléments.",
-      "clientNotAuthorizedWarning": "Client non autorisé"
+      "clientNotAuthorizedWarning": "Client non autorisé",
+      "sessionActive": "Session : en cours",
+      "sessionPending": "Session : en attente d’une décision",
+      "sessionValidated": "Session : validée",
+      "sessionRefused": "Session : refusée",
+      "noSession": "Aucune session",
+      "leftClickAuthorize": "Clic gauche : autoriser",
+      "leftClickOpenSession": "Clic gauche : ouvrir la session",
+      "rightClickManage": "Clic droit : gérer"
     },
     "tabs": {
       "products": "Produits",
@@ -223,6 +285,9 @@
         "currencyPlaceholder": "Monnaie",
         "undefined": "Prix non défini"
       },
+      "systemCategory": "Catégorie système",
+      "merchantCategory": "Catégorie marchand",
+      "automaticCategory": "Catégorie automatique",
       "category": {
         "label": "Catégorie",
         "placeholder": "Catégorie",
@@ -293,8 +358,21 @@
       "emptyBuyer": "Aucun élément reçu pour le moment.",
       "emptySeller": "Aucun élément donné pour le moment.",
       "noSession": "Aucune session en cours.",
+      "selectClient": "Sélectionnez un client autorisé pour ouvrir une session.",
+      "noSelectedClient": "Sélectionnez un client autorisé pour ouvrir une session.",
+      "noSessionForClient": "Aucune session pour ce client.",
       "create": "Créer une session",
+      "createSessionForClient": "Créer une session pour ce client",
       "newLabel": "Nouvelle session",
+      "sessionForActor": "Session — {name}",
+      "clientAlreadyTrading": "Ce client a déjà une session en cours avec un autre marchand.",
+      "selectClientBeforeAdding": "Sélectionnez un client avant d’ajouter un élément.",
+      "selectClientFirst": "Sélectionnez un client autorisé avant de créer une session.",
+      "createSessionBeforeAdding": "Créez une session pour ce client avant d’ajouter un élément.",
+      "selectSessionBeforeAdding": "Sélectionnez une session avant d’ajouter un élément.",
+      "selectedClient": "Client sélectionné",
+      "noAuthorizedClient": "Aucun client n’est autorisé à commercer avec ce marchand.",
+      "multipleClientsSelectRequired": "Plusieurs clients sont disponibles. Sélectionnez une session avant d’ajouter un élément.",
       "label": "Nom de la session",
       "delete": "Supprimer la session",
       "deleteTitle": "Supprimer la session",
@@ -317,6 +395,7 @@
       "editQuantity": "Modifier la quantité",
       "removeItem": "Retirer de la session",
       "clear": "Vider la session",
+      "clearOnly": "Vider la session",
       "clearTitle": "Vider la session",
       "clearContent": "Voulez-vous vraiment vider la session en cours ?",
       "draftNotice": "Brouillon de transaction : aucun achat réel n’est encore effectué.",
@@ -338,6 +417,11 @@
       "refusedNotice": "Session refusée.",
       "pendingNotice": "En attente d’une décision.",
       "activeNotice": "Brouillon de transaction en cours.",
+      "authorizationCreatesSession": "Autoriser un client ouvre automatiquement une session.",
+      "removeAuthorizationDeletesSession": "Retirer l’autorisation supprimera la session en cours de ce client.",
+      "sessionResetAfterDecision": "Après décision finale, la session repartira à zéro.",
+      "wholeSessionDecision": "Décision finale de session",
+      "lineNegotiationDecision": "Décision de négociation de ligne",
       "check": {
         "title": "Vérification",
         "run": "Vérifier la transaction",
@@ -403,6 +487,9 @@
       "walletNoCurrencies": "Aucune monnaie configurée.",
       "walletSummaryEmpty": "Aucune monnaie",
       "currencyAmount": "Montant",
+      "automaticCategories": "Catégories automatiques",
+      "categoryPathsPlaceholder": "system.subtype\nsystem.category\nsystem.type",
+      "categoryLabelMapPlaceholder": "weapon=Armes\narmor=Armures\nconsumable=Consommables",
       "empty": {
         "title": "Configuration",
         "text": "Les options générales du marchand et le journal des transactions seront regroupés ici."

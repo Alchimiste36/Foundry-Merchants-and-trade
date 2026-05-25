@@ -305,6 +305,26 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
               blank: true,
               initial: "",
             }),
+            category: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            systemCategoryKey: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            systemCategoryLabel: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            systemCategoryPath: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
             isExpanded: new fields.BooleanField({
               required: true,
               initial: true,

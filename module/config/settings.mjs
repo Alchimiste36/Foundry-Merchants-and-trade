@@ -65,6 +65,33 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemCategoryPaths", {
+    name: "mtt.settings.itemCategoryPaths.name",
+    hint: "mtt.settings.itemCategoryPaths.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "useItemTypeAsCategoryFallback", {
+    name: "mtt.settings.useItemTypeAsCategoryFallback.name",
+    hint: "mtt.settings.useItemTypeAsCategoryFallback.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MTT.ID, "categoryLabelMap", {
+    name: "mtt.settings.categoryLabelMap.name",
+    hint: "mtt.settings.categoryLabelMap.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "actorCurrencyPath", {
     name: "mtt.settings.actorCurrencyPath.name",
     hint: "mtt.settings.actorCurrencyPath.hint",

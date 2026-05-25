@@ -49,6 +49,12 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemDescriptionPath: game.settings.get(MTT.ID, "itemDescriptionPath"),
       allowedProductTypes: game.settings.get(MTT.ID, "allowedProductTypes"),
       allowedServiceTypes: game.settings.get(MTT.ID, "allowedServiceTypes"),
+      itemCategoryPaths: game.settings.get(MTT.ID, "itemCategoryPaths"),
+      useItemTypeAsCategoryFallback: game.settings.get(
+        MTT.ID,
+        "useItemTypeAsCategoryFallback",
+      ),
+      categoryLabelMap: game.settings.get(MTT.ID, "categoryLabelMap"),
       currencies: this.#currencies,
     };
   }
@@ -102,6 +108,21 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       MTT.ID,
       "allowedServiceTypes",
       fd.get("allowedServiceTypes") ?? "",
+    );
+    await game.settings.set(
+      MTT.ID,
+      "itemCategoryPaths",
+      fd.get("itemCategoryPaths") ?? "",
+    );
+    await game.settings.set(
+      MTT.ID,
+      "useItemTypeAsCategoryFallback",
+      fd.get("useItemTypeAsCategoryFallback") === "on",
+    );
+    await game.settings.set(
+      MTT.ID,
+      "categoryLabelMap",
+      fd.get("categoryLabelMap") ?? "",
     );
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
     this.close();

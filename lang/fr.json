@@ -190,7 +190,20 @@
       "sessionSelectedForClient": "Session sélectionnée pour ce client.",
       "clientAuthorizedSessionCreated": "Client autorisé et session ouverte.",
       "clientSessionOpened": "Session du client ouverte.",
-      "authorizationRemovedSessionDeleted": "Autorisation retirée et session supprimée."
+      "authorizationRemovedSessionDeleted": "Autorisation retirée et session supprimée.",
+      "invalidProductDrop": "Déplacement de produit invalide.",
+      "merchantProductNotSellable": "Vous ne pouvez pas ajouter un produit du marchand dans ce que le PJ vend ou donne.",
+      "missingProposedPrice": "Vous devez proposer un prix pour cet élément."
+    },
+    "price": {
+      "freePrice": "Prix libre",
+      "freePriceTooltip": "Proposer un prix au vendeur",
+      "freePriceIconTooltip": "Proposer un prix au vendeur",
+      "minimumPrice": "Prix minimum MJ",
+      "minimumPriceHint": "Référence interne réservée au MJ. Elle n’est pas affichée aux acheteurs.",
+      "proposedPrice": "Prix proposé",
+      "proposedPriceHint": "Prix proposé au vendeur dans la monnaie de référence.",
+      "referenceCurrency": "Monnaie de référence"
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"

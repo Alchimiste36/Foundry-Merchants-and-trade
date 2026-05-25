@@ -25,6 +25,8 @@ export const MTT = {
     isSecretExpanded: false,
     isHidden: false,
     requiresApproval: false,
+    hasFreePrice: false,
+    minimumPriceValue: 0,
   },
 
   SERVICE_DEFAULTS: {
@@ -44,6 +46,8 @@ export const MTT = {
     systemCategoryKey: "",
     systemCategoryLabel: "",
     systemCategoryPath: "",
+    hasFreePrice: false,
+    minimumPriceValue: 0,
   },
 
   TEMPLATES: {

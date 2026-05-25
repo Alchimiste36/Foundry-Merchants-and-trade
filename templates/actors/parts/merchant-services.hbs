@@ -120,11 +120,18 @@
               {{/if}}
 
               <div class="mtt-merchant-service-price">
-                <span>{{localize "mtt.services.price.adjusted"}}</span>
-                {{#if service.hasPrice}}
-                  <strong>{{service.displayPriceLabel}}</strong>
+                {{#if service.hasFreePrice}}
+                  <span class="mtt-merchant-service-free-price" data-tooltip="{{localize 'mtt.price.freePriceTooltip'}}">
+                    <i class="fas fa-scale-balanced"></i>
+                    {{localize "mtt.price.freePrice"}}
+                  </span>
                 {{else}}
-                  <strong>{{localize "mtt.products.price.undefined"}}</strong>
+                  <span>{{localize "mtt.services.price.adjusted"}}</span>
+                  {{#if service.hasPrice}}
+                    <strong>{{service.displayPriceLabel}}</strong>
+                  {{else}}
+                    <strong>{{localize "mtt.products.price.undefined"}}</strong>
+                  {{/if}}
                 {{/if}}
               </div>
 
@@ -138,23 +145,36 @@
                     placeholder="{{localize 'mtt.services.description'}}"
                   />
 
-                  <input
-                    type="number"
-                    class="mtt-merchant-service-price-value"
-                    data-mtt-service-field="priceValue"
-                    value="{{service.priceValue}}"
-                    min="0"
-                    step="0.01"
-                    placeholder="{{localize 'mtt.services.price.base'}}"
-                  />
+                  {{#if service.hasFreePrice}}
+                    <input
+                      type="number"
+                      class="mtt-merchant-service-price-value"
+                      data-mtt-service-field="minimumPriceValue"
+                      value="{{service.minimumPriceValue}}"
+                      min="0"
+                      step="0.01"
+                      placeholder="{{localize 'mtt.price.minimumPrice'}}"
+                      data-tooltip="{{localize 'mtt.price.minimumPriceHint'}}"
+                    />
+                  {{else}}
+                    <input
+                      type="number"
+                      class="mtt-merchant-service-price-value"
+                      data-mtt-service-field="priceValue"
+                      value="{{service.priceValue}}"
+                      min="0"
+                      step="0.01"
+                      placeholder="{{localize 'mtt.services.price.base'}}"
+                    />
 
-                  <input
-                    type="text"
-                    class="mtt-merchant-service-price-currency"
-                    data-mtt-service-field="priceCurrency"
-                    value="{{service.priceCurrency}}"
-                    placeholder="{{localize 'mtt.services.currency'}}"
-                  />
+                    <input
+                      type="text"
+                      class="mtt-merchant-service-price-currency"
+                      data-mtt-service-field="priceCurrency"
+                      value="{{service.priceCurrency}}"
+                      placeholder="{{localize 'mtt.services.currency'}}"
+                    />
+                  {{/if}}
 
                   <input
                     type="number"
@@ -165,6 +185,16 @@
                     step="1"
                     placeholder="{{localize 'mtt.services.unlimited'}}"
                   />
+
+                  <button
+                    class="mtt-merchant-service-action {{#if service.hasFreePrice}}mtt-merchant-service-action-active{{/if}}"
+                    type="button"
+                    data-action="toggleServiceFreePrice"
+                    data-tooltip="{{#if service.hasFreePrice}}{{localize 'mtt.price.freePriceTooltip'}}{{else}}{{localize 'mtt.price.freePrice'}}{{/if}}"
+                    title="{{#if service.hasFreePrice}}{{localize 'mtt.price.freePriceTooltip'}}{{else}}{{localize 'mtt.price.freePrice'}}{{/if}}"
+                  >
+                    <i class="fas fa-scale-balanced"></i>
+                  </button>
 
                   <button
                     class="mtt-merchant-service-delete"

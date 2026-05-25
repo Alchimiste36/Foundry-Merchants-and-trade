@@ -36,6 +36,11 @@
                 <strong>{{item.name}}</strong>
                 <div class="mtt-merchant-session-item-meta">
                   <span class="mtt-session-item-tag">{{item.sourceLabel}}</span>
+                  {{#if item.isFreePrice}}
+                    <span class="mtt-session-item-tag mtt-session-item-tag-free-price" data-tooltip="{{localize 'mtt.price.freePriceTooltip'}}">
+                      <i class="fas fa-scale-balanced"></i>
+                    </span>
+                  {{/if}}
                   {{#if item.hasLimitedQuantity}}
                     <span class="mtt-merchant-session-available">
                       {{localize "mtt.sessions.item.available"}} {{item.availableQuantityLabel}}
@@ -73,7 +78,19 @@
                   </span>
                 </div>
                 <div class="mtt-merchant-session-item-meta">
-                  <span>{{localize "mtt.sessions.item.unitPrice"}} {{item.unitPriceLabel}}</span>
+                  {{#if item.isFreePrice}}
+                    <span>{{localize "mtt.price.proposedPrice"}} {{item.unitPriceLabel}}</span>
+                    {{#if @root.mtt.canEditMerchant}}
+                      {{#if item.hasMinimumPrice}}
+                        <span class="mtt-session-minimum-price-hint" data-tooltip="{{item.minimumPriceLabel}}">
+                          <i class="fas fa-scale-balanced"></i>
+                          {{localize "mtt.price.minimumPrice"}}
+                        </span>
+                      {{/if}}
+                    {{/if}}
+                  {{else}}
+                    <span>{{localize "mtt.sessions.item.unitPrice"}} {{item.unitPriceLabel}}</span>
+                  {{/if}}
                   <span>{{localize "mtt.sessions.item.totalPrice"}} {{item.totalPriceLabel}}</span>
                 </div>
               </div>

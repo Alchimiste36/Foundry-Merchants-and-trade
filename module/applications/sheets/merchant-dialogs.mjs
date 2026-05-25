@@ -184,6 +184,161 @@ export function renderSellerItemDialog({ availableQuantityLabel, availableQuanti
     </label>`
 }
 
+// ─── Preview dialog helpers ───────────────────────────────────────────────────
+
+function renderPreviewItemList(items) {
+  if (!items || items.length === 0) return ""
+  return `<ul class="mtt-dialog-preview-list">${items
+    .map(
+      (item) => `<li class="mtt-dialog-preview-item${item.missing ? " mtt-dialog-preview-item-missing" : ""}">
+      ${item.img ? `<img class="mtt-dialog-preview-img" src="${escapeHTML(item.img)}" alt="${escapeHTML(item.name)}" />` : ""}
+      <span class="mtt-dialog-preview-name">${escapeHTML(item.name)}</span>
+      <span class="mtt-dialog-preview-quantity">×${escapeHTML(String(item.quantity))}</span>
+      <span class="mtt-dialog-preview-total">${escapeHTML(item.totalPriceLabel)}</span>
+    </li>`,
+    )
+    .join("")}</ul>`
+}
+
+function renderPreviewDialogContent(preview) {
+  const loc = (key) => escapeHTML(game.i18n.localize(key))
+
+  let html = `<div class="mtt-dialog-preview-header">
+    <p><strong>${loc("mtt.sessions.preview.client")}</strong> ${escapeHTML(preview.client?.actorName ?? "—")}</p>
+    <p><strong>${loc("mtt.sessions.preview.merchant")}</strong> ${escapeHTML(preview.merchant?.name ?? "—")}</p>
+  </div>`
+
+  if (preview.buyerDeliveries.length > 0) {
+    html += `<section class="mtt-dialog-preview-section">
+      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.buyerReceives")}</h4>
+      ${renderPreviewItemList(preview.buyerDeliveries)}
+    </section>`
+  }
+
+  if (preview.services.length > 0) {
+    html += `<section class="mtt-dialog-preview-section">
+      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.services")}</h4>
+      ${renderPreviewItemList(preview.services)}
+    </section>`
+  }
+
+  if (preview.sellerDeliveries.length > 0) {
+    html += `<section class="mtt-dialog-preview-section">
+      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.merchantReceives")}</h4>
+      ${renderPreviewItemList(preview.sellerDeliveries)}
+    </section>`
+  }
+
+  const stockUpdates = [...(preview.merchantStockUpdates ?? []), ...(preview.clientItemUpdates ?? [])]
+  if (stockUpdates.length > 0) {
+    html += `<section class="mtt-dialog-preview-section">
+      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.stockUpdates")}</h4>
+      <ul class="mtt-dialog-preview-list">${stockUpdates
+        .map(
+          (u) => `<li class="mtt-dialog-preview-item">
+          ${u.img ? `<img class="mtt-dialog-preview-img" src="${escapeHTML(u.img)}" alt="${escapeHTML(u.name)}" />` : ""}
+          <span class="mtt-dialog-preview-name">${escapeHTML(u.name)}</span>
+          <span class="mtt-dialog-preview-quantity">−${escapeHTML(String(u.quantityToReduce))}</span>
+        </li>`,
+        )
+        .join("")}</ul>
+    </section>`
+  }
+
+  if ((preview.moneyTransfers ?? []).length > 0) {
+    html += `<section class="mtt-dialog-preview-section">
+      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.moneyTransfers")}</h4>
+      <ul class="mtt-dialog-preview-list">${preview.moneyTransfers
+        .map(
+          (t) => `<li class="mtt-dialog-preview-item${t.hasEnough ? "" : " mtt-dialog-preview-item-warning"}">
+          <i class="fas fa-coins"></i>
+          <span class="mtt-dialog-preview-name">${escapeHTML(t.amountLabel)}</span>
+          <span class="mtt-dialog-preview-meta">${escapeHTML(t.payer)} → ${escapeHTML(t.receiver)}</span>
+          ${!t.hasEnough ? `<i class="fas fa-triangle-exclamation mtt-dialog-preview-warning-icon"></i>` : ""}
+        </li>`,
+        )
+        .join("")}</ul>
+    </section>`
+  }
+
+  if ((preview.warnings ?? []).length > 0) {
+    html += `<ul class="mtt-dialog-preview-list mtt-dialog-preview-warnings">${preview.warnings
+      .map((w) => `<li class="mtt-dialog-preview-warning"><i class="fas fa-triangle-exclamation"></i> ${escapeHTML(w)}</li>`)
+      .join("")}</ul>`
+  }
+
+  html += `<p class="mtt-dialog-preview-notice"><i class="fas fa-circle-info"></i> ${loc("mtt.sessions.preview.previewOnly")}</p>`
+  return html
+}
+
+function renderPreviewErrorContent(preview) {
+  let html = `<p class="mtt-dialog-message">${escapeHTML(game.i18n.localize("mtt.sessions.preview.cannotExecute"))}</p>`
+
+  if ((preview.errors ?? []).length > 0) {
+    html += `<ul class="mtt-dialog-preview-list mtt-dialog-preview-errors">${preview.errors
+      .map((e) => `<li class="mtt-dialog-preview-error"><i class="fas fa-circle-xmark"></i> ${escapeHTML(e)}</li>`)
+      .join("")}</ul>`
+  }
+
+  return html
+}
+
+export async function openPreviewDialog(preview) {
+  const form = renderPreviewDialogContent(preview)
+  const content = await renderMttDialogContent({
+    icon: "fa-clipboard-list",
+    title: game.i18n.localize("mtt.sessions.preview.title"),
+    variant: "default",
+    form,
+  })
+
+  try {
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("mtt.sessions.preview.title") },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "close",
+          label: game.i18n.localize("mtt.sessions.preview.close"),
+          default: true,
+          callback: () => null,
+        },
+      ],
+    })
+  } catch {
+    // ignore
+  }
+}
+
+export async function openPreviewErrorDialog(preview) {
+  const form = renderPreviewErrorContent(preview)
+  const content = await renderMttDialogContent({
+    icon: "fa-triangle-exclamation",
+    title: game.i18n.localize("mtt.sessions.preview.errorTitle"),
+    variant: "danger",
+    form,
+  })
+
+  try {
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("mtt.sessions.preview.errorTitle") },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "close",
+          label: game.i18n.localize("mtt.sessions.preview.close"),
+          default: true,
+          callback: () => null,
+        },
+      ],
+    })
+  } catch {
+    // ignore
+  }
+}
+
 export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0

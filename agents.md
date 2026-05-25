@@ -2,42 +2,46 @@
 
 ## 1. Identité du projet
 
-Nom du module : **Merchants, Trades and Transactions**
+Nom du module : **Merchants, Trades and Transactions**.
 
-Acronyme : **MTT**
+Acronyme : **MTT**.
 
-Identifiant Foundry du module : `mtt-merchants`
+Identifiant Foundry du module : `mtt-merchants`.
 
-Préfixe CSS obligatoire : `mtt-`
+Préfixe CSS obligatoire : `mtt-`.
 
-Namespace de localisation : `mtt`
+Namespace de localisation : `mtt`.
 
-Dépôt GitHub : `https://github.com/Alchimiste36/Foundry-Merchants-and-trade`
+Dépôt GitHub : `https://github.com/Alchimiste36/Foundry-Merchants-and-trade`.
 
-Le projet est un **module indépendant pour Foundry VTT**, et non une fonctionnalité directement intégrée dans le système Chroniques Oubliées 2.
+Le projet est un **module indépendant pour Foundry VTT**, et non une fonctionnalité intégrée directement dans Chroniques Oubliées 2.
 
 Le module cible **Foundry VTT V14**.
 
-> Note : l’utilisateur est néophyte en développement. Merci de garder les fichiers cohérents entre l’existant et les nouvelles modifications.
+Le fichier d’instructions du projet est nommé `agents.md` en minuscules. Ne pas chercher uniquement `AGENTS.md`.
+
+L’utilisateur est néophyte en développement. Les modifications doivent rester cohérentes avec l’existant, faciles à relire, et éviter les refontes massives non demandées.
 
 ---
 
 ## 2. Objectif général
 
-Le module MTT doit permettre de gérer des marchands, boutiques, services, catalogues et transactions dans Foundry VTT.
+MTT doit permettre de gérer des marchands, boutiques, services, catalogues et transactions dans Foundry VTT.
 
-La vision complète du module inclut à terme :
+La vision du module inclut :
 
 - des marchands configurables ;
 - des produits ;
-- des services ;
-- des catégories ;
-- des sessions joueur / marchand ;
-- des paniers ;
+- des services basés sur des Items ;
+- des catégories marchandes ;
+- des clients autorisés ;
+- des sessions de transaction ;
+- du troc ;
 - des ventes au marchand ;
 - des validations MJ ;
-- des négociations ;
-- un journal des transactions ;
+- des négociations manuelles ;
+- un ajustement monétaire automatique ;
+- un journal de transactions réservé au MJ ;
 - des presets d’adaptation pour différents systèmes de jeu.
 
 Le premier système de test et futur preset sera **Chroniques Oubliées 2**, mais le cœur du module ne doit pas dépendre directement de CO2.
@@ -46,30 +50,29 @@ Le premier système de test et futur preset sera **Chroniques Oubliées 2**, mai
 
 ## 3. Philosophie de développement
 
-Avancer **étape par étape**.
+Avancer étape par étape, avec rigueur.
 
-Ne pas développer immédiatement tout le système de transaction.
+Ne pas développer tout le système de transaction d’un coup.
 
-La première étape doit être simple :
+Ne pas ajouter de fonctionnalité avancée non demandée.
 
-- un module qui se charge dans Foundry VTT V14 ;
-- un type d’acteur marchand fourni par le module ;
-- une feuille marchand qui s’ouvre ;
-- une interface propre ;
-- une liste d’objets embarqués ;
-- possibilité future d’insérer ou créer des objets depuis la feuille.
+Ne pas refactoriser massivement sans demande explicite.
 
-Les fonctionnalités avancées viennent plus tard.
+Quand une modification demandée est confirmée comme fonctionnelle par l’utilisateur, considérer qu’elle existe dans son état local, même si elle n’a pas encore été poussée sur GitHub.
+
+Quand l’utilisateur dit qu’il a poussé, le dépôt GitHub redevient l’état de référence.
+
+Pour les gros changements dans un même fichier, préférer un fichier complet ou un diff très clair lorsque l’utilisateur le demande. Pour Codex ou Claude Code, modifier directement les fichiers sans demander à l’utilisateur de recoller manuellement des morceaux.
 
 ---
 
-## Règle de simplicité des outils de développement
+## 4. Outils et dépendances
 
 Le projet MTT doit rester simple dans ses outils de développement.
 
-Ne pas ajouter de dépendance npm, de plugin Gulp, de configuration de build ou d’outil supplémentaire sans nécessité claire et explicitement demandée.
+Ne pas ajouter de dépendance npm, de plugin Gulp, de configuration de build ou d’outil supplémentaire sans nécessité claire et validation explicite.
 
-Pour la phase actuelle, les outils autorisés sont :
+Outils actuellement acceptés :
 
 - `gulp`
 - `gulp-less`
@@ -83,89 +86,35 @@ Le fichier `gulpfile.mjs` doit rester minimal.
 
 Il doit uniquement compiler :
 
-````text
+```text
 styles/mtt.less
+```
 
 vers :
 
+```text
 css/mtt.css
+```
 
-et permettre un mode watch sur les fichiers .less.
+et permettre un mode watch sur les fichiers `.less`.
 
 Ne pas ajouter automatiquement :
 
-gulp-sourcemaps
-gulp-clean-css
-minification CSS
-sourcemaps
-bundler JavaScript
-transpiler
-framework CSS
-dépendance liée à Steam, au commerce en ligne ou à un sujet externe
-outil de packaging non demandé
+- `gulp-sourcemaps`
+- `gulp-clean-css`
+- minification CSS
+- sourcemaps
+- bundler JavaScript
+- transpiler
+- framework CSS
+- dépendance externe non demandée
+- outil de packaging non demandé
 
-Si une nouvelle dépendance semble utile, proposer d’abord l’ajout avec une justification courte, puis attendre validation avant de modifier package.json, package-lock.json ou gulpfile.mjs.
-
-Principe général :
-
-Commencer par la solution la plus simple qui fonctionne, puis complexifier seulement si un besoin réel apparaît.
-
-En cas de doute, ne pas ajouter de dépendance.
-
-## 4. Type d’acteur marchand
-
-Le module doit fournir son propre sous-type d’acteur marchand.
-
-Type attendu :
-
-```text
-mtt-merchants.merchant
-````
-
-Le module ne doit pas modifier les types d’acteurs du système actif.
-
-Dans un monde CO2, on doit pouvoir avoir côte à côte :
-
-- des acteurs CO2 `character` ;
-- des acteurs CO2 `encounter` ;
-- des acteurs MTT `mtt-merchants.merchant`.
-
-MTT ne doit pas remplacer la classe document des acteurs du système actif.
-
-MTT ne doit pas modifier directement les feuilles des acteurs CO2.
+Si une nouvelle dépendance semble utile, proposer d’abord l’ajout avec une justification courte, puis attendre validation avant de modifier `package.json`, `package-lock.json` ou `gulpfile.mjs`.
 
 ---
 
-## 5. Relation avec Chroniques Oubliées 2
-
-CO2 est seulement le premier environnement de test.
-
-Le système CO2 déclare principalement les acteurs :
-
-- `character`
-- `encounter`
-
-MTT doit ajouter un acteur marchand séparé.
-
-Le cœur MTT doit rester générique.
-
-Les règles spécifiques CO2 devront être isolées plus tard dans un preset CO2.
-
-Le preset CO2 pourra gérer :
-
-- monnaies PO / PA / PC ;
-- chemins de prix ;
-- chemins de quantité ;
-- types d’items vendables ;
-- types d’acteurs acheteurs ;
-- règles de transfert d’objets ;
-- règles de transfert de monnaie.
-
-Ces éléments ne doivent pas être codés en dur dans le cœur MTT au début.
-
----
-
-## 6. Convention JavaScript
+## 5. Foundry VTT et conventions JavaScript
 
 Utiliser du JavaScript moderne compatible Foundry VTT V14.
 
@@ -176,20 +125,25 @@ Respecter les APIs modernes :
 - HandlebarsApplicationMixin ;
 - TypeDataModel ;
 - `foundry.data.fields` ;
-- DialogV2 quand un dialogue est nécessaire ;
+- `foundry.applications.api.DialogV2` pour les dialogues ;
+- `foundry.applications.ux.TextEditor.implementation.getDragEventData(event)` pour les données de drag’n drop ;
 - `async` / `await`.
 
 Ne pas utiliser les anciens patterns Foundry V1 sauf nécessité explicite.
 
-Ne pas utiliser de point-virgule superflu.
+Ne pas utiliser le global déprécié `TextEditor`.
 
-Style attendu :
+Ne pas utiliser `new foundry.applications.DialogV2(...)`.
+
+Utiliser un style JavaScript sans point-virgule superflu.
+
+Exemple attendu :
 
 ```js
 export const MTT = {
   ID: "mtt-merchants",
-  NAME: "Merchants, Trades and Transactions",
-};
+  NAME: "Merchants, Trades and Transactions"
+}
 ```
 
 À éviter :
@@ -197,13 +151,13 @@ export const MTT = {
 ```js
 export const MTT = {
   ID: "mtt-merchants",
-  NAME: "Merchants, Trades and Transactions",
+  NAME: "Merchants, Trades and Transactions"
 };
 ```
 
 ---
 
-## 7. Convention de fichiers et chemins
+## 6. Convention de fichiers et chemins
 
 Tous les fichiers et dossiers doivent être en minuscules.
 
@@ -211,10 +165,16 @@ Exemples :
 
 ```text
 mtt.mjs
+agents.md
 module/config/constants.mjs
 module/models/merchant-data.mjs
 module/applications/sheets/merchant-sheet.mjs
+module/applications/sheets/merchant-catalog.mjs
+module/applications/sheets/merchant-trade.mjs
+module/applications/sheets/merchant-dialogs.mjs
+module/applications/sheets/merchant-utils.mjs
 templates/actors/merchant-sheet.hbs
+templates/apps/mtt-dialog.hbs
 styles/mtt.less
 css/mtt.css
 lang/fr.json
@@ -225,53 +185,20 @@ lang/en.json
 
 ---
 
-## 8. Convention de localisation
+## 7. Localisation
 
 Toute chaîne affichée à l’utilisateur doit passer par les fichiers de langue.
 
-Cela concerne :
-
-- titres ;
-- boutons ;
-- labels ;
-- tooltips ;
-- notifications ;
-- dialogues ;
-- settings ;
-- titres de feuilles ;
-- messages utiles dans la console.
+Cela concerne : titres, boutons, labels, tooltips, notifications, dialogues, settings, titres de feuilles et messages utiles dans la console.
 
 Le namespace de localisation est `mtt`.
 
 La structure des fichiers de langue doit être hiérarchisée.
 
-Exemple attendu :
-
-```json
-{
-  "mtt": {
-    "log": {
-      "initializing": "Initialisation",
-      "initialized": "Initialisé",
-      "ready": "Prêt"
-    },
-    "sheets": {
-      "merchant": "Feuille de marchand"
-    },
-    "settings": {
-      "debug": {
-        "name": "Mode debug MTT",
-        "hint": "Active des informations supplémentaires dans la console pour le module Merchants, Trades and Transactions."
-      }
-    }
-  }
-}
-```
-
-Dans le code, utiliser des clés comme :
+Utiliser des clés comme :
 
 ```js
-game.i18n.localize("mtt.log.initializing");
+game.i18n.localize("mtt.log.initializing")
 ```
 
 Ne pas utiliser de clés plates comme :
@@ -284,21 +211,22 @@ Ne pas utiliser de clés plates comme :
 
 Ne pas utiliser de namespace en majuscules comme `MTT.Log.Initializing`.
 
+Pendant la phase actuelle de développement, modifier uniquement `lang/fr.json`, sauf demande explicite de traduction anglaise. `lang/en.json` sera complété à la fin.
+
 ---
 
-## 9. Convention CSS / Less
+## 8. CSS / Less
 
 Toutes les classes CSS propres au module doivent être préfixées par `mtt-`.
 
-C’est une règle obligatoire.
-
-But : éviter les collisions avec les systèmes de jeu et les autres modules.
+C’est obligatoire pour éviter les collisions avec les systèmes de jeu et les autres modules.
 
 Classes acceptées :
 
 ```text
 mtt-sheet
 mtt-merchant-sheet
+mtt-merchant-window
 mtt-merchant-form
 mtt-merchant-header
 mtt-merchant-sidebar
@@ -306,6 +234,9 @@ mtt-merchant-main
 mtt-merchant-navigation
 mtt-merchant-product-row
 mtt-merchant-service-row
+mtt-merchant-session
+mtt-merchant-access-rail
+mtt-dialog
 ```
 
 Classes à éviter seules :
@@ -324,7 +255,7 @@ button
 title
 ```
 
-Les fichiers Less doivent être organisés clairement.
+Les fichiers Less doivent rester organisés clairement.
 
 Structure souhaitée :
 
@@ -336,203 +267,190 @@ styles/
     merchant-sheet.less
 ```
 
-Le fichier `styles/mtt.less` importe les autres fichiers.
-
 Le CSS compilé doit aller dans :
 
 ```text
 css/mtt.css
 ```
 
-Le projet utilise Gulp pour compiler les fichiers `.less` en `.css`.
+Le CSS local modifié manuellement par l’utilisateur doit être préservé. Ne pas réécrire/refactoriser le CSS des produits, du rail client, des sessions ou du layout général sans nécessité explicite.
 
-Règle d’interface pour les boutons MTT :
+Les boutons MTT doivent être compacts, avec icône Font Awesome et tooltip localisé, surtout dans les zones denses.
 
-Dans les feuilles du module MTT, privilégier des boutons compacts avec icône Font Awesome et info-bulle, plutôt que de grands boutons contenant du texte.
+Le texte visible sur les boutons doit être évité dans : lignes produits, lignes services, rail clients, actions rapides, navigation secondaire et session.
 
-Objectif :
-
-- éviter d’encombrer les lignes de produits ;
-- garder une interface compacte ;
-- rendre la feuille plus lisible ;
-- faciliter la mise en page finale.
-
-Convention attendue :
-
-- Le bouton affiche principalement une icône `<i class="fas ..."></i>`.
-- Le texte du bouton doit être évité dans les zones compactes comme les lignes de produits, la navigation secondaire ou les actions rapides.
-- Le sens du bouton doit être donné par `data-tooltip="{{localize '...'}}"`.
-- Les labels doivent rester localisés dans `lang/fr.json`.
-- Utiliser du texte visible uniquement pour les gros boutons d’action principaux si c’est vraiment nécessaire.
-
-Les icônes peuvent changer selon l’état du bouton.
-
-Exemples de logique attendue :
-
-- verrouillé :
-  - icône : `fa-lock`
-  - tooltip : “Déverrouiller”
-- déverrouillé :
-  - icône : `fa-lock-open`
-  - tooltip : “Verrouiller”
-- marchand ouvert :
-  - icône : `fa-door-open`
-  - tooltip : “Fermer le marchand”
-- marchand fermé :
-  - icône : `fa-door-closed`
-  - tooltip : “Ouvrir le marchand”
-- bloc secret replié :
-  - icône : `fa-eye`
-  - tooltip : “Afficher les informations secrètes”
-- bloc secret déplié :
-  - icône : `fa-eye-slash`
-  - tooltip : “Masquer les informations secrètes”
-- modifier :
-  - icône : `fa-pen-to-square` ou `fa-edit`
-  - tooltip : “Modifier”
-- supprimer :
-  - icône : `fa-trash`
-  - tooltip : “Supprimer”
-- ajouter :
-  - icône : `fa-plus`
-  - tooltip : “Ajouter”
-
-Exemple de bouton attendu :
-
-````hbs
-<button
-  class="mtt-merchant-product-action"
-  type="button"
-  data-action="toggleProductSecret"
-  data-tooltip="{{#if item.isSecretExpanded}}{{localize 'mtt.products.secret.toggleHide'}}{{else}}{{localize 'mtt.products.secret.toggleShow'}}{{/if}}"
->
-  {{#if item.isSecretExpanded}}
-    <i class="fas fa-eye-slash"></i>
-  {{else}}
-    <i class="fas fa-eye"></i>
-  {{/if}}
-</button>
+Utiliser `data-tooltip="{{localize '...'}}"`.
 
 ---
 
-## 10. Structure initiale du module
+## 9. Architecture JavaScript actuelle
 
-Structure cible de départ :
+La feuille marchand a été séparée en plusieurs fichiers cohérents. Respecter cette organisation.
 
-```text
-module.json
-mtt.mjs
-package.json
-gulpfile.mjs
-.gitignore
-.prettierrc
-README.md
+### `module/applications/sheets/merchant-sheet.mjs`
 
-css/
-  mtt.css
+Rôle : fichier principal et orchestrateur de la feuille.
 
-styles/
-  mtt.less
-  applications/
-    _index.less
-    merchant-sheet.less
+Ce fichier doit contenir principalement :
 
-templates/
-  actors/
-    merchant-sheet.hbs
-    parts/
-      merchant-header.hbs
-      merchant-sidebar.hbs
-      merchant-main.hbs
-      merchant-navigation.hbs
-      merchant-products.hbs
-      merchant-services.hbs
+- la classe `MerchantSheet` ;
+- `DEFAULT_OPTIONS` ;
+- `PARTS` ;
+- `_prepareContext` si la préparation reste directement liée à la feuille ;
+- `_onRender` ;
+- les actions Application V2 déclarées ;
+- les appels vers les fonctions importées ;
+- les wrappers nécessaires quand une action Application V2 doit rester attachée à la classe.
 
-module/
-  config/
-    constants.mjs
-    settings.mjs
+Ce fichier ne doit pas redevenir un gros fichier fourre-tout. Toute logique métier importante doit être placée dans le fichier spécialisé adapté.
 
-  models/
-    merchant-data.mjs
-    _module.mjs
+### `module/applications/sheets/merchant-catalog.mjs`
 
-  applications/
-    _module.mjs
-    sheets/
-      merchant-sheet.mjs
+Rôle : gérer le catalogue proposé par le marchand.
 
-lang/
-  fr.json
-  en.json
+Ce fichier regroupe la logique liée à :
 
-docs/
-  specification-fonctionnelle.md
-  roadmap.md
-  decisions.md
+- produits ;
+- services ;
+- catégories ;
+- catégories automatiques par type/sous-type système ;
+- distinction drop externe / drop interne du catalogue ;
+- déplacement de produit entre catégories ;
+- ajout/fusion de produit ;
+- ajout de service basé sur Item ;
+- édition des données commerciales produits/services ;
+- prix affichés ;
+- prix libre / icône balance ;
+- prix minimum MJ ;
+- quantités catalogue ;
+- produits/services masqués ;
+- informations commerciales ;
+- informations secrètes si déjà présentes.
 
-.github/
-  copilot-instructions.md
-````
+Produits et services restent ensemble dans ce fichier, car leur logique est proche.
+
+Ne pas créer séparément `merchant-products.mjs` et `merchant-services.mjs` sauf demande explicite.
+
+### `module/applications/sheets/merchant-trade.mjs`
+
+Rôle : gérer l’échange entre un client et le marchand.
+
+Ce fichier regroupe la logique liée à :
+
+- clients autorisés ;
+- rail de cards clients ;
+- clic gauche / clic droit sur cards ;
+- autorisation / retrait d’autorisation ;
+- suppression d’un acteur du marchand ;
+- verrou global anti-double-session ;
+- session automatiquement liée à un acteur autorisé ;
+- sélection de session ;
+- buyerItems : “Le PJ achète / reçoit” ;
+- sellerItems : “Le PJ vend / donne” ;
+- correction du drop marchand vers “Le PJ donne” ;
+- quantités dans la session ;
+- totaux ;
+- ajustement monétaire ;
+- vérification de transaction ;
+- prévisualisation d’exécution ;
+- future validation/refus réel ;
+- futur transfert objets/monnaies ;
+- futur journal marchand.
+
+Ne pas recréer séparément `merchant-access.mjs`, `merchant-sessions.mjs` ou `merchant-transaction-check.mjs` sauf demande explicite.
+
+### `module/applications/sheets/merchant-dialogs.mjs`
+
+Rôle : centraliser les dialogues MTT.
+
+Ce fichier regroupe :
+
+- rendu du template de dialogue MTT ;
+- helpers de DialogV2 ;
+- confirmations MTT ;
+- dialogue de retrait d’autorisation ;
+- dialogue de suppression d’acteur du marchand ;
+- dialogue de drop sellerItem ;
+- dialogue de vidage de session ;
+- dialogue de prévisualisation transaction ;
+- dialogue d’erreur transaction.
+
+Le but est d’éviter du HTML brut de dialogue dispersé dans les autres fichiers.
+
+### `module/applications/sheets/merchant-utils.mjs`
+
+Rôle : utilitaires communs simples et réutilisables.
+
+Ce fichier peut contenir :
+
+- génération d’identifiants ;
+- parsing de nombres ;
+- normalisation de quantités ;
+- lecture de valeur par chemin configuré ;
+- wrappers autour de `foundry.utils.getProperty` si utile ;
+- normalisation de catégories ;
+- lecture/mapping de catégories automatiques si utilisée par plusieurs parties ;
+- regroupement de totaux par monnaie ;
+- helpers de devises ;
+- récupération de monnaie de référence si déjà présente.
+
+Ne pas transformer ce fichier en fourre-tout. Une fonction fortement liée à `MerchantSheet`, au DOM ou à une action métier doit rester dans le fichier métier adapté.
+
+### Règles d’imports
+
+Éviter les dépendances circulaires.
+
+Accepté :
+
+- `merchant-sheet.mjs` importe `merchant-catalog.mjs`
+- `merchant-sheet.mjs` importe `merchant-trade.mjs`
+- `merchant-sheet.mjs` importe `merchant-dialogs.mjs`
+- `merchant-sheet.mjs` importe `merchant-utils.mjs`
+- `merchant-catalog.mjs` importe `merchant-utils.mjs`
+- `merchant-catalog.mjs` importe `merchant-dialogs.mjs` si nécessaire
+- `merchant-trade.mjs` importe `merchant-utils.mjs`
+- `merchant-trade.mjs` importe `merchant-dialogs.mjs` si nécessaire
+
+À éviter :
+
+- `merchant-catalog.mjs` importe `merchant-sheet.mjs`
+- `merchant-trade.mjs` importe `merchant-sheet.mjs`
+- `merchant-dialogs.mjs` importe `merchant-sheet.mjs`
+- `merchant-utils.mjs` importe les fichiers métier.
+
+Les modules spécialisés peuvent recevoir `sheet`, `actor`, `event`, `target`, `session`, `item` ou les données nécessaires en paramètre.
 
 ---
 
-## 11. Manifest `module.json`
+## 10. Type d’acteur marchand
 
-Le module doit utiliser :
+Le module fournit son propre type d’acteur marchand.
 
-```json
-{
-  "id": "mtt-merchants",
-  "title": "Merchants, Trades and Transactions"
-}
-```
-
-Le sous-type d’acteur déclaré dans le manifeste est `merchant`.
-
-Le type complet côté Foundry sera normalement :
+Type attendu :
 
 ```text
 mtt-merchants.merchant
 ```
 
-Le manifeste doit déclarer les fichiers :
+Le module ne doit pas modifier les types d’acteurs du système actif.
 
-```json
-"esmodules": [
-  "mtt.mjs"
-],
-"styles": [
-  "css/mtt.css"
-]
-```
+MTT ne doit pas remplacer la classe document des acteurs du système actif.
 
-Les langues :
+MTT ne doit pas modifier directement les feuilles des acteurs CO2 ou d’un autre système.
 
-```json
-"languages": [
-  {
-    "lang": "fr",
-    "name": "Français",
-    "path": "lang/fr.json"
-  },
-  {
-    "lang": "en",
-    "name": "English",
-    "path": "lang/en.json"
-  }
-]
-```
+---
 
-Les champs HTML doivent être déclarés avec leur chemin précis.
+## 11. Relation avec Chroniques Oubliées 2
 
-Pour la description du marchand :
+CO2 est seulement le premier environnement de test.
 
-```json
-"htmlFields": [
-  "merchant.description"
-]
-```
+Le cœur MTT doit rester générique.
+
+Les règles spécifiques CO2 doivent être isolées plus tard dans un preset CO2.
+
+Le preset CO2 pourra gérer : monnaies PO / PA / PC, chemins de prix, chemins de quantité, types d’Items vendables, types d’acteurs acheteurs, règles de transfert d’objets et règles de transfert de monnaie.
+
+Ne pas coder ces éléments en dur dans le cœur MTT.
 
 ---
 
@@ -540,11 +458,9 @@ Pour la description du marchand :
 
 Utiliser un `TypeDataModel`.
 
-Le modèle initial doit rester minimal.
+Utiliser des blocs explicites plutôt qu’un champ trop générique.
 
-Ne pas utiliser un champ générique `system.description`.
-
-Préférer des blocs explicites :
+Exemples :
 
 ```text
 system.merchant.description
@@ -552,709 +468,373 @@ system.manager.displayName
 system.manager.actorUuid
 system.status.isOpen
 system.sheet.isLocked
-system.catalog.keepEmptyItems
+system.catalog
+system.services
+system.sessions.entries
+system.access.clients
+system.wallet.currencies
+system.trade.sellPercent
+system.trade.buyPercent
+system.trade.negotiationFormula
 ```
 
-Principe important : bien distinguer les éléments.
+La feuille marchand est verrouillée par défaut.
 
-Il y aura potentiellement plusieurs descriptions plus tard :
-
-```text
-system.merchant.description
-system.manager.description
-system.catalog.description
-system.products[].description
-system.services[].description
-```
-
-Donc les noms doivent être précis dès le début.
-
----
-
-## 13. Verrouillage de la feuille
-
-La feuille marchand doit avoir deux états :
-
-- verrouillée ;
-- déverrouillée.
-
-La feuille doit être verrouillée par défaut.
-
-Le verrouillage protège contre les modifications accidentelles.
-
-Chemin de donnée :
+Le verrouillage est stocké dans :
 
 ```text
 system.sheet.isLocked
 ```
 
-Quand la feuille est verrouillée :
-
-- pas de création d’objet ;
-- pas de suppression d’objet ;
-- pas de modification des réglages sensibles ;
-- pas de bascule ouvert / fermé si cette action est considérée comme une modification MJ.
-
-Quand elle est déverrouillée :
-
-- le MJ peut modifier le marchand ;
-- les actions de gestion apparaissent ou sont activées.
-
-Le verrouillage doit être enregistré dans les données de l’acteur, pas seulement dans l’état temporaire de la feuille.
+Le verrouillage protège les modifications de configuration/catalogue, mais les actions de session peuvent rester disponibles selon les règles du module.
 
 ---
 
-## 14. Structure visuelle de la feuille marchand
+## 13. Structure visuelle actuelle du marchand
 
-La feuille doit être organisée en trois grandes zones :
+La feuille marchand contient :
+
+- un en-tête avec les informations principales du marchand ;
+- une zone de catalogue avec Produits, Services et Configuration ;
+- une sidebar/session de transaction ;
+- un rail client compact sur le côté droit sous forme de cards/portraits.
+
+Le rail client ne doit pas casser le layout global de Foundry ni déplacer la sidebar Foundry.
+
+Les clients autorisés ne doivent plus être affichés dans un grand cadre dans l’en-tête.
+
+Les cards clients contiennent uniquement le portrait carré. Les informations textuelles doivent être en tooltip.
+
+---
+
+## 14. Produits et services
+
+Les produits et services partent tous deux d’Items Foundry.
+
+Abandonner les services libres écrits directement depuis le marchand.
+
+Les services suivent une logique proche des produits avec quelques différences mineures : quantité souvent illimitée ou optionnelle, validation MJ possible, livraison future différente d’un produit, entrée de transaction ou preuve de service possible plus tard.
+
+Ne pas séparer inutilement produits et services dans l’architecture tant que leur logique reste proche.
+
+---
+
+## 15. Catégories et sous-types système
+
+MTT distingue trois notions :
+
+1. Le type Foundry de l’Item, qui peut servir à autoriser/refuser l’ajout.
+2. Le type/sous-type/catégorie système, lu via des chemins configurés.
+3. La catégorie marchande MTT, indépendante et modifiable.
+
+Les catégories automatiques doivent utiliser plusieurs chemins configurables par le MJ, car certains systèmes ont plusieurs types d’objets d’équipement avec leurs propres sous-types.
+
+La catégorie automatique issue du type/sous-type système ne doit jamais modifier l’Item source.
+
+Elle sert seulement à initialiser ou suggérer la catégorie MTT.
+
+Si le MJ déplace ensuite un produit vers une autre catégorie, ne pas le remettre automatiquement dans sa catégorie système.
+
+Drop attendu :
+
+- drop externe d’un Item Foundry vers le marchand : ajout dans la catégorie automatique de l’objet source ;
+- drop interne d’un produit MTT vers une catégorie : changement de catégorie MTT ;
+- drop externe visuellement au-dessus d’une catégorie : ne doit pas forcer cette catégorie.
+
+---
+
+## 16. Informations secrètes des produits/services
+
+Un produit ou service peut avoir des informations secrètes : nom secret, prix secret, description secrète.
+
+Ces informations sont réservées au MJ.
+
+Elles ne remplacent pas les données visibles.
+
+Lors d’une future livraison d’objet, MTT devra ajouter un bloc secret au début de la description de l’objet livré, ainsi qu’une ligne non secrète avec les informations de transaction.
+
+Le joueur ne doit pas voir de bouton ou d’indicateur lui révélant qu’un secret existe.
+
+---
+
+## 17. Prix, prix libre et négociation
+
+Le prix classique d’un produit/service peut être ajusté par les pourcentages du marchand.
+
+Pour l’option “prix libre / proposer un prix au vendeur” :
+
+- afficher une icône compacte, par exemple une balance ;
+- ne pas afficher un long texte dans la ligne catalogue ;
+- ajouter un tooltip ;
+- ajouter un prix minimum MJ caché ;
+- ne pas afficher ce prix minimum aux acheteurs ;
+- ne pas appliquer les pourcentages de vente/rachat à ce prix libre ;
+- les propositions se font dans la monnaie principale configurée, celle dont le taux vaut 1.
+
+Le test de négociation n’a aucun rôle automatique.
+
+Il sert seulement de raccourci/outillage MJ.
+
+Il ne valide, refuse ou modifie rien automatiquement.
+
+Le MJ décide manuellement d’accepter, refuser ou contre-proposer chaque ligne de négociation.
+
+---
+
+## 18. Clients autorisés et cards
+
+Le MJ gère les clients autorisés via le rail de cards.
+
+Logique :
+
+- acteur non autorisé : clic gauche = autoriser ;
+- acteur autorisé : clic gauche = ouvrir/sélectionner sa session ;
+- retirer une autorisation : clic droit / menu contextuel ;
+- supprimer l’acteur du marchand : clic droit / menu contextuel.
+
+Une card non autorisée est en noir et blanc avec opacité réduite.
+
+Une card autorisée est en couleur avec opacité normale.
+
+L’icône de card ne signale pas l’autorisation. Elle signale seulement l’état de session : aucune session = aucune icône, session en cours = sablier, en attente de décision = warning, validée = check vert, refusée = croix rouge.
+
+La card de la session sélectionnée doit être mise en valeur.
+
+Quand un acteur est autorisé à commercer, une session doit exister pour lui chez ce marchand.
+
+Un acteur ne peut avoir qu’une seule session par marchand.
+
+---
+
+## 19. Limitation globale des sessions
+
+Un acteur ne doit pas pouvoir avoir plusieurs sessions `active` ou `pending` avec plusieurs marchands différents.
+
+Objectif : éviter qu’un PJ vende deux fois le même objet unique à deux marchands.
+
+Statuts bloquants : `active`, `pending`.
+
+Statuts non bloquants : `validated`, `refused`.
+
+Le verrou global est par acteur, pas par Item.
+
+---
+
+## 20. Sessions et transaction
+
+Toutes les transactions passent par une session.
+
+La session contient deux parties :
 
 ```text
-Feuille Marchand
-├── Header / En-tête
-├── Sidebar gauche
-└── Corps principal
+Le PJ achète / reçoit
+Le PJ vend / donne
 ```
 
-### Header
+Ne pas créer de troisième zone “Le PJ doit” ni de section séparée “Solde”.
 
-Le header contient :
+La monnaie d’équilibrage est représentée par une ligne automatique “Ajustement monétaire” dans l’une des deux parties.
 
-- image du marchand ;
-- nom du marchand ;
-- bouton verrouillé / déverrouillé ;
-- bouton ouvert / fermé.
+Si le PJ doit compléter, l’ajustement apparaît côté “Le PJ vend / donne”.
 
-Le header ne doit pas contenir les détails du gérant ou la description complète.
+Si le marchand doit rendre de la monnaie, l’ajustement apparaît côté “Le PJ achète / reçoit”.
 
-### Sidebar gauche
+Le bouton “Créer une session” ne doit pas être utilisé dans la sidebar : la session est créée via l’autorisation client.
 
-La sidebar contient :
+Le bouton “Supprimer la session” ne doit pas être utilisé dans la sidebar : la session prend fin via retrait d’autorisation ou décision finale.
 
-- gérant ;
-- description du marchand ;
-- plus tard : fortune, résumé, accès, informations secondaires.
-
-### Corps principal
-
-Le corps principal contient :
-
-- navigation par onglets ;
-- onglet Produits ;
-- onglet Services ;
-- onglet Sessions ;
-- onglet Configuration.
+Le bouton “Vider la session” reste utile.
 
 ---
 
-## 15. Navigation de la feuille
+## 21. Validation/refus de ligne et de session
 
-La navigation principale doit contenir :
+Distinguer deux niveaux : validation/refus d’une négociation de ligne et validation/refus de la session entière.
 
-- Produits ;
-- Services ;
-- Sessions ;
-- Configuration.
+La validation/refus d’une ligne concerne un produit ou service précis et sera développée plus tard.
 
-L’onglet Configuration remplace l’ancien onglet Journal.
+Quand une session entière est validée :
 
-Le journal des transactions sera une section à l’intérieur de l’onglet Configuration.
+- la transaction est exécutée ;
+- les objets sont transmis dans les deux sens ;
+- l’ajustement monétaire est appliqué ;
+- une entrée “validée” est ajoutée au journal marchand ;
+- l’acteur repart sur une session vide ;
+- l’autorisation de commercer peut être conservée.
 
-L’onglet Configuration doit pouvoir être masqué pour les utilisateurs qui n’ont pas assez de droits.
+Quand une session entière est refusée :
 
-Règle fonctionnelle :
+- aucune transaction réelle n’est appliquée ;
+- une entrée “refusée” est ajoutée au journal marchand ;
+- l’acteur repart sur une session vide ;
+- l’autorisation de commercer peut être conservée.
 
-- joueur autorisé : Produits, Services, Sessions ;
-- MJ/propriétaire : Produits, Services, Sessions, Configuration.
+Quand le MJ retire l’autorisation d’un acteur :
 
-Prévoir dans le contexte une valeur du type :
+- c’est une annulation/remise à zéro ;
+- aucune transaction n’est effectuée ;
+- aucun transfert ;
+- aucune entrée de journal.
+
+---
+
+## 22. Vente d’objets du PJ au marchand
+
+Lors de l’exécution future, MTT doit seulement diminuer la quantité possédée par le PJ sur l’Item source.
+
+MTT ne doit pas supprimer directement l’Item si la quantité tombe à zéro.
+
+Le système actif gère ses propres règles du type “détruire l’objet si vide”.
+
+Au moment de valider/exécuter la session, MTT doit revérifier quantité disponible actuelle, prix/valeur actuelle et existence de l’Item source.
+
+Ne pas se fier uniquement aux valeurs capturées au moment du drop.
+
+La zone “Le PJ vend / donne” doit refuser les drops internes depuis le catalogue du marchand.
+
+---
+
+## 23. Livraison future des objets au PJ
+
+Lors d’un futur achat validé, MTT devra :
+
+- créer une copie de l’Item acheté sur l’acteur client ;
+- appliquer la quantité achetée ;
+- appliquer les données commerciales visibles ;
+- ajouter un bloc secret en début de description si nécessaire ;
+- ajouter une ligne non secrète avec les informations de transaction ;
+- accorder des droits sur l’objet livré selon une option système : limité, observateur ou propriétaire.
+
+La visibilité du bloc secret dépendra des droits accordés et du comportement Foundry/système actif.
+
+---
+
+## 24. Ajustement monétaire
+
+La transaction pourra utiliser plusieurs monnaies.
+
+Le système devra faire une conversion automatique selon les devises configurées, en commençant par la monnaie la plus forte.
+
+Le marchand rend la monnaie si possible.
+
+Si le marchand n’a pas assez de monnaie pour rendre, la vente automatique est bloquée et demande une décision MJ.
+
+Par défaut, une validation MJ est toujours nécessaire.
+
+Une option future pourra éventuellement permettre des ventes automatiques.
+
+---
+
+## 25. Journal des transactions
+
+Le journal est réservé au MJ.
+
+Chaque marchand aura son propre journal des transactions réalisées chez lui.
+
+Les sessions validées/refusées seront copiées dans le journal du marchand.
+
+Les secrets doivent être inclus dans le journal MJ.
+
+Ne pas prévoir d’annulation automatique après coup : c’est trop risqué et complexe.
+
+Un journal global du module est une idée future, mais reste à définir plus tard.
+
+Le journal marchand servira aussi à savoir si un PJ a déjà beaucoup dépensé chez ce marchand.
+
+Plus tard, prévoir des réductions ou augmentations par acteur autorisé, par exemple bons ou mauvais clients.
+
+---
+
+## 26. Visibilité MJ / acheteur
+
+Produit masqué : le joueur ne voit rien, pas même la ligne.
+
+Catégorie masquée : le joueur ne voit pas la catégorie ni ses produits.
+
+Stock exact : visible par défaut aux acheteurs.
+
+Service nécessitant validation MJ : visible par défaut aux acheteurs.
+
+Les joueurs ne voient pas les autres sessions/acheteurs par défaut.
+
+Prévoir une option système permettant d’autoriser ou non la visibilité des autres sessions et acheteurs.
+
+Distinguer deux niveaux d’accès : permissions Foundry sur l’acteur marchand et autorisations commerciales propres au marchand via les clients autorisés.
+
+Les détails des droits par niveau Foundry seront définis plus tard.
+
+---
+
+## 27. Dialogues et notifications
+
+Les dialogues MTT doivent utiliser une structure stylable propre au module, avec des classes `mtt-dialog`.
+
+Éviter les contenus HTML bruts et moches dans les DialogV2.
+
+Supprimer les doubles confirmations inutiles.
+
+Exemple : choisir “retirer l’autorisation” dans un menu contextuel puis confirmer une fois suffit.
+
+Les notifications info pour actions normales doivent être évitées.
+
+Ne pas afficher de notification info pour session créée, acteur autorisé, session sélectionnée, produit ajouté si l’interface le montre, quantité mise à jour ou catégorie changée.
+
+Conserver les notifications seulement pour erreurs, warnings, actions impossibles, blocages de sécurité, drop invalide, quantité invalide, verrou global, stock ou monnaie insuffisante, absence de client/session quand l’action ne peut pas continuer.
+
+---
+
+## 28. Configuration du module
+
+Le module doit permettre de configurer des chemins pour rester universel.
+
+Options importantes :
+
+- types d’Items autorisés comme produits ;
+- types d’Items autorisés comme services ;
+- chemins de quantité ;
+- chemins de prix ;
+- chemins de monnaie ;
+- chemins de catégories automatiques ;
+- mapping de libellés de catégories ;
+- monnaies et taux de conversion ;
+- monnaie de référence avec taux 1 ;
+- droits accordés aux objets livrés plus tard ;
+- option future d’affichage des autres clients/sessions aux joueurs.
+
+---
+
+## 29. Prompts pour Codex / Claude Code
+
+Les instructions destinées à Codex ou Claude Code doivent mentionner :
 
 ```text
-mtt.canConfigureMerchant
+Lis le fichier `agents.md` à la racine du dépôt.
+Attention : le fichier est nommé `agents.md` en minuscules, pas `AGENTS.md`.
 ```
 
----
+Ne pas demander de lire `AGENTS.md`.
 
-## 16. Produits
+Quand l’utilisateur demande un bloc pour Codex ou Claude Code, fournir toutes les instructions dans un seul bloc copiable.
 
-Un produit est d’abord un item embarqué dans l’acteur marchand.
-
-À terme, un produit devra distinguer :
-
-- image ;
-- nom réel ;
-- nom affiché ;
-- type d’objet ;
-- catégorie ;
-- description affichée ;
-- description MJ ;
-- quantité disponible ;
-- prix de base ;
-- prix marchand ;
-- prix final affiché ;
-- visibilité ;
-- état de disponibilité ;
-- achat libre ou validation MJ obligatoire.
-
-Ne pas tout développer au début.
-
-Première étape produit :
-
-- afficher les items embarqués ;
-- image ;
-- nom ;
-- type ;
-- quantité si disponible ;
-- bouton modifier ;
-- bouton supprimer si feuille déverrouillée ;
-- bouton créer si feuille déverrouillée.
+Ne pas mettre de consignes importantes hors du bloc copiable.
 
 ---
 
-## 17. Catégories de produits
+## 30. Règles de réponse attendues pour Codex / Claude Code
 
-À terme, les produits doivent pouvoir être rangés par catégories.
+Quand Codex ou Claude Code modifie les fichiers :
 
-Chaque catégorie devra potentiellement avoir :
-
-- identifiant interne ;
-- nom affiché ;
-- ordre ;
-- description courte ;
-- état replié / déplié ;
-- visibilité ;
-- règles commerciales futures.
-
-Actions futures :
-
-- créer catégorie ;
-- renommer catégorie ;
-- supprimer catégorie ;
-- réordonner ;
-- replier / déplier ;
-- déplacer un produit par drag’n drop.
-
-Ne pas développer tout cela dans la toute première étape.
-
----
-
-## 18. Services
-
-Les services sont séparés des produits.
-
-Un service peut représenter :
-
-- soin ;
-- hébergement ;
-- réparation ;
-- transport ;
-- information ;
-- embauche ;
-- magie ;
-- prestation spéciale.
-
-Un service n’est pas forcément lié à un Item Foundry.
-
-La première étape peut simplement afficher un onglet Services vide ou préparatoire.
-
----
-
-## 19. Sessions
-
-Toutes les transactions futures doivent passer par une session joueur / marchand.
-
-Pas d’achat direct définitif.
-
-Vision future d’une session :
-
-- le joueur ouvre une session avec le marchand ;
-- il ajoute des achats au panier ;
-- il propose éventuellement des ventes ;
-- il voit le solde global ;
-- il soumet ou valide la session ;
-- le MJ valide/refuse si nécessaire ;
-- les objets et monnaies sont transférés ;
-- le journal est mis à jour.
-
-Mais les sessions ne sont pas à développer au tout début.
-
----
-
-## 20. Configuration
-
-L’onglet Configuration contiendra plus tard :
-
-- options générales du marchand ;
-- état ouvert / fermé ;
-- règles d’accès ;
-- règles de visibilité ;
-- règles de stock ;
-- paramètres de transaction ;
-- journal des transactions ;
-- outils MJ.
-
-Cet onglet doit être réservé aux utilisateurs avec droits suffisants.
-
----
-
-## 21. Journal des transactions
-
-Le journal n’est pas un onglet principal.
-
-Il sera une section dans l’onglet Configuration.
-
-Il devra conserver :
-
-- personnage ou joueur concerné ;
-- objet ou service ;
-- quantité ;
-- prix ;
-- type d’opération ;
-- statut ;
-- date ou moment ;
-- session concernée si applicable.
-
-Ne pas développer le journal dans la première étape.
-
----
-
-## 22. Fichiers déjà prévus
-
-### `module/config/constants.mjs`
-
-Doit centraliser :
-
-- id module ;
-- nom module ;
-- type d’acteur ;
-- chemins de templates ;
-- classes CSS principales.
-
-Exemple de constantes importantes :
-
-```js
-export const MTT = {
-  ID: "mtt-merchants",
-  NAME: "Merchants, Trades and Transactions",
-
-  ACTOR_TYPES: {
-    MERCHANT: "mtt-merchants.merchant",
-  },
-};
-```
-
-### `module/config/settings.mjs`
-
-Doit enregistrer les settings du module.
-
-Premier setting prévu :
-
-- `debug`
-- scope client
-- type boolean
-- default false
-- nom et hint localisés.
-
-### `module/models/_module.mjs`
-
-Point d’export des modèles.
-
-### `module/applications/_module.mjs`
-
-Point d’export des applications.
-
-### `module/applications/sheets/merchant-sheet.mjs`
-
-Feuille principale du marchand.
-
-Doit utiliser :
-
-- `ActorSheetV2`
-- `HandlebarsApplicationMixin`
-- `DEFAULT_OPTIONS`
-- `PARTS`
-- actions déclarées
-- contexte préparé proprement.
-
----
-
-## 23. Actions de feuille prévues
-
-Actions initiales :
-
-```text
-createItem
-editItem
-deleteItem
-toggleOpen
-toggleLock
-selectTab
-```
-
-Les actions de modification doivent vérifier que la feuille n’est pas verrouillée.
-
-Exemple de logique :
-
-```text
-si feuille non éditable : refuser
-si system.sheet.isLocked : notifier et refuser
-sinon autoriser
-```
-
-Notification localisée :
-
-```text
-mtt.notifications.sheetLocked
-```
-
----
-
-## 24. Gestion des onglets
-
-Prévoir un onglet actif dans le contexte :
-
-```text
-mtt.activeTab
-```
-
-Au début, l’onglet actif par défaut peut être :
-
-```text
-products
-```
-
-Les valeurs prévues :
-
-```text
-products
-services
-sessions
-configuration
-```
-
-L’action `selectTab` devra permettre de changer l’onglet actif.
-
-Si l’utilisateur n’a pas le droit de configurer le marchand, il ne doit pas pouvoir ouvrir l’onglet Configuration.
-
----
-
-## 25. Droits et visibilité
-
-Pour commencer :
-
-```text
-mtt.canEditMerchant = this.isEditable && !isLocked
-mtt.canConfigureMerchant = this.isEditable
-```
-
-Plus tard, on affinera avec les permissions Foundry et les droits d’accès spécifiques du marchand.
-
----
-
-## 26. Règles de localisation complètes actuelles
-
-Les fichiers `lang/fr.json` et `lang/en.json` doivent utiliser une structure hiérarchisée.
-
-### Français
-
-```json
-{
-  "mtt": {
-    "log": {
-      "initializing": "Initialisation",
-      "initialized": "Initialisé",
-      "ready": "Prêt"
-    },
-    "sheets": {
-      "merchant": "Feuille de marchand"
-    },
-    "settings": {
-      "debug": {
-        "name": "Mode debug MTT",
-        "hint": "Active des informations supplémentaires dans la console pour le module Merchants, Trades and Transactions."
-      }
-    },
-    "sheet": {
-      "lock": "Verrouiller",
-      "unlock": "Déverrouiller",
-      "locked": "Verrouillé",
-      "unlocked": "Déverrouillé"
-    },
-    "merchant": {
-      "name": {
-        "placeholder": "Nom du marchand"
-      },
-      "status": {
-        "open": "Ouvert",
-        "closed": "Fermé"
-      },
-      "description": {
-        "title": "Description du marchand"
-      }
-    },
-    "manager": {
-      "title": "Gérant",
-      "mode": {
-        "label": "Type de gérant",
-        "text": "Texte libre",
-        "actor": "Acteur lié"
-      },
-      "displayName": {
-        "label": "Nom affiché",
-        "placeholder": "Nom du gérant"
-      },
-      "empty": "Aucun gérant renseigné"
-    },
-    "actions": {
-      "createItem": "Créer un objet",
-      "edit": "Modifier",
-      "delete": "Supprimer",
-      "cancel": "Annuler"
-    },
-    "dialog": {
-      "deleteItem": {
-        "title": "Supprimer l’objet",
-        "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
-      }
-    },
-    "notifications": {
-      "sheetLocked": "La feuille du marchand est verrouillée."
-    },
-    "navigation": {
-      "label": "Navigation de la feuille marchand"
-    },
-    "tabs": {
-      "products": "Produits",
-      "services": "Services",
-      "sessions": "Sessions",
-      "configuration": "Configuration"
-    },
-    "items": {
-      "newItem": "Nouvel objet",
-      "title": "Objets du marchand",
-      "subtitle": "Objets actuellement contenus dans ce marchand.",
-      "empty": "Aucun objet dans ce marchand.",
-      "emptyHelp": "Déverrouillez la feuille pour créer ou ajouter des objets.",
-      "quantity": {
-        "short": "Qté",
-        "none": "Quantité non définie"
-      }
-    },
-    "products": {
-      "title": "Produits",
-      "subtitle": "Objets actuellement proposés ou stockés par ce marchand.",
-      "quantity": {
-        "short": "Qté",
-        "undefined": "Quantité non définie"
-      },
-      "empty": {
-        "title": "Aucun produit",
-        "text": "Ce marchand ne contient encore aucun objet.",
-        "help": "Déverrouillez la feuille pour créer ou ajouter des objets."
-      }
-    },
-    "services": {
-      "empty": {
-        "title": "Services",
-        "text": "La gestion des services sera ajoutée dans une prochaine étape."
-      }
-    },
-    "sessions": {
-      "empty": {
-        "title": "Sessions",
-        "text": "Les sessions joueur / marchand seront ajoutées plus tard."
-      }
-    },
-    "configuration": {
-      "empty": {
-        "title": "Configuration",
-        "text": "Les options générales du marchand et le journal des transactions seront regroupés ici."
-      }
-    }
-  }
-}
-```
-
-### Anglais
-
-```json
-{
-  "mtt": {
-    "log": {
-      "initializing": "Initializing",
-      "initialized": "Initialized",
-      "ready": "Ready"
-    },
-    "sheets": {
-      "merchant": "Merchant Sheet"
-    },
-    "settings": {
-      "debug": {
-        "name": "MTT debug mode",
-        "hint": "Enables additional console information for the Merchants, Trades and Transactions module."
-      }
-    },
-    "sheet": {
-      "lock": "Lock",
-      "unlock": "Unlock",
-      "locked": "Locked",
-      "unlocked": "Unlocked"
-    },
-    "merchant": {
-      "name": {
-        "placeholder": "Merchant name"
-      },
-      "status": {
-        "open": "Open",
-        "closed": "Closed"
-      },
-      "description": {
-        "title": "Merchant description"
-      }
-    },
-    "manager": {
-      "title": "Manager",
-      "mode": {
-        "label": "Manager type",
-        "text": "Free text",
-        "actor": "Linked actor"
-      },
-      "displayName": {
-        "label": "Displayed name",
-        "placeholder": "Manager name"
-      },
-      "empty": "No manager defined"
-    },
-    "actions": {
-      "createItem": "Create item",
-      "edit": "Edit",
-      "delete": "Delete",
-      "cancel": "Cancel"
-    },
-    "dialog": {
-      "deleteItem": {
-        "title": "Delete item",
-        "content": "Do you really want to delete this item from the merchant?"
-      }
-    },
-    "notifications": {
-      "sheetLocked": "The merchant sheet is locked."
-    },
-    "navigation": {
-      "label": "Merchant sheet navigation"
-    },
-    "tabs": {
-      "products": "Products",
-      "services": "Services",
-      "sessions": "Sessions",
-      "configuration": "Configuration"
-    },
-    "items": {
-      "newItem": "New item",
-      "title": "Merchant items",
-      "subtitle": "Items currently stored in this merchant.",
-      "empty": "No item in this merchant.",
-      "emptyHelp": "Unlock the sheet to create or add items.",
-      "quantity": {
-        "short": "Qty",
-        "none": "No quantity defined"
-      }
-    },
-    "products": {
-      "title": "Products",
-      "subtitle": "Items currently offered or stored by this merchant.",
-      "quantity": {
-        "short": "Qty",
-        "undefined": "Quantity undefined"
-      },
-      "empty": {
-        "title": "No products",
-        "text": "This merchant does not contain any item yet.",
-        "help": "Unlock the sheet to create or add items."
-      }
-    },
-    "services": {
-      "empty": {
-        "title": "Services",
-        "text": "Service management will be added in a later step."
-      }
-    },
-    "sessions": {
-      "empty": {
-        "title": "Sessions",
-        "text": "Player / merchant sessions will be added later."
-      }
-    },
-    "configuration": {
-      "empty": {
-        "title": "Configuration",
-        "text": "General merchant options and the transaction log will be grouped here."
-      }
-    }
-  }
-}
-```
-
----
-
-## 27. Règles de réponse attendues pour Codex
-
-Quand Codex modifie les fichiers :
-
-- travailler fichier par fichier ;
+- lire `agents.md` avant de modifier ;
+- travailler en respectant l’état actuel du repo ;
 - éviter les gros changements non demandés ;
-- expliquer brièvement ce qui est modifié ;
 - ne pas ajouter de fonctionnalités avancées sans demande explicite ;
 - respecter le style sans point-virgule ;
 - respecter les localisations hiérarchisées ;
+- modifier `lang/fr.json` seulement sauf demande explicite ;
 - respecter les classes CSS préfixées `mtt-` ;
-- ne pas introduire de dépendance directe au système CO2 dans le cœur MTT.
-
----
-
-## 28. Priorité actuelle
-
-La priorité actuelle est de terminer la base minimale de la feuille marchand.
-
-Ordre conseillé :
-
-1. finaliser `module.json`
-2. finaliser `mtt.mjs`
-3. finaliser `module/config/constants.mjs`
-4. finaliser `module/config/settings.mjs`
-5. finaliser `module/models/merchant-data.mjs`
-6. finaliser `module/models/_module.mjs`
-7. finaliser `module/applications/_module.mjs`
-8. finaliser `module/applications/sheets/merchant-sheet.mjs`
-9. finaliser les templates :
-   - `merchant-sheet.hbs`
-   - `merchant-header.hbs`
-   - `merchant-sidebar.hbs`
-   - `merchant-main.hbs`
-   - `merchant-navigation.hbs`
-   - `merchant-products.hbs`
-   - `merchant-services.hbs`
-10. finaliser les fichiers de langue
-11. finaliser les fichiers Less
-12. tester dans Foundry VTT V14 avec le système CO2 actif
-
----
-
-## 29. Premier succès attendu
-
-Ce projet est encore en phase initiale.
-
-Ne pas chercher à tout automatiser immédiatement.
-
-Le premier succès attendu est simple :
-
-> Foundry charge le module, permet de créer un acteur marchand MTT, ouvre une feuille marchand propre, verrouillable/déverrouillable, avec une zone produits affichant les items embarqués.
-
----
-
-## 30. Prompt recommandé pour Codex
-
-Au début d’une session Codex dans VS Code, utiliser :
-
-```text
-Lis d’abord `.codex/instructions.md` et respecte ces règles pour toutes les modifications du projet MTT.
-```
+- ne pas introduire de dépendance directe au système CO2 dans le cœur MTT ;
+- ne pas ajouter de dépendances npm sans validation ;
+- ne pas refactoriser massivement sans demande explicite ;
+- préserver les corrections CSS locales ;
+- préserver le rail client et ne pas casser le layout global Foundry ;
+- respecter la séparation entre `merchant-sheet.mjs`, `merchant-catalog.mjs`, `merchant-trade.mjs`, `merchant-dialogs.mjs` et `merchant-utils.mjs`.

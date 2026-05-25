@@ -360,6 +360,16 @@
           >
             <i class="fas fa-clipboard-check"></i>
           </button>
+          {{#if @root.mtt.canEditMerchant}}
+            <button
+              class="mtt-merchant-session-action"
+              type="button"
+              data-action="previewSessionExecution"
+              data-tooltip="{{localize 'mtt.sessions.preview.action'}}"
+            >
+              <i class="fas fa-clipboard-list"></i>
+            </button>
+          {{/if}}
         {{/if}}
       {{/if}}
 

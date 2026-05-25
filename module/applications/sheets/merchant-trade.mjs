@@ -852,3 +852,214 @@ export async function checkSessionTransaction(actor, session, preparedSession) {
   result.canProceed = result.errors.length === 0
   return result
 }
+
+// ─── Seller drop protection ───────────────────────────────────────────────────
+
+export function isMerchantSellerDropBlocked(payload, actorUuid) {
+  if (!payload || typeof payload !== "object") return false
+  if (payload.type === "mtt.product" || payload.type === "mtt.service") return true
+  if (payload.actorUuid && String(payload.actorUuid) === String(actorUuid)) return true
+  return false
+}
+
+// ─── Execution preview ────────────────────────────────────────────────────────
+
+export async function buildExecutionPreview(actor, session) {
+  const preview = {
+    canExecute: false,
+    errors: [],
+    warnings: [],
+    client: null,
+    merchant: { id: actor.id, name: actor.name, img: actor.img },
+    buyerDeliveries: [],
+    sellerDeliveries: [],
+    merchantStockUpdates: [],
+    clientItemUpdates: [],
+    moneyTransfers: [],
+    services: [],
+  }
+
+  if (!session) {
+    preview.errors.push(game.i18n.localize("mtt.sessions.preview.emptySession"))
+    return preview
+  }
+
+  const buyerItems = session.buyerItems ?? []
+  const sellerItems = session.sellerItems ?? []
+
+  if (buyerItems.length === 0 && sellerItems.length === 0) {
+    preview.errors.push(game.i18n.localize("mtt.sessions.preview.emptySession"))
+    return preview
+  }
+
+  const actorUuid = String(session.actorUuid ?? "").trim()
+  if (!actorUuid) {
+    preview.errors.push(game.i18n.localize("mtt.sessions.preview.clientMissing"))
+    return preview
+  }
+
+  let clientActor = null
+  try {
+    clientActor = await fromUuid(actorUuid)
+  } catch {
+    // ignore
+  }
+
+  if (!clientActor || clientActor.documentName !== "Actor") {
+    preview.errors.push(game.i18n.localize("mtt.sessions.preview.clientMissing"))
+    return preview
+  }
+
+  const storedClients = getStoredAccessClients(actor)
+  const accessClient = storedClients.find((c) => c.actorUuid === actorUuid)
+  if (!accessClient?.isAuthorized) {
+    preview.errors.push(game.i18n.localize("mtt.sessions.preview.clientNotAuthorized"))
+  }
+
+  preview.client = {
+    actorUuid,
+    actorName: clientActor.name,
+    actorImg: clientActor.img,
+  }
+
+  // Check buyer items (merchant → client)
+  for (const item of buyerItems) {
+    const totalPriceValue = Number((item.unitPriceValue * item.quantity).toFixed(2))
+    const totalPriceLabel = formatPriceLabel(item.totalPriceValue ?? totalPriceValue, item.priceCurrency)
+    const unitPriceLabel = formatPriceLabel(item.unitPriceValue, item.priceCurrency)
+
+    if (item.type === "product") {
+      const merchantItem = actor.items.get(item.sourceId)
+      if (!merchantItem) {
+        preview.errors.push(game.i18n.format("mtt.sessions.preview.merchantProductMissing", { name: item.name }))
+        preview.buyerDeliveries.push({ type: "product", id: item.id, name: item.name, img: item.img, quantity: item.quantity, unitPriceLabel, totalPriceLabel, sourceLabel: item.sourceLabel, missing: true })
+        continue
+      }
+
+      const available = getProductCheckAvailableQuantity(actor, item)
+      if (Number.isFinite(available) && available >= 0 && available < item.quantity) {
+        preview.errors.push(game.i18n.format("mtt.sessions.preview.merchantStockInsufficient", { name: item.name }))
+      }
+
+      preview.buyerDeliveries.push({ type: "product", id: item.id, name: item.name, img: item.img, quantity: item.quantity, unitPriceLabel, totalPriceLabel, sourceLabel: item.sourceLabel, missing: false })
+      preview.merchantStockUpdates.push({ name: item.name, img: item.img, quantityToReduce: item.quantity, availableQuantity: available })
+    } else if (item.type === "service") {
+      const available = getServiceCheckAvailableQuantity(actor, item)
+      if (Number.isFinite(available) && available >= 0 && available < item.quantity) {
+        preview.errors.push(game.i18n.format("mtt.sessions.preview.merchantStockInsufficient", { name: item.name }))
+      }
+
+      preview.services.push({ id: item.id, name: item.name, img: item.img, quantity: item.quantity, unitPriceLabel, totalPriceLabel, sourceLabel: item.sourceLabel })
+    }
+  }
+
+  if (preview.services.length > 0) {
+    const warningText = game.i18n.localize("mtt.sessions.preview.serviceExecutionLater")
+    if (!preview.warnings.includes(warningText)) preview.warnings.push(warningText)
+  }
+
+  // Check seller items (client → merchant)
+  for (const item of sellerItems) {
+    const totalPriceValue = Number((item.unitPriceValue * item.quantity).toFixed(2))
+    const totalPriceLabel = formatPriceLabel(item.totalPriceValue ?? totalPriceValue, item.priceCurrency)
+    const unitPriceLabel = formatPriceLabel(item.unitPriceValue, item.priceCurrency)
+    const sourceUuid = String(item.sourceUuid ?? "").trim()
+
+    if (!sourceUuid) {
+      preview.sellerDeliveries.push({ id: item.id, name: item.name, img: item.img, quantity: item.quantity, unitPriceLabel, totalPriceLabel, sourceLabel: item.sourceLabel, missing: false })
+      continue
+    }
+
+    let sourceItem = null
+    try {
+      sourceItem = await fromUuid(sourceUuid)
+    } catch {
+      // ignore
+    }
+
+    if (!sourceItem || sourceItem.documentName !== "Item") {
+      preview.errors.push(game.i18n.format("mtt.sessions.preview.sellerItemMissing", { name: item.name }))
+      preview.sellerDeliveries.push({ id: item.id, name: item.name, img: item.img, quantity: item.quantity, unitPriceLabel, totalPriceLabel, sourceLabel: item.sourceLabel, missing: true })
+      continue
+    }
+
+    const available = getItemAvailableQuantity(sourceItem)
+    if (Number.isFinite(available) && available >= 0 && available < item.quantity) {
+      preview.errors.push(game.i18n.format("mtt.sessions.preview.sellerQuantityInsufficient", { name: item.name }))
+    }
+
+    preview.sellerDeliveries.push({ id: item.id, name: item.name, img: item.img, quantity: item.quantity, unitPriceLabel, totalPriceLabel, sourceLabel: item.sourceLabel, missing: false })
+    preview.clientItemUpdates.push({ name: item.name, img: item.img, quantityToReduce: item.quantity, availableQuantity: available })
+  }
+
+  // Check money adjustments
+  const buyerTotals = prepareSessionTotals(
+    buyerItems.map((item) => { const copy = { ...item }; recalculateSessionItemTotal(copy); return copy }),
+  )
+  const sellerTotals = prepareSessionTotals(
+    sellerItems.map((item) => { const copy = { ...item }; recalculateSessionItemTotal(copy); return copy }),
+  )
+  const adjustments = prepareMoneyAdjustments(buyerTotals, sellerTotals)
+
+  for (const adjustment of adjustments) {
+    const currency = getConfiguredCurrency(adjustment.currencyKey)
+    const currencyLabel = formatCurrencyLabel(adjustment.currencyKey)
+
+    if (!currency) {
+      preview.warnings.push(game.i18n.format("mtt.sessions.preview.currencyUnreadable", { currency: currencyLabel }))
+      preview.moneyTransfers.push({
+        side: adjustment.side,
+        currencyLabel,
+        amountLabel: adjustment.amountLabel,
+        payer: adjustment.side === "seller" ? (preview.client?.actorName ?? "") : actor.name,
+        receiver: adjustment.side === "seller" ? actor.name : (preview.client?.actorName ?? ""),
+        hasEnough: false,
+        unknownCurrency: true,
+      })
+      continue
+    }
+
+    if (adjustment.side === "seller") {
+      let clientAmount = null
+      if (currency.actorPath) {
+        try { clientAmount = foundry.utils.getProperty(clientActor, currency.actorPath) } catch { /* ignore */ }
+      }
+      const clientAmountNum = Number(clientAmount)
+      const hasEnough = !Number.isFinite(clientAmountNum) || clientAmountNum >= adjustment.amount
+
+      if (!hasEnough) {
+        preview.warnings.push(game.i18n.format("mtt.sessions.preview.currencyInsufficient", { currency: currencyLabel }))
+      }
+
+      preview.moneyTransfers.push({
+        side: "seller",
+        currencyLabel,
+        amountLabel: adjustment.amountLabel,
+        payer: preview.client?.actorName ?? "",
+        receiver: actor.name,
+        hasEnough,
+        unknownCurrency: false,
+      })
+    } else {
+      const merchantAmount = getMerchantWalletAmount(actor, adjustment.currencyKey)
+      const hasEnough = !Number.isFinite(merchantAmount) || merchantAmount >= adjustment.amount
+
+      if (!hasEnough) {
+        preview.warnings.push(game.i18n.format("mtt.sessions.preview.currencyInsufficient", { currency: currencyLabel }))
+      }
+
+      preview.moneyTransfers.push({
+        side: "buyer",
+        currencyLabel,
+        amountLabel: adjustment.amountLabel,
+        payer: actor.name,
+        receiver: preview.client?.actorName ?? "",
+        hasEnough,
+        unknownCurrency: false,
+      })
+    }
+  }
+
+  preview.canExecute = preview.errors.length === 0
+  return preview
+}

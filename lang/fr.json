@@ -193,6 +193,8 @@
       "authorizationRemovedSessionDeleted": "Autorisation retirée et session supprimée.",
       "invalidProductDrop": "Déplacement de produit invalide.",
       "merchantProductNotSellable": "Vous ne pouvez pas ajouter un produit du marchand dans ce que le PJ vend ou donne.",
+      "cannotGiveMerchantProduct": "Vous ne pouvez pas ajouter un produit du marchand dans ce que le PJ donne.",
+      "transactionPreviewFailed": "La transaction ne peut pas être prévisualisée.",
       "missingProposedPrice": "Vous devez proposer un prix pour cet élément."
     },
     "price": {
@@ -481,6 +483,31 @@
       "empty": {
         "title": "Sessions",
         "text": "Les sessions joueur / marchand seront ajoutées plus tard."
+      },
+      "preview": {
+        "action": "Prévisualiser l'exécution",
+        "title": "Prévisualisation de la transaction",
+        "errorTitle": "Transaction impossible",
+        "close": "Fermer",
+        "client": "Client :",
+        "merchant": "Marchand :",
+        "buyerReceives": "Le PJ recevra",
+        "merchantReceives": "Le marchand recevra",
+        "stockUpdates": "Stocks qui seront modifiés",
+        "moneyTransfers": "Transferts monétaires prévus",
+        "services": "Services",
+        "previewOnly": "Prévisualisation uniquement : aucune modification n'a encore été effectuée.",
+        "cannotExecute": "La transaction ne peut pas être exécutée en l'état.",
+        "emptySession": "La session ne contient aucun élément.",
+        "clientMissing": "L'acteur client de la session est introuvable.",
+        "clientNotAuthorized": "Le client n'est plus autorisé à commercer avec ce marchand.",
+        "merchantProductMissing": "Le produit marchand est introuvable : {name}.",
+        "merchantStockInsufficient": "Stock insuffisant pour {name}.",
+        "sellerItemMissing": "L'objet donné ou vendu est introuvable : {name}.",
+        "sellerQuantityInsufficient": "Quantité insuffisante pour {name}.",
+        "currencyUnreadable": "Impossible de lire la monnaie : {currency}.",
+        "currencyInsufficient": "Monnaie insuffisante : {currency}.",
+        "serviceExecutionLater": "L'exécution réelle des services sera traitée plus tard."
       }
     },
     "configuration": {

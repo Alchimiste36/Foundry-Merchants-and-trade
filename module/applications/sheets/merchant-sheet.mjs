@@ -25,6 +25,8 @@ import {
   renderMttDialogContent,
   openSessionPreparationDialog,
   openSellerItemDialog,
+  openPreviewDialog,
+  openPreviewErrorDialog,
 } from "./merchant-dialogs.mjs"
 import {
   getSellPercent,
@@ -71,6 +73,8 @@ import {
   getConfiguredCurrency,
   getMerchantWalletAmount,
   checkSessionTransaction,
+  isMerchantSellerDropBlocked,
+  buildExecutionPreview,
 } from "./merchant-trade.mjs"
 
 const { ActorSheetV2 } = foundry.applications.sheets
@@ -117,6 +121,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleClientAccess: MerchantSheet.#onToggleClientAccess,
       setSessionStatus: MerchantSheet.#onSetSessionStatus,
       checkSessionTransaction: MerchantSheet.#onCheckSessionTransaction,
+      previewSessionExecution: MerchantSheet.#onPreviewSessionExecution,
       increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
       decreaseSessionItemQuantity: MerchantSheet.#onDecreaseSessionItemQuantity,
       removeSessionItem: MerchantSheet.#onRemoveSessionItem,
@@ -667,8 +672,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const rawPayload = event.dataTransfer.getData("application/json")
       if (rawPayload) {
         const payload = JSON.parse(rawPayload)
-        if (payload?.type === "mtt.product") {
-          ui.notifications.warn(game.i18n.localize("mtt.notifications.merchantProductNotSellable"))
+        if (isMerchantSellerDropBlocked(payload, this.actor.uuid)) {
+          ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotGiveMerchantProduct"))
           return
         }
       }
@@ -681,6 +686,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = await this.#getDroppedItemDocument(event)
     if (!item) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeSold"))
+      return
+    }
+
+    // Refuse items belonging to the merchant actor
+    if (item.parent?.uuid === this.actor.uuid || item.parent?.id === this.actor.id) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotGiveMerchantProduct"))
       return
     }
 
@@ -1863,6 +1874,22 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sessionCheckFailed"))
     }
     this.render()
+  }
+
+  static async #onPreviewSessionExecution(event) {
+    event.preventDefault()
+
+    const session = this.#getActiveSession()
+    if (!session) return
+
+    const preview = await buildExecutionPreview(this.actor, session)
+
+    if (!preview.canExecute) {
+      await openPreviewErrorDialog(preview)
+      return
+    }
+
+    await openPreviewDialog(preview)
   }
 
   static async #onToggleOpen(event) {

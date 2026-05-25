@@ -6,14 +6,11 @@ const { HandlebarsApplicationMixin } = foundry.applications.api;
 
 export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #activeTab = "products";
-  #sessionDraft = {
-    status: "active",
-    buyerItems: [],
-    sellerItems: [],
-  };
+  #activeSessionId = null;
+  #sessionCheckResult = null;
 
   static DEFAULT_OPTIONS = {
-    classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET],
+    classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET, "mtt-merchant-window"],
     position: {
       width: 920,
       height: 720,
@@ -42,6 +39,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleProductCategory: MerchantSheet.#onToggleProductCategory,
       addProductToSession: MerchantSheet.#onAddProductToSession,
       addServiceToSession: MerchantSheet.#onAddServiceToSession,
+      toggleClientAccess: MerchantSheet.#onToggleClientAccess,
+      createSession: MerchantSheet.#onCreateSession,
+      deleteSession: MerchantSheet.#onDeleteSession,
+      setSessionStatus: MerchantSheet.#onSetSessionStatus,
+      checkSessionTransaction: MerchantSheet.#onCheckSessionTransaction,
+      increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
+      decreaseSessionItemQuantity: MerchantSheet.#onDecreaseSessionItemQuantity,
       removeSessionItem: MerchantSheet.#onRemoveSessionItem,
       clearSessionDraft: MerchantSheet.#onClearSessionDraft,
       editMerchantImage: MerchantSheet.#onEditMerchantImage,
@@ -92,6 +96,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.walletCurrencies = this.#prepareWalletCurrencies();
     context.mtt.headerCurrencies = context.mtt.walletCurrencies;
     context.mtt.hasHeaderCurrencies = context.mtt.headerCurrencies.length > 0;
+    context.mtt.access = this.#prepareAccessContext();
     context.mtt.session = this.#prepareSessionContext();
 
     return context;
@@ -102,75 +107,210 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     this.element
       .querySelectorAll("[data-mtt-product-field]")
-      .forEach((input) =>
-        input.addEventListener("change", (event) =>
-          this.#onProductFieldChange(event),
-        ),
-      );
+      .forEach((input) => input.addEventListener("change", (event) => this.#onProductFieldChange(event)));
 
     this.element
       .querySelectorAll("[data-mtt-category-name]")
-      .forEach((input) =>
-        input.addEventListener("change", (event) =>
-          this.#onCategoryNameChange(event),
-        ),
-      );
+      .forEach((input) => input.addEventListener("change", (event) => this.#onCategoryNameChange(event)));
 
     this.element
       .querySelectorAll("[data-mtt-product-id]")
-      .forEach((row) =>
-        row.addEventListener("dragstart", (event) =>
-          this.#onProductDragStart(event),
-        ),
-      );
+      .forEach((row) => row.addEventListener("dragstart", (event) => this.#onProductDragStart(event)));
 
-    this.element
-      .querySelectorAll("[data-mtt-category-drop]")
-      .forEach((dropZone) => {
-        dropZone.addEventListener("dragover", (event) =>
-          this.#onCategoryDragOver(event),
-        );
-        dropZone.addEventListener("drop", (event) =>
-          this.#onCategoryDrop(event),
-        );
-      });
+    this.element.querySelectorAll("[data-mtt-category-drop]").forEach((dropZone) => {
+      dropZone.addEventListener("dragover", (event) => this.#onCategoryDragOver(event));
+      dropZone.addEventListener("drop", (event) => this.#onCategoryDrop(event));
+    });
 
     this.element
       .querySelectorAll("[data-mtt-service-field]")
-      .forEach((input) =>
-        input.addEventListener("change", (event) =>
-          this.#onServiceFieldChange(event),
-        ),
-      );
+      .forEach((input) => input.addEventListener("change", (event) => this.#onServiceFieldChange(event)));
 
-    this.element
-      .querySelectorAll("[data-mtt-service-drop]")
-      .forEach((dropZone) => {
-        if (dropZone.dataset.mttDropBound) return;
-        dropZone.dataset.mttDropBound = "1";
-        dropZone.addEventListener("dragover", (event) =>
-          this.#onServiceDragOver(event),
-        );
-        dropZone.addEventListener("drop", (event) =>
-          this.#onServiceDrop(event),
-        );
-      });
+    this.element.querySelectorAll("[data-mtt-service-drop]").forEach((dropZone) => {
+      if (dropZone.dataset.mttDropBound) return;
+      dropZone.dataset.mttDropBound = "1";
+      dropZone.addEventListener("dragover", (event) => this.#onServiceDragOver(event));
+      dropZone.addEventListener("drop", (event) => this.#onServiceDrop(event));
+    });
 
     this.element
       .querySelectorAll("[data-mtt-merchant-config-field]")
-      .forEach((input) =>
-        input.addEventListener("change", (event) =>
-          this.#onMerchantConfigFieldChange(event),
-        ),
-      );
+      .forEach((input) => input.addEventListener("change", (event) => this.#onMerchantConfigFieldChange(event)));
 
     this.element
       .querySelectorAll("[data-mtt-wallet-currency]")
-      .forEach((input) =>
-        input.addEventListener("change", (event) =>
-          this.#onWalletCurrencyChange(event),
+      .forEach((input) => input.addEventListener("change", (event) => this.#onWalletCurrencyChange(event)));
+
+    this.element
+      .querySelectorAll("[data-mtt-session-field]")
+      .forEach((input) => input.addEventListener("change", (event) => this.#onSessionFieldChange(event)));
+
+    this.element.querySelectorAll("[data-mtt-session-seller-drop]").forEach((dropZone) => {
+      if (dropZone.dataset.mttSellerDropBound) return;
+      dropZone.dataset.mttSellerDropBound = "1";
+      dropZone.addEventListener("dragover", (event) => this.#onSessionSellerDragOver(event));
+      dropZone.addEventListener("drop", (event) => this.#onSessionSellerDrop(event));
+    });
+
+    this.element.querySelectorAll("[data-mtt-client-drop]").forEach((dropZone) => {
+      if (dropZone.dataset.mttClientDropBound) return;
+      dropZone.dataset.mttClientDropBound = "1";
+      dropZone.addEventListener("dragover", (event) => this.#onClientDragOver(event));
+      dropZone.addEventListener("drop", (event) => this.#onClientDrop(event));
+    });
+
+    this.#renderAccessRail(context);
+  }
+
+  #renderAccessRail(context) {
+    const applicationElement = this.#getApplicationElement();
+    if (!applicationElement) return;
+
+    applicationElement.querySelectorAll(".mtt-merchant-access-rail").forEach((rail) => rail.remove());
+    this.element.querySelectorAll(".mtt-merchant-access-rail").forEach((rail) => rail.remove());
+
+    const accessContext = context?.mtt?.access ?? this.#prepareAccessContext();
+    const rail = this.#buildAccessRail(accessContext);
+    applicationElement.append(rail);
+    this.#activateAccessRail(rail);
+  }
+
+  #getApplicationElement() {
+    const applicationElement = this.element.closest?.(".mtt-merchant-window");
+    if (!applicationElement?.classList?.contains("mtt-merchant-sheet")) return null;
+    if (!applicationElement.contains(this.element) && applicationElement !== this.element) return null;
+
+    return applicationElement;
+  }
+
+  #buildAccessRail(accessContext) {
+    const rail = document.createElement("aside");
+    rail.classList.add("mtt-merchant-access-rail");
+    rail.setAttribute("aria-label", game.i18n.localize("mtt.access.title"));
+
+    (accessContext.clients ?? []).forEach((client) => {
+      const button = document.createElement("button");
+      button.classList.add("mtt-merchant-access-card");
+      button.classList.add(
+        client.isAuthorized ? "mtt-merchant-access-card-authorized" : "mtt-merchant-access-card-unauthorized",
+      );
+      button.type = "button";
+      button.dataset.action = "toggleClientAccess";
+      button.dataset.clientActorUuid = client.actorUuid;
+      button.dataset.clientUserId = client.userId;
+      button.dataset.tooltip = client.tooltip;
+      if (!accessContext.canManage) button.disabled = true;
+
+      const image = document.createElement("img");
+      image.classList.add("mtt-merchant-access-card-image");
+      image.src = client.actorImg;
+      image.alt = client.actorName;
+      button.append(image);
+
+      if (client.isAuthorized) {
+        const check = document.createElement("i");
+        check.classList.add("fas", "fa-check", "mtt-merchant-access-card-check");
+        button.append(check);
+      }
+
+      rail.append(button);
+    });
+
+    const dropCard = document.createElement("div");
+    dropCard.classList.add("mtt-merchant-access-drop-card");
+    dropCard.dataset.mttClientDrop = "";
+    dropCard.dataset.tooltip = game.i18n.localize("mtt.access.dropTooltip");
+
+    const dropIcon = document.createElement("i");
+    dropIcon.classList.add("fas", "fa-user-plus");
+    dropCard.append(dropIcon);
+    rail.append(dropCard);
+
+    return rail;
+  }
+
+  #activateAccessRail(rail) {
+    rail.querySelectorAll('[data-action="toggleClientAccess"]').forEach((button) => {
+      button.addEventListener("click", (event) => MerchantSheet.#onToggleClientAccess.call(this, event, button));
+    });
+
+    rail.querySelectorAll("[data-mtt-client-drop]").forEach((dropZone) => {
+      dropZone.addEventListener("dragover", (event) => this.#onClientDragOver(event));
+      dropZone.addEventListener("drop", (event) => this.#onClientDrop(event));
+    });
+  }
+
+  async #onSessionFieldChange(event) {
+    const input = event.currentTarget;
+    const field = input.dataset.mttSessionField;
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    if (field === "label") {
+      const label = input.value?.trim() ?? "";
+      if (!label) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.emptySessionLabel"));
+        input.value = session.label;
+        return;
+      }
+
+      session.label = label;
+      await this.#saveSession(session);
+      ui.notifications.info(game.i18n.localize("mtt.notifications.sessionLabelUpdated"));
+      this.render();
+      return;
+    }
+
+    if (field !== "quantity") return;
+
+    const raw = input.value;
+    const itemId = input.dataset.sessionItemId ?? input.closest("[data-session-item-id]")?.dataset.sessionItemId;
+    if (!itemId) return;
+
+    const side = input.dataset.sessionSide ?? input.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer";
+    const items = this.#getSessionItemsForSide(session, side);
+    const item = items.find((it) => it.id === itemId);
+    if (!item) return;
+
+    const requested = Number(raw);
+    if (!Number.isFinite(requested) || requested < 0) {
+      ui.notifications.warn(
+        game.i18n.localize(
+          side === "seller" ? "mtt.notifications.invalidSellerItemQuantity" : "mtt.notifications.invalidSessionQuantity",
         ),
       );
+      input.value = item.quantity;
+      return;
+    }
+
+    if (!this.#canUseSessionQuantity(item, requested)) {
+      ui.notifications.warn(
+        game.i18n.localize(
+          side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity",
+        ),
+      );
+      input.value = item.quantity;
+      return;
+    }
+
+    if (requested === 0) {
+      this.#removeSessionItemById(session, itemId, side);
+      await this.#saveSession(session);
+      ui.notifications.info(
+        game.i18n.localize(side === "seller" ? "mtt.notifications.sellerItemRemoved" : "mtt.notifications.sessionItemRemoved"),
+      );
+      this.render();
+      return;
+    }
+
+    this.#setSessionItemQuantity(item, requested);
+    await this.#saveSession(session);
+    ui.notifications.info(
+      game.i18n.localize(
+        side === "seller" ? "mtt.notifications.sellerItemQuantityUpdated" : "mtt.notifications.sessionQuantityUpdated",
+      ),
+    );
+    this.render();
   }
 
   _canDragDrop(selector) {
@@ -179,23 +319,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async _onDropDocument(event, document) {
     if (this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
     if (document.documentName !== "Item") {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.onlyItemsCanBeDropped"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeDropped"));
       return;
     }
 
     if (!this.#isItemTypeAllowed(document, "allowedProductTypes")) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.productTypeNotAllowed"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.productTypeNotAllowed"));
       return;
     }
 
@@ -214,13 +348,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
       const displayName = product.displayName || item.name;
       const basePriceValue =
-        Number.isFinite(Number(product.priceValue)) &&
-        Number(product.priceValue) >= 0
+        Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
           ? Number(product.priceValue)
           : MTT.PRODUCT_DEFAULTS.priceValue;
       const displayPriceValue = this.#adjustPriceValue(basePriceValue);
-      const priceCurrency =
-        product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
+      const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
 
       return {
         id: item.id,
@@ -244,21 +376,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         hasCategory: Boolean((product.category ?? "").trim()),
         hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
         isHidden: product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden,
-        requiresApproval:
-          product.requiresApproval ?? MTT.PRODUCT_DEFAULTS.requiresApproval,
+        requiresApproval: product.requiresApproval ?? MTT.PRODUCT_DEFAULTS.requiresApproval,
         priceLabel: this.#formatPriceLabel(displayPriceValue, priceCurrency),
-        displayPriceLabel: this.#formatPriceLabel(
-          displayPriceValue,
-          priceCurrency,
-        ),
+        displayPriceLabel: this.#formatPriceLabel(displayPriceValue, priceCurrency),
         basePriceLabel: this.#formatPriceLabel(basePriceValue, priceCurrency),
-        hasSecretInfos: Boolean(
-          product.secretName ||
-          product.secretPrice ||
-          product.secretDescription,
-        ),
-        isSecretExpanded:
-          product.isSecretExpanded ?? MTT.PRODUCT_DEFAULTS.isSecretExpanded,
+        hasSecretInfos: Boolean(product.secretName || product.secretPrice || product.secretDescription),
+        isSecretExpanded: product.isSecretExpanded ?? MTT.PRODUCT_DEFAULTS.isSecretExpanded,
       };
     });
   }
@@ -273,20 +396,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return null;
 
-    return (
-      this.actor.system.services?.entries?.find(
-        (service) => service.id === serviceId,
-      ) ?? null
-    );
+    return this.actor.system.services?.entries?.find((service) => service.id === serviceId) ?? null;
   }
 
   #prepareProductCategories(items) {
-    const definedCategories =
-      this.actor.system.catalog?.productCategories ?? [];
+    const definedCategories = this.actor.system.catalog?.productCategories ?? [];
     const categories = new Map();
 
-    const shouldShowSystemCategory =
-      items.length > 0 || definedCategories.length > 0;
+    const shouldShowSystemCategory = items.length > 0 || definedCategories.length > 0;
     if (shouldShowSystemCategory) {
       categories.set("", {
         id: "category-uncategorized",
@@ -313,16 +430,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     items.forEach((item) => {
-      const categoryValue =
-        item.category && categories.has(item.category) ? item.category : "";
+      const categoryValue = item.category && categories.has(item.category) ? item.category : "";
       const group = categories.get(categoryValue);
       if (!group) return;
       group.items.push(item);
       group.count += 1;
     });
 
-    const collapsedCategories =
-      this.actor.system.catalog?.collapsedCategories ?? {};
+    const collapsedCategories = this.actor.system.catalog?.collapsedCategories ?? {};
 
     const sortedCategories = Array.from(categories.values()).map((group) => ({
       ...group,
@@ -344,12 +459,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const categoryValue = target.dataset.category ?? "";
-    const collapsedCategories = foundry.utils.deepClone(
-      this.actor.system.catalog.collapsedCategories ?? {},
-    );
-    collapsedCategories[categoryValue] = !Boolean(
-      collapsedCategories[categoryValue],
-    );
+    const collapsedCategories = foundry.utils.deepClone(this.actor.system.catalog.collapsedCategories ?? {});
+    collapsedCategories[categoryValue] = !Boolean(collapsedCategories[categoryValue]);
 
     await this.actor.update({
       "system.catalog.collapsedCategories": collapsedCategories,
@@ -363,10 +474,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const itemId = target.dataset.mttProductId;
     if (!itemId || this.actor.system.sheet.isLocked) return;
 
-    event.dataTransfer.setData(
-      "application/json",
-      JSON.stringify({ type: "mtt.product", itemId }),
-    );
+    event.dataTransfer.setData("application/json", JSON.stringify({ type: "mtt.product", itemId }));
     event.dataTransfer.effectAllowed = "move";
   }
 
@@ -388,9 +496,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!payload || payload.type !== "mtt.product") return;
     if (this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
@@ -409,9 +515,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #onServiceDrop(event) {
     if (this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
@@ -420,9 +524,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const dragData = TextEditor.getDragEventData(event);
     if (!dragData) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.onlyItemsCanCreateServices"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanCreateServices"));
       return;
     }
 
@@ -442,35 +544,128 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (!doc || doc.documentName !== "Item") {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.onlyItemsCanCreateServices"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanCreateServices"));
       return;
     }
 
     if (!this.#isItemTypeAllowed(doc, "allowedServiceTypes")) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.serviceTypeNotAllowed"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.serviceTypeNotAllowed"));
       return;
     }
 
     await this.#createServiceFromItem(doc);
   }
 
-  async #createServiceFromItem(item) {
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
+  #onSessionSellerDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  async #onSessionSellerDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const item = await this.#getDroppedItemDocument(event);
+    if (!item) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeSold"));
+      return;
+    }
+
+    const sellerData = this.#prepareSellerItemDropData(item);
+    const dialogData = await this.#openSellerItemDialog(sellerData);
+    if (!dialogData) return;
+
+    const requestedTotal =
+      dialogData.quantity +
+      this.#getSessionSellerQuantity({
+        sourceUuid: sellerData.sourceUuid,
+        sourceId: sellerData.sourceId,
+        unitPriceValue: dialogData.unitPriceValue,
+        priceCurrency: dialogData.priceCurrency,
+      });
+
+    if (
+      Number.isFinite(sellerData.availableQuantity) &&
+      sellerData.availableQuantity >= 0 &&
+      requestedTotal > sellerData.availableQuantity
+    ) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughSellerItemQuantity"));
+      return;
+    }
+
+    const sessionItem = await this.#addSessionSellerItem({
+      ...sellerData,
+      quantity: dialogData.quantity,
+      unitPriceValue: dialogData.unitPriceValue,
+      priceCurrency: dialogData.priceCurrency,
+    });
+    if (!sessionItem) return;
+
+    ui.notifications.info(game.i18n.localize("mtt.notifications.sellerItemAddedToSession"));
+    this.render();
+  }
+
+  #onClientDragOver(event) {
+    if (!this.isEditable) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  async #onClientDrop(event) {
+    if (!this.isEditable) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const actor = await this.#getDroppedActorDocument(event);
+    if (!actor) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyActorsCanBeClients"));
+      return;
+    }
+
+    const existing = this.#getStoredAccessClients().some((client) => client.actorUuid === actor.uuid);
+    await this.#upsertAccessClient(this.#buildAccessClientFromActor(actor, { isAuthorized: true }));
+
+    ui.notifications.info(
+      game.i18n.localize(existing ? "mtt.notifications.clientAlreadyExists" : "mtt.notifications.clientAdded"),
     );
+    this.render();
+  }
+
+  async #getDroppedActorDocument(event) {
+    const dragData = TextEditor.getDragEventData(event);
+    if (!dragData) return null;
+
+    try {
+      if (dragData.uuid) {
+        const document = await fromUuid(dragData.uuid);
+        return document?.documentName === "Actor" ? document : null;
+      }
+
+      if (dragData.pack && dragData.id) {
+        const pack = game.packs.get(dragData.pack);
+        const document = pack ? await pack.getDocument(dragData.id) : null;
+        return document?.documentName === "Actor" ? document : null;
+      }
+
+      if (dragData.type === "Actor" && dragData.id) {
+        const document = game.actors.get(dragData.id) ?? null;
+        return document?.documentName === "Actor" ? document : null;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  async #createServiceFromItem(item) {
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
 
     const newId = foundry.utils.randomID();
 
     let description = this.#getConfiguredItemValue(item, "itemDescriptionPath");
-    if (
-      description === null ||
-      description === undefined ||
-      description === ""
-    ) {
+    if (description === null || description === undefined || description === "") {
       description = this.#getItemDescription(item) ?? "";
     }
     if (typeof description === "object" && description?.value) {
@@ -478,17 +673,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
     description = description ? String(description) : "";
 
-    let priceValue = this.#parsePriceValue(
-      this.#getConfiguredItemValue(item, "itemPriceValuePath"),
-    );
+    let priceValue = this.#parsePriceValue(this.#getConfiguredItemValue(item, "itemPriceValuePath"));
     if (priceValue === null) {
       priceValue = this.#getItemPrice(item) ?? 0;
     }
 
-    let priceCurrency = this.#getConfiguredItemValue(
-      item,
-      "itemPriceCurrencyPath",
-    );
+    let priceCurrency = this.#getConfiguredItemValue(item, "itemPriceCurrencyPath");
     if (typeof priceCurrency !== "string") {
       priceCurrency = "";
     }
@@ -571,6 +761,99 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return 0;
   }
 
+  async #getDroppedItemDocument(event) {
+    const dragData = TextEditor.getDragEventData(event);
+    if (!dragData) return null;
+
+    try {
+      if (dragData.uuid) {
+        const document = await fromUuid(dragData.uuid);
+        return document?.documentName === "Item" ? document : null;
+      }
+
+      if (dragData.pack && dragData.id) {
+        const pack = game.packs.get(dragData.pack);
+        const document = pack ? await pack.getDocument(dragData.id) : null;
+        return document?.documentName === "Item" ? document : null;
+      }
+
+      if (dragData.type === "Item" && dragData.id) {
+        const document = game.items.get(dragData.id) ?? null;
+        return document?.documentName === "Item" ? document : null;
+      }
+    } catch {
+      return null;
+    }
+
+    return null;
+  }
+
+  #prepareSellerItemDropData(item) {
+    const availableQuantity = this.#getItemAvailableQuantity(item);
+    const basePriceValue = this.#parsePriceValue(this.#getConfiguredItemValue(item, "itemPriceValuePath")) ?? this.#getItemPrice(item) ?? 0;
+    const buyPercent =
+      Number.isFinite(Number(this.actor.system.trade?.buyPercent)) && Number(this.actor.system.trade.buyPercent) >= 0
+        ? Number(this.actor.system.trade.buyPercent)
+        : 50;
+    // Seller-side draft lines use the merchant buy percent as the initial proposed value only.
+    const unitPriceValue = Number(((basePriceValue * buyPercent) / 100).toFixed(2));
+    const configuredCurrency = this.#getConfiguredItemValue(item, "itemPriceCurrencyPath");
+    const priceCurrency = typeof configuredCurrency === "string" ? configuredCurrency.trim() : this.#getItemCurrency(item);
+    const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null;
+
+    return {
+      type: "item",
+      sourceUuid: item.uuid ?? "",
+      sourceActorUuid: sourceActor?.uuid ?? "",
+      sourceId: item.id ?? "",
+      name: item.name ?? "",
+      img: item.img ?? "",
+      quantity: 1,
+      availableQuantity,
+      hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,
+      unitPriceValue,
+      priceCurrency,
+      sourceLabel: game.i18n.localize("mtt.sessions.item.object"),
+      isFromActor: Boolean(sourceActor),
+      sourceActorName: sourceActor?.name ?? "",
+    };
+  }
+
+  #getItemAvailableQuantity(item) {
+    const configuredQuantity = this.#parseQuantityValue(this.#getConfiguredItemValue(item, "itemQuantityPath"));
+    if (configuredQuantity !== null) return configuredQuantity;
+
+    const candidates = [
+      foundry.utils.getProperty(item, "system.quantity"),
+      foundry.utils.getProperty(item, "system.quantity.value"),
+      foundry.utils.getProperty(item, "system.qty"),
+      foundry.utils.getProperty(item, "system.stack.quantity"),
+    ];
+
+    for (const candidate of candidates) {
+      const quantity = this.#parseQuantityValue(candidate);
+      if (quantity !== null) return quantity;
+    }
+
+    return null;
+  }
+
+  #getItemCurrency(item) {
+    const candidates = [
+      foundry.utils.getProperty(item, "system.price.currency"),
+      foundry.utils.getProperty(item, "system.cost.currency"),
+      foundry.utils.getProperty(item, "system.value.currency"),
+      foundry.utils.getProperty(item, "system.price.denomination"),
+      foundry.utils.getProperty(item, "system.currency"),
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+    }
+
+    return "";
+  }
+
   async #addOrMergeProduct(itemData, categoryValue = "") {
     const productData = foundry.utils.deepClone(itemData);
     productData.flags = productData.flags ?? {};
@@ -584,18 +867,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       [MTT.FLAGS.PRODUCT]: productFlags,
     };
 
-    const sourceConfiguredPrice = this.#getConfiguredItemValue(
-      productData,
-      "itemPriceValuePath",
-    );
-    const sourcePriceValue =
-      this.#parsePriceValue(sourceConfiguredPrice) ??
-      MTT.PRODUCT_DEFAULTS.priceValue;
+    const sourceConfiguredPrice = this.#getConfiguredItemValue(productData, "itemPriceValuePath");
+    const sourcePriceValue = this.#parsePriceValue(sourceConfiguredPrice) ?? MTT.PRODUCT_DEFAULTS.priceValue;
 
-    const sourceConfiguredCurrency = this.#getConfiguredItemValue(
-      productData,
-      "itemPriceCurrencyPath",
-    );
+    const sourceConfiguredCurrency = this.#getConfiguredItemValue(productData, "itemPriceCurrencyPath");
     const sourcePriceCurrency =
       typeof sourceConfiguredCurrency === "string"
         ? sourceConfiguredCurrency.trim()
@@ -611,8 +886,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (existingCategory !== (categoryValue ?? "").trim()) return false;
 
       const existingDisplayName = (product.displayName ?? "").trim();
-      if (existingDisplayName && existingDisplayName !== item.name.trim())
-        return false;
+      if (existingDisplayName && existingDisplayName !== item.name.trim()) return false;
 
       const existingPriceValue = Number.isFinite(Number(product.priceValue))
         ? Number(product.priceValue)
@@ -640,18 +914,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         quantity: currentQuantity + 1,
       });
 
-      ui.notifications.info(
-        game.i18n.localize("mtt.notifications.productQuantityIncreased"),
-      );
+      ui.notifications.info(game.i18n.localize("mtt.notifications.productQuantityIncreased"));
       return;
     }
 
     this.#createProductFlags(productData);
-    foundry.utils.setProperty(
-      productData,
-      `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`,
-      categoryValue ?? "",
-    );
+    foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`, categoryValue ?? "");
 
     await this.actor.createEmbeddedDocuments("Item", [productData]);
   }
@@ -665,12 +933,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!categoryId) return;
 
-    const categories = foundry.utils.deepClone(
-      this.actor.system.catalog?.productCategories ?? [],
-    );
-    const index = categories.findIndex(
-      (category) => category.id === categoryId,
-    );
+    const categories = foundry.utils.deepClone(this.actor.system.catalog?.productCategories ?? []);
+    const index = categories.findIndex((category) => category.id === categoryId);
     if (index === -1) return;
 
     if (!categoryName) {
@@ -693,9 +957,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const categories = foundry.utils.deepClone(
-      this.actor.system.catalog?.productCategories ?? [],
-    );
+    const categories = foundry.utils.deepClone(this.actor.system.catalog?.productCategories ?? []);
     const categoryId = `category-${foundry.utils.randomID(6)}`;
     categories.push({
       id: categoryId,
@@ -717,9 +979,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const categoryId = target.dataset.categoryId;
     if (!categoryId) return;
 
-    const categories = foundry.utils.deepClone(
-      this.actor.system.catalog?.productCategories ?? [],
-    );
+    const categories = foundry.utils.deepClone(this.actor.system.catalog?.productCategories ?? []);
     const category = categories.find((item) => item.id === categoryId);
     if (!category) return;
 
@@ -729,9 +989,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     if (itemsInCategory.length > 0) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.products.category.notEmpty"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.products.category.notEmpty"));
       return;
     }
 
@@ -750,12 +1008,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return;
 
-    const updatedCategories = categories.filter(
-      (item) => item.id !== categoryId,
-    );
-    const collapsedCategories = foundry.utils.deepClone(
-      this.actor.system.catalog.collapsedCategories ?? {},
-    );
+    const updatedCategories = categories.filter((item) => item.id !== categoryId);
+    const collapsedCategories = foundry.utils.deepClone(this.actor.system.catalog.collapsedCategories ?? {});
     delete collapsedCategories[categoryId];
 
     await this.actor.update({
@@ -783,37 +1037,24 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     productFlags.displayName = itemData.name ?? "";
 
-    const configuredPrice = this.#getConfiguredItemValue(
-      itemData,
-      "itemPriceValuePath",
-    );
+    const configuredPrice = this.#getConfiguredItemValue(itemData, "itemPriceValuePath");
     const parsedPrice = this.#parsePriceValue(configuredPrice);
     if (parsedPrice !== null) {
       productFlags.priceValue = parsedPrice;
     }
 
-    const configuredCurrency = this.#getConfiguredItemValue(
-      itemData,
-      "itemPriceCurrencyPath",
-    );
+    const configuredCurrency = this.#getConfiguredItemValue(itemData, "itemPriceCurrencyPath");
     if (typeof configuredCurrency === "string") {
       productFlags.priceCurrency = configuredCurrency.trim();
     }
 
-    const configuredQuantity = this.#getConfiguredItemValue(
-      itemData,
-      "itemQuantityPath",
-    );
+    const configuredQuantity = this.#getConfiguredItemValue(itemData, "itemQuantityPath");
     const parsedQuantity = this.#parseQuantityValue(configuredQuantity);
     if (parsedQuantity !== null) {
       productFlags.quantity = parsedQuantity;
     }
 
-    foundry.utils.setProperty(
-      itemData,
-      `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`,
-      productFlags,
-    );
+    foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags);
 
     return itemData;
   }
@@ -825,8 +1066,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #prepareTrade() {
     return {
       buyPercent:
-        Number.isFinite(Number(this.actor.system.trade?.buyPercent)) &&
-        Number(this.actor.system.trade.buyPercent) >= 0
+        Number.isFinite(Number(this.actor.system.trade?.buyPercent)) && Number(this.actor.system.trade.buyPercent) >= 0
           ? Number(this.actor.system.trade.buyPercent)
           : 50,
       sellPercent:
@@ -859,7 +1099,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : String(normalizedPrice.toFixed(2)).replace(/\.?0+$/, "");
     const currency = String(priceCurrency ?? "").trim();
 
-    return `${formattedPrice}${currency ? ` ${currency}` : ""}`;
+    return `${formattedPrice} ${this.#formatCurrencyLabel(currency)}`;
+  }
+
+  #normalizeCurrencyKey(priceCurrency) {
+    const currency = String(priceCurrency ?? "").trim();
+    return currency || "__none";
+  }
+
+  #formatCurrencyLabel(priceCurrency) {
+    const currency = String(priceCurrency ?? "").trim();
+    return currency || game.i18n.localize("mtt.sessions.undefinedCurrency");
   }
 
   #escapeHTML(value) {
@@ -882,9 +1132,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     includeProposedPrice = false,
   }) {
     const quantityMax =
-      Number.isFinite(availableQuantity) && availableQuantity >= 0
-        ? ` max="${availableQuantity}"`
-        : "";
+      Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : "";
     const proposedPriceField = includeProposedPrice
       ? `<label class="mtt-session-dialog-field">
           <span>${game.i18n.localize("mtt.sessions.dialog.proposedPrice")}</span>
@@ -912,13 +1160,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     </form>`;
   }
 
-  async #openSessionPreparationDialog({
-    title,
-    name,
-    priceLabel,
-    availableQuantity,
-    includeProposedPrice = false,
-  }) {
+  async #openSessionPreparationDialog({ title, name, priceLabel, availableQuantity, includeProposedPrice = false }) {
     const availableQuantityLabel =
       Number.isFinite(availableQuantity) && availableQuantity >= 0
         ? String(availableQuantity)
@@ -951,10 +1193,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
             label: game.i18n.localize("mtt.sessions.actions.add"),
             default: true,
             callback: (event, button, dialog) => {
-              const form =
-                button?.form ??
-                dialog?.element?.querySelector("form") ??
-                event.target?.closest?.("form");
+              const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form");
               if (!form) return null;
 
               return Object.fromEntries(new FormData(form).entries());
@@ -970,26 +1209,116 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const requestedQuantity = Number(result.quantity);
     if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.invalidSessionQuantity"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidSessionQuantity"));
       return;
     }
 
-    if (
-      Number.isFinite(availableQuantity) &&
-      availableQuantity >= 0 &&
-      requestedQuantity > availableQuantity
-    ) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.notEnoughQuantity"),
-      );
+    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && requestedQuantity > availableQuantity) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughQuantity"));
       return;
     }
 
     return {
       quantity: requestedQuantity,
       proposedPrice: result.proposedPrice ?? "",
+    };
+  }
+
+  #renderSellerItemDialog({ name, availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency }) {
+    const quantityMax =
+      Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${this.#escapeHTML(String(availableQuantity))}"` : "";
+
+    return `<form class="mtt-session-dialog-form">
+      <section class="mtt-session-dialog-summary">
+        <h3 class="mtt-session-dialog-title">${this.#escapeHTML(name)}</h3>
+        <p class="mtt-session-dialog-line">
+          <strong>${game.i18n.localize("mtt.sessions.dialog.availableQuantity")}</strong>
+          <span>${this.#escapeHTML(availableQuantityLabel)}</span>
+        </p>
+      </section>
+      <label class="mtt-session-dialog-field">
+        <span>${game.i18n.localize("mtt.sessions.dialog.quantity")}</span>
+        <input type="number" name="quantity" min="1" step="1" value="1"${quantityMax} />
+      </label>
+      <label class="mtt-session-dialog-field">
+        <span>${game.i18n.localize("mtt.sessions.sellerUnitValue")}</span>
+        <input type="number" name="unitPriceValue" min="0" step="0.01" value="${this.#escapeHTML(String(unitPriceValue))}" />
+      </label>
+      <label class="mtt-session-dialog-field">
+        <span>${game.i18n.localize("mtt.services.currency")}</span>
+        <input type="text" name="priceCurrency" value="${this.#escapeHTML(priceCurrency)}" />
+      </label>
+    </form>`;
+  }
+
+  async #openSellerItemDialog({ name, availableQuantity, unitPriceValue, priceCurrency }) {
+    const availableQuantityLabel =
+      Number.isFinite(availableQuantity) && availableQuantity >= 0
+        ? String(availableQuantity)
+        : game.i18n.localize("mtt.sessions.dialog.unlimitedQuantity");
+    const content = this.#renderSellerItemDialog({
+      name,
+      availableQuantity,
+      availableQuantityLabel,
+      unitPriceValue,
+      priceCurrency,
+    });
+
+    let result = null;
+
+    try {
+      result = await foundry.applications.api.DialogV2.wait({
+        window: {
+          title: game.i18n.localize("mtt.sessions.sellerDialogTitle"),
+        },
+        content,
+        rejectClose: false,
+        buttons: [
+          {
+            action: "cancel",
+            label: game.i18n.localize("mtt.sessions.actions.cancel"),
+            callback: () => null,
+          },
+          {
+            action: "add",
+            label: game.i18n.localize("mtt.sessions.addSellerItem"),
+            default: true,
+            callback: (event, button, dialog) => {
+              const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form");
+              if (!form) return null;
+
+              return Object.fromEntries(new FormData(form).entries());
+            },
+          },
+        ],
+      });
+    } catch {
+      return null;
+    }
+
+    if (!result) return null;
+
+    const quantity = Number(result.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidSellerItemQuantity"));
+      return null;
+    }
+
+    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && quantity > availableQuantity) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughSellerItemQuantity"));
+      return null;
+    }
+
+    const priceValue = Number(result.unitPriceValue);
+    if (!Number.isFinite(priceValue) || priceValue < 0) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidSellerItemPrice"));
+      return null;
+    }
+
+    return {
+      quantity,
+      unitPriceValue: priceValue,
+      priceCurrency: result.priceCurrency?.trim() ?? "",
     };
   }
 
@@ -1005,15 +1334,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
         return {
           id,
-          label:
-            String(currency.abbreviation ?? "").trim() ||
-            String(currency.name ?? "").trim() ||
-            id,
+          label: String(currency.abbreviation ?? "").trim() || String(currency.name ?? "").trim() || id,
           name: String(currency.name ?? "").trim(),
-          amount:
-            Number.isFinite(configuredAmount) && configuredAmount >= 0
-              ? configuredAmount
-              : 0,
+          amount: Number.isFinite(configuredAmount) && configuredAmount >= 0 ? configuredAmount : 0,
           rate: currency.rate,
           isDefault: Boolean(currency.isDefault),
         };
@@ -1021,25 +1344,281 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .filter(Boolean);
   }
 
-  #prepareSessionContext() {
-    const buyerItems = this.#sessionDraft.buyerItems.map((item) => ({
-      ...item,
-      unitPriceLabel: this.#formatPriceLabel(
-        item.unitPriceValue,
-        item.priceCurrency,
-      ),
-      totalPriceLabel: this.#formatPriceLabel(
-        item.totalPriceValue,
-        item.priceCurrency,
-      ),
-    }));
-    const sellerItems = this.#sessionDraft.sellerItems.map((item) => ({
-      ...item,
-    }));
-    const buyerTotalByCurrency = this.#prepareSessionTotals(buyerItems);
-    const status = this.#sessionDraft.status ?? "active";
+  #prepareAccessContext() {
+    const clients = this.#prepareAccessClients();
 
     return {
+      clients,
+      hasClients: clients.length > 0,
+      canManage: this.isEditable,
+    };
+  }
+
+  #prepareAccessClients() {
+    const clientsByUuid = new Map();
+
+    this.#getStoredAccessClients().forEach((client) => {
+      if (!client.actorUuid) return;
+      clientsByUuid.set(client.actorUuid, client);
+    });
+
+    game.users.forEach((user) => {
+      const actor = user.character;
+      if (!actor?.uuid) return;
+
+      const existing = clientsByUuid.get(actor.uuid);
+      const playerClient = this.#buildAccessClientFromActor(actor, {
+        user,
+        isAuthorized: existing?.isAuthorized ?? false,
+        isFromPlayerCharacter: true,
+      });
+
+      clientsByUuid.set(actor.uuid, {
+        ...playerClient,
+        ...existing,
+        actorName: actor.name ?? existing?.actorName ?? "",
+        actorImg: actor.img ?? existing?.actorImg ?? "",
+        actorType: actor.type ?? existing?.actorType ?? "",
+        userId: user.id ?? existing?.userId ?? "",
+        userName: user.name ?? existing?.userName ?? "",
+        isFromPlayerCharacter: true,
+      });
+    });
+
+    return Array.from(clientsByUuid.values())
+      .map((client) => {
+        const preparedClient = {
+          ...client,
+          statusLabel: game.i18n.localize(client.isAuthorized ? "mtt.access.authorized" : "mtt.access.unauthorized"),
+          sourceLabel: game.i18n.localize(
+            client.isFromPlayerCharacter ? "mtt.access.playerCharacter" : "mtt.access.manualActor",
+          ),
+        };
+        preparedClient.tooltip = this.#formatAccessClientTooltip(preparedClient);
+        return preparedClient;
+      })
+      .sort((a, b) => a.actorName.localeCompare(b.actorName, undefined, { sensitivity: "base" }));
+  }
+
+  #formatAccessClientTooltip(client) {
+    const parts = [client.actorName, client.statusLabel, client.sourceLabel].filter(Boolean);
+    if (client.userName) parts.push(client.userName);
+    return parts.join(" - ");
+  }
+
+  #getStoredAccessClients() {
+    const clients = this.actor.system.access?.clients ?? [];
+    const clientsByUuid = new Map();
+
+    clients.forEach((client) => {
+      const normalizedClient = this.#normalizeAccessClient(client);
+      if (!normalizedClient.actorUuid) return;
+      clientsByUuid.set(normalizedClient.actorUuid, normalizedClient);
+    });
+
+    return Array.from(clientsByUuid.values());
+  }
+
+  #normalizeAccessClient(client) {
+    return {
+      actorUuid: String(client.actorUuid ?? "").trim(),
+      actorId: String(client.actorId ?? "").trim(),
+      actorName: String(client.actorName ?? "").trim(),
+      actorImg: String(client.actorImg ?? "").trim(),
+      actorType: String(client.actorType ?? "").trim(),
+      userId: String(client.userId ?? "").trim(),
+      userName: String(client.userName ?? "").trim(),
+      isAuthorized: Boolean(client.isAuthorized),
+      isFromPlayerCharacter: Boolean(client.isFromPlayerCharacter),
+    };
+  }
+
+  #buildAccessClientFromActor(actor, { user = null, isAuthorized = false, isFromPlayerCharacter = false } = {}) {
+    return this.#normalizeAccessClient({
+      actorUuid: actor.uuid ?? "",
+      actorId: actor.id ?? "",
+      actorName: actor.name ?? "",
+      actorImg: actor.img ?? "",
+      actorType: actor.type ?? "",
+      userId: user?.id ?? "",
+      userName: user?.name ?? "",
+      isAuthorized,
+      isFromPlayerCharacter,
+    });
+  }
+
+  async #upsertAccessClient(client) {
+    const normalizedClient = this.#normalizeAccessClient(client);
+    if (!normalizedClient.actorUuid) return null;
+
+    const clients = this.#getStoredAccessClients();
+    const index = clients.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid);
+
+    if (index === -1) {
+      clients.push(normalizedClient);
+    } else {
+      clients[index] = {
+        ...clients[index],
+        ...normalizedClient,
+        isFromPlayerCharacter: clients[index].isFromPlayerCharacter || normalizedClient.isFromPlayerCharacter,
+      };
+    }
+
+    await this.actor.update({
+      "system.access.clients": clients,
+    });
+
+    return normalizedClient;
+  }
+
+  #getAuthorizedClients() {
+    return this.#getStoredAccessClients().filter((client) => client.isAuthorized);
+  }
+
+  #getAccessClientForSession(session) {
+    const actorUuid = String(session?.actorUuid ?? "").trim();
+    if (!actorUuid) return null;
+
+    const client = this.#prepareAccessClients().find((entry) => entry.actorUuid === actorUuid);
+    if (client) return client;
+
+    return this.#normalizeAccessClient({
+      actorUuid,
+      actorName: session.actorName ?? "",
+      userId: session.userId ?? "",
+      userName: session.userName ?? "",
+      isAuthorized: false,
+    });
+  }
+
+  #getAccessClientCandidate(actorUuid) {
+    const normalizedActorUuid = String(actorUuid ?? "").trim();
+    if (!normalizedActorUuid) return null;
+
+    return this.#prepareAccessClients().find((client) => client.actorUuid === normalizedActorUuid) ?? null;
+  }
+
+  #getOpenSessionsForClient(actorUuid) {
+    const normalizedActorUuid = String(actorUuid ?? "").trim();
+    if (!normalizedActorUuid) return [];
+
+    return this.#getSessions().filter(
+      (session) => session.actorUuid === normalizedActorUuid && ["active", "pending"].includes(session.status),
+    );
+  }
+
+  async #setClientAuthorization(client, isAuthorized, { removeOpenSessions = false } = {}) {
+    const normalizedClient = this.#normalizeAccessClient({
+      ...client,
+      isAuthorized,
+    });
+    if (!normalizedClient.actorUuid) return;
+
+    const clients = this.#getStoredAccessClients();
+    const clientIndex = clients.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid);
+
+    if (clientIndex === -1) {
+      clients.push(normalizedClient);
+    } else {
+      clients[clientIndex] = {
+        ...clients[clientIndex],
+        ...normalizedClient,
+      };
+    }
+
+    const updateData = {
+      "system.access.clients": clients,
+    };
+
+    if (removeOpenSessions) {
+      const removedSessionIds = new Set(this.#getOpenSessionsForClient(normalizedClient.actorUuid).map((session) => session.id));
+      updateData["system.sessions.entries"] = this.#getSessions().filter((session) => !removedSessionIds.has(session.id));
+      if (removedSessionIds.has(this.#activeSessionId)) this.#activeSessionId = null;
+      this.#sessionCheckResult = null;
+    }
+
+    await this.actor.update(updateData);
+  }
+
+  #prepareSessionContext() {
+    const session = this.#getActiveSession();
+    if (!session) {
+      return {
+        id: "",
+        label: "",
+        status: "",
+        statusLabel: "",
+        buyerItems: [],
+        sellerItems: [],
+        hasBuyerItems: false,
+        hasSellerItems: false,
+        buyerTotalByCurrency: [],
+        sellerTotalByCurrency: [],
+        hasBuyerTotals: false,
+        hasSellerTotals: false,
+        hasSession: false,
+        canEdit: false,
+        statusNotice: "",
+        isActive: false,
+        isPending: false,
+        isValidated: false,
+        isRefused: false,
+        hasAnyItems: false,
+        isBalanced: false,
+        moneyAdjustments: [],
+        buyerMoneyAdjustments: [],
+        sellerMoneyAdjustments: [],
+        hasMoneyAdjustments: false,
+        hasBuyerLines: false,
+        hasSellerLines: false,
+        client: {
+          hasClient: false,
+          actorUuid: "",
+          actorName: "",
+          actorImg: "",
+          userName: "",
+          isAuthorized: false,
+          isUnauthorized: false,
+        },
+        checkResult: this.#prepareSessionCheckContext(),
+      };
+    }
+
+    const buyerItems = (session.buyerItems ?? []).map((item) => {
+      this.#syncSessionItemAvailability(item);
+      this.#recalculateSessionItemTotal(item);
+
+      return {
+        ...item,
+        sourceLabel: item.sourceLabel || game.i18n.localize(`mtt.sessions.item.${item.type}`),
+        unitPriceLabel: this.#formatPriceLabel(item.unitPriceValue, item.priceCurrency),
+        totalPriceLabel: this.#formatPriceLabel(item.totalPriceValue, item.priceCurrency),
+        availableQuantityLabel: Number.isFinite(Number(item.availableQuantity)) ? String(item.availableQuantity) : "",
+      };
+    });
+    const sellerItems = (session.sellerItems ?? []).map((item) => {
+      this.#recalculateSessionItemTotal(item);
+
+      return {
+        ...item,
+        sourceLabel: item.sourceLabel || game.i18n.localize("mtt.sessions.item.object"),
+        unitPriceLabel: this.#formatPriceLabel(item.unitPriceValue, item.priceCurrency),
+        totalPriceLabel: this.#formatPriceLabel(item.totalPriceValue, item.priceCurrency),
+        availableQuantityLabel: Number.isFinite(Number(item.availableQuantity)) ? String(item.availableQuantity) : "",
+      };
+    });
+    const buyerTotalByCurrency = this.#prepareSessionTotals(buyerItems);
+    const sellerTotalByCurrency = this.#prepareSessionTotals(sellerItems);
+    const moneyAdjustments = this.#prepareMoneyAdjustments(buyerTotalByCurrency, sellerTotalByCurrency);
+    const buyerMoneyAdjustments = moneyAdjustments.filter((adjustment) => adjustment.side === "buyer");
+    const sellerMoneyAdjustments = moneyAdjustments.filter((adjustment) => adjustment.side === "seller");
+    const status = session.status ?? "active";
+    const hasAnyItems = buyerItems.length > 0 || sellerItems.length > 0;
+    const client = this.#prepareSessionClientContext(session);
+
+    return {
+      id: session.id,
+      label: session.label,
       status,
       statusLabel: game.i18n.localize(`mtt.sessions.status.${status}`),
       buyerItems,
@@ -1047,7 +1626,81 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       hasBuyerItems: buyerItems.length > 0,
       hasSellerItems: sellerItems.length > 0,
       buyerTotalByCurrency,
+      sellerTotalByCurrency,
       hasBuyerTotals: buyerTotalByCurrency.length > 0,
+      hasSellerTotals: sellerTotalByCurrency.length > 0,
+      hasSession: true,
+      canEdit: !["validated", "refused"].includes(status),
+      isActive: status === "active",
+      isPending: status === "pending",
+      isValidated: status === "validated",
+      isRefused: status === "refused",
+      statusNotice: this.#getSessionStatusNotice(status),
+      hasAnyItems,
+      moneyAdjustments,
+      buyerMoneyAdjustments,
+      sellerMoneyAdjustments,
+      hasMoneyAdjustments: moneyAdjustments.length > 0,
+      isBalanced: hasAnyItems && moneyAdjustments.length === 0,
+      hasBuyerLines: buyerItems.length > 0 || buyerMoneyAdjustments.length > 0,
+      hasSellerLines: sellerItems.length > 0 || sellerMoneyAdjustments.length > 0,
+      client,
+      checkResult: this.#prepareSessionCheckContext(),
+    };
+  }
+
+  #prepareSessionClientContext(session) {
+    const client = this.#getAccessClientForSession(session);
+    if (!client?.actorUuid) {
+      return {
+        hasClient: false,
+        actorUuid: "",
+        actorName: "",
+        actorImg: "",
+        userName: "",
+        isAuthorized: false,
+        isUnauthorized: false,
+      };
+    }
+
+    return {
+      hasClient: true,
+      actorUuid: client.actorUuid,
+      actorName: client.actorName || session.actorName || game.i18n.localize("mtt.access.noClient"),
+      actorImg: client.actorImg,
+      userName: client.userName || session.userName || "",
+      isAuthorized: Boolean(client.isAuthorized),
+      isUnauthorized: !client.isAuthorized,
+    };
+  }
+
+  #prepareSessionCheckContext() {
+    if (!this.#sessionCheckResult?.checked) {
+      return {
+        checked: false,
+        canProceed: false,
+        infos: [],
+        warnings: [],
+        errors: [],
+        hasInfos: false,
+        hasWarnings: false,
+        hasErrors: false,
+      };
+    }
+
+    const infos = this.#sessionCheckResult.infos ?? [];
+    const warnings = this.#sessionCheckResult.warnings ?? [];
+    const errors = this.#sessionCheckResult.errors ?? [];
+
+    return {
+      checked: true,
+      canProceed: Boolean(this.#sessionCheckResult.canProceed),
+      infos,
+      warnings,
+      errors,
+      hasInfos: infos.length > 0,
+      hasWarnings: warnings.length > 0,
+      hasErrors: errors.length > 0,
     };
   }
 
@@ -1055,7 +1708,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const totals = new Map();
 
     items.forEach((item) => {
-      const currency = String(item.priceCurrency ?? "").trim();
+      const currency = this.#normalizeCurrencyKey(item.priceCurrency);
       const totalPriceValue = Number(item.totalPriceValue);
       if (!Number.isFinite(totalPriceValue) || totalPriceValue < 0) return;
 
@@ -1067,25 +1720,415 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       return {
         currency,
+        currencyLabel: this.#formatCurrencyLabel(currency === "__none" ? "" : currency),
         totalPriceValue: roundedTotal,
-        totalPriceLabel: this.#formatPriceLabel(roundedTotal, currency),
+        totalPriceLabel: this.#formatPriceLabel(roundedTotal, currency === "__none" ? "" : currency),
       };
     });
   }
 
-  #addSessionBuyerItem({
+  #prepareMoneyAdjustments(buyerTotals, sellerTotals) {
+    const totalsByCurrency = new Map();
+
+    buyerTotals.forEach((total) => {
+      totalsByCurrency.set(total.currency, {
+        currency: total.currency,
+        buyer: Number(total.totalPriceValue) || 0,
+        seller: 0,
+      });
+    });
+
+    sellerTotals.forEach((total) => {
+      const existing = totalsByCurrency.get(total.currency) ?? {
+        currency: total.currency,
+        buyer: 0,
+        seller: 0,
+      };
+      existing.seller = Number(total.totalPriceValue) || 0;
+      totalsByCurrency.set(total.currency, existing);
+    });
+
+    return Array.from(totalsByCurrency.values())
+      .map(({ currency, buyer, seller }) => {
+        const difference = Number((buyer - seller).toFixed(2));
+        if (difference === 0) return null;
+
+        const side = difference > 0 ? "seller" : "buyer";
+        const amount = Math.abs(difference);
+        const displayCurrency = currency === "__none" ? "" : currency;
+
+        return {
+          id: `money-adjustment-${side}-${currency}`,
+          side,
+          currency,
+          currencyLabel: this.#formatCurrencyLabel(displayCurrency),
+          amount,
+          amountLabel: this.#formatPriceLabel(amount, displayCurrency),
+          label: game.i18n.localize("mtt.sessions.moneyAdjustment"),
+          isMoneyAdjustment: true,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  #getSessionStatusNotice(status) {
+    if (status === "pending") return game.i18n.localize("mtt.sessions.pendingNotice");
+    if (status === "validated") return game.i18n.localize("mtt.sessions.validatedNoTransfer");
+    if (status === "refused") return game.i18n.localize("mtt.sessions.refusedNotice");
+    return game.i18n.localize("mtt.sessions.activeNotice");
+  }
+
+  async #checkSessionTransaction(session) {
+    const preparedSession = this.#prepareSessionContext();
+    const result = {
+      checked: true,
+      canProceed: false,
+      infos: [],
+      warnings: [],
+      errors: [],
+    };
+
+    if (!session) {
+      result.canProceed = false;
+      return result;
+    }
+
+    this.#checkSessionStatus(session, result);
+    this.#checkSessionBuyerItems(session, result);
+    await this.#checkSessionSellerItems(session, result);
+    this.#checkSessionMoneyAdjustments(preparedSession.moneyAdjustments ?? [], result);
+    this.#checkSessionCurrencies(preparedSession, result);
+
+    result.canProceed = result.errors.length === 0;
+    return result;
+  }
+
+  #checkSessionStatus(session, result) {
+    if (session.status === "validated") {
+      result.warnings.push(
+        this.#createCheckMessage(
+          "warning",
+          "already-validated",
+          game.i18n.localize("mtt.sessions.check.alreadyValidated"),
+          "fa-triangle-exclamation",
+        ),
+      );
+    }
+
+    if (session.status === "refused") {
+      result.warnings.push(
+        this.#createCheckMessage(
+          "warning",
+          "already-refused",
+          game.i18n.localize("mtt.sessions.check.alreadyRefused"),
+          "fa-ban",
+        ),
+      );
+    }
+  }
+
+  #checkSessionBuyerItems(session, result) {
+    const buyerItems = session.buyerItems ?? [];
+    if (buyerItems.length === 0) return;
+
+    const errorCount = result.errors.length;
+
+    buyerItems.forEach((item) => {
+      if (item.type === "product") {
+        const availableQuantity = this.#getProductCheckAvailableQuantity(item);
+        this.#checkLimitedSessionQuantity({
+          item,
+          availableQuantity,
+          result,
+          messageId: `product-stock-${item.id}`,
+          messageKey: "mtt.sessions.check.productStockInsufficient",
+          icon: "fa-box-open",
+        });
+      }
+
+      if (item.type === "service") {
+        const availableQuantity = this.#getServiceCheckAvailableQuantity(item);
+        this.#checkLimitedSessionQuantity({
+          item,
+          availableQuantity,
+          result,
+          messageId: `service-stock-${item.id}`,
+          messageKey: "mtt.sessions.check.serviceQuantityInsufficient",
+          icon: "fa-bell-concierge",
+        });
+      }
+    });
+
+    if (result.errors.length === errorCount) {
+      result.infos.push(
+        this.#createCheckMessage(
+          "info",
+          "stock-ok",
+          game.i18n.localize("mtt.sessions.check.stockOk"),
+          "fa-circle-check",
+        ),
+      );
+    }
+  }
+
+  async #checkSessionSellerItems(session, result) {
+    const sellerItems = session.sellerItems ?? [];
+    if (sellerItems.length === 0) return;
+
+    const errorCount = result.errors.length;
+    const warningCount = result.warnings.length;
+
+    for (const item of sellerItems) {
+      const sourceUuid = String(item.sourceUuid ?? "").trim();
+      let source = null;
+
+      if (sourceUuid) {
+        try {
+          source = await fromUuid(sourceUuid);
+        } catch {
+          source = null;
+        }
+      }
+
+      if (!source || source.documentName !== "Item") {
+        result.warnings.push(
+          this.#createCheckMessage(
+            "warning",
+            `seller-source-${item.id}`,
+            game.i18n.format("mtt.sessions.check.sellerSourceMissing", { name: item.name }),
+            "fa-link-slash",
+          ),
+        );
+        continue;
+      }
+
+      const availableQuantity = this.#getItemAvailableQuantity(source);
+      this.#checkLimitedSessionQuantity({
+        item,
+        availableQuantity,
+        result,
+        messageId: `seller-stock-${item.id}`,
+        messageKey: "mtt.sessions.check.sellerQuantityInsufficient",
+        icon: "fa-box-open",
+      });
+    }
+
+    if (result.errors.length === errorCount && result.warnings.length === warningCount) {
+      result.infos.push(
+        this.#createCheckMessage(
+          "info",
+          "seller-items-ok",
+          game.i18n.localize("mtt.sessions.check.sellerItemsOk"),
+          "fa-circle-check",
+        ),
+      );
+    }
+  }
+
+  #checkSessionMoneyAdjustments(moneyAdjustments, result) {
+    moneyAdjustments.forEach((adjustment) => {
+      const currencyLabel = this.#formatCurrencyLabel(adjustment.currency === "__none" ? "" : adjustment.currency);
+
+      if (adjustment.currency === "__none") {
+        result.warnings.push(
+          this.#createCheckMessage(
+            "warning",
+            `money-undefined-${adjustment.side}`,
+            game.i18n.localize("mtt.sessions.check.undefinedCurrency"),
+            "fa-coins",
+          ),
+        );
+        return;
+      }
+
+      if (adjustment.side === "seller") {
+        result.infos.push(
+          this.#createCheckMessage(
+            "info",
+            `player-must-pay-${adjustment.currency}`,
+            game.i18n.format("mtt.sessions.check.playerMustPay", {
+              amount: adjustment.amount,
+              currency: currencyLabel,
+            }),
+            "fa-coins",
+          ),
+        );
+        return;
+      }
+
+      result.infos.push(
+        this.#createCheckMessage(
+          "info",
+          `merchant-must-return-${adjustment.currency}`,
+          game.i18n.format("mtt.sessions.check.merchantMustReturn", {
+            amount: adjustment.amount,
+            currency: currencyLabel,
+          }),
+          "fa-coins",
+        ),
+      );
+
+      const merchantAmount = this.#getMerchantWalletAmount(adjustment.currency);
+      if (merchantAmount < adjustment.amount) {
+        result.errors.push(
+          this.#createCheckMessage(
+            "error",
+            `merchant-currency-${adjustment.currency}`,
+            game.i18n.format("mtt.sessions.check.merchantCurrencyInsufficient", {
+              currency: currencyLabel,
+            }),
+            "fa-coins",
+          ),
+        );
+        return;
+      }
+
+      result.infos.push(
+        this.#createCheckMessage(
+          "info",
+          `merchant-change-ok-${adjustment.currency}`,
+          game.i18n.localize("mtt.sessions.check.merchantChangeOk"),
+          "fa-circle-check",
+        ),
+      );
+    });
+  }
+
+  #checkSessionCurrencies(preparedSession, result) {
+    const seen = new Set();
+    const currencyKeys = [
+      ...(preparedSession.buyerTotalByCurrency ?? []).map((total) => total.currency),
+      ...(preparedSession.sellerTotalByCurrency ?? []).map((total) => total.currency),
+      ...(preparedSession.moneyAdjustments ?? []).map((adjustment) => adjustment.currency),
+    ];
+
+    currencyKeys.forEach((currency) => {
+      const currencyKey = this.#normalizeCurrencyKey(currency === "__none" ? "" : currency);
+      if (seen.has(currencyKey)) return;
+      seen.add(currencyKey);
+
+      if (currencyKey === "__none") {
+        result.warnings.push(
+          this.#createCheckMessage(
+            "warning",
+            "currency-undefined",
+            game.i18n.localize("mtt.sessions.check.undefinedCurrency"),
+            "fa-coins",
+          ),
+        );
+        return;
+      }
+
+      if (this.#getConfiguredCurrency(currencyKey)) return;
+
+      result.warnings.push(
+        this.#createCheckMessage(
+          "warning",
+          `currency-unknown-${currencyKey}`,
+          game.i18n.format("mtt.sessions.check.unknownCurrency", {
+            currency: this.#formatCurrencyLabel(currencyKey),
+          }),
+          "fa-coins",
+        ),
+      );
+    });
+  }
+
+  #checkLimitedSessionQuantity({ item, availableQuantity, result, messageId, messageKey, icon }) {
+    if (!item.hasLimitedQuantity) return;
+
+    const requestedQuantity = Number(item.quantity);
+    const normalizedAvailableQuantity = Number(availableQuantity);
+
+    if (!Number.isFinite(requestedQuantity) || !Number.isFinite(normalizedAvailableQuantity)) return;
+    if (requestedQuantity <= normalizedAvailableQuantity) return;
+
+    result.errors.push(
+      this.#createCheckMessage(
+        "error",
+        messageId,
+        game.i18n.format(messageKey, { name: item.name }),
+        icon,
+      ),
+    );
+  }
+
+  #getProductCheckAvailableQuantity(item) {
+    const source = this.actor.items.get(item.sourceId);
+    const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const productQuantity = Number(product.quantity);
+    if (Number.isFinite(productQuantity) && productQuantity >= 0) return productQuantity;
+
+    const sessionQuantity = Number(item.availableQuantity);
+    return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
+  }
+
+  #getServiceCheckAvailableQuantity(item) {
+    const service = this.actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
+    const serviceQuantity = Number(service?.quantity);
+    if (Number.isFinite(serviceQuantity) && serviceQuantity >= 0) return serviceQuantity;
+
+    const sessionQuantity = Number(item.availableQuantity);
+    return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
+  }
+
+  #getConfiguredCurrency(currency) {
+    const normalizedCurrency = String(currency ?? "").trim().toLowerCase();
+    if (!normalizedCurrency) return null;
+
+    return (
+      getCurrencies().find((entry) => {
+        const candidates = [entry.id, entry.abbreviation, entry.name]
+          .map((value) => String(value ?? "").trim().toLowerCase())
+          .filter(Boolean);
+
+        return candidates.includes(normalizedCurrency);
+      }) ?? null
+    );
+  }
+
+  #getMerchantWalletAmount(currency) {
+    const configuredCurrency = this.#getConfiguredCurrency(currency);
+    const walletKey = String(configuredCurrency?.id ?? currency ?? "").trim();
+    if (!walletKey) return 0;
+
+    const amount = Number(this.actor.system.wallet?.currencies?.[walletKey] ?? 0);
+    return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+  }
+
+  #createCheckMessage(level, id, text, icon = "") {
+    return {
+      id,
+      level,
+      text,
+      icon,
+    };
+  }
+
+  async #addSessionBuyerItem({
     type,
     sourceId,
     name,
     img,
     quantity,
+    availableQuantity = null,
+    hasLimitedQuantity = false,
     unitPriceValue,
     priceCurrency,
     sourceLabel,
+    proposedUnitPriceValue = "",
   }) {
+    const session = await this.#getOrCreateActiveSession();
+    if (!session) return null;
+
     const normalizedQuantity = Number(quantity);
     const normalizedUnitPrice = Number(unitPriceValue);
     const normalizedCurrency = String(priceCurrency ?? "").trim();
+    const normalizedAvailableQuantity = Number(availableQuantity);
+    const isLimitedQuantity =
+      Boolean(hasLimitedQuantity) &&
+      Number.isFinite(normalizedAvailableQuantity) &&
+      normalizedAvailableQuantity >= 0;
 
     if (
       !Number.isFinite(normalizedQuantity) ||
@@ -1096,7 +2139,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null;
     }
 
-    const existingItem = this.#sessionDraft.buyerItems.find(
+    const existingItem = session.buyerItems.find(
       (item) =>
         item.type === type &&
         item.sourceId === sourceId &&
@@ -1105,12 +2148,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     );
 
     if (existingItem) {
-      existingItem.quantity = Number(
-        (existingItem.quantity + normalizedQuantity).toFixed(2),
-      );
-      existingItem.totalPriceValue = Number(
-        (existingItem.quantity * existingItem.unitPriceValue).toFixed(2),
-      );
+      existingItem.availableQuantity = isLimitedQuantity ? normalizedAvailableQuantity : null;
+      existingItem.hasLimitedQuantity = isLimitedQuantity;
+      if (!this.#canUseSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null;
+
+      existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2));
+      this.#recalculateSessionItemTotal(existingItem);
+      await this.#saveSession(session);
       return existingItem;
     }
 
@@ -1121,22 +2165,109 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       name,
       img: img ?? "",
       quantity: normalizedQuantity,
+      availableQuantity: isLimitedQuantity ? normalizedAvailableQuantity : null,
+      hasLimitedQuantity: isLimitedQuantity,
       unitPriceValue: normalizedUnitPrice,
       priceCurrency: normalizedCurrency,
-      totalPriceValue: Number(
-        (normalizedQuantity * normalizedUnitPrice).toFixed(2),
-      ),
+      totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
       sourceLabel,
+      proposedUnitPriceValue:
+        proposedUnitPriceValue !== "" && Number.isFinite(Number(proposedUnitPriceValue))
+          ? Number(proposedUnitPriceValue)
+          : null,
     };
 
-    this.#sessionDraft.buyerItems.push(sessionItem);
+    session.buyerItems.push(sessionItem);
+    await this.#saveSession(session);
+    return sessionItem;
+  }
+
+  async #addSessionSellerItem({
+    type,
+    sourceUuid,
+    sourceActorUuid,
+    sourceId,
+    name,
+    img,
+    quantity,
+    availableQuantity = null,
+    hasLimitedQuantity = false,
+    unitPriceValue,
+    priceCurrency,
+    sourceLabel,
+    isFromActor = false,
+  }) {
+    const session = await this.#getOrCreateActiveSession();
+    if (!session) return null;
+
+    const normalizedQuantity = Number(quantity);
+    const normalizedUnitPrice = Number(unitPriceValue);
+    const normalizedCurrency = String(priceCurrency ?? "").trim();
+    const normalizedSourceUuid = String(sourceUuid ?? "").trim();
+    const normalizedAvailableQuantity = Number(availableQuantity);
+    const isLimitedQuantity =
+      Boolean(hasLimitedQuantity) &&
+      Number.isFinite(normalizedAvailableQuantity) &&
+      normalizedAvailableQuantity >= 0;
+
+    if (
+      !Number.isFinite(normalizedQuantity) ||
+      normalizedQuantity <= 0 ||
+      !Number.isFinite(normalizedUnitPrice) ||
+      normalizedUnitPrice < 0
+    ) {
+      return null;
+    }
+
+    const existingItem = session.sellerItems.find(
+      (item) =>
+        (normalizedSourceUuid ? item.sourceUuid === normalizedSourceUuid : item.sourceId === sourceId) &&
+        item.unitPriceValue === normalizedUnitPrice &&
+        item.priceCurrency === normalizedCurrency,
+    );
+
+    if (existingItem) {
+      existingItem.availableQuantity = isLimitedQuantity ? normalizedAvailableQuantity : null;
+      existingItem.hasLimitedQuantity = isLimitedQuantity;
+      if (!this.#canUseSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null;
+
+      existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2));
+      this.#recalculateSessionItemTotal(existingItem);
+      await this.#saveSession(session);
+      return existingItem;
+    }
+
+    const sessionItem = {
+      id: foundry.utils.randomID(),
+      type,
+      sourceUuid: normalizedSourceUuid,
+      sourceActorUuid: sourceActorUuid ?? "",
+      sourceId,
+      name,
+      img: img ?? "",
+      quantity: normalizedQuantity,
+      availableQuantity: isLimitedQuantity ? normalizedAvailableQuantity : null,
+      hasLimitedQuantity: isLimitedQuantity,
+      unitPriceValue: normalizedUnitPrice,
+      priceCurrency: normalizedCurrency,
+      totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
+      sourceLabel,
+      proposedUnitPriceValue: null,
+      isFromActor: Boolean(isFromActor),
+    };
+
+    session.sellerItems.push(sessionItem);
+    await this.#saveSession(session);
     return sessionItem;
   }
 
   #getSessionBuyerQuantity({ type, sourceId, unitPriceValue, priceCurrency }) {
+    const session = this.#getSessions().find((entry) => entry.status === "active");
+    if (!session) return 0;
+
     const normalizedCurrency = String(priceCurrency ?? "").trim();
 
-    return this.#sessionDraft.buyerItems.reduce((total, item) => {
+    return session.buyerItems.reduce((total, item) => {
       if (item.type !== type) return total;
       if (item.sourceId !== sourceId) return total;
       if (item.unitPriceValue !== unitPriceValue) return total;
@@ -1144,6 +2275,279 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       return total + item.quantity;
     }, 0);
+  }
+
+  #getSessionSellerQuantity({ sourceUuid, sourceId, unitPriceValue, priceCurrency }) {
+    const session = this.#getSessions().find((entry) => entry.status === "active");
+    if (!session) return 0;
+
+    const normalizedCurrency = String(priceCurrency ?? "").trim();
+    const normalizedSourceUuid = String(sourceUuid ?? "").trim();
+    const normalizedSourceId = String(sourceId ?? "").trim();
+
+    return session.sellerItems.reduce((total, item) => {
+      if (normalizedSourceUuid && item.sourceUuid !== normalizedSourceUuid) return total;
+      if (!normalizedSourceUuid && item.sourceId !== normalizedSourceId) return total;
+      if (item.unitPriceValue !== unitPriceValue) return total;
+      if (item.priceCurrency !== normalizedCurrency) return total;
+
+      return total + item.quantity;
+    }, 0);
+  }
+
+  #syncSessionItemAvailability(item) {
+    if (!item) return;
+
+    if (item.type === "product") {
+      const source = this.actor.items.get(item.sourceId);
+      const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const availableQuantity = Number(product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity);
+      const hasLimitedQuantity = Number.isFinite(availableQuantity) && availableQuantity >= 0;
+
+      item.availableQuantity = hasLimitedQuantity ? availableQuantity : null;
+      item.hasLimitedQuantity = hasLimitedQuantity;
+      return;
+    }
+
+    if (item.type === "service") {
+      const service = this.actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
+      const quantity = service?.quantity;
+      const availableQuantity = Number(quantity);
+      const hasLimitedQuantity =
+        quantity !== null &&
+        quantity !== undefined &&
+        quantity !== "" &&
+        Number.isFinite(availableQuantity) &&
+        availableQuantity >= 0;
+
+      item.availableQuantity = hasLimitedQuantity ? availableQuantity : null;
+      item.hasLimitedQuantity = hasLimitedQuantity;
+    }
+  }
+
+  #canUseSessionQuantity(item, quantity) {
+    this.#syncSessionItemAvailability(item);
+
+    const requestedQuantity = Number(quantity);
+    if (!Number.isFinite(requestedQuantity) || requestedQuantity < 0) return false;
+    if (!item.hasLimitedQuantity) return true;
+
+    const availableQuantity = Number(item.availableQuantity);
+    if (!Number.isFinite(availableQuantity) || availableQuantity < 0) return true;
+
+    return requestedQuantity <= availableQuantity;
+  }
+
+  #setSessionItemQuantity(item, quantity) {
+    item.quantity = Number(Number(quantity).toFixed(2));
+    this.#recalculateSessionItemTotal(item);
+  }
+
+  #recalculateSessionItemTotal(item) {
+    const quantity = Number(item.quantity);
+    const unitPriceValue = Number(item.unitPriceValue);
+
+    item.totalPriceValue =
+      Number.isFinite(quantity) && Number.isFinite(unitPriceValue) ? Number((quantity * unitPriceValue).toFixed(2)) : 0;
+  }
+
+  #getSessionItemsForSide(session, side) {
+    return side === "seller" ? session.sellerItems : session.buyerItems;
+  }
+
+  #removeSessionItemById(session, itemId, side = "") {
+    const initialBuyerCount = session.buyerItems.length;
+    const initialSellerCount = session.sellerItems.length;
+
+    if (side === "buyer") {
+      session.buyerItems = session.buyerItems.filter((item) => item.id !== itemId);
+    } else if (side === "seller") {
+      session.sellerItems = session.sellerItems.filter((item) => item.id !== itemId);
+    } else {
+      session.buyerItems = session.buyerItems.filter((item) => item.id !== itemId);
+      session.sellerItems = session.sellerItems.filter((item) => item.id !== itemId);
+    }
+
+    return (
+      initialBuyerCount !== session.buyerItems.length ||
+      initialSellerCount !== session.sellerItems.length
+    );
+  }
+
+  #getSessions() {
+    return foundry.utils.deepClone(this.actor.system.sessions?.entries ?? []);
+  }
+
+  #getActiveSession() {
+    const sessions = this.#getSessions();
+    if (this.#activeSessionId) {
+      const selectedSession = sessions.find((session) => session.id === this.#activeSessionId);
+      if (selectedSession) return this.#normalizeSession(selectedSession);
+    }
+
+    const activeSession = sessions.find((session) => session.status === "active");
+    if (activeSession) {
+      this.#activeSessionId = activeSession.id;
+      return this.#normalizeSession(activeSession);
+    }
+
+    const firstSession = sessions[0];
+    if (firstSession) {
+      this.#activeSessionId = firstSession.id;
+      return this.#normalizeSession(firstSession);
+    }
+
+    return null;
+  }
+
+  async #getOrCreateActiveSession() {
+    const activeSession = this.#getSessions().find((session) => session.status === "active");
+    if (activeSession) {
+      this.#activeSessionId = activeSession.id;
+      return activeSession;
+    }
+
+    return this.#createSession();
+  }
+
+  #getSingleAuthorizedClientForNewSession() {
+    const authorizedClients = this.#getAuthorizedClients();
+
+    if (authorizedClients.length === 0) {
+      ui.notifications.warn(game.i18n.localize("mtt.access.noAuthorizedClient"));
+      return null;
+    }
+
+    if (authorizedClients.length > 1) {
+      ui.notifications.warn(game.i18n.localize("mtt.access.multipleAuthorizedClients"));
+      return null;
+    }
+
+    return authorizedClients[0];
+  }
+
+  #normalizeSession(session) {
+    return {
+      id: session.id || foundry.utils.randomID(),
+      status: ["active", "pending", "validated", "refused"].includes(session.status) ? session.status : "active",
+      label: session.label || game.i18n.localize("mtt.sessions.newLabel"),
+      actorUuid: session.actorUuid ?? "",
+      actorName: session.actorName ?? "",
+      userId: session.userId ?? "",
+      userName: session.userName ?? "",
+      buyerItems: Array.isArray(session.buyerItems) ? session.buyerItems.map((item) => this.#normalizeSessionItem(item)) : [],
+      sellerItems: Array.isArray(session.sellerItems) ? session.sellerItems.map((item) => this.#normalizeSessionItem(item)) : [],
+      createdAt: session.createdAt || new Date().toISOString(),
+      updatedAt: session.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  #normalizeSessionItem(item) {
+    const quantity = Number(item.quantity);
+    const unitPriceValue = Number(item.unitPriceValue);
+    const availableQuantity = Number(item.availableQuantity);
+    const hasLimitedQuantity =
+      Boolean(item.hasLimitedQuantity) && Number.isFinite(availableQuantity) && availableQuantity >= 0;
+    const normalizedQuantity = Number.isFinite(quantity) && quantity >= 0 ? quantity : 1;
+    const normalizedUnitPrice = Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0;
+
+    return {
+      id: item.id || foundry.utils.randomID(),
+      type: ["product", "service", "item"].includes(item.type) ? item.type : "product",
+      sourceUuid: item.sourceUuid ?? "",
+      sourceActorUuid: item.sourceActorUuid ?? "",
+      sourceId: item.sourceId ?? "",
+      name: item.name ?? "",
+      img: item.img ?? "",
+      quantity: normalizedQuantity,
+      availableQuantity: hasLimitedQuantity ? availableQuantity : null,
+      hasLimitedQuantity,
+      unitPriceValue: normalizedUnitPrice,
+      priceCurrency: String(item.priceCurrency ?? "").trim(),
+      totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
+      sourceLabel: item.sourceLabel ?? "",
+      proposedUnitPriceValue: Number.isFinite(Number(item.proposedUnitPriceValue))
+        ? Number(item.proposedUnitPriceValue)
+        : null,
+      isFromActor: Boolean(item.isFromActor),
+    };
+  }
+
+  #buildSessionData(client = null) {
+    const now = new Date().toISOString();
+
+    return {
+      id: foundry.utils.randomID(),
+      status: "active",
+      label: game.i18n.localize("mtt.sessions.newLabel"),
+      actorUuid: client?.actorUuid ?? "",
+      actorName: client?.actorName ?? "",
+      userId: client?.userId ?? "",
+      userName: client?.userName ?? "",
+      buyerItems: [],
+      sellerItems: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  async #createSession() {
+    const existingActiveSession = this.#getSessions().find((session) => session.status === "active");
+    if (existingActiveSession) {
+      this.#activeSessionId = existingActiveSession.id;
+      ui.notifications.info(game.i18n.localize("mtt.sessions.alreadyActive"));
+      return this.#normalizeSession(existingActiveSession);
+    }
+
+    const sessions = this.#getSessions().map((session) => this.#normalizeSession(session));
+    const client = this.#getSingleAuthorizedClientForNewSession();
+    if (!client) return null;
+
+    const session = this.#buildSessionData(client);
+    sessions.push(session);
+    this.#activeSessionId = session.id;
+
+    await this.actor.update({
+      "system.sessions.entries": sessions,
+    });
+
+    ui.notifications.info(game.i18n.localize("mtt.notifications.sessionCreated"));
+    this.#sessionCheckResult = null;
+    return session;
+  }
+
+  async #saveSession(session) {
+    this.#sessionCheckResult = null;
+
+    const normalizedSession = this.#normalizeSession(session);
+    normalizedSession.updatedAt = new Date().toISOString();
+    normalizedSession.buyerItems.forEach((item) => this.#recalculateSessionItemTotal(item));
+    normalizedSession.sellerItems.forEach((item) => this.#recalculateSessionItemTotal(item));
+
+    const sessions = this.#getSessions().map((entry) => this.#normalizeSession(entry));
+    const index = sessions.findIndex((entry) => entry.id === normalizedSession.id);
+
+    if (index === -1) {
+      sessions.push(normalizedSession);
+    } else {
+      sessions[index] = normalizedSession;
+    }
+
+    this.#activeSessionId = normalizedSession.id;
+
+    await this.actor.update({
+      "system.sessions.entries": sessions,
+    });
+  }
+
+  async #deleteSession(sessionId) {
+    const sessions = this.#getSessions().filter((session) => session.id !== sessionId);
+    if (this.#activeSessionId === sessionId) this.#activeSessionId = null;
+    this.#sessionCheckResult = null;
+
+    await this.actor.update({
+      "system.sessions.entries": sessions,
+    });
   }
 
   #getConfiguredItemValue(item, settingKey) {
@@ -1269,18 +2673,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const displayName = product.displayName || item.name;
     const basePriceValue =
-      Number.isFinite(Number(product.priceValue)) &&
-      Number(product.priceValue) >= 0
+      Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
         ? Number(product.priceValue)
         : MTT.PRODUCT_DEFAULTS.priceValue;
     const displayPriceValue = this.#adjustPriceValue(basePriceValue);
-    const priceCurrency =
-      product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
+    const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
     const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
-    const availableQuantity =
-      Number.isFinite(Number(quantity)) && Number(quantity) >= 0
-        ? Number(quantity)
-        : null;
+    const availableQuantity = Number.isFinite(Number(quantity)) && Number(quantity) >= 0 ? Number(quantity) : null;
 
     const dialogData = await this.#openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.productTitle"),
@@ -1300,70 +2699,110 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         priceCurrency,
       });
 
-    if (
-      Number.isFinite(availableQuantity) &&
-      availableQuantity >= 0 &&
-      requestedTotal > availableQuantity
-    ) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.notEnoughQuantity"),
-      );
+    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && requestedTotal > availableQuantity) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughQuantity"));
       return;
     }
 
-    this.#addSessionBuyerItem({
+    const sessionItem = await this.#addSessionBuyerItem({
       type: "product",
       sourceId: item.id,
       name: displayName,
       img: item.img,
       quantity: dialogData.quantity,
+      availableQuantity,
+      hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,
       unitPriceValue: displayPriceValue,
       priceCurrency,
       sourceLabel: game.i18n.localize("mtt.sessions.item.product"),
+      proposedUnitPriceValue: dialogData.proposedPrice ?? "",
     });
+    if (!sessionItem) return;
 
-    ui.notifications.info(
-      game.i18n.localize("mtt.notifications.productAddedToSession"),
-    );
+    ui.notifications.info(game.i18n.localize("mtt.notifications.productAddedToSession"));
     this.render();
   }
 
   static async #onRemoveSessionItem(event, target) {
     event.preventDefault();
 
-    const itemId = target.closest("[data-session-item-id]")?.dataset
-      .sessionItemId;
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId;
     if (!itemId) return;
+    const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer";
 
-    const initialBuyerCount = this.#sessionDraft.buyerItems.length;
-    const initialSellerCount = this.#sessionDraft.sellerItems.length;
+    if (!this.#removeSessionItemById(session, itemId, side)) return;
 
-    this.#sessionDraft.buyerItems = this.#sessionDraft.buyerItems.filter(
-      (item) => item.id !== itemId,
+    await this.#saveSession(session);
+    ui.notifications.info(
+      game.i18n.localize(side === "seller" ? "mtt.notifications.sellerItemRemoved" : "mtt.notifications.sessionItemRemoved"),
     );
-    this.#sessionDraft.sellerItems = this.#sessionDraft.sellerItems.filter(
-      (item) => item.id !== itemId,
-    );
+    this.render();
+  }
 
-    if (
-      initialBuyerCount === this.#sessionDraft.buyerItems.length &&
-      initialSellerCount === this.#sessionDraft.sellerItems.length
-    ) {
+  static async #onIncreaseSessionItemQuantity(event, target) {
+    event.preventDefault();
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId;
+    if (!itemId) return;
+    const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer";
+
+    const item = this.#getSessionItemsForSide(session, side).find((it) => it.id === itemId);
+    if (!item) return;
+
+    if (!this.#canUseSessionQuantity(item, item.quantity + 1)) {
+      ui.notifications.warn(
+        game.i18n.localize(
+          side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity",
+        ),
+      );
       return;
     }
 
-    ui.notifications.info(
-      game.i18n.localize("mtt.notifications.sessionItemRemoved"),
-    );
+    this.#setSessionItemQuantity(item, item.quantity + 1);
+    await this.#saveSession(session);
+    this.render();
+  }
+
+  static async #onDecreaseSessionItemQuantity(event, target) {
+    event.preventDefault();
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId;
+    if (!itemId) return;
+    const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer";
+
+    const item = this.#getSessionItemsForSide(session, side).find((it) => it.id === itemId);
+    if (!item) return;
+
+    const nextQuantity = Number(item.quantity) - 1;
+    if (!Number.isFinite(nextQuantity) || nextQuantity <= 0) {
+      this.#removeSessionItemById(session, itemId, side);
+      await this.#saveSession(session);
+      ui.notifications.info(
+        game.i18n.localize(side === "seller" ? "mtt.notifications.sellerItemRemoved" : "mtt.notifications.sessionItemRemoved"),
+      );
+      this.render();
+      return;
+    }
+
+    this.#setSessionItemQuantity(item, nextQuantity);
+    await this.#saveSession(session);
     this.render();
   }
 
   static async #onClearSessionDraft(event) {
     event.preventDefault();
 
-    const hasItems =
-      this.#sessionDraft.buyerItems.length > 0 ||
-      this.#sessionDraft.sellerItems.length > 0;
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const hasItems = session.buyerItems.length > 0 || session.sellerItems.length > 0;
     if (!hasItems) return;
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
@@ -1381,13 +2820,136 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return;
 
-    this.#sessionDraft.status = "active";
-    this.#sessionDraft.buyerItems = [];
-    this.#sessionDraft.sellerItems = [];
+    session.buyerItems = [];
+    session.sellerItems = [];
+    await this.#saveSession(session);
+
+    ui.notifications.info(game.i18n.localize("mtt.notifications.sessionCleared"));
+    this.render();
+  }
+
+  static async #onCreateSession(event) {
+    event.preventDefault();
+
+    const session = await this.#createSession();
+    if (!session) return;
+
+    this.render();
+  }
+
+  static async #onToggleClientAccess(event, target) {
+    event.preventDefault();
+
+    if (!this.isEditable) return;
+
+    const actorUuid = target.dataset.clientActorUuid;
+    const client = this.#getAccessClientCandidate(actorUuid);
+    if (!client) return;
+
+    if (!client.isAuthorized) {
+      await this.#setClientAuthorization(client, true);
+      ui.notifications.info(game.i18n.localize("mtt.notifications.clientAuthorized"));
+      this.render();
+      return;
+    }
+
+    const openSessions = this.#getOpenSessionsForClient(client.actorUuid);
+    let removeOpenSessions = false;
+
+    if (openSessions.length > 0) {
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: {
+          title: game.i18n.localize("mtt.access.removeAuthorizationTitle"),
+        },
+        content: `<p>${game.i18n.localize("mtt.access.removeAuthorizationContent")}</p>`,
+        yes: {
+          label: game.i18n.localize("mtt.access.confirmRemoveAuthorization"),
+        },
+        no: {
+          label: game.i18n.localize("mtt.access.cancelRemoveAuthorization"),
+        },
+      });
+
+      if (!confirmed) return;
+      removeOpenSessions = true;
+    }
+
+    await this.#setClientAuthorization(client, false, { removeOpenSessions });
+    ui.notifications.info(
+      game.i18n.localize(
+        removeOpenSessions ? "mtt.notifications.clientAccessSessionRemoved" : "mtt.notifications.clientUnauthorized",
+      ),
+    );
+    this.render();
+  }
+
+  static async #onSetSessionStatus(event, target) {
+    event.preventDefault();
+
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const status = target.dataset.sessionStatus;
+    if (!["active", "pending", "validated", "refused"].includes(status)) return;
+
+    session.status = status;
+    await this.#saveSession(session);
+
+    const notificationKey =
+      status === "pending"
+        ? "mtt.notifications.sessionPending"
+        : status === "validated"
+          ? "mtt.notifications.sessionValidatedNoTransfer"
+          : status === "refused"
+            ? "mtt.notifications.sessionRefused"
+            : "mtt.notifications.sessionStatusUpdated";
+
+    ui.notifications.info(game.i18n.localize(notificationKey));
+    this.render();
+  }
+
+  static async #onCheckSessionTransaction(event) {
+    event.preventDefault();
+
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    this.#sessionCheckResult = await this.#checkSessionTransaction(session);
 
     ui.notifications.info(
-      game.i18n.localize("mtt.notifications.sessionCleared"),
+      game.i18n.localize(
+        this.#sessionCheckResult.canProceed
+          ? "mtt.notifications.sessionCheckSuccess"
+          : "mtt.notifications.sessionCheckFailed",
+      ),
     );
+    this.render();
+  }
+
+  static async #onDeleteSession(event) {
+    event.preventDefault();
+
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: game.i18n.localize("mtt.sessions.deleteTitle"),
+      },
+      content: `<p>${game.i18n.localize("mtt.sessions.deleteContent")}</p>`,
+      yes: {
+        label: game.i18n.localize("mtt.sessions.delete"),
+      },
+      no: {
+        label: game.i18n.localize("mtt.actions.cancel"),
+      },
+    });
+
+    if (!confirmed) return;
+
+    await this.#deleteSession(session.id);
+
+    ui.notifications.info(game.i18n.localize("mtt.notifications.sessionDeleted"));
     this.render();
   }
 
@@ -1450,23 +3012,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRollNegotiation(event) {
     event.preventDefault();
 
-    const formula = String(
-      this.actor.system.trade?.negotiationFormula ?? "",
-    ).trim();
+    const formula = String(this.actor.system.trade?.negotiationFormula ?? "").trim();
 
     if (!formula) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.emptyNegotiationFormula"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.emptyNegotiationFormula"));
       return;
     }
 
     const rollFormula = formula.replace(/^\/roll\s+/i, "").trim();
 
     if (!rollFormula || rollFormula.startsWith("/")) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.invalidNegotiationFormula"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidNegotiationFormula"));
       return;
     }
 
@@ -1477,9 +3033,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         flavor: game.i18n.localize("mtt.configuration.negotiationFormula"),
       });
     } catch {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.invalidNegotiationFormula"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidNegotiationFormula"));
     }
   }
 
@@ -1522,12 +3076,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const quantity = Number(target.value);
 
       if (!Number.isFinite(quantity) || quantity < 0) {
-        ui.notifications.warn(
-          game.i18n.localize("mtt.notifications.invalidQuantity"),
-        );
-        target.value =
-          item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity ??
-          MTT.PRODUCT_DEFAULTS.quantity;
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
+        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
         return;
       }
 
@@ -1542,12 +3092,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const rawValue = Number(target.value);
 
       if (!Number.isFinite(rawValue) || rawValue < 0) {
-        ui.notifications.warn(
-          game.i18n.localize("mtt.notifications.invalidPrice"),
-        );
-        target.value =
-          item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.priceValue ??
-          MTT.PRODUCT_DEFAULTS.priceValue;
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
+        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.priceValue ?? MTT.PRODUCT_DEFAULTS.priceValue;
         return;
       }
 
@@ -1599,9 +3145,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const value = Number(target.value);
 
       if (!Number.isFinite(value) || value < 0) {
-        ui.notifications.warn(
-          game.i18n.localize("mtt.notifications.invalidTradePercent"),
-        );
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidTradePercent"));
         target.value = foundry.utils.getProperty(this.actor.system, field) ?? 0;
         return;
       }
@@ -1628,16 +3172,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const amount = Number(target.value);
 
     if (!Number.isFinite(amount) || amount < 0) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.invalidWalletAmount"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidWalletAmount"));
       target.value = this.actor.system.wallet?.currencies?.[currencyId] ?? 0;
       return;
     }
 
-    const currencies = foundry.utils.deepClone(
-      this.actor.system.wallet?.currencies ?? {},
-    );
+    const currencies = foundry.utils.deepClone(this.actor.system.wallet?.currencies ?? {});
     currencies[currencyId] = amount;
 
     await this.actor.update({
@@ -1649,9 +3189,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return false;
 
     if (this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return false;
     }
 
@@ -1662,13 +3200,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const entries = this.actor.system.services?.entries ?? [];
     return entries.map((service) => {
       const basePriceValue =
-        Number.isFinite(Number(service.priceValue)) &&
-        Number(service.priceValue) >= 0
+        Number.isFinite(Number(service.priceValue)) && Number(service.priceValue) >= 0
           ? Number(service.priceValue)
           : MTT.SERVICE_DEFAULTS.priceValue;
       const displayPriceValue = this.#adjustPriceValue(basePriceValue);
-      const priceCurrency =
-        service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency;
+      const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency;
 
       return {
         id: service.id,
@@ -1680,28 +3216,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         priceCurrency,
         hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
         priceLabel: this.#formatPriceLabel(displayPriceValue, priceCurrency),
-        displayPriceLabel: this.#formatPriceLabel(
-          displayPriceValue,
-          priceCurrency,
-        ),
+        displayPriceLabel: this.#formatPriceLabel(displayPriceValue, priceCurrency),
         basePriceLabel: this.#formatPriceLabel(basePriceValue, priceCurrency),
         quantity: service.quantity,
-        hasQuantity:
-          service.quantity !== null && service.quantity !== undefined,
+        hasQuantity: service.quantity !== null && service.quantity !== undefined,
         isHidden: service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden,
-        requiresApproval:
-          service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
+        requiresApproval: service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
         isExpanded: service.isExpanded ?? MTT.SERVICE_DEFAULTS.isExpanded,
         sourceUuid: service.sourceUuid ?? null,
         sourceName: service.sourceName ?? "",
         sourceType: service.sourceType ?? "",
         sourceImg: service.sourceImg ?? "",
-        hasSource: Boolean(
-          service.sourceUuid ||
-            service.sourceName ||
-            service.sourceType ||
-            service.sourceImg,
-        ),
+        hasSource: Boolean(service.sourceUuid || service.sourceName || service.sourceType || service.sourceImg),
       };
     });
   }
@@ -1710,15 +3236,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     if (!this.isEditable || this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
-    );
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
 
     const newId = foundry.utils.randomID();
     const newService = {
@@ -1741,18 +3263,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!service || service.isHidden) return;
 
     const basePriceValue =
-      Number.isFinite(Number(service.priceValue)) &&
-      Number(service.priceValue) >= 0
+      Number.isFinite(Number(service.priceValue)) && Number(service.priceValue) >= 0
         ? Number(service.priceValue)
         : MTT.SERVICE_DEFAULTS.priceValue;
     const displayPriceValue = this.#adjustPriceValue(basePriceValue);
-    const priceCurrency =
-      service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency;
+    const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency;
     const quantity = service.quantity;
-    const availableQuantity =
-      Number.isFinite(Number(quantity)) && Number(quantity) >= 0
-        ? Number(quantity)
-        : null;
+    const availableQuantity = Number.isFinite(Number(quantity)) && Number(quantity) >= 0 ? Number(quantity) : null;
 
     const dialogData = await this.#openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.serviceTitle"),
@@ -1771,31 +3288,26 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         priceCurrency,
       });
 
-    if (
-      Number.isFinite(availableQuantity) &&
-      availableQuantity >= 0 &&
-      requestedTotal > availableQuantity
-    ) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.notEnoughQuantity"),
-      );
+    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && requestedTotal > availableQuantity) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughQuantity"));
       return;
     }
 
-    this.#addSessionBuyerItem({
+    const sessionItem = await this.#addSessionBuyerItem({
       type: "service",
       sourceId: service.id,
       name: service.name,
       img: service.sourceImg,
       quantity: dialogData.quantity,
+      availableQuantity,
+      hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,
       unitPriceValue: displayPriceValue,
       priceCurrency,
       sourceLabel: game.i18n.localize("mtt.sessions.item.service"),
     });
+    if (!sessionItem) return;
 
-    ui.notifications.info(
-      game.i18n.localize("mtt.notifications.serviceAddedToSession"),
-    );
+    ui.notifications.info(game.i18n.localize("mtt.notifications.serviceAddedToSession"));
     this.render();
   }
 
@@ -1803,9 +3315,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     if (!this.isEditable || this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
@@ -1827,9 +3337,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return;
 
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
-    );
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
 
     if (index !== -1) {
@@ -1848,9 +3356,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
-    );
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
     if (index === -1) return;
 
@@ -1867,18 +3373,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     if (!this.isEditable || this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
-    );
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
     if (index === -1) return;
 
@@ -1895,18 +3397,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     if (!this.isEditable || this.actor.system.sheet.isLocked) {
-      ui.notifications.warn(
-        game.i18n.localize("mtt.notifications.sheetLocked"),
-      );
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
       return;
     }
 
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
-    );
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
     if (index === -1) return;
 
@@ -1927,9 +3425,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(
-      this.actor.system.services?.entries ?? [],
-    );
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
     const serviceIndex = entries.findIndex((s) => s.id === serviceId);
 
     if (serviceIndex === -1) return;
@@ -1954,11 +3450,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const priceValue = Number(target.value);
 
       if (!Number.isFinite(priceValue) || priceValue < 0) {
-        ui.notifications.warn(
-          game.i18n.localize("mtt.notifications.invalidServicePrice"),
-        );
-        target.value =
-          entries[serviceIndex].priceValue ?? MTT.SERVICE_DEFAULTS.priceValue;
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidServicePrice"));
+        target.value = entries[serviceIndex].priceValue ?? MTT.SERVICE_DEFAULTS.priceValue;
         return;
       }
 
@@ -1978,9 +3471,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const quantityNum = Number(quantity);
 
         if (!Number.isFinite(quantityNum) || quantityNum < 0) {
-          ui.notifications.warn(
-            game.i18n.localize("mtt.notifications.invalidServiceQuantity"),
-          );
+          ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidServiceQuantity"));
           target.value = entries[serviceIndex].quantity ?? "";
           return;
         }

@@ -3,44 +3,177 @@
     <header class="mtt-merchant-session-header">
       <div class="mtt-merchant-session-title-block">
         <h2 class="mtt-merchant-session-title">{{localize "mtt.sessions.title"}}</h2>
-        <div class="mtt-merchant-session-status">
-          <span class="mtt-merchant-session-status-label">{{localize "mtt.sessions.status.label"}}</span>
-          <span class="mtt-merchant-session-status-value">{{mtt.session.statusLabel}}</span>
-        </div>
+        {{#if mtt.session.hasSession}}
+          <div class="mtt-merchant-session-status mtt-merchant-session-status-{{mtt.session.status}}">
+            <span class="mtt-merchant-session-status-label">{{localize "mtt.sessions.status.label"}}</span>
+            <span class="mtt-merchant-session-status-value">{{mtt.session.statusLabel}}</span>
+          </div>
+        {{/if}}
       </div>
       <button
         class="mtt-merchant-session-action"
         type="button"
-        data-action="clearSessionDraft"
-        data-tooltip="{{localize 'mtt.sessions.clear'}}"
+        data-action="createSession"
+        data-tooltip="{{localize 'mtt.sessions.create'}}"
       >
-        <i class="fas fa-rotate-left"></i>
+        <i class="fas fa-plus"></i>
       </button>
+      {{#if mtt.session.hasSession}}
+        <button
+          class="mtt-merchant-session-action"
+          type="button"
+          data-action="clearSessionDraft"
+          data-tooltip="{{localize 'mtt.sessions.clear'}}"
+        >
+          <i class="fas fa-rotate-left"></i>
+        </button>
+        <button
+          class="mtt-merchant-session-action mtt-merchant-session-action-delete"
+          type="button"
+          data-action="deleteSession"
+          data-tooltip="{{localize 'mtt.sessions.delete'}}"
+        >
+          <i class="fas fa-trash"></i>
+        </button>
+      {{/if}}
     </header>
 
-    <section class="mtt-merchant-session-section">
+    {{#if mtt.session.hasSession}}
+      <section class="mtt-merchant-session-client {{#if mtt.session.client.isUnauthorized}}mtt-merchant-session-client-warning{{/if}}">
+        <h3 class="mtt-merchant-session-section-title">{{localize "mtt.access.client"}}</h3>
+        {{#if mtt.session.client.hasClient}}
+          <div class="mtt-merchant-session-client-main">
+            {{#if mtt.session.client.actorImg}}
+              <img class="mtt-merchant-session-client-image" src="{{mtt.session.client.actorImg}}" alt="{{mtt.session.client.actorName}}" />
+            {{/if}}
+            <div class="mtt-merchant-session-client-text">
+              <strong>{{mtt.session.client.actorName}}</strong>
+              {{#if mtt.session.client.userName}}
+                <span>{{mtt.session.client.userName}}</span>
+              {{/if}}
+              {{#if mtt.session.client.isUnauthorized}}
+                <span class="mtt-merchant-session-client-warning-text">{{localize "mtt.access.clientNotAuthorizedWarning"}}</span>
+              {{/if}}
+            </div>
+          </div>
+        {{else}}
+          <p class="mtt-merchant-session-client-empty">{{localize "mtt.access.noClient"}}</p>
+        {{/if}}
+      </section>
+
+      <section class="mtt-merchant-session-label">
+        {{#if mtt.canEditMerchant}}
+          <label class="mtt-merchant-session-label-field">
+            <span>{{localize "mtt.sessions.label"}}</span>
+            <input
+              type="text"
+              value="{{mtt.session.label}}"
+              data-mtt-session-field="label"
+              placeholder="{{localize 'mtt.sessions.newLabel'}}"
+            />
+          </label>
+        {{else}}
+          <span class="mtt-merchant-session-label-readonly">{{mtt.session.label}}</span>
+        {{/if}}
+      </section>
+
+      <nav class="mtt-merchant-session-status-actions">
+        <button
+          class="mtt-merchant-session-status-button {{#if mtt.session.isActive}}mtt-merchant-session-status-button-active{{/if}}"
+          type="button"
+          data-action="setSessionStatus"
+          data-session-status="active"
+          data-tooltip="{{localize 'mtt.sessions.setStatusActive'}}"
+        >
+          <i class="fas fa-play"></i>
+        </button>
+        <button
+          class="mtt-merchant-session-status-button {{#if mtt.session.isPending}}mtt-merchant-session-status-button-active{{/if}}"
+          type="button"
+          data-action="setSessionStatus"
+          data-session-status="pending"
+          data-tooltip="{{localize 'mtt.sessions.setStatusPending'}}"
+        >
+          <i class="fas fa-hourglass-half"></i>
+        </button>
+        <button
+          class="mtt-merchant-session-status-button {{#if mtt.session.isValidated}}mtt-merchant-session-status-button-active{{/if}}"
+          type="button"
+          data-action="setSessionStatus"
+          data-session-status="validated"
+          data-tooltip="{{localize 'mtt.sessions.setStatusValidated'}}"
+        >
+          <i class="fas fa-check"></i>
+        </button>
+        <button
+          class="mtt-merchant-session-status-button {{#if mtt.session.isRefused}}mtt-merchant-session-status-button-active{{/if}}"
+          type="button"
+          data-action="setSessionStatus"
+          data-session-status="refused"
+          data-tooltip="{{localize 'mtt.sessions.setStatusRefused'}}"
+        >
+          <i class="fas fa-xmark"></i>
+        </button>
+      </nav>
+
+      <p class="mtt-merchant-session-status-notice mtt-merchant-session-status-notice-{{mtt.session.status}}">
+        {{mtt.session.statusNotice}}
+      </p>
+
+      <section class="mtt-merchant-session-section mtt-merchant-session-side-buyer">
       <header class="mtt-merchant-session-section-header">
         <i class="fas fa-hand-holding"></i>
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.buyerSide.title"}}</h3>
       </header>
 
       <ol class="mtt-merchant-session-list">
-        {{#if mtt.session.hasBuyerItems}}
+        {{#if mtt.session.hasBuyerLines}}
+          {{#if mtt.session.hasBuyerItems}}
           {{#each mtt.session.buyerItems as |item|}}
-            <li class="mtt-merchant-session-item" data-session-item-id="{{item.id}}">
+            <li class="mtt-merchant-session-item" data-session-side="buyer" data-session-item-id="{{item.id}}">
               {{#if item.img}}
-                <img
-                  class="mtt-merchant-session-item-image"
-                  src="{{item.img}}"
-                  alt="{{item.name}}"
-                />
+                <img class="mtt-merchant-session-item-image" src="{{item.img}}" alt="{{item.name}}" />
               {{/if}}
 
               <div class="mtt-merchant-session-item-main">
                 <strong>{{item.name}}</strong>
                 <div class="mtt-merchant-session-item-meta">
-                  <span>{{item.sourceLabel}}</span>
-                  <span>{{localize "mtt.sessions.item.quantity"}} {{item.quantity}}</span>
+                  <span class="mtt-session-item-tag">{{item.sourceLabel}}</span>
+                  {{#if item.hasLimitedQuantity}}
+                    <span class="mtt-merchant-session-available">
+                      {{localize "mtt.sessions.item.available"}} {{item.availableQuantityLabel}}
+                    </span>
+                  {{/if}}
+                  <span>
+                    <span class="mtt-merchant-session-item-controls">
+                      <button
+                        class="mtt-merchant-session-action"
+                        type="button"
+                        data-action="decreaseSessionItemQuantity"
+                        data-tooltip="{{localize 'mtt.sessions.decreaseQuantity'}}"
+                        {{#unless mtt.session.canEdit}}disabled{{/unless}}
+                      ><i class="fas fa-minus"></i></button>
+                      <input
+                        class="mtt-merchant-session-quantity"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="{{item.quantity}}"
+                        data-mtt-session-field="quantity"
+                        data-session-side="buyer"
+                        data-session-item-id="{{item.id}}"
+                        data-tooltip="{{localize 'mtt.sessions.editQuantity'}}"
+                        {{#unless mtt.session.canEdit}}disabled{{/unless}}
+                      />
+                      <button
+                        class="mtt-merchant-session-action"
+                        type="button"
+                        data-action="increaseSessionItemQuantity"
+                        data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
+                        {{#unless mtt.session.canEdit}}disabled{{/unless}}
+                      ><i class="fas fa-plus"></i></button>
+                    </span>
+                  </span>
                 </div>
                 <div class="mtt-merchant-session-item-meta">
                   <span>{{localize "mtt.sessions.item.unitPrice"}} {{item.unitPriceLabel}}</span>
@@ -53,9 +186,22 @@
                 type="button"
                 data-action="removeSessionItem"
                 data-tooltip="{{localize 'mtt.sessions.removeItem'}}"
+                {{#unless mtt.session.canEdit}}disabled{{/unless}}
               >
                 <i class="fas fa-xmark"></i>
               </button>
+            </li>
+          {{/each}}
+          {{/if}}
+          {{#each mtt.session.buyerMoneyAdjustments as |adjustment|}}
+            <li class="mtt-merchant-session-money-adjustment">
+              <i class="fas fa-coins"></i>
+              <div class="mtt-merchant-session-item-main">
+                <strong>{{adjustment.label}}</strong>
+                <div class="mtt-merchant-session-item-meta">
+                  <span>{{adjustment.amountLabel}}</span>
+                </div>
+              </div>
             </li>
           {{/each}}
         {{else}}
@@ -65,7 +211,7 @@
 
       {{#if mtt.session.hasBuyerTotals}}
         <div class="mtt-merchant-session-total">
-          <strong>{{localize "mtt.sessions.total"}}</strong>
+          <strong>{{localize "mtt.sessions.buyerTotal"}}</strong>
           <span>
             {{#each mtt.session.buyerTotalByCurrency as |total|}}
               <span>{{total.totalPriceLabel}}</span>
@@ -73,39 +219,250 @@
           </span>
         </div>
       {{/if}}
-    </section>
+      </section>
 
-    <section class="mtt-merchant-session-section">
+      <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" data-mtt-session-seller-drop>
       <header class="mtt-merchant-session-section-header">
         <i class="fas fa-handshake-angle"></i>
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.sellerSide.title"}}</h3>
       </header>
 
       <ol class="mtt-merchant-session-list">
-        {{#if mtt.session.hasSellerItems}}
+        {{#if mtt.session.hasSellerLines}}
+          {{#if mtt.session.hasSellerItems}}
           {{#each mtt.session.sellerItems as |item|}}
-            <li class="mtt-merchant-session-list-item">{{item.name}}</li>
+            <li class="mtt-merchant-session-item mtt-merchant-session-item-object" data-session-side="seller" data-session-item-id="{{item.id}}">
+              {{#if item.img}}
+                <img class="mtt-merchant-session-item-image" src="{{item.img}}" alt="{{item.name}}" />
+              {{/if}}
+
+              <div class="mtt-merchant-session-item-main">
+                <strong>{{item.name}}</strong>
+                <div class="mtt-merchant-session-item-meta">
+                  <span class="mtt-session-item-tag">{{item.sourceLabel}}</span>
+                  {{#if item.hasLimitedQuantity}}
+                    <span class="mtt-merchant-session-available">
+                      {{localize "mtt.sessions.item.available"}} {{item.availableQuantityLabel}}
+                    </span>
+                  {{/if}}
+                  <span>
+                    <span class="mtt-merchant-session-item-controls">
+                      <button
+                        class="mtt-merchant-session-action"
+                        type="button"
+                        data-action="decreaseSessionItemQuantity"
+                        data-tooltip="{{localize 'mtt.sessions.decreaseQuantity'}}"
+                        {{#unless mtt.session.canEdit}}disabled{{/unless}}
+                      ><i class="fas fa-minus"></i></button>
+                      <input
+                        class="mtt-merchant-session-quantity"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="{{item.quantity}}"
+                        data-mtt-session-field="quantity"
+                        data-session-side="seller"
+                        data-session-item-id="{{item.id}}"
+                        data-tooltip="{{localize 'mtt.sessions.editQuantity'}}"
+                        {{#unless mtt.session.canEdit}}disabled{{/unless}}
+                      />
+                      <button
+                        class="mtt-merchant-session-action"
+                        type="button"
+                        data-action="increaseSessionItemQuantity"
+                        data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
+                        {{#unless mtt.session.canEdit}}disabled{{/unless}}
+                      ><i class="fas fa-plus"></i></button>
+                    </span>
+                  </span>
+                </div>
+                <div class="mtt-merchant-session-item-meta">
+                  <span>{{localize "mtt.sessions.sellerUnitValue"}} {{item.unitPriceLabel}}</span>
+                  <span>{{localize "mtt.sessions.item.totalPrice"}} {{item.totalPriceLabel}}</span>
+                </div>
+              </div>
+
+              <button
+                class="mtt-merchant-session-action"
+                type="button"
+                data-action="removeSessionItem"
+                data-tooltip="{{localize 'mtt.sessions.removeItem'}}"
+                {{#unless mtt.session.canEdit}}disabled{{/unless}}
+              >
+                <i class="fas fa-xmark"></i>
+              </button>
+            </li>
+          {{/each}}
+          {{/if}}
+          {{#each mtt.session.sellerMoneyAdjustments as |adjustment|}}
+            <li class="mtt-merchant-session-money-adjustment">
+              <i class="fas fa-coins"></i>
+              <div class="mtt-merchant-session-item-main">
+                <strong>{{adjustment.label}}</strong>
+                <div class="mtt-merchant-session-item-meta">
+                  <span>{{adjustment.amountLabel}}</span>
+                </div>
+              </div>
+            </li>
           {{/each}}
         {{else}}
           <li class="mtt-merchant-session-empty">{{localize "mtt.sessions.emptySeller"}}</li>
         {{/if}}
       </ol>
-    </section>
+
+      {{#if mtt.session.hasSellerTotals}}
+        <div class="mtt-merchant-session-total mtt-merchant-session-side-total">
+          <strong>{{localize "mtt.sessions.sellerTotal"}}</strong>
+          <span>
+            {{#each mtt.session.sellerTotalByCurrency as |total|}}
+              <span>{{total.totalPriceLabel}}</span>
+            {{/each}}
+          </span>
+        </div>
+      {{/if}}
+
+      <div class="mtt-merchant-session-seller-placeholder mtt-merchant-session-seller-drop">
+        <i class="fas fa-arrow-down"></i>
+        <p>{{localize "mtt.sessions.sellerDropPlaceholder"}}</p>
+      </div>
+      </section>
+
+      <section class="mtt-merchant-session-summary">
+        <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.summary"}}</h3>
+        <div class="mtt-merchant-session-summary-row">
+          <span>{{localize "mtt.sessions.buyerTotal"}}</span>
+          <strong>
+            {{#if mtt.session.hasBuyerTotals}}
+              {{#each mtt.session.buyerTotalByCurrency as |total|}}
+                <span>{{total.totalPriceLabel}}</span>
+              {{/each}}
+            {{else}}
+              <span>0</span>
+            {{/if}}
+          </strong>
+        </div>
+        <div class="mtt-merchant-session-summary-row">
+          <span>{{localize "mtt.sessions.sellerTotal"}}</span>
+          <strong>
+            {{#if mtt.session.hasSellerTotals}}
+              {{#each mtt.session.sellerTotalByCurrency as |total|}}
+                <span>{{total.totalPriceLabel}}</span>
+              {{/each}}
+            {{else}}
+              <span>0</span>
+            {{/if}}
+          </strong>
+        </div>
+        {{#if mtt.session.hasMoneyAdjustments}}
+          {{#each mtt.session.moneyAdjustments as |adjustment|}}
+            <div class="mtt-merchant-session-summary-row">
+              <span>{{adjustment.label}}</span>
+              <strong>{{adjustment.amountLabel}}</strong>
+            </div>
+          {{/each}}
+        {{else}}
+          {{#if mtt.session.isBalanced}}
+            <p class="mtt-merchant-session-balanced">{{localize "mtt.sessions.balanced"}}</p>
+          {{/if}}
+        {{/if}}
+      </section>
+
+      <section class="mtt-merchant-session-check">
+        <header class="mtt-merchant-session-check-header">
+          <i class="fas fa-clipboard-check"></i>
+          <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.check.title"}}</h3>
+        </header>
+
+        {{#if mtt.session.checkResult.checked}}
+          <p class="mtt-merchant-session-check-status {{#if mtt.session.checkResult.canProceed}}mtt-merchant-session-check-info{{else}}mtt-merchant-session-check-error{{/if}}">
+            {{#if mtt.session.checkResult.canProceed}}
+              {{localize "mtt.sessions.check.success"}}
+            {{else}}
+              {{localize "mtt.sessions.check.failed"}}
+            {{/if}}
+          </p>
+
+          {{#if mtt.session.checkResult.hasErrors}}
+            <ul class="mtt-merchant-session-check-list">
+              {{#each mtt.session.checkResult.errors as |message|}}
+                <li class="mtt-merchant-session-check-message mtt-merchant-session-check-error">
+                  {{#if message.icon}}<i class="fas {{message.icon}}"></i>{{/if}}
+                  <span>{{message.text}}</span>
+                </li>
+              {{/each}}
+            </ul>
+          {{/if}}
+
+          {{#if mtt.session.checkResult.hasWarnings}}
+            <ul class="mtt-merchant-session-check-list">
+              {{#each mtt.session.checkResult.warnings as |message|}}
+                <li class="mtt-merchant-session-check-message mtt-merchant-session-check-warning">
+                  {{#if message.icon}}<i class="fas {{message.icon}}"></i>{{/if}}
+                  <span>{{message.text}}</span>
+                </li>
+              {{/each}}
+            </ul>
+          {{/if}}
+
+          {{#if mtt.session.checkResult.hasInfos}}
+            <ul class="mtt-merchant-session-check-list">
+              {{#each mtt.session.checkResult.infos as |message|}}
+                <li class="mtt-merchant-session-check-message mtt-merchant-session-check-info">
+                  {{#if message.icon}}<i class="fas {{message.icon}}"></i>{{/if}}
+                  <span>{{message.text}}</span>
+                </li>
+              {{/each}}
+            </ul>
+          {{/if}}
+        {{else}}
+          <p class="mtt-merchant-session-check-message mtt-merchant-session-check-info">
+            <i class="fas fa-circle-info"></i>
+            <span>{{localize "mtt.sessions.check.none"}}</span>
+          </p>
+        {{/if}}
+      </section>
+    {{else}}
+      <section class="mtt-merchant-session-empty-state">
+        <i class="fas fa-receipt"></i>
+        <p>{{localize "mtt.sessions.noSession"}}</p>
+        <button
+          class="mtt-merchant-session-action"
+          type="button"
+          data-action="createSession"
+          data-tooltip="{{localize 'mtt.sessions.create'}}"
+        >
+          <i class="fas fa-plus"></i>
+        </button>
+      </section>
+    {{/if}}
 
     <div class="mtt-merchant-session-placeholder">
       <i class="fas fa-circle-info"></i>
-      <p class="mtt-merchant-session-placeholder-text">{{localize "mtt.sessions.placeholder"}}</p>
       <p class="mtt-merchant-session-placeholder-text">{{localize "mtt.sessions.moneyAdjustmentHint"}}</p>
     </div>
 
-    <p class="mtt-merchant-session-notice">{{localize "mtt.sessions.draftNotice"}}</p>
+    <p class="mtt-merchant-session-notice">{{localize "mtt.sessions.persistentDraftNotice"}}</p>
 
     <footer class="mtt-merchant-session-actions">
+      {{#if mtt.session.hasSession}}
+        {{#if mtt.session.hasAnyItems}}
+          <button
+            class="mtt-merchant-session-action"
+            type="button"
+            data-action="checkSessionTransaction"
+            data-tooltip="{{localize 'mtt.sessions.check.run'}}"
+          >
+            <i class="fas fa-clipboard-check"></i>
+          </button>
+        {{/if}}
+      {{/if}}
+
       <button
         class="mtt-merchant-session-action"
         type="button"
-        disabled
-        data-tooltip="{{localize 'mtt.sessions.actions.propose'}}"
+        data-action="setSessionStatus"
+        data-session-status="pending"
+        data-tooltip="{{localize 'mtt.sessions.requestValidation'}}"
       >
         <i class="fas fa-paper-plane"></i>
       </button>

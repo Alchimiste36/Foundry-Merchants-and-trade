@@ -2,6 +2,91 @@ const fields = foundry.data.fields;
 
 export class MerchantData extends foundry.abstract.TypeDataModel {
   static defineSchema() {
+    const sessionItemSchema = () =>
+      new fields.SchemaField({
+        id: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        type: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "product",
+          choices: ["product", "service", "item"],
+        }),
+        sourceUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        sourceActorUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        sourceId: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        name: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        img: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        quantity: new fields.NumberField({
+          required: true,
+          initial: 1,
+          min: 0,
+        }),
+        availableQuantity: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
+        hasLimitedQuantity: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+        unitPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        priceCurrency: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        totalPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        sourceLabel: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        proposedUnitPriceValue: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
+        isFromActor: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+      });
+
     return {
       merchant: new fields.SchemaField({
         description: new fields.HTMLField({
@@ -71,6 +156,60 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           blank: true,
           initial: {},
         }),
+      }),
+
+      access: new fields.SchemaField({
+        clients: new fields.ArrayField(
+          new fields.SchemaField({
+            actorUuid: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "",
+            }),
+            actorId: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            actorName: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "",
+            }),
+            actorImg: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            actorType: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            userId: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            userName: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            isAuthorized: new fields.BooleanField({
+              required: true,
+              initial: false,
+            }),
+            isFromPlayerCharacter: new fields.BooleanField({
+              required: true,
+              initial: false,
+            }),
+          }),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
       }),
 
       catalog: new fields.SchemaField({
@@ -169,6 +308,77 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
             isExpanded: new fields.BooleanField({
               required: true,
               initial: true,
+            }),
+          }),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
+      }),
+
+      sessions: new fields.SchemaField({
+        entries: new fields.ArrayField(
+          new fields.SchemaField({
+            id: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "",
+            }),
+            status: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "active",
+              choices: ["active", "pending", "validated", "refused"],
+            }),
+            label: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "",
+            }),
+            actorUuid: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            actorName: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            userId: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            userName: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            buyerItems: new fields.ArrayField(
+              sessionItemSchema(),
+              {
+                required: true,
+                initial: [],
+              },
+            ),
+            sellerItems: new fields.ArrayField(
+              sessionItemSchema(),
+              {
+                required: true,
+                initial: [],
+              },
+            ),
+            createdAt: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "",
+            }),
+            updatedAt: new fields.StringField({
+              required: true,
+              blank: false,
+              initial: "",
             }),
           }),
           {

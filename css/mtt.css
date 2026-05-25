@@ -17,22 +17,29 @@
   font-family: var(--font-family);
   color: var(--mtt-text);
 }
+.window-content {
+  padding: 0;
+}
+.mtt-merchant-window {
+  overflow: visible;
+}
 .mtt-merchant-sheet {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
   background: var(--mtt-bg-main);
 }
 .mtt-merchant-form {
   height: 100%;
 }
 .mtt-merchant-layout {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 3px;
   height: 100%;
   padding: 3px;
   background: var(--mtt-bg-main);
+  overflow: visible;
 }
 .mtt-merchant-body {
   display: flex;
@@ -165,6 +172,90 @@
   color: var(--mtt-text-soft);
   font-style: italic;
 }
+.mtt-merchant-access-rail {
+  position: absolute;
+  z-index: 20;
+  top: 5rem;
+  right: -2.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+.mtt-merchant-access-card,
+.mtt-merchant-access-drop-card {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  padding: 0.25rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.4rem 0 0 0.4rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+}
+.mtt-merchant-access-card:disabled {
+  cursor: default;
+}
+.mtt-merchant-access-card:not(:disabled):hover,
+.mtt-merchant-access-drop-card:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+  transform: translateX(-0.2rem);
+}
+.mtt-merchant-access-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.25rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-merchant-access-card-authorized {
+  opacity: 1;
+}
+.mtt-merchant-access-card-authorized .mtt-merchant-access-card-image {
+  filter: none;
+}
+.mtt-merchant-access-card-unauthorized {
+  opacity: 0.58;
+}
+.mtt-merchant-access-card-unauthorized .mtt-merchant-access-card-image {
+  filter: grayscale(1);
+}
+.mtt-merchant-access-card-check {
+  position: absolute;
+  right: 0.05rem;
+  bottom: 0.05rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: #2f8f55;
+  color: #ffffff;
+  font-size: 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mtt-merchant-access-drop-card {
+  border: 1px dashed var(--mtt-border);
+  color: var(--mtt-text-soft);
+  background: rgba(0, 0, 0, 0.08);
+}
+.mtt-merchant-access-drop-card i {
+  color: var(--mtt-accent);
+}
 .mtt-merchant-lock-button,
 .mtt-merchant-open-button,
 .mtt-merchant-product-create-button,
@@ -237,8 +328,9 @@
   color: var(--mtt-accent);
 }
 .mtt-merchant-session-sidebar {
-  width: 220px;
-  flex: 0 0 220px;
+  width: 370px;
+  flex: 0 0 370px;
+  max-width: 42%;
   padding: 0.5rem;
   overflow: auto;
   display: flex;
@@ -288,6 +380,150 @@
 .mtt-merchant-session-status-value {
   color: var(--mtt-text);
   font-weight: 700;
+}
+.mtt-merchant-session-status-active {
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-session-status-pending {
+  border-color: #d6b45b;
+}
+.mtt-merchant-session-status-validated {
+  border-color: #6fbf8f;
+}
+.mtt-merchant-session-status-refused {
+  border-color: var(--mtt-danger);
+}
+.mtt-merchant-session-label {
+  padding: 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-merchant-session-label-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.mtt-merchant-session-label-field span {
+  color: var(--mtt-text-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.mtt-merchant-session-label-field input {
+  min-width: 0;
+  min-height: 1.8rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+.mtt-merchant-session-label-readonly {
+  color: var(--mtt-text);
+  font-weight: 700;
+}
+.mtt-merchant-session-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.mtt-merchant-session-status-button {
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.mtt-merchant-session-status-button:hover,
+.mtt-merchant-session-status-button-active {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-accent-soft);
+  color: var(--mtt-accent);
+}
+.mtt-merchant-session-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 1rem 0.6rem;
+  border: 1px dashed var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-muted);
+  text-align: center;
+}
+.mtt-merchant-session-empty-state p {
+  margin: 0;
+}
+.mtt-merchant-session-client {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-merchant-session-client-main {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.mtt-merchant-session-client-image {
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 2.4rem;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft);
+}
+.mtt-merchant-session-client-text {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  color: var(--mtt-text-soft);
+  font-size: 0.75rem;
+}
+.mtt-merchant-session-client-text strong {
+  color: var(--mtt-text);
+  overflow-wrap: anywhere;
+}
+.mtt-merchant-session-client-empty {
+  margin: 0;
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+  font-style: italic;
+}
+.mtt-merchant-session-client-warning {
+  border-color: rgba(211, 107, 95, 0.55);
+}
+.mtt-merchant-session-client-warning-text {
+  color: var(--mtt-danger);
+  font-weight: 700;
+}
+.mtt-merchant-session-status-notice {
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.78rem;
+}
+.mtt-merchant-session-status-notice-pending {
+  border-color: #d6b45b;
+}
+.mtt-merchant-session-status-notice-validated {
+  border-color: #6fbf8f;
+}
+.mtt-merchant-session-status-notice-refused {
+  border-color: var(--mtt-danger);
+  color: var(--mtt-danger);
 }
 .mtt-merchant-session-section {
   display: flex;
@@ -366,8 +602,13 @@
 .mtt-merchant-session-item-meta {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.25rem 0.45rem;
   color: var(--mtt-text-soft);
+}
+.mtt-merchant-session-available {
+  color: var(--mtt-text-soft);
+  font-size: 0.72rem;
 }
 .mtt-merchant-session-total {
   display: flex;
@@ -380,6 +621,15 @@
   background: var(--mtt-bg-field);
   color: var(--mtt-text-muted);
   font-size: 0.8rem;
+}
+.mtt-merchant-session-side-total {
+  border-color: var(--mtt-border);
+}
+.mtt-merchant-session-side-buyer {
+  border-color: var(--mtt-border-soft);
+}
+.mtt-merchant-session-side-seller {
+  border-color: rgba(111, 191, 143, 0.4);
 }
 .mtt-merchant-session-total strong {
   color: var(--mtt-text);
@@ -408,6 +658,29 @@
   color: var(--mtt-text-muted);
   font-size: 0.86rem;
 }
+.mtt-merchant-session-seller-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px dashed var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+}
+.mtt-merchant-session-seller-drop {
+  background: rgba(111, 191, 143, 0.08);
+  border-color: rgba(111, 191, 143, 0.45);
+}
+.mtt-merchant-session-seller-drop:hover {
+  border-color: #6fbf8f;
+  color: var(--mtt-text-muted);
+}
+.mtt-merchant-session-seller-placeholder p {
+  margin: 0;
+}
 .mtt-merchant-session-placeholder i {
   color: var(--mtt-accent);
 }
@@ -434,6 +707,140 @@
   justify-content: center;
   cursor: pointer;
 }
+.mtt-merchant-session-item-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.mtt-merchant-session-quantity {
+  width: 3.6rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--mtt-border);
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+  text-align: center;
+  font-size: 0.85rem;
+}
+.mtt-session-item-tag {
+  display: inline-block;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--mtt-text-soft);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.mtt-merchant-session-item-object {
+  border: 1px solid rgba(111, 191, 143, 0.24);
+}
+.mtt-merchant-session-money-adjustment {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.4rem;
+  border: 1px solid rgba(199, 154, 72, 0.45);
+  border-radius: 0.35rem;
+  background: var(--mtt-accent-soft);
+  color: var(--mtt-text-muted);
+  font-size: 0.78rem;
+}
+.mtt-merchant-session-money-adjustment i {
+  color: var(--mtt-accent);
+}
+.mtt-merchant-session-summary {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.12);
+}
+.mtt-merchant-session-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  color: var(--mtt-text-muted);
+  font-size: 0.78rem;
+}
+.mtt-merchant-session-summary-row strong {
+  color: var(--mtt-text);
+  text-align: right;
+}
+.mtt-merchant-session-summary-row strong span + span::before {
+  content: "Â·";
+  margin: 0 0.25rem;
+  color: var(--mtt-text-soft);
+}
+.mtt-merchant-session-balanced {
+  margin: 0;
+  color: #6fbf8f;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.mtt-merchant-session-check {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.55rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.12);
+}
+.mtt-merchant-session-check-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--mtt-text);
+}
+.mtt-merchant-session-check-header i {
+  color: var(--mtt-accent);
+}
+.mtt-merchant-session-check-status {
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.mtt-merchant-session-check-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mtt-merchant-session-check-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+.mtt-merchant-session-check-message i {
+  margin-top: 0.12rem;
+}
+.mtt-merchant-session-check-info {
+  border-color: rgba(111, 191, 143, 0.35);
+  color: #a9d7ba;
+}
+.mtt-merchant-session-check-warning {
+  border-color: rgba(214, 180, 91, 0.45);
+  color: #dcc176;
+}
+.mtt-merchant-session-check-error {
+  border-color: rgba(211, 107, 95, 0.55);
+  color: var(--mtt-danger);
+}
 .mtt-merchant-session-action:not(:disabled):hover {
   background: var(--mtt-bg-hover);
   border-color: var(--mtt-accent);
@@ -443,6 +850,9 @@
   opacity: 0.45;
 }
 .mtt-merchant-session-action-refuse {
+  color: var(--mtt-danger);
+}
+.mtt-merchant-session-action-delete {
   color: var(--mtt-danger);
 }
 .mtt-session-dialog-form {
@@ -1236,6 +1646,9 @@
 @media (max-width: 980px) {
   .mtt-merchant-header {
     grid-template-columns: 1fr;
+  }
+  .mtt-merchant-access-rail {
+    right: -0.45rem;
   }
   .mtt-merchant-wallet-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

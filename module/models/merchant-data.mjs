@@ -325,6 +325,10 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
               blank: true,
               initial: "",
             }),
+            isCommerciallyModified: new fields.BooleanField({
+              required: true,
+              initial: false,
+            }),
             isExpanded: new fields.BooleanField({
               required: true,
               initial: true,

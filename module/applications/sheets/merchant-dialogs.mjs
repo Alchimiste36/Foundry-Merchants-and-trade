@@ -10,7 +10,7 @@ export async function renderMttDialogContent({
   entity = null,
   form = "",
 } = {}) {
-  return renderTemplate(MTT.TEMPLATES.MTT_DIALOG, {
+  return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.MTT_DIALOG, {
     icon,
     title,
     message,
@@ -337,6 +337,143 @@ export async function openPreviewErrorDialog(preview) {
   } catch {
     // ignore
   }
+}
+
+export async function openValidateConfirmDialog(preview) {
+  const form = renderPreviewDialogContent(preview)
+  const content = await renderMttDialogContent({
+    icon: "fa-circle-check",
+    title: game.i18n.localize("mtt.sessions.confirm.validateTitle"),
+    variant: "default",
+    form,
+  })
+
+  let result = null
+  try {
+    result = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("mtt.sessions.confirm.validateTitle") },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "cancel",
+          label: game.i18n.localize("mtt.sessions.confirm.cancel"),
+          callback: () => false,
+        },
+        {
+          action: "confirm",
+          label: game.i18n.localize("mtt.sessions.confirm.validateConfirm"),
+          default: true,
+          callback: () => true,
+        },
+      ],
+    })
+  } catch {
+    return false
+  }
+
+  return Boolean(result)
+}
+
+export async function openSessionValidationDialog(preview) {
+  const warning = `<p class="mtt-dialog-preview-notice"><i class="fas fa-circle-info"></i> ${escapeHTML(game.i18n.localize("mtt.sessions.execution.itemsOnlyWarning"))}</p>`
+  const form = `${renderPreviewDialogContent(preview)}${warning}`
+  const content = await renderMttDialogContent({
+    icon: "fa-circle-check",
+    title: game.i18n.localize("mtt.sessions.execution.validateTitle"),
+    variant: "default",
+    form,
+  })
+
+  let result = null
+  try {
+    result = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("mtt.sessions.execution.validateTitle") },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "cancel",
+          label: game.i18n.localize("mtt.sessions.execution.validateCancel"),
+          callback: () => false,
+        },
+        {
+          action: "confirm",
+          label: game.i18n.localize("mtt.sessions.execution.validateConfirm"),
+          default: true,
+          callback: () => true,
+        },
+      ],
+    })
+  } catch {
+    return false
+  }
+
+  return Boolean(result)
+}
+
+export async function openSessionExecutionErrorsDialog(preview) {
+  const form = renderPreviewErrorContent(preview)
+  const content = await renderMttDialogContent({
+    icon: "fa-triangle-exclamation",
+    title: game.i18n.localize("mtt.sessions.execution.executionErrorTitle"),
+    variant: "danger",
+    form,
+  })
+
+  try {
+    await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("mtt.sessions.execution.executionErrorTitle") },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "close",
+          label: game.i18n.localize("mtt.sessions.preview.close"),
+          default: true,
+          callback: () => null,
+        },
+      ],
+    })
+  } catch {
+    // ignore
+  }
+}
+
+export async function openRefuseConfirmDialog() {
+  const content = await renderMttDialogContent({
+    icon: "fa-circle-xmark",
+    title: game.i18n.localize("mtt.sessions.confirm.refuseTitle"),
+    message: game.i18n.localize("mtt.sessions.confirm.refuseContent"),
+    details: game.i18n.localize("mtt.dialog.noTransactionNoJournal"),
+    variant: "warning",
+  })
+
+  let result = null
+  try {
+    result = await foundry.applications.api.DialogV2.wait({
+      window: { title: game.i18n.localize("mtt.sessions.confirm.refuseTitle") },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "cancel",
+          label: game.i18n.localize("mtt.sessions.confirm.cancel"),
+          callback: () => false,
+        },
+        {
+          action: "confirm",
+          label: game.i18n.localize("mtt.sessions.confirm.refuseConfirm"),
+          default: true,
+          callback: () => true,
+        },
+      ],
+    })
+  } catch {
+    return false
+  }
+
+  return Boolean(result)
 }
 
 export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency }) {

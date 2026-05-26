@@ -109,6 +109,8 @@ export function prepareItems(actor, sellPercent) {
       systemCategoryKey: product.systemCategoryKey ?? "",
       systemCategoryLabel: product.systemCategoryLabel ?? "",
       systemCategoryPath: product.systemCategoryPath ?? "",
+      sourceUuid: product.sourceUuid ?? "",
+      isCommerciallyModified: Boolean(product.isCommerciallyModified),
       hasSystemCategory: Boolean(product.systemCategoryKey || product.systemCategoryLabel),
       hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
       isHidden: product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden,
@@ -163,6 +165,7 @@ export function prepareServices(actor, sellPercent) {
       systemCategoryKey: service.systemCategoryKey ?? "",
       systemCategoryLabel: service.systemCategoryLabel ?? "",
       systemCategoryPath: service.systemCategoryPath ?? "",
+      isCommerciallyModified: Boolean(service.isCommerciallyModified),
       hasSystemCategory: Boolean(service.systemCategoryKey || service.systemCategoryLabel),
       hasFreePrice: service.hasFreePrice ?? MTT.SERVICE_DEFAULTS.hasFreePrice,
       minimumPriceValue:
@@ -285,13 +288,15 @@ export async function getOrCreateAutomaticProductCategory(actor, automaticCatego
   return categoryId
 }
 
-export function createProductFlags(itemData) {
+export function createProductFlags(itemData, options = {}) {
   const productFlags = foundry.utils.deepClone(MTT.PRODUCT_DEFAULTS)
 
   productFlags.displayName = itemData.name ?? ""
+  productFlags.sourceUuid = String(options.sourceUuid ?? productFlags.sourceUuid ?? "").trim()
+  productFlags.isCommerciallyModified = false
 
   const configuredPrice = getConfiguredItemValue(itemData, "itemPriceValuePath")
-  const parsedPrice = parsePriceValue(configuredPrice)
+  const parsedPrice = parsePriceValue(configuredPrice) ?? getItemPrice(itemData)
   if (parsedPrice !== null) {
     productFlags.priceValue = parsedPrice
   }
@@ -299,6 +304,8 @@ export function createProductFlags(itemData) {
   const configuredCurrency = getConfiguredItemValue(itemData, "itemPriceCurrencyPath")
   if (typeof configuredCurrency === "string") {
     productFlags.priceCurrency = configuredCurrency.trim()
+  } else {
+    productFlags.priceCurrency = getItemCurrency(itemData)
   }
 
   const configuredQuantity = getConfiguredItemValue(itemData, "itemQuantityPath")
@@ -312,74 +319,20 @@ export function createProductFlags(itemData) {
   return itemData
 }
 
-export async function addOrMergeProduct(actor, itemData, categoryValue = "", automaticCategory = null) {
-  const productData = foundry.utils.deepClone(itemData)
+export function prepareMerchantCatalogItemData(sourceItem, options = {}) {
+  const sourceUuid = String(options.sourceUuid ?? sourceItem?.uuid ?? "").trim()
+  const automaticCategory = options.automaticCategory ?? null
+  const productData = sourceItem?.toObject
+    ? sourceItem.toObject()
+    : foundry.utils.deepClone(sourceItem ?? {})
+
+  delete productData._id
+  delete productData.uuid
   productData.flags = productData.flags ?? {}
+  if (productData.flags[MTT.ID]) delete productData.flags[MTT.ID]
 
-  const productFlags = foundry.utils.deepClone(MTT.PRODUCT_DEFAULTS)
-  productFlags.displayName = productData.name ?? ""
-  productFlags.category = categoryValue ?? ""
-  productFlags.systemCategoryKey = automaticCategory?.key ?? ""
-  productFlags.systemCategoryLabel = automaticCategory?.label ?? ""
-  productFlags.systemCategoryPath = automaticCategory?.path ?? ""
-
-  productData.flags[MTT.ID] = {
-    ...(productData.flags[MTT.ID] ?? {}),
-    [MTT.FLAGS.PRODUCT]: productFlags,
-  }
-
-  const sourceConfiguredPrice = getConfiguredItemValue(productData, "itemPriceValuePath")
-  const sourcePriceValue = parsePriceValue(sourceConfiguredPrice) ?? MTT.PRODUCT_DEFAULTS.priceValue
-
-  const sourceConfiguredCurrency = getConfiguredItemValue(productData, "itemPriceCurrencyPath")
-  const sourcePriceCurrency =
-    typeof sourceConfiguredCurrency === "string"
-      ? sourceConfiguredCurrency.trim()
-      : MTT.PRODUCT_DEFAULTS.priceCurrency
-
-  const existingProduct = actor.items.find((item) => {
-    if (item.type !== productData.type) return false
-    if (item.name !== productData.name) return false
-
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-
-    const existingCategory = (product.category ?? "").trim()
-    if (existingCategory !== (categoryValue ?? "").trim()) return false
-
-    const existingDisplayName = (product.displayName ?? "").trim()
-    if (existingDisplayName && existingDisplayName !== item.name.trim()) return false
-
-    const existingPriceValue = Number.isFinite(Number(product.priceValue))
-      ? Number(product.priceValue)
-      : MTT.PRODUCT_DEFAULTS.priceValue
-    if (existingPriceValue !== sourcePriceValue) return false
-
-    const existingPriceCurrency = (product.priceCurrency ?? "").trim()
-    if (existingPriceCurrency !== sourcePriceCurrency) return false
-
-    if ((product.secretName ?? "").trim()) return false
-    if ((product.secretPrice ?? "").trim()) return false
-    if ((product.secretDescription ?? "").trim()) return false
-
-    return true
-  })
-
-  if (existingProduct) {
-    const product = existingProduct.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-    const currentQuantity = Number.isFinite(Number(product.quantity))
-      ? Number(product.quantity)
-      : MTT.PRODUCT_DEFAULTS.quantity
-
-    await existingProduct.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      quantity: currentQuantity + 1,
-    })
-
-    return
-  }
-
-  createProductFlags(productData)
-  foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`, categoryValue ?? "")
+  createProductFlags(productData, { sourceUuid })
+  foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`, options.categoryValue ?? "")
   foundry.utils.setProperty(
     productData,
     `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.systemCategoryKey`,
@@ -395,7 +348,46 @@ export async function addOrMergeProduct(actor, itemData, categoryValue = "", aut
     `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.systemCategoryPath`,
     automaticCategory?.path ?? "",
   )
+  foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.sourceUuid`, sourceUuid)
+  foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.isCommerciallyModified`, false)
 
+  if (Number.isFinite(Number(options.quantity)) && Number(options.quantity) >= 0) {
+    foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.quantity`, Number(options.quantity))
+  }
+
+  return productData
+}
+
+export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", automaticCategory = null, sourceUuid = "") {
+  const normalizedSourceUuid = String(sourceUuid ?? sourceItem?.uuid ?? "").trim()
+
+  const existingProduct = normalizedSourceUuid
+    ? actor.items.find((item) => {
+        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+        if (product.isCommerciallyModified === true) return false
+        return String(product.sourceUuid ?? "").trim() === normalizedSourceUuid
+      })
+    : null
+
+  if (existingProduct) {
+    const product = existingProduct.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    const currentQuantity = Number.isFinite(Number(product.quantity))
+      ? Number(product.quantity)
+      : MTT.PRODUCT_DEFAULTS.quantity
+
+    await existingProduct.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+      ...product,
+      quantity: currentQuantity + 1,
+    })
+
+    return
+  }
+
+  const productData = prepareMerchantCatalogItemData(sourceItem, {
+    categoryValue,
+    automaticCategory,
+    sourceUuid: normalizedSourceUuid,
+  })
   await actor.createEmbeddedDocuments("Item", [productData])
 }
 

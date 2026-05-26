@@ -195,7 +195,9 @@
       "merchantProductNotSellable": "Vous ne pouvez pas ajouter un produit du marchand dans ce que le PJ vend ou donne.",
       "cannotGiveMerchantProduct": "Vous ne pouvez pas ajouter un produit du marchand dans ce que le PJ donne.",
       "transactionPreviewFailed": "La transaction ne peut pas être prévisualisée.",
-      "missingProposedPrice": "Vous devez proposer un prix pour cet élément."
+      "missingProposedPrice": "Vous devez proposer un prix pour cet élément.",
+      "selectSessionBeforeAction": "Sélectionnez une session avant d'effectuer cette action.",
+      "transactionExecutionNotReady": "L'exécution réelle de la transaction sera développée dans une prochaine étape."
     },
     "price": {
       "freePrice": "Prix libre",
@@ -469,7 +471,15 @@
         "addProduct": "Ajouter le produit à la session",
         "addService": "Ajouter le service à la session",
         "add": "Ajouter",
-        "cancel": "Annuler"
+        "cancel": "Annuler",
+        "preview": "Prévisualiser",
+        "previewTooltip": "Prévisualiser l'exécution",
+        "requestDecision": "Demander une décision MJ",
+        "requestDecisionTooltip": "Placer la session en attente d'une décision MJ",
+        "validateSession": "Valider la session",
+        "validateTooltip": "Vérifier puis valider la session",
+        "refuseSession": "Refuser la transaction",
+        "refuseTooltip": "Refuser cette transaction"
       },
       "dialog": {
         "productTitle": "Ajouter un produit à la session",
@@ -508,6 +518,38 @@
         "currencyUnreadable": "Impossible de lire la monnaie : {currency}.",
         "currencyInsufficient": "Monnaie insuffisante : {currency}.",
         "serviceExecutionLater": "L'exécution réelle des services sera traitée plus tard."
+      },
+      "confirm": {
+        "validateTitle": "Valider la session",
+        "validateContent": "Voulez-vous valider cette session de transaction ?",
+        "validateConfirm": "Valider",
+        "refuseTitle": "Refuser la transaction",
+        "refuseContent": "Voulez-vous refuser cette transaction ? Aucune transaction ne sera effectuée.",
+        "refuseConfirm": "Refuser",
+        "cancel": "Annuler"
+      },
+      "execution": {
+        "validateTitle": "Valider la session",
+        "validateConfirm": "Valider la transaction",
+        "validateCancel": "Annuler",
+        "itemsOnlyWarning": "Aucun transfert monétaire ne sera effectué dans cette étape.",
+        "moneyNotImplemented": "Le transfert monétaire n’est pas encore implémenté.",
+        "moneyAdjustmentBlocksExecution": "La transaction nécessite un ajustement monétaire. L’exécution réelle sera possible quand le transfert de monnaie sera implémenté.",
+        "servicesNotImplemented": "L’exécution réelle des services sera traitée dans une prochaine étape.",
+        "clientReceives": "Le PJ recevra",
+        "merchantReceives": "Le marchand recevra",
+        "quantitiesUpdated": "Quantités qui seront diminuées",
+        "executionErrorTitle": "Transaction impossible",
+        "executionSuccess": "Transaction d’objets effectuée."
+      },
+      "errors": {
+        "clientMissing": "L’acteur client de la session est introuvable.",
+        "clientNotAuthorized": "Le client n’est plus autorisé à commercer avec ce marchand.",
+        "merchantProductMissing": "Le produit marchand est introuvable : {name}.",
+        "merchantStockInsufficient": "Stock insuffisant pour {name}.",
+        "sellerItemMissing": "L’objet donné ou vendu est introuvable : {name}.",
+        "sellerQuantityInsufficient": "Quantité insuffisante pour {name}.",
+        "emptySession": "La session ne contient aucun élément exécutable."
       }
     },
     "configuration": {

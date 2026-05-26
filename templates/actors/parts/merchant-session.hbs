@@ -352,66 +352,23 @@
     <footer class="mtt-merchant-session-actions">
       {{#if mtt.session.hasSession}}
         {{#if mtt.session.hasAnyItems}}
-          <button
-            class="mtt-merchant-session-action"
-            type="button"
-            data-action="checkSessionTransaction"
-            data-tooltip="{{localize 'mtt.sessions.check.run'}}"
-          >
-            <i class="fas fa-clipboard-check"></i>
+          <button class="mtt-merchant-session-action" type="button" data-action="previewSessionExecution" data-tooltip="{{localize 'mtt.sessions.actions.previewTooltip'}}">
+            <i class="fas fa-clipboard-list"></i>
           </button>
-          {{#if @root.mtt.canEditMerchant}}
-            <button
-              class="mtt-merchant-session-action"
-              type="button"
-              data-action="previewSessionExecution"
-              data-tooltip="{{localize 'mtt.sessions.preview.action'}}"
-            >
-              <i class="fas fa-clipboard-list"></i>
-            </button>
-          {{/if}}
         {{/if}}
-      {{/if}}
-
-      {{#if mtt.session.hasSession}}
-        <nav class="mtt-merchant-session-status-actions" data-tooltip="{{localize 'mtt.sessions.wholeSessionDecision'}}">
-          <button
-            class="mtt-merchant-session-status-button {{#if mtt.session.isActive}}mtt-merchant-session-status-button-active{{/if}}"
-            type="button"
-            data-action="setSessionStatus"
-            data-session-status="active"
-            data-tooltip="{{localize 'mtt.sessions.setStatusActive'}}"
-          >
-            <i class="fas fa-play"></i>
+        {{#if mtt.session.canEdit}}
+          <button class="mtt-merchant-session-action" type="button" data-action="requestSessionDecision" data-tooltip="{{localize 'mtt.sessions.actions.requestDecisionTooltip'}}">
+            <i class="fas fa-triangle-exclamation"></i>
           </button>
-          <button
-            class="mtt-merchant-session-status-button {{#if mtt.session.isPending}}mtt-merchant-session-status-button-active{{/if}}"
-            type="button"
-            data-action="setSessionStatus"
-            data-session-status="pending"
-            data-tooltip="{{localize 'mtt.sessions.setStatusPending'}}"
-          >
-            <i class="fas fa-hourglass-half"></i>
-          </button>
-          <button
-            class="mtt-merchant-session-status-button {{#if mtt.session.isValidated}}mtt-merchant-session-status-button-active{{/if}}"
-            type="button"
-            data-action="setSessionStatus"
-            data-session-status="validated"
-            data-tooltip="{{localize 'mtt.sessions.setStatusValidated'}}"
-          >
+        {{/if}}
+        {{#if @root.mtt.canConfigureMerchant}}
+          <button class="mtt-merchant-session-action" type="button" data-action="validateSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.validateTooltip'}}">
             <i class="fas fa-check"></i>
           </button>
-          <button
-            class="mtt-merchant-session-status-button {{#if mtt.session.isRefused}}mtt-merchant-session-status-button-active{{/if}}"
-            type="button"
-            data-action="setSessionStatus"
-            data-session-status="refused"
-            data-tooltip="{{localize 'mtt.sessions.setStatusRefused'}}"
-          >
+          <button class="mtt-merchant-session-action" type="button" data-action="refuseSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.refuseTooltip'}}">
             <i class="fas fa-xmark"></i>
           </button>
-        </nav>
+        {{/if}}
       {{/if}}
     </footer>
   </section>

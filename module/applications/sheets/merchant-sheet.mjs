@@ -27,6 +27,9 @@ import {
   openSellerItemDialog,
   openPreviewDialog,
   openPreviewErrorDialog,
+  openSessionValidationDialog,
+  openSessionExecutionErrorsDialog,
+  openRefuseConfirmDialog,
 } from "./merchant-dialogs.mjs"
 import {
   getSellPercent,
@@ -75,6 +78,9 @@ import {
   checkSessionTransaction,
   isMerchantSellerDropBlocked,
   buildExecutionPreview,
+  buildSessionItemExecutionPlan,
+  executeSessionItemTransfers,
+  clearSessionAfterExecution,
 } from "./merchant-trade.mjs"
 
 const { ActorSheetV2 } = foundry.applications.sheets
@@ -122,6 +128,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       setSessionStatus: MerchantSheet.#onSetSessionStatus,
       checkSessionTransaction: MerchantSheet.#onCheckSessionTransaction,
       previewSessionExecution: MerchantSheet.#onPreviewSessionExecution,
+      requestSessionDecision: MerchantSheet.#onRequestSessionDecision,
+      validateSessionTransaction: MerchantSheet.#onValidateSessionTransaction,
+      refuseSessionTransaction: MerchantSheet.#onRefuseSessionTransaction,
       increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
       decreaseSessionItemQuantity: MerchantSheet.#onDecreaseSessionItemQuantity,
       removeSessionItem: MerchantSheet.#onRemoveSessionItem,
@@ -382,8 +391,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #createProductFlags(itemData) { return createProductFlags(itemData) }
 
-  async #addOrMergeProduct(itemData, categoryValue, automaticCategory) {
-    return addOrMergeProduct(this.actor, itemData, categoryValue, automaticCategory)
+  async #addOrMergeProduct(itemData, categoryValue, automaticCategory, sourceUuid = "") {
+    return addOrMergeProduct(this.actor, itemData, categoryValue, automaticCategory, sourceUuid)
   }
 
   async #moveProductToCategory(itemId, categoryValue) {
@@ -534,10 +543,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const automaticCategory = getAutomaticItemCategory(document)
     const productCategoryValue = await getOrCreateAutomaticProductCategory(this.actor, automaticCategory)
 
-    const itemData = document.toObject()
-    delete itemData._id
-
-    await addOrMergeProduct(this.actor, itemData, productCategoryValue, automaticCategory)
+    await addOrMergeProduct(this.actor, document, productCategoryValue, automaticCategory, document.uuid)
   }
 
   // ─── Item/service helpers ─────────────────────────────────────────────────
@@ -1884,12 +1890,106 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const preview = await buildExecutionPreview(this.actor, session)
 
+    this.#sessionCheckResult = {
+      checked: true,
+      canProceed: preview.canExecute,
+      infos: [],
+      warnings: preview.warnings.map((w, i) => ({ id: `preview-warn-${i}`, level: "warning", text: w, icon: "fa-triangle-exclamation" })),
+      errors: preview.errors.map((e, i) => ({ id: `preview-err-${i}`, level: "error", text: e, icon: "fa-circle-xmark" })),
+    }
+
     if (!preview.canExecute) {
+      this.render()
       await openPreviewErrorDialog(preview)
       return
     }
 
+    this.render()
     await openPreviewDialog(preview)
+  }
+
+  static async #onRequestSessionDecision(event) {
+    event.preventDefault()
+
+    const session = this.#getActiveSession()
+    if (!session) return
+
+    session.status = "pending"
+    await this.#saveSession(session)
+    this.render()
+  }
+
+  static async #onValidateSessionTransaction(event) {
+    event.preventDefault()
+
+    const session = this.#getActiveSession()
+    if (!session) return
+
+    const preview = await buildSessionItemExecutionPlan(this.actor, session)
+
+    this.#sessionCheckResult = {
+      checked: true,
+      canProceed: preview.canExecute,
+      infos: [],
+      warnings: preview.warnings.map((w, i) => ({ id: `preview-warn-${i}`, level: "warning", text: w, icon: "fa-triangle-exclamation" })),
+      errors: preview.errors.map((e, i) => ({ id: `preview-err-${i}`, level: "error", text: e, icon: "fa-circle-xmark" })),
+    }
+
+    if (!preview.canExecute) {
+      this.render()
+      await openSessionExecutionErrorsDialog(preview)
+      return
+    }
+
+    const confirmed = await openSessionValidationDialog(preview)
+    if (!confirmed) return
+
+    try {
+      const executionPlan = await buildSessionItemExecutionPlan(this.actor, session)
+      if (!executionPlan.canExecute) {
+        this.#sessionCheckResult = {
+          checked: true,
+          canProceed: false,
+          infos: [],
+          warnings: executionPlan.warnings.map((w, i) => ({ id: `execution-warn-${i}`, level: "warning", text: w, icon: "fa-triangle-exclamation" })),
+          errors: executionPlan.errors.map((e, i) => ({ id: `execution-err-${i}`, level: "error", text: e, icon: "fa-circle-xmark" })),
+        }
+        await openSessionExecutionErrorsDialog(executionPlan)
+        this.render()
+        return
+      }
+
+      await executeSessionItemTransfers(this.actor, executionPlan)
+      clearSessionAfterExecution(session)
+      await this.#saveSession(session)
+      this.#sessionCheckResult = null
+      this.render()
+    } catch (error) {
+      const failurePreview = {
+        ...preview,
+        canExecute: false,
+        errors: [
+          ...(preview.errors ?? []),
+          error?.message || game.i18n.localize("mtt.sessions.execution.executionErrorTitle"),
+        ],
+      }
+      await openSessionExecutionErrorsDialog(failurePreview)
+      this.render()
+    }
+  }
+
+  static async #onRefuseSessionTransaction(event) {
+    event.preventDefault()
+
+    const session = this.#getActiveSession()
+    if (!session) return
+
+    const confirmed = await openRefuseConfirmDialog()
+    if (!confirmed) return
+
+    session.status = "refused"
+    await this.#saveSession(session)
+    this.render()
   }
 
   static async #onToggleOpen(event) {
@@ -2007,6 +2107,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         displayName: displayName || item.name,
+        isCommerciallyModified: true,
       })
 
       return
@@ -2043,6 +2144,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         priceValue: rawValue,
+        isCommerciallyModified: true,
       })
       return
     }
@@ -2053,6 +2155,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         priceCurrency: target.value?.trim() ?? "",
+        isCommerciallyModified: true,
       })
       return
     }
@@ -2090,6 +2193,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         minimumPriceValue: rawValue,
+        isCommerciallyModified: true,
       })
     }
   }
@@ -2160,6 +2264,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
       ...product,
       hasFreePrice: !product.hasFreePrice,
+      isCommerciallyModified: true,
     })
 
     this.render()
@@ -2178,6 +2283,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (serviceIndex === -1) return
 
     entries[serviceIndex].hasFreePrice = !entries[serviceIndex].hasFreePrice
+    entries[serviceIndex].isCommerciallyModified = true
 
     await this.actor.update({ "system.services.entries": entries })
     this.render()
@@ -2409,6 +2515,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const name = target.value?.trim()
       if (name) {
         entries[serviceIndex].name = name
+        entries[serviceIndex].isCommerciallyModified = true
       } else {
         target.value = entries[serviceIndex].name
         return
@@ -2417,6 +2524,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "description") {
       entries[serviceIndex].description = target.value?.trim() ?? ""
+      entries[serviceIndex].isCommerciallyModified = true
     }
 
     if (field === "priceValue") {
@@ -2429,10 +2537,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       entries[serviceIndex].priceValue = priceValue
+      entries[serviceIndex].isCommerciallyModified = true
     }
 
     if (field === "priceCurrency") {
       entries[serviceIndex].priceCurrency = target.value?.trim() ?? ""
+      entries[serviceIndex].isCommerciallyModified = true
     }
 
     if (field === "quantity") {
@@ -2463,6 +2573,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       entries[serviceIndex].minimumPriceValue = value
+      entries[serviceIndex].isCommerciallyModified = true
     }
 
     await this.actor.update({

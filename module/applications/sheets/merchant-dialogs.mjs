@@ -376,8 +376,7 @@ export async function openValidateConfirmDialog(preview) {
 }
 
 export async function openSessionValidationDialog(preview) {
-  const warning = `<p class="mtt-dialog-preview-notice"><i class="fas fa-circle-info"></i> ${escapeHTML(game.i18n.localize("mtt.sessions.execution.itemsOnlyWarning"))}</p>`
-  const form = `${renderPreviewDialogContent(preview)}${warning}`
+  const form = renderPreviewDialogContent(preview)
   const content = await renderMttDialogContent({
     icon: "fa-circle-check",
     title: game.i18n.localize("mtt.sessions.execution.validateTitle"),

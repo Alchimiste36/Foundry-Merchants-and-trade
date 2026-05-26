@@ -524,7 +524,7 @@
         "validateContent": "Voulez-vous valider cette session de transaction ?",
         "validateConfirm": "Valider",
         "refuseTitle": "Refuser la transaction",
-        "refuseContent": "Voulez-vous refuser cette transaction ? Aucune transaction ne sera effectuée.",
+        "refuseContent": "Voulez-vous refuser cette transaction ? Aucune transaction ne sera effectuée et la session sera remise à zéro.",
         "refuseConfirm": "Refuser",
         "cancel": "Annuler"
       },
@@ -549,7 +549,19 @@
         "merchantStockInsufficient": "Stock insuffisant pour {name}.",
         "sellerItemMissing": "L’objet donné ou vendu est introuvable : {name}.",
         "sellerQuantityInsufficient": "Quantité insuffisante pour {name}.",
-        "emptySession": "La session ne contient aucun élément exécutable."
+        "emptySession": "La session ne contient aucun élément exécutable.",
+        "currencyConfigurationMissing": "Aucune monnaie n’est configurée dans le module.",
+        "referenceCurrencyMissing": "Aucune monnaie de référence n’a pu être déterminée.",
+        "currencyPathUnreadable": "Impossible de lire la monnaie {currency} sur {actor}.",
+        "payerInsufficientFunds": "{actor} n’a pas assez de monnaie pour payer.",
+        "receiverCannotMakeChange": "{actor} ne possède pas assez de monnaie pour rendre la monnaie."
+      },
+      "money": {
+        "noMoneyTransfer": "Aucun transfert monétaire",
+        "clientPays": "Le PJ paiera",
+        "merchantPays": "Le marchand paiera",
+        "clientReceivesChange": "Le PJ recevra en rendu",
+        "merchantReceivesChange": "Le marchand recevra en rendu"
       }
     },
     "configuration": {

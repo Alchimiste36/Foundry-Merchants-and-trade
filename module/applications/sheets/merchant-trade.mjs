@@ -2,16 +2,19 @@ import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
 import {
   normalizeCurrencyKey,
+  normalizeCurrencyText,
   formatCurrencyLabel,
   formatPriceLabel,
   createCheckMessage,
   parseQuantityValue,
+  roundToSmallestCurrencyUnit,
 } from "./merchant-utils.mjs"
 import {
   prepareMerchantCatalogItemData,
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
   getItemAvailableQuantity,
+  findMergeableMerchantItemBySourceUuid,
 } from "./merchant-catalog.mjs"
 
 // ─── Session normalization ────────────────────────────────────────────────────
@@ -588,13 +591,13 @@ export function prepareAccessClients(actor, { selectedSession, selectedClientAct
 // ─── Check logic ──────────────────────────────────────────────────────────────
 
 export function getConfiguredCurrency(currency) {
-  const normalizedCurrency = String(currency ?? "").trim().toLowerCase()
+  const normalizedCurrency = normalizeCurrencyText(currency)
   if (!normalizedCurrency) return null
 
   return (
     getCurrencies().find((entry) => {
       const candidates = [entry.id, entry.abbreviation, entry.name]
-        .map((value) => String(value ?? "").trim().toLowerCase())
+        .map((v) => normalizeCurrencyText(v))
         .filter(Boolean)
 
       return candidates.includes(normalizedCurrency)
@@ -609,6 +612,268 @@ export function getMerchantWalletAmount(actor, currency) {
 
   const amount = Number(actor.system.wallet?.currencies?.[walletKey] ?? 0)
   return Number.isFinite(amount) && amount >= 0 ? amount : 0
+}
+
+export function getActorCurrencyAmount(actor, currency) {
+  if (!currency?.actorPath) return null
+  try {
+    const raw = foundry.utils.getProperty(actor, currency.actorPath)
+    const amount = Number(raw)
+    return Number.isFinite(amount) ? Math.max(0, amount) : null
+  } catch {
+    return null
+  }
+}
+
+export function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies) {
+  const result = {
+    canExecute: false,
+    errors: [],
+    warnings: [],
+    noTransferNeeded: false,
+    payer: null,
+    netDebtReference: 0,
+    payerRemovals: [],
+    receiverAdditions: [],
+    changeRemovals: [],
+    changeAdditions: [],
+    hasChange: false,
+  }
+
+  if (!currencies.length) {
+    result.errors.push(game.i18n.localize("mtt.sessions.errors.currencyConfigurationMissing"))
+    return result
+  }
+
+  const referenceCurrency =
+    currencies.find((c) => Boolean(c.isDefault)) ??
+    currencies.find((c) => Number(c.rate) === 1) ??
+    currencies[0] ??
+    null
+
+  if (!referenceCurrency) {
+    result.errors.push(game.i18n.localize("mtt.sessions.errors.referenceCurrencyMissing"))
+    return result
+  }
+
+  let netDebtReference = 0
+  for (const adjustment of moneyAdjustments) {
+    if (adjustment.currency === "__none") {
+      result.warnings.push(game.i18n.localize("mtt.sessions.check.undefinedCurrency"))
+      continue
+    }
+    const adjustmentCurrencyObj = currencies.find((c) => {
+      const candidates = [c.id, c.abbreviation, c.name].map((v) => normalizeCurrencyText(v)).filter(Boolean)
+      return candidates.includes(normalizeCurrencyText(adjustment.currency))
+    })
+    if (!adjustmentCurrencyObj) {
+      result.warnings.push(
+        game.i18n.format("mtt.sessions.check.unknownCurrency", { currency: formatCurrencyLabel(adjustment.currency) }),
+      )
+      continue
+    }
+    const rate = Number(adjustmentCurrencyObj.rate)
+    const debtInRef = adjustment.amount * (Number.isFinite(rate) && rate > 0 ? rate : 1)
+    if (adjustment.side === "seller") {
+      netDebtReference += debtInRef
+    } else {
+      netDebtReference -= debtInRef
+    }
+  }
+
+  const absDebt = Math.abs(netDebtReference)
+  const roundedAbsDebt = roundToSmallestCurrencyUnit(absDebt, currencies)
+  netDebtReference = netDebtReference < 0 ? -roundedAbsDebt : roundedAbsDebt
+
+  if (Math.abs(netDebtReference) < 0.0001) {
+    result.noTransferNeeded = true
+    result.canExecute = true
+    return result
+  }
+
+  const payerIsClient = netDebtReference > 0
+  result.payer = payerIsClient ? "client" : "merchant"
+  result.netDebtReference = Math.abs(netDebtReference)
+
+  const payerActor = payerIsClient ? clientActor : merchantActor
+  const receiverActor = payerIsClient ? merchantActor : clientActor
+
+  const currenciesSortedDesc = [...currencies].sort((a, b) => Number(b.rate) - Number(a.rate))
+
+  const payerAmounts = {}
+  for (const currency of currenciesSortedDesc) {
+    const currId = String(currency.id ?? "").trim()
+    if (!currId) continue
+    if (payerIsClient) {
+      const amount = getActorCurrencyAmount(clientActor, currency)
+      if (amount === null && currency.actorPath) {
+        result.errors.push(
+          game.i18n.format("mtt.sessions.errors.currencyPathUnreadable", {
+            currency: formatCurrencyLabel(String(currency.abbreviation ?? currency.id ?? "").trim()),
+            actor: payerActor.name,
+          }),
+        )
+      }
+      payerAmounts[currId] = amount ?? 0
+    } else {
+      payerAmounts[currId] = getMerchantWalletAmount(merchantActor, currId)
+    }
+  }
+
+  if (result.errors.length > 0) return result
+
+  const payerRemovals = []
+  let remaining = result.netDebtReference
+
+  for (const currency of currenciesSortedDesc) {
+    if (remaining < 0.0001) break
+    const currId = String(currency.id ?? "").trim()
+    if (!currId) continue
+    const rate = Number(currency.rate)
+    if (!Number.isFinite(rate) || rate <= 0) continue
+    const available = payerAmounts[currId] ?? 0
+    if (available <= 0) continue
+    const use = Math.min(available, Math.floor(remaining / rate + 0.0001))
+    if (use > 0) {
+      payerRemovals.push({ currency, amount: use })
+      remaining = Math.round((remaining - use * rate) * 10000) / 10000
+    }
+  }
+
+  if (remaining > 0.0001) {
+    const currenciesSortedAsc = [...currenciesSortedDesc].reverse()
+    let covered = false
+
+    for (const currency of currenciesSortedAsc) {
+      const currId = String(currency.id ?? "").trim()
+      if (!currId) continue
+      const rate = Number(currency.rate)
+      if (!Number.isFinite(rate) || rate < remaining - 0.0001) continue
+      const available = payerAmounts[currId] ?? 0
+      const alreadyUsed = payerRemovals.find((r) => r.currency.id === currId)?.amount ?? 0
+      if (available - alreadyUsed < 1) continue
+
+      const existing = payerRemovals.find((r) => r.currency.id === currId)
+      if (existing) {
+        existing.amount += 1
+      } else {
+        payerRemovals.push({ currency, amount: 1 })
+      }
+
+      const overpaid = Math.round((rate - remaining) * 10000) / 10000
+      remaining = 0
+
+      if (overpaid > 0.0001) {
+        result.hasChange = true
+        const changeRemovals = []
+        let changeRemaining = overpaid
+
+        const receiverAmounts = {}
+        for (const c of currenciesSortedDesc) {
+          const cId = String(c.id ?? "").trim()
+          if (!cId) continue
+          if (payerIsClient) {
+            receiverAmounts[cId] = getMerchantWalletAmount(merchantActor, cId)
+          } else {
+            receiverAmounts[cId] = getActorCurrencyAmount(receiverActor, c) ?? 0
+          }
+        }
+
+        for (const c of currenciesSortedDesc) {
+          if (changeRemaining < 0.0001) break
+          const cId = String(c.id ?? "").trim()
+          if (!cId) continue
+          const r = Number(c.rate)
+          if (!Number.isFinite(r) || r <= 0) continue
+          const avail = receiverAmounts[cId] ?? 0
+          if (avail <= 0) continue
+          const use2 = Math.min(avail, Math.floor(changeRemaining / r + 0.0001))
+          if (use2 > 0) {
+            changeRemovals.push({ currency: c, amount: use2 })
+            changeRemaining = Math.round((changeRemaining - use2 * r) * 10000) / 10000
+          }
+        }
+
+        if (changeRemaining > 0.0001) {
+          result.errors.push(
+            game.i18n.format("mtt.sessions.errors.receiverCannotMakeChange", { actor: receiverActor.name }),
+          )
+          return result
+        }
+
+        result.changeRemovals = changeRemovals
+        result.changeAdditions = changeRemovals.map((r) => ({ ...r }))
+      }
+
+      covered = true
+      break
+    }
+
+    if (!covered) {
+      result.errors.push(game.i18n.format("mtt.sessions.errors.payerInsufficientFunds", { actor: payerActor.name }))
+      return result
+    }
+  }
+
+  result.payerRemovals = payerRemovals
+  result.receiverAdditions = payerRemovals.map((r) => ({ ...r }))
+  result.canExecute = result.errors.length === 0
+  return result
+}
+
+export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan) {
+  if (!plan?.canExecute || plan.noTransferNeeded) return
+
+  const payerIsClient = plan.payer === "client"
+  const currencies = getCurrencies()
+  const currencyById = new Map(currencies.map((c) => [String(c.id ?? "").trim(), c]))
+
+  const clientDeltas = new Map()
+  const merchantDeltas = new Map()
+
+  function applyDelta(isClient, currencyId, delta) {
+    const map = isClient ? clientDeltas : merchantDeltas
+    map.set(currencyId, (map.get(currencyId) ?? 0) + delta)
+  }
+
+  for (const { currency, amount } of plan.payerRemovals) {
+    const currId = String(currency.id ?? "").trim()
+    if (currId) applyDelta(payerIsClient, currId, -amount)
+  }
+  for (const { currency, amount } of plan.receiverAdditions) {
+    const currId = String(currency.id ?? "").trim()
+    if (currId) applyDelta(!payerIsClient, currId, +amount)
+  }
+  if (plan.hasChange) {
+    for (const { currency, amount } of plan.changeRemovals) {
+      const currId = String(currency.id ?? "").trim()
+      if (currId) applyDelta(!payerIsClient, currId, -amount)
+    }
+    for (const { currency, amount } of plan.changeAdditions) {
+      const currId = String(currency.id ?? "").trim()
+      if (currId) applyDelta(payerIsClient, currId, +amount)
+    }
+  }
+
+  const clientUpdate = {}
+  for (const [currId, delta] of clientDeltas) {
+    if (delta === 0) continue
+    const currency = currencyById.get(currId)
+    if (!currency?.actorPath) continue
+    const current = Number(foundry.utils.getProperty(clientActor, currency.actorPath) ?? 0)
+    const newAmount = Math.max(0, Number(((Number.isFinite(current) ? current : 0) + delta).toFixed(2)))
+    foundry.utils.setProperty(clientUpdate, currency.actorPath, newAmount)
+  }
+
+  const merchantUpdate = {}
+  for (const [currId, delta] of merchantDeltas) {
+    if (delta === 0) continue
+    const current = getMerchantWalletAmount(merchantActor, currId)
+    merchantUpdate[`system.wallet.currencies.${currId}`] = Math.max(0, Number((current + delta).toFixed(2)))
+  }
+
+  if (Object.keys(clientUpdate).length > 0) await clientActor.update(clientUpdate)
+  if (Object.keys(merchantUpdate).length > 0) await merchantActor.update(merchantUpdate)
 }
 
 export function getProductCheckAvailableQuantity(actor, item) {
@@ -1007,62 +1272,63 @@ export async function buildExecutionPreview(actor, session) {
   )
   const adjustments = prepareMoneyAdjustments(buyerTotals, sellerTotals)
 
-  for (const adjustment of adjustments) {
-    const adjustmentCurrency = adjustment.currency === "__none" ? "" : adjustment.currency
-    const currency = getConfiguredCurrency(adjustmentCurrency)
-    const currencyLabel = formatCurrencyLabel(adjustmentCurrency)
+  const currencies = getCurrencies()
+  const currencyTransferPlan = clientActor && currencies.length > 0
+    ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies)
+    : null
 
-    if (!currency) {
-      preview.warnings.push(game.i18n.format("mtt.sessions.preview.currencyUnreadable", { currency: currencyLabel }))
+  preview.currencyTransferPlan = currencyTransferPlan ?? null
+  preview.moneyTransfers = []
+
+  if (currencyTransferPlan) {
+    for (const err of currencyTransferPlan.errors ?? []) {
+      if (!preview.errors.includes(err)) preview.errors.push(err)
+    }
+    for (const warn of currencyTransferPlan.warnings ?? []) {
+      if (!preview.warnings.includes(warn)) preview.warnings.push(warn)
+    }
+
+    if (!currencyTransferPlan.noTransferNeeded) {
+      const payerName = currencyTransferPlan.payer === "client" ? (preview.client?.actorName ?? "") : actor.name
+      const receiverName = currencyTransferPlan.payer === "client" ? actor.name : (preview.client?.actorName ?? "")
+
+      for (const { currency, amount } of currencyTransferPlan.payerRemovals) {
+        const abbr = String(currency.abbreviation ?? currency.id ?? "").trim()
+        preview.moneyTransfers.push({
+          currencyLabel: abbr,
+          amountLabel: formatPriceLabel(amount, abbr),
+          payer: payerName,
+          receiver: receiverName,
+          hasEnough: true,
+          unknownCurrency: false,
+          isChange: false,
+        })
+      }
+
+      for (const { currency, amount } of (currencyTransferPlan.changeRemovals ?? [])) {
+        const abbr = String(currency.abbreviation ?? currency.id ?? "").trim()
+        preview.moneyTransfers.push({
+          currencyLabel: abbr,
+          amountLabel: formatPriceLabel(amount, abbr),
+          payer: receiverName,
+          receiver: payerName,
+          hasEnough: true,
+          unknownCurrency: false,
+          isChange: true,
+        })
+      }
+    }
+  } else if (adjustments.length > 0) {
+    for (const adjustment of adjustments) {
+      const adjustmentCurrency = adjustment.currency === "__none" ? "" : adjustment.currency
       preview.moneyTransfers.push({
-        side: adjustment.side,
-        currencyLabel,
+        currencyLabel: formatCurrencyLabel(adjustmentCurrency),
         amountLabel: adjustment.amountLabel,
         payer: adjustment.side === "seller" ? (preview.client?.actorName ?? "") : actor.name,
         receiver: adjustment.side === "seller" ? actor.name : (preview.client?.actorName ?? ""),
         hasEnough: false,
         unknownCurrency: true,
-      })
-      continue
-    }
-
-    if (adjustment.side === "seller") {
-      let clientAmount = null
-      if (currency.actorPath) {
-        try { clientAmount = foundry.utils.getProperty(clientActor, currency.actorPath) } catch { /* ignore */ }
-      }
-      const clientAmountNum = Number(clientAmount)
-      const hasEnough = !Number.isFinite(clientAmountNum) || clientAmountNum >= adjustment.amount
-
-      if (!hasEnough) {
-        preview.warnings.push(game.i18n.format("mtt.sessions.preview.currencyInsufficient", { currency: currencyLabel }))
-      }
-
-      preview.moneyTransfers.push({
-        side: "seller",
-        currencyLabel,
-        amountLabel: adjustment.amountLabel,
-        payer: preview.client?.actorName ?? "",
-        receiver: actor.name,
-        hasEnough,
-        unknownCurrency: false,
-      })
-    } else {
-      const merchantAmount = getMerchantWalletAmount(actor, adjustmentCurrency)
-      const hasEnough = !Number.isFinite(merchantAmount) || merchantAmount >= adjustment.amount
-
-      if (!hasEnough) {
-        preview.warnings.push(game.i18n.format("mtt.sessions.preview.currencyInsufficient", { currency: currencyLabel }))
-      }
-
-      preview.moneyTransfers.push({
-        side: "buyer",
-        currencyLabel,
-        amountLabel: adjustment.amountLabel,
-        payer: actor.name,
-        receiver: preview.client?.actorName ?? "",
-        hasEnough,
-        unknownCurrency: false,
+        isChange: false,
       })
     }
   }
@@ -1174,9 +1440,10 @@ export async function buildSessionItemExecutionPlan(actor, session) {
     errors.push(game.i18n.localize("mtt.sessions.errors.clientNotAuthorized"))
   }
 
-  const moneyBlocked = (preview.moneyTransfers ?? []).length > 0
-  if (moneyBlocked) {
-    errors.push(game.i18n.localize("mtt.sessions.execution.moneyAdjustmentBlocksExecution"))
+  if (preview.currencyTransferPlan && !preview.currencyTransferPlan.canExecute) {
+    for (const err of preview.currencyTransferPlan.errors ?? []) {
+      if (!errors.includes(err)) errors.push(err)
+    }
   }
 
   if ((preview.services ?? []).length > 0) {
@@ -1291,11 +1558,25 @@ export async function executeSessionItemTransfers(actor, plan) {
   for (const transfer of plan.operations.sellerTransfers) {
     const automaticCategory = getAutomaticItemCategory(transfer.sourceItem)
     const categoryValue = await getOrCreateAutomaticProductCategory(actor, automaticCategory)
-    const itemData = buildMerchantReceivedItemData(transfer.sourceItem, transfer.quantity, {
-      automaticCategory,
-      categoryValue,
-    })
-    await actor.createEmbeddedDocuments("Item", [itemData])
+    const sourceUuid = String(transfer.sourceItem.uuid ?? "").trim()
+    const existingMerchantItem = findMergeableMerchantItemBySourceUuid(actor, sourceUuid)
+
+    if (existingMerchantItem) {
+      const product = existingMerchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+      const currentQuantity = Number.isFinite(Number(product.quantity))
+        ? Number(product.quantity)
+        : MTT.PRODUCT_DEFAULTS.quantity
+      await existingMerchantItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        quantity: Number((currentQuantity + transfer.quantity).toFixed(2)),
+      })
+    } else {
+      const itemData = buildMerchantReceivedItemData(transfer.sourceItem, transfer.quantity, {
+        automaticCategory,
+        categoryValue,
+      })
+      await actor.createEmbeddedDocuments("Item", [itemData])
+    }
 
     await transfer.sourceItem.update({
       [transfer.quantityPath]: transfer.nextQuantity,

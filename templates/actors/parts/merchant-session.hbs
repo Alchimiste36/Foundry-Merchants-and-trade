@@ -94,16 +94,6 @@
                   <span>{{localize "mtt.sessions.item.totalPrice"}} {{item.totalPriceLabel}}</span>
                 </div>
               </div>
-
-              <button
-                class="mtt-merchant-session-action"
-                type="button"
-                data-action="removeSessionItem"
-                data-tooltip="{{localize 'mtt.sessions.removeItem'}}"
-                {{#unless mtt.session.canEdit}}disabled{{/unless}}
-              >
-                <i class="fas fa-xmark"></i>
-              </button>
             </li>
           {{/each}}
           {{/if}}
@@ -195,16 +185,6 @@
                   <span>{{localize "mtt.sessions.item.totalPrice"}} {{item.totalPriceLabel}}</span>
                 </div>
               </div>
-
-              <button
-                class="mtt-merchant-session-action"
-                type="button"
-                data-action="removeSessionItem"
-                data-tooltip="{{localize 'mtt.sessions.removeItem'}}"
-                {{#unless mtt.session.canEdit}}disabled{{/unless}}
-              >
-                <i class="fas fa-xmark"></i>
-              </button>
             </li>
           {{/each}}
           {{/if}}

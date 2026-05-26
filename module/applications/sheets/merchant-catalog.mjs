@@ -12,6 +12,7 @@ import {
   getItemDescription,
   getItemPrice,
   getItemCurrency,
+  resolveItemCurrencyKey,
 } from "./merchant-utils.mjs"
 
 export function getSellPercent(actor) {
@@ -302,11 +303,8 @@ export function createProductFlags(itemData, options = {}) {
   }
 
   const configuredCurrency = getConfiguredItemValue(itemData, "itemPriceCurrencyPath")
-  if (typeof configuredCurrency === "string") {
-    productFlags.priceCurrency = configuredCurrency.trim()
-  } else {
-    productFlags.priceCurrency = getItemCurrency(itemData)
-  }
+  const rawCurrency = typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(itemData)
+  productFlags.priceCurrency = resolveItemCurrencyKey(rawCurrency)
 
   const configuredQuantity = getConfiguredItemValue(itemData, "itemQuantityPath")
   const parsedQuantity = parseQuantityValue(configuredQuantity)
@@ -358,16 +356,22 @@ export function prepareMerchantCatalogItemData(sourceItem, options = {}) {
   return productData
 }
 
+export function findMergeableMerchantItemBySourceUuid(actor, sourceUuid) {
+  const normalizedSourceUuid = String(sourceUuid ?? "").trim()
+  if (!normalizedSourceUuid) return null
+
+  return (
+    actor.items.find((item) => {
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+      if (product.isCommerciallyModified === true) return false
+      return String(product.sourceUuid ?? "").trim() === normalizedSourceUuid
+    }) ?? null
+  )
+}
+
 export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", automaticCategory = null, sourceUuid = "") {
   const normalizedSourceUuid = String(sourceUuid ?? sourceItem?.uuid ?? "").trim()
-
-  const existingProduct = normalizedSourceUuid
-    ? actor.items.find((item) => {
-        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-        if (product.isCommerciallyModified === true) return false
-        return String(product.sourceUuid ?? "").trim() === normalizedSourceUuid
-      })
-    : null
+  const existingProduct = findMergeableMerchantItemBySourceUuid(actor, normalizedSourceUuid)
 
   if (existingProduct) {
     const product = existingProduct.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
@@ -421,11 +425,10 @@ export async function createServiceFromItem(actor, item) {
     priceValue = getItemPrice(item) ?? 0
   }
 
-  let priceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-  if (typeof priceCurrency !== "string") {
-    priceCurrency = ""
-  }
-  priceCurrency = priceCurrency.trim()
+  const rawServiceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
+  const priceCurrency = resolveItemCurrencyKey(
+    typeof rawServiceCurrency === "string" ? rawServiceCurrency.trim() : getItemCurrency(item),
+  )
 
   const automaticCategory = getAutomaticItemCategory(item)
 
@@ -486,8 +489,9 @@ export function prepareSellerItemDropData(actor, item) {
       : 50
   const unitPriceValue = Number(((basePriceValue * buyPercent) / 100).toFixed(2))
   const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-  const priceCurrency =
-    typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item)
+  const priceCurrency = resolveItemCurrencyKey(
+    typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item),
+  )
   const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
 
   return {

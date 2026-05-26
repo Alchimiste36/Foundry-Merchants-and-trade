@@ -80,6 +80,7 @@ import {
   buildExecutionPreview,
   buildSessionItemExecutionPlan,
   executeSessionItemTransfers,
+  applyCurrencyTransferPlan,
   clearSessionAfterExecution,
 } from "./merchant-trade.mjs"
 
@@ -1960,6 +1961,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       await executeSessionItemTransfers(this.actor, executionPlan)
+      if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
+        await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan)
+      }
       clearSessionAfterExecution(session)
       await this.#saveSession(session)
       this.#sessionCheckResult = null
@@ -1987,7 +1991,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const confirmed = await openRefuseConfirmDialog()
     if (!confirmed) return
 
-    session.status = "refused"
+    clearSessionAfterExecution(session)
     await this.#saveSession(session)
     this.render()
   }

@@ -1,4 +1,5 @@
 import { MTT } from "../../config/constants.mjs"
+import { getCurrencies } from "../../config/settings.mjs"
 
 export function parsePriceValue(value) {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
@@ -41,6 +42,66 @@ export function parseQuantityValue(value) {
 export function normalizeCurrencyKey(priceCurrency) {
   const currency = String(priceCurrency ?? "").trim()
   return currency || "__none"
+}
+
+export function normalizeCurrencyText(value) {
+  return String(value ?? "").trim().toLowerCase()
+}
+
+export function resolveConfiguredCurrency(currencyText) {
+  const currencies = getCurrencies()
+  if (!currencies.length) return null
+
+  const normalized = normalizeCurrencyText(currencyText)
+
+  const match = normalized
+    ? currencies.find((entry) => {
+        const candidates = [entry.id, entry.abbreviation, entry.name]
+          .map((v) => normalizeCurrencyText(v))
+          .filter(Boolean)
+        return candidates.includes(normalized)
+      })
+    : null
+
+  return (
+    match ??
+    currencies.find((c) => Boolean(c.isDefault)) ??
+    currencies.find((c) => Number(c.rate) === 1) ??
+    currencies[0] ??
+    null
+  )
+}
+
+export function resolveItemCurrencyKey(currencyText) {
+  const currency = resolveConfiguredCurrency(currencyText)
+  if (!currency) return String(currencyText ?? "").trim()
+  return String(currency.abbreviation ?? currency.id ?? "").trim()
+}
+
+const MONEY_EPSILON = 1e-8
+
+export function cleanMoneyNumber(value) {
+  return Math.round(Number(value) * 1e8) / 1e8
+}
+
+export function getSmallestCurrencyRate(currencies) {
+  let smallest = null
+  for (const c of currencies) {
+    const rate = Number(c.rate)
+    if (!Number.isFinite(rate) || rate <= 0) continue
+    if (smallest === null || rate < smallest) smallest = rate
+  }
+  return smallest
+}
+
+export function roundToSmallestCurrencyUnit(amountReference, currencies) {
+  const smallestRate = getSmallestCurrencyRate(currencies)
+  if (smallestRate === null) return cleanMoneyNumber(amountReference)
+  const units = Number(amountReference) / smallestRate
+  const floorUnits = Math.floor(units)
+  const fraction = units - floorUnits
+  const roundedUnits = fraction > 0.5 + MONEY_EPSILON ? floorUnits + 1 : floorUnits
+  return cleanMoneyNumber(roundedUnits * smallestRate)
 }
 
 export function formatCurrencyLabel(priceCurrency) {

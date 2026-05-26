@@ -161,17 +161,13 @@
 
                         <div class="mtt-merchant-product-price">
                           {{#if item.hasFreePrice}}
-                            <span class="mtt-merchant-product-free-price-indicator" data-tooltip="{{localize 'mtt.price.freePriceTooltip'}}">
-                              <i class="fas fa-scale-balanced"></i>
-                              {{localize "mtt.price.freePrice"}}
-                            </span>
                             <label class="mtt-merchant-product-price-field">
                               <span class="mtt-merchant-product-price-label" data-tooltip="{{localize 'mtt.price.minimumPriceHint'}}">{{localize "mtt.price.minimumPrice"}}</span>
                               <input
                                 class="mtt-merchant-product-price-value"
                                 type="number"
                                 min="0"
-                                step="0.01"
+                                step="1"
                                 value="{{item.minimumPriceValue}}"
                                 data-mtt-product-field="minimumPriceValue"
                               />
@@ -183,17 +179,10 @@
                                 class="mtt-merchant-product-price-value"
                                 type="number"
                                 min="0"
-                                step="0.01"
+                                step="1"
                                 value="{{item.priceValue}}"
                                 placeholder="{{localize 'mtt.products.price.valuePlaceholder'}}"
                                 data-mtt-product-field="priceValue"
-                              />
-                              <input
-                                class="mtt-merchant-product-price-currency"
-                                type="text"
-                                value="{{item.priceCurrency}}"
-                                placeholder="{{localize 'mtt.products.price.currencyPlaceholder'}}"
-                                data-mtt-product-field="priceCurrency"
                               />
                             </label>
                             <span
@@ -208,44 +197,56 @@
                               {{/if}}
                             </span>
                           {{/if}}
+                          <select
+                            class="mtt-merchant-product-price-currency"
+                            data-mtt-product-field="priceCurrency"
+                          >
+                            {{#each @root.mtt.currencyOptions as |opt|}}
+                              <option value="{{opt.key}}"{{#if (eq opt.key item.selectedCurrencyKey)}} selected{{/if}}>{{opt.label}}</option>
+                            {{/each}}
+                          </select>
                         </div>
                       {{else}}
-                        {{#if item.hasQuantity}}
-                          <span class="mtt-merchant-product-quantity">
-                            {{localize "mtt.products.quantity.short"}}
-                            {{item.quantity}}
-                          </span>
-                        {{else}}
-                          <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
-                            {{localize "mtt.products.quantity.undefined"}}
-                          </span>
+                        {{#if @root.mtt.permissions.canViewQuantities}}
+                          {{#if item.hasQuantity}}
+                            <span class="mtt-merchant-product-quantity">
+                              {{localize "mtt.products.quantity.short"}}
+                              {{item.quantity}}
+                            </span>
+                          {{else}}
+                            <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
+                              {{localize "mtt.products.quantity.undefined"}}
+                            </span>
+                          {{/if}}
                         {{/if}}
 
-                        <div class="mtt-merchant-product-price-readonly">
-                          {{#if item.hasFreePrice}}
-                            <span class="mtt-merchant-product-free-price" data-tooltip="{{localize 'mtt.price.freePriceIconTooltip'}}">
-                              <i class="fas fa-scale-balanced"></i>
-                            </span>
-                          {{else if item.hasPrice}}
-                            <span class="mtt-merchant-product-price-display">{{item.displayPriceLabel}}</span>
-                          {{else}}
-                            <span class="mtt-merchant-product-price-undefined">{{localize "mtt.products.price.undefined"}}</span>
-                          {{/if}}
-                        </div>
+                        {{#if @root.mtt.permissions.canViewPrices}}
+                          <div class="mtt-merchant-product-price-readonly">
+                            {{#if item.hasFreePrice}}
+                              <span class="mtt-merchant-product-free-price-label">{{localize "mtt.price.freePrice"}}</span>
+                            {{else if item.hasPrice}}
+                              <span class="mtt-merchant-product-price-display">{{item.displayPriceLabel}}</span>
+                            {{else}}
+                              <span class="mtt-merchant-product-price-undefined">{{localize "mtt.products.price.undefined"}}</span>
+                            {{/if}}
+                          </div>
+                        {{/if}}
                       {{/if}}
                     </div>
 
                     <div class="mtt-merchant-product-actions">
-                      {{#unless item.isHidden}}
-                        <button
-                          class="mtt-merchant-product-action"
-                          type="button"
-                          data-action="addProductToSession"
-                          data-tooltip="{{localize 'mtt.sessions.actions.addProduct'}}"
-                        >
-                          <i class="fas fa-cart-plus"></i>
-                        </button>
-                      {{/unless}}
+                      {{#if @root.mtt.permissions.canUseSession}}
+                        {{#unless item.isHidden}}
+                          <button
+                            class="mtt-merchant-product-action"
+                            type="button"
+                            data-action="addProductToSession"
+                            data-tooltip="{{localize 'mtt.sessions.actions.addProduct'}}"
+                          >
+                            <i class="fas fa-cart-plus"></i>
+                          </button>
+                        {{/unless}}
+                      {{/if}}
 
                       <button
                         class="mtt-merchant-product-action"
@@ -257,15 +258,6 @@
                       </button>
 
                       {{#if @root.mtt.canEditMerchant}}
-                        <button
-                          class="mtt-merchant-product-action {{#if item.hasFreePrice}}mtt-merchant-product-action-active{{/if}}"
-                          type="button"
-                          data-action="toggleProductFreePrice"
-                          data-tooltip="{{#if item.hasFreePrice}}{{localize 'mtt.price.freePriceTooltip'}}{{else}}{{localize 'mtt.price.freePrice'}}{{/if}}"
-                        >
-                          <i class="fas fa-scale-balanced"></i>
-                        </button>
-
                         <button
                           class="mtt-merchant-product-action mtt-merchant-product-delete"
                           type="button"

@@ -69,17 +69,19 @@
             {{/if}}
 
             <div class="mtt-merchant-service-actions">
-              {{#unless service.isHidden}}
-                <button
-                  class="mtt-merchant-service-action"
-                  type="button"
-                  data-action="addServiceToSession"
-                  data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
-                  title="{{localize 'mtt.sessions.actions.addService'}}"
-                >
-                  <i class="fas fa-cart-plus"></i>
-                </button>
-              {{/unless}}
+              {{#if @root.mtt.permissions.canUseSession}}
+                {{#unless service.isHidden}}
+                  <button
+                    class="mtt-merchant-service-action"
+                    type="button"
+                    data-action="addServiceToSession"
+                    data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
+                    title="{{localize 'mtt.sessions.actions.addService'}}"
+                  >
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                {{/unless}}
+              {{/if}}
 
               <button
                 class="mtt-merchant-service-action"
@@ -119,21 +121,20 @@
                 </div>
               {{/if}}
 
-              <div class="mtt-merchant-service-price">
-                {{#if service.hasFreePrice}}
-                  <span class="mtt-merchant-service-free-price" data-tooltip="{{localize 'mtt.price.freePriceTooltip'}}">
-                    <i class="fas fa-scale-balanced"></i>
-                    {{localize "mtt.price.freePrice"}}
-                  </span>
-                {{else}}
-                  <span>{{localize "mtt.services.price.adjusted"}}</span>
-                  {{#if service.hasPrice}}
-                    <strong>{{service.displayPriceLabel}}</strong>
+              {{#if @root.mtt.permissions.canViewPrices}}
+                <div class="mtt-merchant-service-price">
+                  {{#if service.hasFreePrice}}
+                    <span class="mtt-merchant-service-free-price-label">{{localize "mtt.price.freePrice"}}</span>
                   {{else}}
-                    <strong>{{localize "mtt.products.price.undefined"}}</strong>
+                    <span>{{localize "mtt.services.price.adjusted"}}</span>
+                    {{#if service.hasPrice}}
+                      <strong>{{service.displayPriceLabel}}</strong>
+                    {{else}}
+                      <strong>{{localize "mtt.products.price.undefined"}}</strong>
+                    {{/if}}
                   {{/if}}
-                {{/if}}
-              </div>
+                </div>
+              {{/if}}
 
               <div class="mtt-merchant-service-fields">
                 {{#if @root.mtt.canEditMerchant}}
@@ -152,7 +153,7 @@
                       data-mtt-service-field="minimumPriceValue"
                       value="{{service.minimumPriceValue}}"
                       min="0"
-                      step="0.01"
+                      step="1"
                       placeholder="{{localize 'mtt.price.minimumPrice'}}"
                       data-tooltip="{{localize 'mtt.price.minimumPriceHint'}}"
                     />
@@ -163,18 +164,18 @@
                       data-mtt-service-field="priceValue"
                       value="{{service.priceValue}}"
                       min="0"
-                      step="0.01"
+                      step="1"
                       placeholder="{{localize 'mtt.services.price.base'}}"
                     />
-
-                    <input
-                      type="text"
-                      class="mtt-merchant-service-price-currency"
-                      data-mtt-service-field="priceCurrency"
-                      value="{{service.priceCurrency}}"
-                      placeholder="{{localize 'mtt.services.currency'}}"
-                    />
                   {{/if}}
+                  <select
+                    class="mtt-merchant-service-price-currency"
+                    data-mtt-service-field="priceCurrency"
+                  >
+                    {{#each @root.mtt.currencyOptions as |opt|}}
+                      <option value="{{opt.key}}"{{#if (eq opt.key service.selectedCurrencyKey)}} selected{{/if}}>{{opt.label}}</option>
+                    {{/each}}
+                  </select>
 
                   <input
                     type="number"
@@ -187,16 +188,6 @@
                   />
 
                   <button
-                    class="mtt-merchant-service-action {{#if service.hasFreePrice}}mtt-merchant-service-action-active{{/if}}"
-                    type="button"
-                    data-action="toggleServiceFreePrice"
-                    data-tooltip="{{#if service.hasFreePrice}}{{localize 'mtt.price.freePriceTooltip'}}{{else}}{{localize 'mtt.price.freePrice'}}{{/if}}"
-                    title="{{#if service.hasFreePrice}}{{localize 'mtt.price.freePriceTooltip'}}{{else}}{{localize 'mtt.price.freePrice'}}{{/if}}"
-                  >
-                    <i class="fas fa-scale-balanced"></i>
-                  </button>
-
-                  <button
                     class="mtt-merchant-service-delete"
                     type="button"
                     data-action="deleteService"
@@ -206,13 +197,15 @@
                     <i class="fas fa-trash"></i>
                   </button>
                 {{else}}
-                  <div class="mtt-merchant-service-price">
-                    {{#if service.hasQuantity}}
-                      <span>{{service.quantity}}</span>
-                    {{else}}
-                      <span>{{localize 'mtt.services.unlimited'}}</span>
-                    {{/if}}
-                  </div>
+                  {{#if @root.mtt.permissions.canViewQuantities}}
+                    <div class="mtt-merchant-service-price">
+                      {{#if service.hasQuantity}}
+                        <span>{{service.quantity}}</span>
+                      {{else}}
+                        <span>{{localize 'mtt.services.unlimited'}}</span>
+                      {{/if}}
+                    </div>
+                  {{/if}}
                 {{/if}}
               </div>
             </div>

@@ -1,5 +1,5 @@
 import { MTT } from "../../config/constants.mjs"
-import { escapeHTML } from "./merchant-utils.mjs"
+import { escapeHTML, buildCurrencySelectOptions } from "./merchant-utils.mjs"
 
 export async function renderMttDialogContent({
   icon = "",
@@ -30,32 +30,37 @@ export function renderSessionPreparationDialog({
   includeProposedPrice = false,
   hasFreePrice = false,
   referenceCurrencyLabel = "",
+  hidePriceInfo = false,
 }) {
   const quantityMax =
     Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : ""
 
-  const priceSummaryHtml = hasFreePrice
-    ? `<p class="mtt-session-dialog-line">
-        <i class="fas fa-scale-balanced"></i>
-        <strong>${game.i18n.localize("mtt.price.freePrice")}</strong>
-      </p>`
-    : `<p class="mtt-session-dialog-line">
-        <strong>${game.i18n.localize("mtt.products.price.adjusted")}</strong>
-        <span>${escapeHTML(priceLabel)}</span>
-      </p>`
+  const priceSummaryHtml = hidePriceInfo
+    ? ""
+    : hasFreePrice
+      ? `<p class="mtt-session-dialog-line">
+          <i class="fas fa-scale-balanced"></i>
+          <strong>${game.i18n.localize("mtt.price.freePrice")}</strong>
+        </p>`
+      : `<p class="mtt-session-dialog-line">
+          <strong>${game.i18n.localize("mtt.products.price.adjusted")}</strong>
+          <span>${escapeHTML(priceLabel)}</span>
+        </p>`
 
   const currencySuffix = referenceCurrencyLabel ? ` (${escapeHTML(referenceCurrencyLabel)})` : ""
-  const proposedPriceField = hasFreePrice
-    ? `<label class="mtt-session-dialog-field">
-        <span>${game.i18n.localize("mtt.price.proposedPrice")}${currencySuffix}</span>
-        <input type="number" name="proposedPrice" min="0" step="0.01" value="" required />
-      </label>`
-    : includeProposedPrice
+  const proposedPriceField = hidePriceInfo
+    ? ""
+    : hasFreePrice
       ? `<label class="mtt-session-dialog-field">
-          <span>${game.i18n.localize("mtt.sessions.dialog.proposedPrice")}</span>
-          <input type="number" name="proposedPrice" min="0" step="0.01" placeholder="${escapeHTML(priceLabel)}" />
+          <span>${game.i18n.localize("mtt.price.proposedPrice")}${currencySuffix}</span>
+          <input type="number" name="proposedPrice" min="0" step="1" value="" required />
         </label>`
-      : ""
+      : includeProposedPrice
+        ? `<label class="mtt-session-dialog-field">
+            <span>${game.i18n.localize("mtt.sessions.dialog.proposedPrice")}</span>
+            <input type="number" name="proposedPrice" min="0" step="1" placeholder="${escapeHTML(priceLabel)}" />
+          </label>`
+        : ""
 
   return `<form class="mtt-session-dialog-form">
     <section class="mtt-session-dialog-summary">
@@ -82,6 +87,7 @@ export async function openSessionPreparationDialog({
   includeProposedPrice = false,
   hasFreePrice = false,
   referenceCurrencyLabel = "",
+  hidePriceInfo = false,
 }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
@@ -95,6 +101,7 @@ export async function openSessionPreparationDialog({
     includeProposedPrice,
     hasFreePrice,
     referenceCurrencyLabel,
+    hidePriceInfo,
   })
 
   let result = null
@@ -139,6 +146,14 @@ export async function openSessionPreparationDialog({
     return
   }
 
+  if (hidePriceInfo) {
+    return {
+      quantity: requestedQuantity,
+      proposedPrice: hasFreePrice ? 0 : "",
+      isFreePrice: hasFreePrice,
+    }
+  }
+
   if (hasFreePrice) {
     const proposedPrice = Number(result.proposedPrice)
     if (!Number.isFinite(proposedPrice) || proposedPrice < 0) {
@@ -160,11 +175,22 @@ export async function openSessionPreparationDialog({
   }
 }
 
-export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency }) {
+export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false }) {
   const quantityMax =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? ` max="${escapeHTML(String(availableQuantity))}"`
       : ""
+
+  const priceFieldsHtml = hidePriceFields
+    ? ""
+    : `<label class="mtt-dialog-field">
+        <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemUnitValue")}</span>
+        <input type="number" name="unitPriceValue" min="0" step="1" value="${escapeHTML(String(unitPriceValue))}" />
+      </label>
+      <label class="mtt-dialog-field">
+        <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemCurrency")}</span>
+        <select name="priceCurrency">${buildCurrencySelectOptions(priceCurrency)}</select>
+      </label>`
 
   return `<label class="mtt-dialog-field">
       <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemAvailableQuantity")}</span>
@@ -174,14 +200,7 @@ export function renderSellerItemDialog({ availableQuantityLabel, availableQuanti
       <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemQuantity")}</span>
       <input type="number" name="quantity" min="1" step="1" value="1"${quantityMax} />
     </label>
-    <label class="mtt-dialog-field">
-      <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemUnitValue")}</span>
-      <input type="number" name="unitPriceValue" min="0" step="0.01" value="${escapeHTML(String(unitPriceValue))}" />
-    </label>
-    <label class="mtt-dialog-field">
-      <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemCurrency")}</span>
-      <input type="text" name="priceCurrency" value="${escapeHTML(priceCurrency)}" />
-    </label>`
+    ${priceFieldsHtml}`
 }
 
 // ─── Preview dialog helpers ───────────────────────────────────────────────────
@@ -475,7 +494,7 @@ export async function openRefuseConfirmDialog() {
   return Boolean(result)
 }
 
-export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency }) {
+export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? String(availableQuantity)
@@ -486,6 +505,7 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
     availableQuantityLabel,
     unitPriceValue,
     priceCurrency,
+    hidePriceFields,
   })
 
   const content = await renderMttDialogContent({
@@ -540,6 +560,14 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
   if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && quantity > availableQuantity) {
     ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughSellerItemQuantity"))
     return null
+  }
+
+  if (hidePriceFields) {
+    return {
+      quantity,
+      unitPriceValue: Number.isFinite(Number(unitPriceValue)) && Number(unitPriceValue) >= 0 ? Number(unitPriceValue) : 0,
+      priceCurrency: String(priceCurrency ?? "").trim(),
+    }
   }
 
   const priceValue = Number(result.unitPriceValue)

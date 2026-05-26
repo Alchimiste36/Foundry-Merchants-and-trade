@@ -299,3 +299,114 @@ export function getCategoryLabelMap() {
 
   return map
 }
+
+export function prepareCurrencyOptions() {
+  const currencies = getCurrencies()
+  const options = currencies
+    .map((c) => {
+      const abbr = String(c.abbreviation ?? "").trim()
+      const name = String(c.name ?? "").trim()
+      const id = String(c.id ?? "").trim()
+      const key = abbr || id
+      const label = name || abbr || id
+      if (!key) return null
+      return { key, label }
+    })
+    .filter(Boolean)
+  options.push({ key: "__freePrice", label: game.i18n.localize("mtt.price.freePrice") })
+  return options
+}
+
+export function buildCurrencySelectOptions(selectedKey) {
+  const currencies = getCurrencies()
+  const options = []
+  const usedKeys = new Set()
+
+  for (const c of currencies) {
+    const abbr = String(c.abbreviation ?? "").trim()
+    const name = String(c.name ?? "").trim()
+    const id = String(c.id ?? "").trim()
+    const key = abbr || id
+    const label = name || abbr || id
+    if (!key) continue
+    usedKeys.add(key)
+    options.push({ key, label })
+  }
+
+  if (selectedKey && !usedKeys.has(selectedKey)) {
+    options.push({ key: selectedKey, label: selectedKey })
+  }
+
+  return options
+    .map(({ key, label }) => {
+      const sel = key === selectedKey ? " selected" : ""
+      return `<option value="${escapeHTML(key)}"${sel}>${escapeHTML(label)}</option>`
+    })
+    .join("")
+}
+
+export function computeMerchantPermissions(merchantActor) {
+  const user = game.user
+  if (!user) {
+    return {
+      canViewPrices: false,
+      canViewQuantities: false,
+      canUseSession: false,
+      canProposeSellerPrice: false,
+      canRequestValidation: false,
+      canValidateTransaction: false,
+      canManageMerchant: false,
+      isOwner: false,
+      permissionLevel: 0,
+      isGM: false,
+      isAuthorizedClient: false,
+    }
+  }
+
+  const isGM = Boolean(user.isGM)
+
+  if (isGM) {
+    return {
+      canViewPrices: true,
+      canViewQuantities: true,
+      canUseSession: true,
+      canProposeSellerPrice: true,
+      canRequestValidation: true,
+      canValidateTransaction: true,
+      canManageMerchant: true,
+      isOwner: true,
+      permissionLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
+      isGM: true,
+      isAuthorizedClient: false,
+    }
+  }
+
+  const LEVELS = CONST.DOCUMENT_OWNERSHIP_LEVELS
+  const permissionLevel = merchantActor.getUserLevel(user) ?? LEVELS.NONE
+  const isOwner = permissionLevel >= LEVELS.OWNER
+  const isObserver = permissionLevel >= LEVELS.OBSERVER
+  const isLimited = permissionLevel >= LEVELS.LIMITED
+
+  const storedClients = merchantActor.system?.access?.clients ?? []
+  const userCharacter = user.character
+  const isAuthorizedClient = Boolean(
+    userCharacter &&
+      storedClients.some(
+        (c) => String(c.actorUuid ?? "") === String(userCharacter.uuid ?? "") && Boolean(c.isAuthorized),
+      ),
+  )
+
+  return {
+    canViewPrices: isObserver,
+    canViewQuantities: isObserver,
+    canUseSession: isAuthorizedClient && isLimited,
+    canProposeSellerPrice: isAuthorizedClient && isObserver,
+    canRequestValidation: isAuthorizedClient && isObserver,
+    canValidateTransaction: isOwner,
+    canManageMerchant: isOwner,
+    isOwner,
+    permissionLevel,
+    isGM: false,
+    isAuthorizedClient,
+  }
+}

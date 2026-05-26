@@ -186,6 +186,16 @@ export function canUseSessionQuantity(actor, item, quantity) {
   return requestedQuantity <= availableQuantity
 }
 
+export function canUserUseSession(session) {
+  if (!session) return false
+  if (game.user?.isGM) return true
+  const actorUuid = session.actorUuid ?? ""
+  if (!actorUuid) return false
+  const clientActor = game.actors.find((a) => a.uuid === actorUuid)
+  if (clientActor?.isOwner) return true
+  return (game.user?.character?.uuid ?? "") === actorUuid
+}
+
 // ─── Session totals and adjustments ──────────────────────────────────────────
 
 export function prepareSessionTotals(items) {
@@ -333,6 +343,13 @@ export function prepareSessionContext(actor, { session, selectedClient, sessionC
   const checkResult = prepareSessionCheckContext(sessionCheckResult)
 
   if (!session) {
+    const isGM = game.user?.isGM ?? false
+    const isUnauthorized = !isGM && (() => {
+      const uuid = game.user?.character?.uuid ?? ""
+      if (!uuid) return true
+      const client = (accessClients ?? []).find((c) => c.actorUuid === uuid)
+      return !client?.isAuthorized
+    })()
     return {
       id: "",
       label: "",
@@ -347,8 +364,10 @@ export function prepareSessionContext(actor, { session, selectedClient, sessionC
       hasBuyerTotals: false,
       hasSellerTotals: false,
       hasSession: false,
+      isUnauthorized,
       hasSelectedClient: Boolean(selectedClient?.actorUuid),
       canEdit: false,
+      canUseSession: false,
       statusNotice: "",
       isActive: false,
       isPending: false,
@@ -414,6 +433,8 @@ export function prepareSessionContext(actor, { session, selectedClient, sessionC
   const status = session.status ?? "active"
   const hasAnyItems = buyerItems.length > 0 || sellerItems.length > 0
   const client = prepareSessionClientContext(session, accessClients)
+  const isSessionFinal = ["validated", "refused"].includes(status)
+  const canUseSession = canUserUseSession(session)
 
   return {
     id: session.id,
@@ -429,7 +450,9 @@ export function prepareSessionContext(actor, { session, selectedClient, sessionC
     hasBuyerTotals: buyerTotalByCurrency.length > 0,
     hasSellerTotals: sellerTotalByCurrency.length > 0,
     hasSession: true,
-    canEdit: !["validated", "refused"].includes(status),
+    isUnauthorized: !canUseSession,
+    canEdit: !isSessionFinal,
+    canUseSession,
     isActive: status === "active",
     isPending: status === "pending",
     isValidated: status === "validated",

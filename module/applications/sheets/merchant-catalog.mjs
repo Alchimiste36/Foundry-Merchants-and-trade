@@ -126,6 +126,10 @@ export function prepareItems(actor, sellPercent) {
         Number.isFinite(Number(product.minimumPriceValue)) && Number(product.minimumPriceValue) >= 0
           ? Number(product.minimumPriceValue)
           : MTT.PRODUCT_DEFAULTS.minimumPriceValue,
+      selectedCurrencyKey:
+        (product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice)
+          ? "__freePrice"
+          : (product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency),
     }
   })
 }
@@ -173,6 +177,10 @@ export function prepareServices(actor, sellPercent) {
         Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
           ? Number(service.minimumPriceValue)
           : MTT.SERVICE_DEFAULTS.minimumPriceValue,
+      selectedCurrencyKey:
+        (service.hasFreePrice ?? MTT.SERVICE_DEFAULTS.hasFreePrice)
+          ? "__freePrice"
+          : (service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency),
     }
   })
 }

@@ -13,6 +13,7 @@ import {
   getItemPrice,
   getItemCurrency,
   resolveItemCurrencyKey,
+  htmlToPlainText,
 } from "./merchant-utils.mjs"
 
 export function getSellPercent(actor) {
@@ -148,6 +149,7 @@ export function prepareServices(actor, sellPercent) {
       id: service.id,
       name: service.name,
       description: service.description || "",
+      descriptionText: htmlToPlainText(service.description || ""),
       priceValue: basePriceValue,
       basePriceValue,
       displayPriceValue,
@@ -426,7 +428,7 @@ export async function createServiceFromItem(actor, item) {
   if (typeof description === "object" && description?.value) {
     description = description.value
   }
-  description = description ? String(description) : ""
+  description = description ? htmlToPlainText(description) : ""
 
   let priceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath"))
   if (priceValue === null) {

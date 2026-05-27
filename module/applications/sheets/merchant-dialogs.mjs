@@ -30,42 +30,33 @@ export function renderSessionPreparationDialog({
   includeProposedPrice = false,
   hasFreePrice = false,
   referenceCurrencyLabel = "",
-  hidePriceInfo = false,
-  hideQuantityInfo = false,
 }) {
-  const quantityMax =
-    !hideQuantityInfo && Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : ""
+  const quantityMax = Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : ""
 
-  const priceSummaryHtml = hidePriceInfo
-    ? ""
-    : hasFreePrice
-      ? `<p class="mtt-session-dialog-line">
+  const priceSummaryHtml = hasFreePrice
+    ? `<p class="mtt-session-dialog-line">
           <i class="fas fa-scale-balanced"></i>
           <strong>${game.i18n.localize("mtt.price.freePrice")}</strong>
         </p>`
-      : `<p class="mtt-session-dialog-line">
+    : `<p class="mtt-session-dialog-line">
           <strong>${game.i18n.localize("mtt.products.price.adjusted")}</strong>
           <span>${escapeHTML(priceLabel)}</span>
         </p>`
 
   const currencySuffix = referenceCurrencyLabel ? ` (${escapeHTML(referenceCurrencyLabel)})` : ""
-  const proposedPriceField = hidePriceInfo
-    ? ""
-    : hasFreePrice
-      ? `<label class="mtt-session-dialog-field">
+  const proposedPriceField = hasFreePrice
+    ? `<label class="mtt-session-dialog-field">
           <span>${game.i18n.localize("mtt.price.proposedPrice")}${currencySuffix}</span>
           <input type="number" name="proposedPrice" min="0" step="1" value="" required />
         </label>`
-      : includeProposedPrice
-        ? `<label class="mtt-session-dialog-field">
+    : includeProposedPrice
+      ? `<label class="mtt-session-dialog-field">
             <span>${game.i18n.localize("mtt.sessions.dialog.proposedPrice")}</span>
             <input type="number" name="proposedPrice" min="0" step="1" placeholder="${escapeHTML(priceLabel)}" />
           </label>`
-        : ""
+      : ""
 
-  const quantitySummaryHtml = hideQuantityInfo
-    ? ""
-    : `<p class="mtt-session-dialog-line">
+  const quantitySummaryHtml = `<p class="mtt-session-dialog-line">
         <strong>${game.i18n.localize("mtt.sessions.dialog.availableQuantity")}</strong>
         <span>${escapeHTML(availableQuantityLabel)}</span>
       </p>`
@@ -92,8 +83,6 @@ export async function openSessionPreparationDialog({
   includeProposedPrice = false,
   hasFreePrice = false,
   referenceCurrencyLabel = "",
-  hidePriceInfo = false,
-  hideQuantityInfo = false,
 }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
@@ -107,8 +96,6 @@ export async function openSessionPreparationDialog({
     includeProposedPrice,
     hasFreePrice,
     referenceCurrencyLabel,
-    hidePriceInfo,
-    hideQuantityInfo,
   })
 
   let result = null
@@ -153,14 +140,6 @@ export async function openSessionPreparationDialog({
     return
   }
 
-  if (hidePriceInfo) {
-    return {
-      quantity: requestedQuantity,
-      proposedPrice: hasFreePrice ? 0 : "",
-      isFreePrice: hasFreePrice,
-    }
-  }
-
   if (hasFreePrice) {
     const proposedPrice = Number(result.proposedPrice)
     if (!Number.isFinite(proposedPrice) || proposedPrice < 0) {
@@ -182,15 +161,13 @@ export async function openSessionPreparationDialog({
   }
 }
 
-export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false, hideQuantityInfo = false }) {
+export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency }) {
   const quantityMax =
-    !hideQuantityInfo && Number.isFinite(availableQuantity) && availableQuantity >= 0
+    Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? ` max="${escapeHTML(String(availableQuantity))}"`
       : ""
 
-  const priceFieldsHtml = hidePriceFields
-    ? ""
-    : `<label class="mtt-dialog-field">
+  const priceFieldsHtml = `<label class="mtt-dialog-field">
         <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemUnitValue")}</span>
         <input type="number" name="unitPriceValue" min="0" step="1" value="${escapeHTML(String(unitPriceValue))}" />
       </label>
@@ -199,9 +176,7 @@ export function renderSellerItemDialog({ availableQuantityLabel, availableQuanti
         <select name="priceCurrency">${buildCurrencySelectOptions(priceCurrency)}</select>
       </label>`
 
-  const quantitySummaryHtml = hideQuantityInfo
-    ? ""
-    : `<label class="mtt-dialog-field">
+  const quantitySummaryHtml = `<label class="mtt-dialog-field">
       <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemAvailableQuantity")}</span>
       <span class="mtt-dialog-field-value">${escapeHTML(availableQuantityLabel)}</span>
     </label>`
@@ -505,7 +480,7 @@ export async function openRefuseConfirmDialog() {
   return Boolean(result)
 }
 
-export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false, hideQuantityInfo = false }) {
+export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? String(availableQuantity)
@@ -516,8 +491,6 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
     availableQuantityLabel,
     unitPriceValue,
     priceCurrency,
-    hidePriceFields,
-    hideQuantityInfo,
   })
 
   const content = await renderMttDialogContent({
@@ -572,14 +545,6 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
   if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && quantity > availableQuantity) {
     ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughSellerItemQuantity"))
     return null
-  }
-
-  if (hidePriceFields) {
-    return {
-      quantity,
-      unitPriceValue: Number.isFinite(Number(unitPriceValue)) && Number(unitPriceValue) >= 0 ? Number(unitPriceValue) : 0,
-      priceCurrency: String(priceCurrency ?? "").trim(),
-    }
   }
 
   const priceValue = Number(result.unitPriceValue)

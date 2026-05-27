@@ -39,35 +39,31 @@
             {{/if}}
 
 
-                  {{#if @root.mtt.permissions.canViewPrices}}
-                    <div class="mtt-merchant-service-price">
-                      {{#if service.hasFreePrice}}
-                        <span class="mtt-merchant-service-free-price-label">{{localize "mtt.price.freePrice"}}</span>
+                  <div class="mtt-merchant-service-price">
+                    {{#if service.hasFreePrice}}
+                      <span class="mtt-merchant-service-free-price-label">{{localize "mtt.price.freePrice"}}</span>
+                    {{else}}
+                      {{#if service.hasPrice}}
+                        <strong>{{service.displayPriceLabel}}</strong>
                       {{else}}
-                        {{#if service.hasPrice}}
-                          <strong>{{service.displayPriceLabel}}</strong>
-                        {{else}}
-                          <strong>{{localize "mtt.products.price.undefined"}}</strong>
-                        {{/if}}
+                        <strong>{{localize "mtt.products.price.undefined"}}</strong>
                       {{/if}}
-                    </div>
-                  {{/if}}
+                    {{/if}}
+                  </div>
 
 
             <div class="mtt-merchant-service-actions">
-              {{#if @root.mtt.permissions.canUseSession}}
-                {{#unless service.isHidden}}
-                  <button
-                    class="mtt-merchant-service-action"
-                    type="button"
-                    data-action="addServiceToSession"
-                    data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
-                    title="{{localize 'mtt.sessions.actions.addService'}}"
-                  >
-                    <i class="fas fa-cart-plus"></i>
-                  </button>
-                {{/unless}}
-              {{/if}}
+              {{#unless service.isHidden}}
+                <button
+                  class="mtt-merchant-service-action"
+                  type="button"
+                  data-action="addServiceToSession"
+                  data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
+                  title="{{localize 'mtt.sessions.actions.addService'}}"
+                >
+                  <i class="fas fa-cart-plus"></i>
+                </button>
+              {{/unless}}
 
               <button
                 class="mtt-merchant-service-action"
@@ -173,8 +169,7 @@
                 <textarea
                   class="mtt-merchant-service-description"
                   data-mtt-service-field="description"
-                  value="{{service.description}}"
-                >{{service.description}}</textarea>
+                >{{service.descriptionText}}</textarea>
               {{else}}
                 <div class="mtt-merchant-service-description">
                   {{#if service.description}}

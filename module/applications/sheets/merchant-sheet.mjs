@@ -20,10 +20,8 @@ import {
   isItemTypeAllowed,
   getCategoryPaths,
   getCategoryLabelMap,
-  computeMerchantPermissions,
   prepareCurrencyOptions,
-  getUsersControllingActor,
-  userControlsActor,
+  htmlToPlainText,
 } from "./merchant-utils.mjs"
 import {
   renderMttDialogContent,
@@ -65,8 +63,7 @@ import {
   getSessionItemsForSide,
   removeSessionItemById,
   syncSessionItemAvailability,
-  canUseSessionQuantity,
-  canUserUseMerchantSession,
+  canAcceptSessionQuantity,
   prepareSessionTotals,
   prepareMoneyAdjustments,
   getSessionStatusNotice,
@@ -161,8 +158,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const isLocked = this.actor.system.sheet.isLocked
     const canEditMerchant = this.isEditable && !isLocked
-    const permissions = computeMerchantPermissions(this.actor)
-    const canConfigureMerchant = permissions.canManageMerchant
+    const canConfigureMerchant = this.isEditable
 
     context.mtt = {
       css: MTT.CSS,
@@ -171,7 +167,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isUnlocked: !isLocked,
       canEditMerchant,
       canConfigureMerchant,
-      permissions,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         open: "mtt.merchant.status.open",
@@ -207,6 +202,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element
       .querySelectorAll("[data-mtt-product-field]")
       .forEach((input) => input.addEventListener("change", (event) => this.#onProductFieldChange(event)))
+
+    this.element
+      .querySelectorAll("[data-mtt-merchant-field]")
+      .forEach((input) => {
+        input.addEventListener("change", (event) => this.#onMerchantFieldChange(event))
+        input.addEventListener("blur", (event) => this.#onMerchantFieldChange(event))
+      })
 
     this.element
       .querySelectorAll("[data-mtt-category-name]")
@@ -376,6 +378,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #formatAutomaticCategoryLabel(v) { return formatAutomaticCategoryLabel(v) }
   #normalizeAutomaticCategoryValue(v) { return normalizeAutomaticCategoryValue(v) }
   #createCheckMessage(l, i, t, ic) { return createCheckMessage(l, i, t, ic) }
+  #htmlToPlainText(v) { return htmlToPlainText(v) }
   #getItemDescription(item) { return getItemDescription(item) }
   #getItemPrice(item) { return getItemPrice(item) }
   #getItemCurrency(item) { return getItemCurrency(item) }
@@ -432,7 +435,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #getSessionItemsForSide(session, side) { return getSessionItemsForSide(session, side) }
   #removeSessionItemById(session, itemId, side) { return removeSessionItemById(session, itemId, side) }
   #syncSessionItemAvailability(item) { return syncSessionItemAvailability(this.actor, item) }
-  #canUseSessionQuantity(item, quantity) { return canUseSessionQuantity(this.actor, item, quantity) }
+  #canAcceptSessionQuantity(item, quantity) { return canAcceptSessionQuantity(this.actor, item, quantity) }
   #getAccessSessionBadgeIcon(status) { return getAccessSessionBadgeIcon(status) }
   #getAccessSessionTooltipLabel(status) { return getAccessSessionTooltipLabel(status) }
   #getBestSessionForClient(actorUuid) { return getBestSessionForClient(this.actor, actorUuid) }
@@ -471,11 +474,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
-
     if (field === "label") {
       const label = input.value?.trim() ?? ""
       if (!label) {
@@ -512,7 +510,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!this.#canUseSessionQuantity(item, requested)) {
+    if (!this.#canAcceptSessionQuantity(item, requested)) {
       ui.notifications.warn(
         game.i18n.localize(
           side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity",
@@ -718,32 +716,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const session = this.#getSessionForAddingItem()
-    if (!session || !canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+    if (!session) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.selectSessionBeforeAction"))
       return
     }
 
-    if (!game.user?.isGM && !computeMerchantPermissions(this.actor).canManageMerchant) {
-      const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
-      const sessionActor = game.actors.find((actor) => actor.uuid === session.actorUuid)
-      if (
-        !sourceActor ||
-        !sessionActor ||
-        sourceActor.uuid !== sessionActor.uuid ||
-        !userControlsActor(game.user, sourceActor)
-      ) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-        return
-      }
-    }
-
     const sellerData = prepareSellerItemDropData(this.actor, item)
-    const sellerPermissions = computeMerchantPermissions(this.actor)
     const dialogData = await this.#openSellerItemDialog({
       ...sellerData,
-      availableQuantity: sellerPermissions.canViewQuantities ? sellerData.availableQuantity : null,
-      hidePriceFields: !sellerPermissions.canViewPrices,
-      hideQuantityInfo: !sellerPermissions.canViewQuantities,
+      availableQuantity: sellerData.availableQuantity,
     })
     if (!dialogData) return
 
@@ -1040,22 +1021,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Access context ───────────────────────────────────────────────────────
 
   #prepareAccessContext() {
-    const permissions = computeMerchantPermissions(this.actor)
-    const allClients = this.#prepareAccessClients()
-
-    const clients = permissions.canManageMerchant
-      ? allClients
-      : allClients.filter((c) => {
-          if (!c.actorUuid || !c.isAuthorized) return false
-          const clientActor = game.actors.find((a) => a.uuid === c.actorUuid)
-          if (!clientActor) return false
-          return userControlsActor(game.user, clientActor)
-        })
+    const clients = this.#prepareAccessClients()
 
     return {
       clients,
       hasClients: clients.length > 0,
-      canManage: permissions.canManageMerchant,
+      canManage: this.isEditable,
     }
   }
 
@@ -1144,33 +1115,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     await this.actor.update(updateData)
-
-    if (isAuthorized) {
-      await this.#grantMinimumFoundryPermission(normalizedClient.actorUuid)
-    }
-  }
-
-  async #grantMinimumFoundryPermission(clientActorUuid) {
-    const LIMITED = CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
-    const updates = {}
-    const clientActor = game.actors.find((actor) => actor.uuid === clientActorUuid)
-    if (!clientActor) return
-    const controllingUserIds = new Set(getUsersControllingActor(clientActor).map((user) => user.id))
-
-    game.users.forEach((user) => {
-      if (user.isGM) return
-      if (!controllingUserIds.has(user.id)) return
-      const currentLevel = this.actor.getUserLevel(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-      if (currentLevel < LIMITED) updates[user.id] = LIMITED
-    })
-
-    if (Object.keys(updates).length === 0) return
-
-    const ownership = foundry.utils.deepClone(this.actor.ownership ?? {})
-    for (const [userId, level] of Object.entries(updates)) {
-      ownership[userId] = level
-    }
-    await this.actor.update({ ownership })
   }
 
   async #removeClientAuthorization(client) {
@@ -1322,30 +1266,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #getActiveSession() {
     const sessions = this.#getSessions()
-    const isGM = game.user?.isGM ?? false
-
-    const permittedSessions = isGM
-      ? sessions
-      : sessions.filter((s) => {
-          return canUserUseMerchantSession(s, this.actor)
-        })
 
     if (this.#activeSessionId) {
-      const selectedSession = permittedSessions.find((s) => s.id === this.#activeSessionId)
+      const selectedSession = sessions.find((s) => s.id === this.#activeSessionId)
       if (selectedSession) return normalizeSession(selectedSession)
-      if (!isGM) this.#activeSessionId = null
+      this.#activeSessionId = null
     }
 
     if (this.#selectedClientActorUuid) return null
 
-    const activeSession = permittedSessions.find((s) => s.status === "active")
+    const activeSession = sessions.find((s) => s.status === "active")
     if (activeSession) {
       this.#activeSessionId = activeSession.id
       this.#selectedClientActorUuid = activeSession.actorUuid ?? ""
       return normalizeSession(activeSession)
     }
 
-    const firstSession = permittedSessions[0]
+    const firstSession = sessions[0]
     if (firstSession) {
       this.#activeSessionId = firstSession.id
       this.#selectedClientActorUuid = firstSession.actorUuid ?? ""
@@ -1362,11 +1299,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #getSessionForAddingItem() {
     const selectedSession = this.#getSelectedSession()
     if (selectedSession) {
-      if (!canUserUseMerchantSession(selectedSession, this.actor)) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-        return null
-      }
-
       const client = this.#getAccessClientForSession(selectedSession)
       if (selectedSession.actorUuid && !client?.isAuthorized) {
         ui.notifications.warn(game.i18n.localize("mtt.access.notAuthorizedForTrade"))
@@ -1452,7 +1384,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedUnitPrice = Number(unitPriceValue)
     const normalizedCurrency = String(priceCurrency ?? "").trim()
     const normalizedAvailableQuantity = Number(availableQuantity)
-    const isLimitedQuantity =
+    const hasLimitedStock =
       Boolean(hasLimitedQuantity) &&
       Number.isFinite(normalizedAvailableQuantity) &&
       normalizedAvailableQuantity >= 0
@@ -1475,9 +1407,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
 
     if (existingItem) {
-      existingItem.availableQuantity = isLimitedQuantity ? normalizedAvailableQuantity : null
-      existingItem.hasLimitedQuantity = isLimitedQuantity
-      if (!this.#canUseSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
+      existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
+      existingItem.hasLimitedQuantity = hasLimitedStock
+      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
       recalculateSessionItemTotal(existingItem)
@@ -1492,8 +1424,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       name,
       img: img ?? "",
       quantity: normalizedQuantity,
-      availableQuantity: isLimitedQuantity ? normalizedAvailableQuantity : null,
-      hasLimitedQuantity: isLimitedQuantity,
+      availableQuantity: hasLimitedStock ? normalizedAvailableQuantity : null,
+      hasLimitedQuantity: hasLimitedStock,
       unitPriceValue: normalizedUnitPrice,
       priceCurrency: normalizedCurrency,
       totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
@@ -1539,7 +1471,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedCurrency = String(priceCurrency ?? "").trim()
     const normalizedSourceUuid = String(sourceUuid ?? "").trim()
     const normalizedAvailableQuantity = Number(availableQuantity)
-    const isLimitedQuantity =
+    const hasLimitedStock =
       Boolean(hasLimitedQuantity) &&
       Number.isFinite(normalizedAvailableQuantity) &&
       normalizedAvailableQuantity >= 0
@@ -1561,9 +1493,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
 
     if (existingItem) {
-      existingItem.availableQuantity = isLimitedQuantity ? normalizedAvailableQuantity : null
-      existingItem.hasLimitedQuantity = isLimitedQuantity
-      if (!this.#canUseSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
+      existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
+      existingItem.hasLimitedQuantity = hasLimitedStock
+      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
       recalculateSessionItemTotal(existingItem)
@@ -1580,8 +1512,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       name,
       img: img ?? "",
       quantity: normalizedQuantity,
-      availableQuantity: isLimitedQuantity ? normalizedAvailableQuantity : null,
-      hasLimitedQuantity: isLimitedQuantity,
+      availableQuantity: hasLimitedStock ? normalizedAvailableQuantity : null,
+      hasLimitedQuantity: hasLimitedStock,
       unitPriceValue: normalizedUnitPrice,
       priceCurrency: normalizedCurrency,
       totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
@@ -1764,21 +1696,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const sessionCurrency = hasFreePrice ? (referenceCurrencyLabel || priceCurrency) : priceCurrency
 
-    const permissions = computeMerchantPermissions(this.actor)
-    const hidePriceInfo = !permissions.canViewPrices
-
     const dialogData = await openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.productTitle"),
       name: displayName,
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
-      availableQuantity: hidePriceInfo ? null : availableQuantity,
-      includeProposedPrice: !hasFreePrice && !hidePriceInfo,
+      availableQuantity,
+      includeProposedPrice: !hasFreePrice,
       hasFreePrice,
       referenceCurrencyLabel,
-      hidePriceInfo,
-      hideQuantityInfo: !permissions.canViewQuantities,
     })
     if (!dialogData) return
 
@@ -1824,11 +1751,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
-
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
     if (!itemId) return
     const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer"
@@ -1844,11 +1766,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
-
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
     if (!itemId) return
     const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer"
@@ -1856,7 +1773,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = getSessionItemsForSide(session, side).find((it) => it.id === itemId)
     if (!item) return
 
-    if (!this.#canUseSessionQuantity(item, item.quantity + 1)) {
+    if (!this.#canAcceptSessionQuantity(item, item.quantity + 1)) {
       ui.notifications.warn(
         game.i18n.localize(
           side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity",
@@ -1874,11 +1791,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
     const session = this.#getActiveSession()
     if (!session) return
-
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
 
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
     if (!itemId) return
@@ -1905,11 +1817,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const session = this.#getActiveSession()
     if (!session) return
-
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
 
     const hasItems = session.buyerItems.length > 0 || session.sellerItems.length > 0
     if (!hasItems) return
@@ -1951,10 +1858,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const client = this.#getAccessClientCandidate(actorUuid)
     if (!client) return
 
-    const permissions = computeMerchantPermissions(this.actor)
-
     if (!client.isAuthorized) {
-      if (!permissions.canManageMerchant) return
+      if (!this.isEditable) return
 
       if (
         !getBestSessionForClient(this.actor, client.actorUuid) &&
@@ -1975,11 +1880,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!permissions.canManageMerchant) {
-      const clientActor = game.actors.find((a) => a.uuid === client.actorUuid)
-      if (!clientActor || !userControlsActor(game.user, clientActor)) return
-    }
-
     this.#selectedClientActorUuid = client.actorUuid
     const session = getBestSessionForClient(this.actor, client.actorUuid)
     if (session) {
@@ -1988,10 +1888,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!permissions.canManageMerchant) {
-      const clientActor = game.actors.find((a) => a.uuid === client.actorUuid)
-      if (!clientActor || !userControlsActor(game.user, clientActor)) return
-    }
+    if (!this.isEditable) return
 
     const repairedSession = await this.#createSessionForClient(client)
     if (!repairedSession) return
@@ -2034,11 +1931,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
-
     const preview = await buildExecutionPreview(this.actor, session)
 
     this.#sessionCheckResult = {
@@ -2064,11 +1956,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const session = this.#getActiveSession()
     if (!session) return
-
-    if (!canUserUseMerchantSession(session, this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
-      return
-    }
 
     session.status = "pending"
     await this.#saveSession(session)
@@ -2169,6 +2056,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
 
     if (!this.isEditable) return
+
+    if (!this.actor.system.sheet.isLocked) {
+      await this.#saveMerchantTextFieldsFromDom()
+    }
 
     await this.actor.update({
       "system.sheet.isLocked": !this.actor.system.sheet.isLocked,
@@ -2371,6 +2262,58 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
+  async #onMerchantFieldChange(event) {
+    const target = event.currentTarget
+
+    if (!this.#canModifyMerchant()) return
+
+    const updateData = this.#getMerchantFieldUpdateData(target)
+    if (!updateData) return
+
+    await this.actor.update(updateData)
+  }
+
+  #getMerchantFieldUpdateData(target) {
+    const field = target?.dataset?.mttMerchantField
+    if (!field) return null
+
+    if (field === "name") {
+      const name = target.value?.trim() ?? ""
+      if (!name || name === this.actor.name) return null
+
+      return { name }
+    }
+
+    if (field === "manager.displayName") {
+      const displayName = target.value?.trim() ?? ""
+      const currentDisplayName = this.actor.system.manager?.displayName ?? ""
+      if (displayName === currentDisplayName) return null
+
+      return {
+        "system.manager.mode": "text",
+        "system.manager.displayName": displayName,
+      }
+    }
+
+    return null
+  }
+
+  async #saveMerchantTextFieldsFromDom() {
+    if (!this.isEditable || this.actor.system.sheet.isLocked) return
+
+    const updateData = {}
+
+    this.element.querySelectorAll("[data-mtt-merchant-field]").forEach((input) => {
+      const fieldUpdateData = this.#getMerchantFieldUpdateData(input)
+      if (!fieldUpdateData) return
+      Object.assign(updateData, fieldUpdateData)
+    })
+
+    if (Object.keys(updateData).length > 0) {
+      await this.actor.update(updateData)
+    }
+  }
+
   async #onMerchantConfigFieldChange(event) {
     const target = event.currentTarget
 
@@ -2516,20 +2459,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const sessionCurrency = hasFreePrice ? (referenceCurrencyLabel || priceCurrency) : priceCurrency
 
-    const permissions = computeMerchantPermissions(this.actor)
-    const hidePriceInfo = !permissions.canViewPrices
-
     const dialogData = await openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.serviceTitle"),
       name: service.name,
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
-      availableQuantity: hidePriceInfo ? null : availableQuantity,
+      availableQuantity,
       hasFreePrice,
       referenceCurrencyLabel,
-      hidePriceInfo,
-      hideQuantityInfo: !permissions.canViewQuantities,
     })
     if (!dialogData) return
 
@@ -2701,7 +2639,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (field === "description") {
-      entries[serviceIndex].description = target.value?.trim() ?? ""
+      entries[serviceIndex].description = this.#htmlToPlainText(target.value?.trim() ?? "")
       entries[serviceIndex].isCommerciallyModified = true
     }
 

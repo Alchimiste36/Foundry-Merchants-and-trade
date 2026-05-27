@@ -1,12 +1,12 @@
 import { MTT } from "../../config/constants.mjs"
-import { normalizeSession, canUserUseMerchantSession } from "./merchant-trade.mjs"
+import { normalizeSession } from "./merchant-trade.mjs"
 
 const SOCKET_NAME = `module.${MTT.ID}`
 const REQUEST_TIMEOUT = 10000
 const pendingRequests = new Map()
 const MTT_DEBUG_SESSION_SOCKET = false
 const DEBUG_STORAGE_KEY = "mtt.debug.sessionSocket"
-const DEBUG_STAMP = "DEBUG_LIMITED_SESSION_2026_05_27"
+const DEBUG_STAMP = "SESSION_SOCKET"
 
 function isSessionSocketDebugEnabled() {
   return (
@@ -55,7 +55,7 @@ function sendSessionUpdateResponse({ requestId, recipientUserId, ok, updateData 
   game.socket.emit(SOCKET_NAME, response)
 }
 
-function buildSafeSessionUpdate(merchantActor, updateData, user) {
+function buildSafeSessionUpdate(merchantActor, updateData) {
   const requestedSessions = updateData?.["system.sessions.entries"]
   if (!Array.isArray(requestedSessions)) return null
 
@@ -71,14 +71,12 @@ function buildSafeSessionUpdate(merchantActor, updateData, user) {
     const requestedSession = requestedById.get(existingSession.id)
     if (!requestedSession) return existingSession
     if (requestedSession.actorUuid !== existingSession.actorUuid) return existingSession
-    if (!canUserUseMerchantSession(existingSession, merchantActor, user)) return existingSession
     return requestedSession
   })
 
   const existingIds = new Set(existingSessions.map((session) => session.id))
   for (const requestedSession of requestedById.values()) {
     if (existingIds.has(requestedSession.id)) continue
-    if (!canUserUseMerchantSession(requestedSession, merchantActor, user)) continue
     mergedSessions.push(requestedSession)
   }
 
@@ -126,7 +124,7 @@ async function handleSessionUpdateRequest(message) {
     const merchantActor = await fromUuid(message.actorUuid)
 
     if (!requestingUser || merchantActor?.documentName !== "Actor") {
-      throw new Error(game.i18n.localize("mtt.notifications.cannotUseSession"))
+      throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
     }
 
     if (!userCanUpdateMerchant(game.user, merchantActor)) {
@@ -138,7 +136,7 @@ async function handleSessionUpdateRequest(message) {
       throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
     }
 
-    const safeUpdateData = buildSafeSessionUpdate(merchantActor, message.updateData, requestingUser)
+    const safeUpdateData = buildSafeSessionUpdate(merchantActor, message.updateData)
     if (!safeUpdateData) {
       debugSessionSocket("request denied: invalid or unauthorized session update", {
         requestId,
@@ -146,7 +144,7 @@ async function handleSessionUpdateRequest(message) {
         actorUuid: message.actorUuid,
         sessionActorUuids: message.sessionActorUuids ?? [],
       })
-      throw new Error(game.i18n.localize("mtt.notifications.cannotUseSession"))
+      throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
     }
 
     await merchantActor.update(safeUpdateData)
@@ -172,7 +170,7 @@ async function handleSessionUpdateRequest(message) {
       requestId,
       recipientUserId,
       ok: false,
-      error: error?.message ?? game.i18n.localize("mtt.notifications.cannotUseSession"),
+      error: error?.message ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"),
     })
   }
 }
@@ -197,7 +195,7 @@ function handleSessionUpdateResponse(message) {
   if (message.ok) {
     pending.resolve(message)
   } else {
-    pending.reject(new Error(message.error ?? game.i18n.localize("mtt.notifications.cannotUseSession")))
+    pending.reject(new Error(message.error ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied")))
   }
 }
 
@@ -224,7 +222,7 @@ export function registerMerchantSessionSocket() {
 }
 
 export async function requestMerchantSessionUpdate(merchantActor, updateData) {
-  if (!merchantActor?.uuid) throw new Error(game.i18n.localize("mtt.notifications.cannotUseSession"))
+  if (!merchantActor?.uuid) throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
 
   const processorUsers = getSessionUpdateProcessors(merchantActor)
   if (processorUsers.length === 0) {

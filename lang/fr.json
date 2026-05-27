@@ -198,7 +198,6 @@
       "missingProposedPrice": "Vous devez proposer un prix pour cet élément.",
       "selectSessionBeforeAction": "Sélectionnez une session avant d'effectuer cette action.",
       "transactionExecutionNotReady": "L'exécution réelle de la transaction sera développée dans une prochaine étape.",
-      "cannotUseSession": "Vous ne pouvez pas modifier cette session.",
       "sessionSocketNoResponse": "La demande de modification de session n’a pas reçu de réponse.",
       "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
       "sessionSocketRequestDenied": "La demande de modification de session a été refusée."
@@ -439,7 +438,6 @@
       "pendingNotice": "En attente d’une décision.",
       "activeNotice": "Brouillon de transaction en cours.",
       "authorizationCreatesSession": "Autoriser un client ouvre automatiquement une session.",
-      "notAuthorizedToTrade": "Vous n'êtes pas autorisé à commercer avec ce marchand.",
       "noVisibleSession": "Aucune session de transaction disponible.",
       "removeAuthorizationDeletesSession": "Retirer l’autorisation supprimera la session en cours de ce client.",
       "sessionResetAfterDecision": "Après décision finale, la session repartira à zéro.",

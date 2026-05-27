@@ -133,6 +133,34 @@ export function escapeHTML(value) {
         .replaceAll("'", "&#039;")
 }
 
+export function htmlToPlainText(value) {
+  const html = String(value ?? "")
+  if (!html) return ""
+
+  const withLineBreaks = html
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\s*\/\s*p\s*>/gi, "\n")
+    .replace(/<\s*\/\s*div\s*>/gi, "\n")
+    .replace(/<\s*\/\s*li\s*>/gi, "\n")
+
+  if (typeof document !== "undefined") {
+    const container = document.createElement("div")
+    container.innerHTML = withLineBreaks
+    return container.textContent.replace(/\u00a0/g, " ").replace(/\n{3,}/g, "\n\n").trim()
+  }
+
+  return withLineBreaks
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
 export function slugifyCategoryKey(value) {
   return String(value ?? "")
     .trim()
@@ -343,83 +371,4 @@ export function buildCurrencySelectOptions(selectedKey) {
       return `<option value="${escapeHTML(key)}"${sel}>${escapeHTML(label)}</option>`
     })
     .join("")
-}
-
-export function userControlsActor(user, actor) {
-  if (!user || !actor) return false
-  if (user.isGM) return true
-  if ((user.character?.uuid ?? "") === (actor.uuid ?? "")) return true
-  if (actor.testUserPermission?.(user, "OWNER")) return true
-  const level = actor.getUserLevel(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-  return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-}
-
-export function getUsersControllingActor(actor) {
-  if (!actor) return []
-  return game.users.filter((user) => !user.isGM && userControlsActor(user, actor))
-}
-
-export function computeMerchantPermissions(merchantActor) {
-  const user = game.user
-  if (!user) {
-    return {
-      canViewPrices: false,
-      canViewQuantities: false,
-      canUseSession: false,
-      canProposeSellerPrice: false,
-      canRequestValidation: false,
-      canValidateTransaction: false,
-      canManageMerchant: false,
-      isOwner: false,
-      permissionLevel: 0,
-      isGM: false,
-      isAuthorizedClient: false,
-    }
-  }
-
-  const isGM = Boolean(user.isGM)
-
-  if (isGM) {
-    return {
-      canViewPrices: true,
-      canViewQuantities: true,
-      canUseSession: true,
-      canProposeSellerPrice: true,
-      canRequestValidation: true,
-      canValidateTransaction: true,
-      canManageMerchant: true,
-      isOwner: true,
-      permissionLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER,
-      isGM: true,
-      isAuthorizedClient: false,
-    }
-  }
-
-  const LEVELS = CONST.DOCUMENT_OWNERSHIP_LEVELS
-  const permissionLevel = merchantActor.getUserLevel(user) ?? LEVELS.NONE
-  const isOwner = permissionLevel >= LEVELS.OWNER
-  const isObserver = permissionLevel >= LEVELS.OBSERVER
-  const isLimited = permissionLevel >= LEVELS.LIMITED
-
-  const storedClients = merchantActor.system?.access?.clients ?? []
-  const isAuthorizedClient = storedClients.some((c) => {
-    if (!Boolean(c.isAuthorized) || !c.actorUuid) return false
-    const clientActor = game.actors.find((a) => a.uuid === c.actorUuid)
-    if (!clientActor) return false
-    return userControlsActor(user, clientActor)
-  })
-
-  return {
-    canViewPrices: isObserver,
-    canViewQuantities: isObserver,
-    canUseSession: isOwner || (isAuthorizedClient && isLimited),
-    canProposeSellerPrice: isAuthorizedClient && isObserver,
-    canRequestValidation: isAuthorizedClient && isObserver,
-    canValidateTransaction: isOwner,
-    canManageMerchant: isOwner,
-    isOwner,
-    permissionLevel,
-    isGM: false,
-    isAuthorizedClient,
-  }
 }

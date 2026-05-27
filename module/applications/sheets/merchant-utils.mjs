@@ -165,6 +165,13 @@ export function getMerchantSheetLockedState(actor) {
   return Boolean(foundry.utils.getProperty(actor, "system.sheet.isLocked"))
 }
 
+export function getMerchantLimitedState(actor, user = game.user) {
+  if (!actor || !user?.id || user.isGM) return false
+
+  const permissionLevel = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+  return permissionLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+}
+
 export function slugifyCategoryKey(value) {
   return String(value ?? "")
     .trim()

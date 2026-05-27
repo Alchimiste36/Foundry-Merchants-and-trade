@@ -23,6 +23,7 @@ import {
   prepareCurrencyOptions,
   htmlToPlainText,
   getMerchantSheetLockedState,
+  getMerchantLimitedState,
 } from "./merchant-utils.mjs"
 import {
   renderMttDialogContent,
@@ -162,6 +163,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isLocked = getMerchantSheetLockedState(this.actor)
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
+    const isLimited = getMerchantLimitedState(this.actor)
 
     context.mtt = {
       css: MTT.CSS,
@@ -170,6 +172,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLocked,
       isUnlocked,
       canEditMerchant,
+      isLimited,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         open: "mtt.merchant.status.open",

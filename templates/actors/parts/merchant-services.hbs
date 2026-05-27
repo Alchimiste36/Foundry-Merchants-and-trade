@@ -2,228 +2,234 @@
 
 
   <div class="mtt-merchant-services-drop-zone"  data-mtt-service-drop>
-  {{#if @root.services}}
-
-    <ol class="mtt-merchant-service-list">
-      {{#each @root.services as |service|}}
-        <li class="mtt-merchant-service-row {{#unless service.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}" data-service-id="{{service.id}}">
-          <div class="mtt-merchant-service-main">
-            <button
-              class="mtt-merchant-service-action"
-              type="button"
-              data-action="toggleServiceExpanded"
-              data-tooltip="{{#if service.isExpanded}}{{localize 'mtt.services.toggleHide'}}{{else}}{{localize 'mtt.services.toggleShow'}}{{/if}}"
-              title="{{#if service.isExpanded}}{{localize 'mtt.services.toggleHide'}}{{else}}{{localize 'mtt.services.toggleShow'}}{{/if}}"
-            >
-              {{#if service.isExpanded}}
-                <i class="fas fa-chevron-down"></i>
-              {{else}}
-                <i class="fas fa-chevron-right"></i>
-              {{/if}}
-            </button>
-
-            {{#if service.hasSource}}
-                <img src="{{service.sourceImg}}" class="mtt-merchant-service-source-image" alt="{{service.sourceName}}" />
-            {{/if}}
-
-            {{#if @root.mtt.canEditMerchant}}
-              <input
-                type="text"
-                class="mtt-merchant-service-name"
-                data-mtt-service-field="name"
-                value="{{service.name}}"
-                placeholder="{{localize 'mtt.services.name'}}"
-              />
-            {{else}}
-              <span class="mtt-merchant-service-name-readonly">{{service.name}}</span>
-            {{/if}}
-
-
-                  <div class="mtt-merchant-service-price">
-                    {{#if service.hasFreePrice}}
-                      <span class="mtt-merchant-service-free-price-label">{{localize "mtt.price.freePrice"}}</span>
-                    {{else}}
-                      {{#if service.hasPrice}}
-                        <strong>{{service.displayPriceLabel}}</strong>
-                      {{else}}
-                        <strong>{{localize "mtt.products.price.undefined"}}</strong>
-                      {{/if}}
-                    {{/if}}
-                  </div>
-
-
-            <div class="mtt-merchant-service-actions">
-
-              {{#if service.isVisible}}
-                <button
-                  class="mtt-merchant-service-action"
-                  type="button"
-                  data-action="addServiceToSession"
-                  data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
-                  title="{{localize 'mtt.sessions.actions.addService'}}"
-                >
-                  <i class="fas fa-cart-plus"></i>
-                </button>
-              {{/if}}
-
-              {{#if @root.mtt.isEditable}}
-                <button
-                  class="mtt-merchant-service-action"
-                  type="button"
-                  data-action="toggleCatalogItemVisibility"
-                  data-catalog-kind="service"
-                  data-tooltip="{{#if service.isVisible}}{{localize 'mtt.services.hide'}}{{else}}{{localize 'mtt.services.show'}}{{/if}}"
-                  title="{{#if service.isVisible}}{{localize 'mtt.services.hide'}}{{else}}{{localize 'mtt.services.show'}}{{/if}}"
-                >
-                  {{#if service.isVisible}}
-                    <i class="fas fa-eye"></i>
-                  {{else}}
-                    <i class="fas fa-eye-slash"></i>
-                  {{/if}}
-                </button>
-              {{/if}}
-
+    {{#if @root.services}}
+      <ol class="mtt-merchant-service-list">
+        {{#each @root.services as |service|}}
+          <li class="mtt-merchant-service-row {{#unless service.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}" data-service-id="{{service.id}}">
+            <div class="mtt-merchant-service-main">
               <button
                 class="mtt-merchant-service-action"
                 type="button"
-                data-action="toggleServiceApproval"
-                data-tooltip="{{#if service.requiresApproval}}{{localize 'mtt.services.disableApproval'}}{{else}}{{localize 'mtt.services.requireApproval'}}{{/if}}"
-                title="{{#if service.requiresApproval}}{{localize 'mtt.services.disableApproval'}}{{else}}{{localize 'mtt.services.requireApproval'}}{{/if}}"
+                data-action="toggleServiceExpanded"
+                data-tooltip="{{#if service.isExpanded}}{{localize 'mtt.services.toggleHide'}}{{else}}{{localize 'mtt.services.toggleShow'}}{{/if}}"
+                title="{{#if service.isExpanded}}{{localize 'mtt.services.toggleHide'}}{{else}}{{localize 'mtt.services.toggleShow'}}{{/if}}"
               >
-                {{#if service.requiresApproval}}
-                  <i class="fas fa-user-check"></i>
+                {{#if service.isExpanded}}
+                  <i class="fas fa-chevron-down"></i>
                 {{else}}
-                  <i class="fas fa-user-clock"></i>
+                  <i class="fas fa-chevron-right"></i>
                 {{/if}}
               </button>
 
-            </div>
-          </div>
-
-          {{#if service.isExpanded}}
-            <div class="mtt-merchant-service-details mtt-merchant-service-expanded">
+              {{#if service.hasSource}}
+                  <img src="{{service.sourceImg}}" class="mtt-merchant-service-source-image" alt="{{service.sourceName}}" />
+              {{/if}}
 
               {{#if @root.mtt.canEditMerchant}}
-                <div class="mtt-merchant-service-price-bloc">
+                <input
+                  type="text"
+                  class="mtt-merchant-service-name"
+                  data-mtt-service-field="name"
+                  value="{{service.name}}"
+                  placeholder="{{localize 'mtt.services.name'}}"
+                />
+              {{else}}
+                <span class="mtt-merchant-service-name-readonly">{{service.name}}</span>
+              {{/if}}
+
+                    
+              <div class="mtt-merchant-service-price">
+                {{#if @root.mtt.isLimited}}
+                {{else}}
                   {{#if service.hasFreePrice}}
-                    <input
-                      type="number"
-                      class="mtt-merchant-service-price-value"
-                      data-mtt-service-field="minimumPriceValue"
-                      value="{{service.minimumPriceValue}}"
-                      min="0"
-                      step="1"
-                      placeholder="{{localize 'mtt.price.minimumPrice'}}"
-                      data-tooltip="{{localize 'mtt.price.minimumPriceHint'}}"
-                    />
+                    <span class="mtt-merchant-service-free-price-label">{{localize "mtt.price.freePrice"}}</span>
                   {{else}}
-                    <input
-                      type="number"
-                      class="mtt-merchant-service-price-value"
-                      data-mtt-service-field="priceValue"
-                      value="{{service.priceValue}}"
-                      min="0"
-                      step="1"
-                      placeholder="{{localize 'mtt.services.price.base'}}"
-                    />
+                    {{#if service.hasPrice}}
+                      <strong>{{service.displayPriceLabel}}</strong>
+                    {{else}}
+                      <strong>{{localize "mtt.products.price.undefined"}}</strong>
+                    {{/if}}
                   {{/if}}
-                    <select
-                      class="mtt-merchant-service-price-currency"
-                      data-mtt-service-field="priceCurrency"
+                {{/if}}
+              </div>
+
+
+              <div class="mtt-merchant-service-actions">
+                {{#if @root.mtt.isLimited}}
+                {{else}}
+                  {{#if service.isVisible}}
+                    <button
+                      class="mtt-merchant-service-action"
+                      type="button"
+                      data-action="addServiceToSession"
+                      data-tooltip="{{localize 'mtt.sessions.actions.addService'}}"
+                      title="{{localize 'mtt.sessions.actions.addService'}}"
                     >
-                      {{#each @root.mtt.currencyOptions as |opt|}}
-                        <option value="{{opt.key}}" title="{{opt.label}}"{{#if (eq opt.key service.selectedCurrencyKey)}} selected{{/if}}>
-                          {{#if opt.isFreePrice}}{{opt.label}}{{else}}{{opt.abbreviation}}{{/if}}
-                        </option>
-                      {{/each}}
-                    </select>
-                </div>
-              {{/if}}
-
-
-              {{#if @root.mtt.canEditMerchant}}
-                <div class="mtt-merchant-service-quantity-bloc">
-                  <input
-                    type="number"
-                    class="mtt-merchant-service-quantity"
-                    data-mtt-service-field="quantity"
-                    value="{{service.quantity}}"
-                    min="0"
-                    step="1"
-                    placeholder="{{localize 'mtt.services.unlimited'}}"
-                  />
-                </div>
-              {{/if}}
-
-
-              {{#if @root.mtt.canEditMerchant}}
-                <div class="mtt-merchant-service-delete-bloc">
-                  <button
-                    class="mtt-merchant-service-delete"
-                    type="button"
-                    data-action="deleteService"
-                    data-tooltip="{{localize 'mtt.services.delete'}}"
-                    title="{{localize 'mtt.services.delete'}}"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              {{/if}}
-
-
-              {{#if @root.mtt.canEditMerchant}}
-                <textarea
-                  class="mtt-merchant-service-description"
-                  data-mtt-service-field="description"
-                >{{service.descriptionText}}</textarea>
-              {{else}}
-                <div class="mtt-merchant-service-description">
-                  {{#if service.description}}
-                    {{{service.description}}}
-                  {{else}}
-
+                      <i class="fas fa-cart-plus"></i>
+                    </button>
                   {{/if}}
-                </div>
-              {{/if}}
 
-              <!--{{#if @root.mtt.canEditMerchant}}
-                <div class="mtt-merchant-service-description">
-                  <textarea
-                    class="mtt-merchant-service-description-input"
-                    data-mtt-service-field="description"
-                    value="{{service.description}}"
-                  >{{system.merchant.description}}</textarea>
-                  <input
-                      type="text"
-                      class="mtt-merchant-service-description-input"
-                      data-mtt-service-field="description"
-                      value="{{service.description}}"
-                      placeholder="{{localize 'mtt.services.description'}}"
-                    />
-                </div>
-              {{else}}
-                <div class="mtt-merchant-service-description">
-                    {{{service.description}}}
-                </div>
-              {{/if}}-->
+                  {{#if @root.mtt.isEditable}}
+                    <button
+                      class="mtt-merchant-service-action"
+                      type="button"
+                      data-action="toggleCatalogItemVisibility"
+                      data-catalog-kind="service"
+                      data-tooltip="{{#if service.isVisible}}{{localize 'mtt.services.hide'}}{{else}}{{localize 'mtt.services.show'}}{{/if}}"
+                      title="{{#if service.isVisible}}{{localize 'mtt.services.hide'}}{{else}}{{localize 'mtt.services.show'}}{{/if}}"
+                    >
+                      {{#if service.isVisible}}
+                        <i class="fas fa-eye"></i>
+                      {{else}}
+                        <i class="fas fa-eye-slash"></i>
+                      {{/if}}
+                    </button>
+                  {{/if}}
+
+                  {{#if @root.mtt.isEditable}}
+                  <button
+                    class="mtt-merchant-service-action"
+                    type="button"
+                    data-action="toggleServiceApproval"
+                    data-tooltip="{{#if service.requiresApproval}}{{localize 'mtt.services.disableApproval'}}{{else}}{{localize 'mtt.services.requireApproval'}}{{/if}}"
+                    title="{{#if service.requiresApproval}}{{localize 'mtt.services.disableApproval'}}{{else}}{{localize 'mtt.services.requireApproval'}}{{/if}}"
+                  >
+                    {{#if service.requiresApproval}}
+                      <i class="fas fa-user-check"></i>
+                    {{else}}
+                      <i class="fas fa-user-clock"></i>
+                    {{/if}}
+                  </button>
+                  {{/if}}
+
+                  {{#if @root.mtt.canEditMerchant}}
+                  <button
+                    class="mtt-merchant-service-action"
+                    type="button"
+                    data-action="duplicateService"
+                    data-tooltip="{{localize 'mtt.services.duplicate'}}"
+                    title="{{localize 'mtt.services.duplicate'}}"
+                  >
+                    <i class="fas fa-copy"></i>
+                  </button>
+                  {{/if}}
+
+                  {{#if @root.mtt.canEditMerchant}}
+                    <button
+                      class="mtt-merchant-service-action"
+                      type="button"
+                      data-action="deleteService"
+                      data-tooltip="{{localize 'mtt.services.delete'}}"
+                      title="{{localize 'mtt.services.delete'}}"
+                    >
+                    </button>
+                  {{/if}}
+                {{/if}}
+              </div>
             </div>
-          {{/if}}
-        </li>
-      {{/each}}
-    </ol>
-  {{else}}
-    <div class="mtt-merchant-empty-tab">
-      <i class="fas fa-handshake"></i>
-      <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.services.empty.title"}}</h2>
-      <p class="mtt-merchant-empty-tab-text">{{localize "mtt.services.empty.text"}}</p>
-      {{#if @root.mtt.canEditMerchant}}
-        <p class="mtt-merchant-empty-tab-help">{{localize "mtt.services.empty.help"}}</p>
-      {{/if}}
-    </div>
-  {{/if}}
+
+            {{#if service.isExpanded}}
+              <div class="mtt-merchant-service-details mtt-merchant-service-expanded">
+                {{#if @root.mtt.canEditMerchant}}
+                  <div class="mtt-merchant-service-price-bloc">
+                    {{#if service.hasFreePrice}}
+                      <input
+                        type="number"
+                        class="mtt-merchant-service-price-value"
+                        data-mtt-service-field="minimumPriceValue"
+                        value="{{service.minimumPriceValue}}"
+                        min="0"
+                        step="1"
+                        placeholder="{{localize 'mtt.price.minimumPrice'}}"
+                        data-tooltip="{{localize 'mtt.price.minimumPriceHint'}}"
+                      />
+                    {{else}}
+                      <input
+                        type="number"
+                        class="mtt-merchant-service-price-value"
+                        data-mtt-service-field="priceValue"
+                        value="{{service.priceValue}}"
+                        min="0"
+                        step="1"
+                        placeholder="{{localize 'mtt.services.price.base'}}"
+                      />
+                    {{/if}}
+                      <select
+                        class="mtt-merchant-service-price-currency"
+                        data-mtt-service-field="priceCurrency"
+                      >
+                        {{#each @root.mtt.currencyOptions as |opt|}}
+                          <option value="{{opt.key}}" title="{{opt.label}}"{{#if (eq opt.key service.selectedCurrencyKey)}} selected{{/if}}>
+                            {{#if opt.isFreePrice}}{{opt.label}}{{else}}{{opt.abbreviation}}{{/if}}
+                          </option>
+                        {{/each}}
+                      </select>
+                  </div>
+                {{/if}}
+
+
+                {{#if @root.mtt.canEditMerchant}}
+                  <div class="mtt-merchant-service-quantity-bloc">
+                    <input
+                      type="number"
+                      class="mtt-merchant-service-quantity"
+                      data-mtt-service-field="quantity"
+                      value="{{service.quantity}}"
+                      min="0"
+                      step="1"
+                      placeholder="{{localize 'mtt.services.unlimited'}}"
+                    />
+                  </div>
+                {{/if}}
+
+
+                {{#if @root.mtt.canEditMerchant}}
+                  <div class="mtt-merchant-service-delete-bloc">
+                    <button
+                      class="mtt-merchant-service-delete"
+                      type="button"
+                      data-action="deleteService"
+                      data-tooltip="{{localize 'mtt.services.delete'}}"
+                      title="{{localize 'mtt.services.delete'}}"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                {{/if}}
+
+
+                {{#if @root.mtt.canEditMerchant}}
+                  <textarea
+                    class="mtt-merchant-service-description"
+                    data-mtt-service-field="description"
+                  >{{service.descriptionText}}</textarea>
+                {{else}}
+                  <div class="mtt-merchant-service-description">
+                    {{#if service.description}}
+                      {{{service.description}}}
+                    {{else}}
+
+                    {{/if}}
+                  </div>
+                {{/if}}
+              </div>
+            {{/if}}
+          </li>
+        {{/each}}
+      </ol>
+    {{else}}
+      <div class="mtt-merchant-empty-tab">
+        <i class="fas fa-handshake"></i>
+        <h2 class="mtt-merchant-empty-tab-title">{{localize "mtt.services.empty.title"}}</h2>
+        <p class="mtt-merchant-empty-tab-text">{{localize "mtt.services.empty.text"}}</p>
+        {{#if @root.mtt.canEditMerchant}}
+          <p class="mtt-merchant-empty-tab-help">{{localize "mtt.services.empty.help"}}</p>
+        {{/if}}
+      </div>
+    {{/if}}
   </div>
 
-   {{#if @root.mtt.canEditMerchant}}
+  {{#if @root.mtt.canEditMerchant}}
     <div class="mtt-merchant-services-actions-row">
        <h2 class="mtt-merchant-session-title">{{localize 'mtt.services.add'}}</h2>
        <button

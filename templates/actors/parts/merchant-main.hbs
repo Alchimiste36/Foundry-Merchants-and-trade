@@ -1,38 +1,5 @@
 <section class="mtt-merchant-main-zone">
-  <nav class="mtt-merchant-tab-nav" aria-label="{{localize 'mtt.navigation.label'}}">
-    <button
-      class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'products')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-      type="button"
-      data-action="selectTab"
-      data-tab="products"
-      data-tooltip="{{localize 'mtt.tabs.products'}}"
-    >
-      <i class="fas fa-box"></i>
-    </button>
-
-    <button
-      class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'services')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-      type="button"
-      data-action="selectTab"
-      data-tab="services"
-      data-tooltip="{{localize 'mtt.tabs.services'}}"
-    >
-      <i class="fas fa-handshake"></i>
-    </button>
-
-    {{#if mtt.canConfigureMerchant}}
-      <button
-        class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-        type="button"
-        data-action="selectTab"
-        data-tab="configuration"
-        data-tooltip="{{localize 'mtt.tabs.configuration'}}"
-      >
-        <i class="fas fa-gear"></i>
-      </button>
-    {{/if}}
-  </nav>
-
+  
   <section class="mtt-merchant-tab-content">
     {{#if (eq mtt.activeTab "products")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-products" data-tab="products">

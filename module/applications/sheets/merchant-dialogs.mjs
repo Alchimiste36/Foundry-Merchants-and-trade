@@ -31,9 +31,10 @@ export function renderSessionPreparationDialog({
   hasFreePrice = false,
   referenceCurrencyLabel = "",
   hidePriceInfo = false,
+  hideQuantityInfo = false,
 }) {
   const quantityMax =
-    Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : ""
+    !hideQuantityInfo && Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : ""
 
   const priceSummaryHtml = hidePriceInfo
     ? ""
@@ -62,14 +63,18 @@ export function renderSessionPreparationDialog({
           </label>`
         : ""
 
+  const quantitySummaryHtml = hideQuantityInfo
+    ? ""
+    : `<p class="mtt-session-dialog-line">
+        <strong>${game.i18n.localize("mtt.sessions.dialog.availableQuantity")}</strong>
+        <span>${escapeHTML(availableQuantityLabel)}</span>
+      </p>`
+
   return `<form class="mtt-session-dialog-form">
     <section class="mtt-session-dialog-summary">
       <h3 class="mtt-session-dialog-title">${escapeHTML(name)}</h3>
       ${priceSummaryHtml}
-      <p class="mtt-session-dialog-line">
-        <strong>${game.i18n.localize("mtt.sessions.dialog.availableQuantity")}</strong>
-        <span>${escapeHTML(availableQuantityLabel)}</span>
-      </p>
+      ${quantitySummaryHtml}
     </section>
     <label class="mtt-session-dialog-field">
       <span>${game.i18n.localize("mtt.sessions.dialog.quantity")}</span>
@@ -88,6 +93,7 @@ export async function openSessionPreparationDialog({
   hasFreePrice = false,
   referenceCurrencyLabel = "",
   hidePriceInfo = false,
+  hideQuantityInfo = false,
 }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
@@ -102,6 +108,7 @@ export async function openSessionPreparationDialog({
     hasFreePrice,
     referenceCurrencyLabel,
     hidePriceInfo,
+    hideQuantityInfo,
   })
 
   let result = null
@@ -175,9 +182,9 @@ export async function openSessionPreparationDialog({
   }
 }
 
-export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false }) {
+export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false, hideQuantityInfo = false }) {
   const quantityMax =
-    Number.isFinite(availableQuantity) && availableQuantity >= 0
+    !hideQuantityInfo && Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? ` max="${escapeHTML(String(availableQuantity))}"`
       : ""
 
@@ -192,10 +199,14 @@ export function renderSellerItemDialog({ availableQuantityLabel, availableQuanti
         <select name="priceCurrency">${buildCurrencySelectOptions(priceCurrency)}</select>
       </label>`
 
-  return `<label class="mtt-dialog-field">
+  const quantitySummaryHtml = hideQuantityInfo
+    ? ""
+    : `<label class="mtt-dialog-field">
       <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemAvailableQuantity")}</span>
       <span class="mtt-dialog-field-value">${escapeHTML(availableQuantityLabel)}</span>
-    </label>
+    </label>`
+
+  return `${quantitySummaryHtml}
     <label class="mtt-dialog-field">
       <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemQuantity")}</span>
       <input type="number" name="quantity" min="1" step="1" value="1"${quantityMax} />
@@ -494,7 +505,7 @@ export async function openRefuseConfirmDialog() {
   return Boolean(result)
 }
 
-export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false }) {
+export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency, hidePriceFields = false, hideQuantityInfo = false }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? String(availableQuantity)
@@ -506,6 +517,7 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
     unitPriceValue,
     priceCurrency,
     hidePriceFields,
+    hideQuantityInfo,
   })
 
   const content = await renderMttDialogContent({

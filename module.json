@@ -17,6 +17,7 @@
   "download": "https://github.com/Alchimiste36/Foundry-Merchants-and-trade/archive/refs/heads/main.zip",
   "esmodules": ["mtt.mjs"],
   "styles": ["css/mtt.css"],
+  "socket": true,
   "languages": [
     {
       "lang": "fr",

@@ -345,6 +345,20 @@ export function buildCurrencySelectOptions(selectedKey) {
     .join("")
 }
 
+export function userControlsActor(user, actor) {
+  if (!user || !actor) return false
+  if (user.isGM) return true
+  if ((user.character?.uuid ?? "") === (actor.uuid ?? "")) return true
+  if (actor.testUserPermission?.(user, "OWNER")) return true
+  const level = actor.getUserLevel(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+  return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+}
+
+export function getUsersControllingActor(actor) {
+  if (!actor) return []
+  return game.users.filter((user) => !user.isGM && userControlsActor(user, actor))
+}
+
 export function computeMerchantPermissions(merchantActor) {
   const user = game.user
   if (!user) {
@@ -388,18 +402,17 @@ export function computeMerchantPermissions(merchantActor) {
   const isLimited = permissionLevel >= LEVELS.LIMITED
 
   const storedClients = merchantActor.system?.access?.clients ?? []
-  const userCharacter = user.character
-  const isAuthorizedClient = Boolean(
-    userCharacter &&
-      storedClients.some(
-        (c) => String(c.actorUuid ?? "") === String(userCharacter.uuid ?? "") && Boolean(c.isAuthorized),
-      ),
-  )
+  const isAuthorizedClient = storedClients.some((c) => {
+    if (!Boolean(c.isAuthorized) || !c.actorUuid) return false
+    const clientActor = game.actors.find((a) => a.uuid === c.actorUuid)
+    if (!clientActor) return false
+    return userControlsActor(user, clientActor)
+  })
 
   return {
     canViewPrices: isObserver,
     canViewQuantities: isObserver,
-    canUseSession: isAuthorizedClient && isLimited,
+    canUseSession: isOwner || (isAuthorizedClient && isLimited),
     canProposeSellerPrice: isAuthorizedClient && isObserver,
     canRequestValidation: isAuthorizedClient && isObserver,
     canValidateTransaction: isOwner,

@@ -22,6 +22,8 @@ import {
   getCategoryLabelMap,
   computeMerchantPermissions,
   prepareCurrencyOptions,
+  getUsersControllingActor,
+  userControlsActor,
 } from "./merchant-utils.mjs"
 import {
   renderMttDialogContent,
@@ -64,7 +66,7 @@ import {
   removeSessionItemById,
   syncSessionItemAvailability,
   canUseSessionQuantity,
-  canUserUseSession,
+  canUserUseMerchantSession,
   prepareSessionTotals,
   prepareMoneyAdjustments,
   getSessionStatusNotice,
@@ -86,6 +88,7 @@ import {
   applyCurrencyTransferPlan,
   clearSessionAfterExecution,
 } from "./merchant-trade.mjs"
+import { requestMerchantSessionUpdate } from "./merchant-session-socket.mjs"
 
 const { ActorSheetV2 } = foundry.applications.sheets
 const { HandlebarsApplicationMixin } = foundry.applications.api
@@ -320,15 +323,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rail.append(button)
     })
 
-    const dropCard = document.createElement("div")
-    dropCard.classList.add("mtt-merchant-access-drop-card")
-    dropCard.dataset.mttClientDrop = ""
-    dropCard.dataset.tooltip = game.i18n.localize("mtt.access.dropTooltip")
+    if (accessContext.canManage) {
+      const dropCard = document.createElement("div")
+      dropCard.classList.add("mtt-merchant-access-drop-card")
+      dropCard.dataset.mttClientDrop = ""
+      dropCard.dataset.tooltip = game.i18n.localize("mtt.access.dropTooltip")
 
-    const dropIcon = document.createElement("i")
-    dropIcon.classList.add("fas", "fa-user-plus")
-    dropCard.append(dropIcon)
-    rail.append(dropCard)
+      const dropIcon = document.createElement("i")
+      dropIcon.classList.add("fas", "fa-user-plus")
+      dropCard.append(dropIcon)
+      rail.append(dropCard)
+    }
 
     return rail
   }
@@ -465,6 +470,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const field = input.dataset.mttSessionField
     const session = this.#getActiveSession()
     if (!session) return
+
+    if (!canUserUseMerchantSession(session, this.actor)) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+      return
+    }
 
     if (field === "label") {
       const label = input.value?.trim() ?? ""
@@ -707,11 +717,33 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
+    const session = this.#getSessionForAddingItem()
+    if (!session || !canUserUseMerchantSession(session, this.actor)) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+      return
+    }
+
+    if (!game.user?.isGM && !computeMerchantPermissions(this.actor).canManageMerchant) {
+      const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
+      const sessionActor = game.actors.find((actor) => actor.uuid === session.actorUuid)
+      if (
+        !sourceActor ||
+        !sessionActor ||
+        sourceActor.uuid !== sessionActor.uuid ||
+        !userControlsActor(game.user, sourceActor)
+      ) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+        return
+      }
+    }
+
     const sellerData = prepareSellerItemDropData(this.actor, item)
     const sellerPermissions = computeMerchantPermissions(this.actor)
     const dialogData = await this.#openSellerItemDialog({
       ...sellerData,
+      availableQuantity: sellerPermissions.canViewQuantities ? sellerData.availableQuantity : null,
       hidePriceFields: !sellerPermissions.canViewPrices,
+      hideQuantityInfo: !sellerPermissions.canViewQuantities,
     })
     if (!dialogData) return
 
@@ -1014,8 +1046,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const clients = permissions.canManageMerchant
       ? allClients
       : allClients.filter((c) => {
-          const uuid = game.user?.character?.uuid ?? ""
-          return uuid && c.actorUuid === uuid
+          if (!c.actorUuid || !c.isAuthorized) return false
+          const clientActor = game.actors.find((a) => a.uuid === c.actorUuid)
+          if (!clientActor) return false
+          return userControlsActor(game.user, clientActor)
         })
 
     return {
@@ -1119,10 +1153,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async #grantMinimumFoundryPermission(clientActorUuid) {
     const LIMITED = CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
     const updates = {}
+    const clientActor = game.actors.find((actor) => actor.uuid === clientActorUuid)
+    if (!clientActor) return
+    const controllingUserIds = new Set(getUsersControllingActor(clientActor).map((user) => user.id))
 
     game.users.forEach((user) => {
       if (user.isGM) return
-      if ((user.character?.uuid ?? "") !== clientActorUuid) return
+      if (!controllingUserIds.has(user.id)) return
       const currentLevel = this.actor.getUserLevel(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
       if (currentLevel < LIMITED) updates[user.id] = LIMITED
     })
@@ -1290,11 +1327,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const permittedSessions = isGM
       ? sessions
       : sessions.filter((s) => {
-          const uuid = s.actorUuid ?? ""
-          if (!uuid) return false
-          const actor = game.actors.find((a) => a.uuid === uuid)
-          if (actor?.isOwner) return true
-          return (game.user?.character?.uuid ?? "") === uuid
+          return canUserUseMerchantSession(s, this.actor)
         })
 
     if (this.#activeSessionId) {
@@ -1329,6 +1362,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #getSessionForAddingItem() {
     const selectedSession = this.#getSelectedSession()
     if (selectedSession) {
+      if (!canUserUseMerchantSession(selectedSession, this.actor)) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+        return null
+      }
+
       const client = this.#getAccessClientForSession(selectedSession)
       if (selectedSession.actorUuid && !client?.isAuthorized) {
         ui.notifications.warn(game.i18n.localize("mtt.access.notAuthorizedForTrade"))
@@ -1348,7 +1386,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #requireSelectedSessionForItemAddition() {
-    if (this.#getSelectedSession()) return true
+    if (this.#getSessionForAddingItem()) return true
 
     ui.notifications.warn(game.i18n.localize("mtt.notifications.selectClientBeforeAdding"))
     return false
@@ -1582,9 +1620,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#selectedClientActorUuid = client.actorUuid
     this.#sessionCheckResult = null
 
-    await this.actor.update({
-      "system.sessions.entries": sessions,
-    })
+    await this.#updateSessionEntries(sessions)
 
     return session
   }
@@ -1609,9 +1645,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#activeSessionId = normalizedSession.id
     this.#selectedClientActorUuid = normalizedSession.actorUuid ?? ""
 
-    await this.actor.update({
+    await this.#updateSessionEntries(sessions)
+  }
+
+  async #updateSessionEntries(sessions) {
+    const updateData = {
       "system.sessions.entries": sessions,
-    })
+    }
+
+    const permissionLevel = this.actor.getUserLevel(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    const canUpdateDirectly =
+      game.user?.isGM ||
+      this.actor.testUserPermission?.(game.user, "OWNER") ||
+      permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+
+    if (canUpdateDirectly) {
+      await this.actor.update(updateData)
+      return
+    }
+
+    const response = await requestMerchantSessionUpdate(this.actor, updateData)
+    if (response?.updateData && this.actor.updateSource) this.actor.updateSource(response.updateData)
   }
 
   // ─── Misc helpers ─────────────────────────────────────────────────────────
@@ -1719,11 +1773,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
-      availableQuantity,
+      availableQuantity: hidePriceInfo ? null : availableQuantity,
       includeProposedPrice: !hasFreePrice && !hidePriceInfo,
       hasFreePrice,
       referenceCurrencyLabel,
       hidePriceInfo,
+      hideQuantityInfo: !permissions.canViewQuantities,
     })
     if (!dialogData) return
 
@@ -1769,6 +1824,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
+    if (!canUserUseMerchantSession(session, this.actor)) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+      return
+    }
+
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
     if (!itemId) return
     const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer"
@@ -1784,7 +1844,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseSession(session)) {
+    if (!canUserUseMerchantSession(session, this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
       return
     }
@@ -1815,7 +1875,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseSession(session)) {
+    if (!canUserUseMerchantSession(session, this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
       return
     }
@@ -1845,6 +1905,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const session = this.#getActiveSession()
     if (!session) return
+
+    if (!canUserUseMerchantSession(session, this.actor)) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
+      return
+    }
 
     const hasItems = session.buyerItems.length > 0 || session.sellerItems.length > 0
     if (!hasItems) return
@@ -1911,8 +1976,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (!permissions.canManageMerchant) {
-      const currentActorUuid = game.user?.character?.uuid ?? ""
-      if (client.actorUuid !== currentActorUuid) return
+      const clientActor = game.actors.find((a) => a.uuid === client.actorUuid)
+      if (!clientActor || !userControlsActor(game.user, clientActor)) return
     }
 
     this.#selectedClientActorUuid = client.actorUuid
@@ -1923,7 +1988,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!permissions.canManageMerchant) return
+    if (!permissions.canManageMerchant) {
+      const clientActor = game.actors.find((a) => a.uuid === client.actorUuid)
+      if (!clientActor || !userControlsActor(game.user, clientActor)) return
+    }
 
     const repairedSession = await this.#createSessionForClient(client)
     if (!repairedSession) return
@@ -1966,7 +2034,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseSession(session)) {
+    if (!canUserUseMerchantSession(session, this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
       return
     }
@@ -1997,7 +2065,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    if (!canUserUseSession(session)) {
+    if (!canUserUseMerchantSession(session, this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotUseSession"))
       return
     }
@@ -2457,10 +2525,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
-      availableQuantity,
+      availableQuantity: hidePriceInfo ? null : availableQuantity,
       hasFreePrice,
       referenceCurrencyLabel,
       hidePriceInfo,
+      hideQuantityInfo: !permissions.canViewQuantities,
     })
     if (!dialogData) return
 

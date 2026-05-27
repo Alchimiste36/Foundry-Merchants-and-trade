@@ -8,6 +8,7 @@ import {
   createCheckMessage,
   parseQuantityValue,
   roundToSmallestCurrencyUnit,
+  userControlsActor,
 } from "./merchant-utils.mjs"
 import {
   prepareMerchantCatalogItemData,
@@ -192,8 +193,28 @@ export function canUserUseSession(session) {
   const actorUuid = session.actorUuid ?? ""
   if (!actorUuid) return false
   const clientActor = game.actors.find((a) => a.uuid === actorUuid)
-  if (clientActor?.isOwner) return true
-  return (game.user?.character?.uuid ?? "") === actorUuid
+  if (!clientActor) return false
+  return userControlsActor(game.user, clientActor)
+}
+
+export function canUserUseMerchantSession(session, merchantActor, user = game.user) {
+  if (!session || !merchantActor || !user) return false
+  if (user.isGM) return true
+
+  const LEVELS = CONST.DOCUMENT_OWNERSHIP_LEVELS
+  const merchantLevel = merchantActor.getUserLevel(user) ?? LEVELS.NONE
+  if (merchantLevel >= LEVELS.OWNER) return true
+
+  const actorUuid = String(session.actorUuid ?? "").trim()
+  if (!actorUuid) return false
+
+  const accessClient = getStoredAccessClients(merchantActor).find((client) => client.actorUuid === actorUuid)
+  if (!accessClient?.isAuthorized) return false
+
+  const clientActor = game.actors.find((a) => a.uuid === actorUuid)
+  if (!clientActor) return false
+
+  return userControlsActor(user, clientActor)
 }
 
 // ─── Session totals and adjustments ──────────────────────────────────────────
@@ -345,10 +366,15 @@ export function prepareSessionContext(actor, { session, selectedClient, sessionC
   if (!session) {
     const isGM = game.user?.isGM ?? false
     const isUnauthorized = !isGM && (() => {
-      const uuid = game.user?.character?.uuid ?? ""
-      if (!uuid) return true
-      const client = (accessClients ?? []).find((c) => c.actorUuid === uuid)
-      return !client?.isAuthorized
+      const user = game.user
+      if (!user) return true
+      const authorizedClient = (accessClients ?? []).find((c) => {
+        if (!c.isAuthorized || !c.actorUuid) return false
+        const clientActor = game.actors.find((a) => a.uuid === c.actorUuid)
+        if (!clientActor) return false
+        return userControlsActor(user, clientActor)
+      })
+      return !authorizedClient
     })()
     return {
       id: "",
@@ -434,7 +460,7 @@ export function prepareSessionContext(actor, { session, selectedClient, sessionC
   const hasAnyItems = buyerItems.length > 0 || sellerItems.length > 0
   const client = prepareSessionClientContext(session, accessClients)
   const isSessionFinal = ["validated", "refused"].includes(status)
-  const canUseSession = canUserUseSession(session)
+  const canUseSession = canUserUseMerchantSession(session, actor)
 
   return {
     id: session.id,

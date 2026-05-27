@@ -198,7 +198,10 @@
       "missingProposedPrice": "Vous devez proposer un prix pour cet élément.",
       "selectSessionBeforeAction": "Sélectionnez une session avant d'effectuer cette action.",
       "transactionExecutionNotReady": "L'exécution réelle de la transaction sera développée dans une prochaine étape.",
-      "cannotUseSession": "Vous ne pouvez pas modifier cette session."
+      "cannotUseSession": "Vous ne pouvez pas modifier cette session.",
+      "sessionSocketNoResponse": "La demande de modification de session n’a pas reçu de réponse.",
+      "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
+      "sessionSocketRequestDenied": "La demande de modification de session a été refusée."
     },
     "price": {
       "freePrice": "Prix libre",

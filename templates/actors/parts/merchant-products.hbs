@@ -178,7 +178,9 @@
                             data-mtt-product-field="priceCurrency"
                           >
                             {{#each @root.mtt.currencyOptions as |opt|}}
-                              <option value="{{opt.key}}"{{#if (eq opt.key item.selectedCurrencyKey)}} selected{{/if}}>{{opt.label}}</option>
+                              <option value="{{opt.key}}" title="{{opt.label}}"{{#if (eq opt.key item.selectedCurrencyKey)}} selected{{/if}}>
+                                {{#if opt.isFreePrice}}{{opt.label}}{{else}}{{opt.abbreviation}}{{/if}}
+                              </option>
                             {{/each}}
                           </select>
                         </div>

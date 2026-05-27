@@ -337,15 +337,28 @@ export function prepareCurrencyOptions() {
   const options = currencies
     .map((c) => {
       const abbr = String(c.abbreviation ?? "").trim()
+      const fallbackAbbr = String(c.abbr ?? c.code ?? "").trim()
       const name = String(c.name ?? "").trim()
       const id = String(c.id ?? "").trim()
       const key = abbr || id
       const label = name || abbr || id
       if (!key) return null
-      return { key, label }
+      return {
+        key,
+        value: key,
+        abbreviation: abbr || fallbackAbbr || key || label,
+        label,
+        isFreePrice: false,
+      }
     })
     .filter(Boolean)
-  options.push({ key: "__freePrice", label: game.i18n.localize("mtt.price.freePrice") })
+  options.push({
+    key: "__freePrice",
+    value: "__freePrice",
+    abbreviation: "",
+    label: game.i18n.localize("mtt.price.freePrice"),
+    isFreePrice: true,
+  })
   return options
 }
 
@@ -356,23 +369,26 @@ export function buildCurrencySelectOptions(selectedKey) {
 
   for (const c of currencies) {
     const abbr = String(c.abbreviation ?? "").trim()
+    const fallbackAbbr = String(c.abbr ?? c.code ?? "").trim()
     const name = String(c.name ?? "").trim()
     const id = String(c.id ?? "").trim()
     const key = abbr || id
     const label = name || abbr || id
+    const abbreviation = abbr || fallbackAbbr || key || label
     if (!key) continue
     usedKeys.add(key)
-    options.push({ key, label })
+    options.push({ key, label, abbreviation })
   }
 
   if (selectedKey && !usedKeys.has(selectedKey)) {
-    options.push({ key: selectedKey, label: selectedKey })
+    options.push({ key: selectedKey, label: selectedKey, abbreviation: selectedKey })
   }
 
   return options
-    .map(({ key, label }) => {
+    .map(({ key, label, abbreviation }) => {
       const sel = key === selectedKey ? " selected" : ""
-      return `<option value="${escapeHTML(key)}"${sel}>${escapeHTML(label)}</option>`
+      const title = label && label !== abbreviation ? ` title="${escapeHTML(label)}"` : ""
+      return `<option value="${escapeHTML(key)}"${title}${sel}>${escapeHTML(abbreviation)}</option>`
     })
     .join("")
 }

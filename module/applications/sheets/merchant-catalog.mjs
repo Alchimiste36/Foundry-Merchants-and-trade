@@ -76,7 +76,7 @@ export function getReferenceCurrency() {
   )
 }
 
-export function prepareItems(actor, sellPercent) {
+export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
   return actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity
@@ -87,6 +87,8 @@ export function prepareItems(actor, sellPercent) {
         : MTT.PRODUCT_DEFAULTS.priceValue
     const displayPriceValue = adjustPriceValue(basePriceValue, sellPercent)
     const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+    const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
+    const isVisible = !isHidden
 
     return {
       id: item.id,
@@ -115,7 +117,8 @@ export function prepareItems(actor, sellPercent) {
       isCommerciallyModified: Boolean(product.isCommerciallyModified),
       hasSystemCategory: Boolean(product.systemCategoryKey || product.systemCategoryLabel),
       hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
-      isHidden: product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden,
+      isHidden,
+      isVisible,
       requiresApproval: product.requiresApproval ?? MTT.PRODUCT_DEFAULTS.requiresApproval,
       priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
       displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
@@ -132,10 +135,10 @@ export function prepareItems(actor, sellPercent) {
           ? "__freePrice"
           : (product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency),
     }
-  })
+  }).filter((item) => includeHidden || item.isVisible)
 }
 
-export function prepareServices(actor, sellPercent) {
+export function prepareServices(actor, sellPercent, { includeHidden = false } = {}) {
   const entries = actor.system.services?.entries ?? []
   return entries.map((service) => {
     const basePriceValue =
@@ -144,6 +147,8 @@ export function prepareServices(actor, sellPercent) {
         : MTT.SERVICE_DEFAULTS.priceValue
     const displayPriceValue = adjustPriceValue(basePriceValue, sellPercent)
     const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency
+    const isHidden = Boolean(service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden)
+    const isVisible = !isHidden
 
     return {
       id: service.id,
@@ -160,7 +165,8 @@ export function prepareServices(actor, sellPercent) {
       basePriceLabel: formatPriceLabel(basePriceValue, priceCurrency),
       quantity: service.quantity,
       hasQuantity: service.quantity !== null && service.quantity !== undefined,
-      isHidden: service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden,
+      isHidden,
+      isVisible,
       requiresApproval: service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
       isExpanded: service.isExpanded ?? MTT.SERVICE_DEFAULTS.isExpanded,
       sourceUuid: service.sourceUuid ?? null,
@@ -184,15 +190,17 @@ export function prepareServices(actor, sellPercent) {
           ? "__freePrice"
           : (service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency),
     }
-  })
+  }).filter((service) => includeHidden || service.isVisible)
 }
 
-export function prepareProductCategories(actor, items) {
+export function prepareProductCategories(actor, items, { includeHidden = false } = {}) {
   const definedCategories = actor.system.catalog?.productCategories ?? []
   const categories = new Map()
+  const hiddenCategories = actor.system.catalog?.hiddenCategories ?? {}
 
   const shouldShowSystemCategory = items.length > 0 || definedCategories.length > 0
   if (shouldShowSystemCategory) {
+    const isHidden = Boolean(hiddenCategories[""])
     categories.set("", {
       id: "category-uncategorized",
       name: game.i18n.localize("mtt.products.category.undefined"),
@@ -200,12 +208,15 @@ export function prepareProductCategories(actor, items) {
       items: [],
       count: 0,
       isCollapsed: false,
+      isHidden,
+      isVisible: !isHidden,
       isSystemCategory: true,
     })
   }
 
   definedCategories.forEach((category) => {
     if (!category?.id) return
+    const isHidden = Boolean(hiddenCategories[category.id])
     categories.set(category.id, {
       id: category.id,
       name: category.name || category.id,
@@ -213,6 +224,8 @@ export function prepareProductCategories(actor, items) {
       items: [],
       count: 0,
       isCollapsed: false,
+      isHidden,
+      isVisible: !isHidden,
       isSystemCategory: false,
     })
   })
@@ -227,10 +240,12 @@ export function prepareProductCategories(actor, items) {
 
   const collapsedCategories = actor.system.catalog?.collapsedCategories ?? {}
 
-  const sortedCategories = Array.from(categories.values()).map((group) => ({
-    ...group,
-    isCollapsed: Boolean(collapsedCategories[group.categoryValue]),
-  }))
+  const sortedCategories = Array.from(categories.values())
+    .filter((group) => includeHidden || group.isVisible)
+    .map((group) => ({
+      ...group,
+      isCollapsed: Boolean(collapsedCategories[group.categoryValue]),
+    }))
 
   sortedCategories.sort((a, b) => {
     if (a.isSystemCategory && !b.isSystemCategory) return -1

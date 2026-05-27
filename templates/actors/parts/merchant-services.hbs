@@ -1,12 +1,12 @@
 <section class="mtt-merchant-services">
- 
+
 
   <div class="mtt-merchant-services-drop-zone"  data-mtt-service-drop>
   {{#if @root.services}}
 
     <ol class="mtt-merchant-service-list">
       {{#each @root.services as |service|}}
-        <li class="mtt-merchant-service-row" data-service-id="{{service.id}}">
+        <li class="mtt-merchant-service-row {{#unless service.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}" data-service-id="{{service.id}}">
           <div class="mtt-merchant-service-main">
             <button
               class="mtt-merchant-service-action"
@@ -53,7 +53,8 @@
 
 
             <div class="mtt-merchant-service-actions">
-              {{#unless service.isHidden}}
+
+              {{#if service.isVisible}}
                 <button
                   class="mtt-merchant-service-action"
                   type="button"
@@ -63,21 +64,24 @@
                 >
                   <i class="fas fa-cart-plus"></i>
                 </button>
-              {{/unless}}
+              {{/if}}
 
-              <button
-                class="mtt-merchant-service-action"
-                type="button"
-                data-action="toggleServiceHidden"
-                data-tooltip="{{#if service.isHidden}}{{localize 'mtt.services.show'}}{{else}}{{localize 'mtt.services.hide'}}{{/if}}"
-                title="{{#if service.isHidden}}{{localize 'mtt.services.show'}}{{else}}{{localize 'mtt.services.hide'}}{{/if}}"
-              >
-                {{#if service.isHidden}}
-                  <i class="fas fa-eye-slash"></i>
-                {{else}}
-                  <i class="fas fa-eye"></i>
-                {{/if}}
-              </button>
+              {{#if @root.mtt.isEditable}}
+                <button
+                  class="mtt-merchant-service-action"
+                  type="button"
+                  data-action="toggleCatalogItemVisibility"
+                  data-catalog-kind="service"
+                  data-tooltip="{{#if service.isVisible}}{{localize 'mtt.services.hide'}}{{else}}{{localize 'mtt.services.show'}}{{/if}}"
+                  title="{{#if service.isVisible}}{{localize 'mtt.services.hide'}}{{else}}{{localize 'mtt.services.show'}}{{/if}}"
+                >
+                  {{#if service.isVisible}}
+                    <i class="fas fa-eye"></i>
+                  {{else}}
+                    <i class="fas fa-eye-slash"></i>
+                  {{/if}}
+                </button>
+              {{/if}}
 
               <button
                 class="mtt-merchant-service-action"
@@ -92,7 +96,7 @@
                   <i class="fas fa-user-clock"></i>
                 {{/if}}
               </button>
-                
+
             </div>
           </div>
 
@@ -136,7 +140,7 @@
                 </div>
               {{/if}}
 
-              
+
               {{#if @root.mtt.canEditMerchant}}
                 <div class="mtt-merchant-service-quantity-bloc">
                   <input
@@ -150,7 +154,7 @@
                   />
                 </div>
               {{/if}}
-              
+
 
               {{#if @root.mtt.canEditMerchant}}
                 <div class="mtt-merchant-service-delete-bloc">
@@ -177,7 +181,7 @@
                   {{#if service.description}}
                     {{{service.description}}}
                   {{else}}
-                    
+
                   {{/if}}
                 </div>
               {{/if}}

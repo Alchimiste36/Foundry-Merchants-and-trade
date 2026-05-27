@@ -222,6 +222,11 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           blank: true,
           initial: {},
         }),
+        hiddenCategories: new fields.ObjectField({
+          required: false,
+          blank: true,
+          initial: {},
+        }),
         productCategories: new fields.ArrayField(
           new fields.SchemaField({
             id: new fields.StringField({

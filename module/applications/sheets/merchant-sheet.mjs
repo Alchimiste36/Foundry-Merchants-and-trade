@@ -116,10 +116,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editItem: MerchantSheet.#onEditItem,
       deleteItem: MerchantSheet.#onDeleteItem,
       deleteProductCategory: MerchantSheet.#onDeleteProductCategory,
+      toggleProductCategoryVisibility: MerchantSheet.#onToggleProductCategoryVisibility,
       createService: MerchantSheet.#onCreateService,
       deleteService: MerchantSheet.#onDeleteService,
       toggleServiceExpanded: MerchantSheet.#onToggleServiceExpanded,
-      toggleServiceHidden: MerchantSheet.#onToggleServiceHidden,
+      toggleCatalogItemVisibility: MerchantSheet.#onToggleCatalogItemVisibility,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
       toggleOpen: MerchantSheet.#onToggleOpen,
       toggleLock: MerchantSheet.#onToggleLock,
@@ -183,9 +184,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.system = this.actor.system
 
     const sellPercent = this.#getSellPercent()
-    context.items = prepareItems(this.actor, sellPercent)
-    context.productCategories = prepareProductCategories(this.actor, context.items)
-    context.services = prepareServices(this.actor, sellPercent)
+    context.items = prepareItems(this.actor, sellPercent, { includeHidden: isEditable })
+    context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable })
+    context.services = prepareServices(this.actor, sellPercent, { includeHidden: isEditable })
     context.trade = prepareTrade(this.actor)
     context.wallet = this.actor.system.wallet ?? {}
     context.mtt.walletCurrencies = prepareWalletCurrencies(this.actor)
@@ -1010,11 +1011,35 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const updatedCategories = categories.filter((item) => item.id !== categoryId)
     const collapsedCategories = foundry.utils.deepClone(this.actor.system.catalog.collapsedCategories ?? {})
+    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog.hiddenCategories ?? {})
     delete collapsedCategories[categoryId]
+    delete hiddenCategories[categoryId]
 
     await this.actor.update({
       "system.catalog.productCategories": updatedCategories,
       "system.catalog.collapsedCategories": collapsedCategories,
+      "system.catalog.hiddenCategories": hiddenCategories,
+    })
+
+    this.render()
+  }
+
+  static async #onToggleProductCategoryVisibility(event, target) {
+    event.preventDefault()
+
+    if (!this.isEditable) return
+
+    const categoryValue = target.dataset.categoryId ?? ""
+    const isSystemCategory = target.dataset.systemCategory === "true"
+    const categories = this.actor.system.catalog?.productCategories ?? []
+    const categoryExists = isSystemCategory || categories.some((category) => category.id === categoryValue)
+    if (!categoryExists) return
+
+    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog?.hiddenCategories ?? {})
+    hiddenCategories[categoryValue] = !Boolean(hiddenCategories[categoryValue])
+
+    await this.actor.update({
+      "system.catalog.hiddenCategories": hiddenCategories,
     })
 
     this.render()
@@ -2568,14 +2593,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render()
   }
 
-  static async #onToggleServiceHidden(event, target) {
+  static async #onToggleCatalogItemVisibility(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
+    if (!this.isEditable) return
+
+    const catalogKind = target.dataset.catalogKind ?? ""
+    if (catalogKind === "product") {
+      const item = this.#getItemFromEvent(target)
+      if (!item) return
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        isHidden: !Boolean(product.isHidden),
+      })
+
+      this.render()
       return
     }
 
+    if (catalogKind !== "service") return
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId
     if (!serviceId) return
 

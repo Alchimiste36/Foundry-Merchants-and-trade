@@ -274,6 +274,8 @@
       "subtitle": "Objets actuellement proposés ou stockés par ce marchand.",
       "dropHelp": "Déposez ici des objets depuis la sidebar ou un compendium.",
       "sourceName": "Objet source :",
+      "hide": "Masquer le produit",
+      "show": "Afficher le produit",
       "quantity": {
         "short": "Qté",
         "undefined": "Quantité non définie"
@@ -319,6 +321,8 @@
         "deleteContent": "Voulez-vous vraiment supprimer cette catégorie ?",
         "notEmpty": "La catégorie doit être vide pour être supprimée.",
         "rename": "Renommer la catégorie",
+        "hide": "Masquer la catégorie",
+        "show": "Afficher la catégorie",
         "toggleShow": "Déplier la catégorie",
         "toggleHide": "Plier la catégorie",
         "dropTooltip": "Déposer dans cette catégorie",

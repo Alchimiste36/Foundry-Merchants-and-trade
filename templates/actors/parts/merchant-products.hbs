@@ -10,7 +10,7 @@
             data-category="{{category.categoryValue}}"
             data-tooltip="{{localize 'mtt.products.category.dropTooltip'}}"
           >
-            <header class="mtt-merchant-product-category-header">
+            <header class="mtt-merchant-product-category-header {{#unless category.isVisible}}mtt-merchant-product-category-header-hidden{{/unless}}">
               <div class="mtt-merchant-product-category-header-main">
                 <button
                   class="mtt-merchant-product-category-toggle"
@@ -52,6 +52,23 @@
                 </div>
               </div>
 
+              {{#if @root.mtt.isEditable}}
+                <button
+                  class="mtt-merchant-product-action mtt-merchant-product-category-visibility"
+                  type="button"
+                  data-action="toggleProductCategoryVisibility"
+                  data-category-id="{{category.categoryValue}}"
+                  data-system-category="{{category.isSystemCategory}}"
+                  data-tooltip="{{#if category.isVisible}}{{localize 'mtt.products.category.hide'}}{{else}}{{localize 'mtt.products.category.show'}}{{/if}}"
+                >
+                  {{#if category.isVisible}}
+                    <i class="fas fa-eye"></i>
+                  {{else}}
+                    <i class="fas fa-eye-slash"></i>
+                  {{/if}}
+                </button>
+              {{/if}}
+
               {{#if @root.mtt.canEditMerchant}}
                 {{#unless category.isSystemCategory}}
                   <button
@@ -68,10 +85,10 @@
             </header>
 
             {{#unless category.isCollapsed}}
-              <ol class="mtt-merchant-product-category-item-list">
+              <ol class="mtt-merchant-product-category-item-list {{#unless category.isVisible}}mtt-merchant-product-category-item-list-hidden{{/unless}}">
                 {{#each category.items as |item|}}
                   <li
-                    class="mtt-merchant-product-row draggable"
+                    class="mtt-merchant-product-row draggable {{#unless item.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}"
                     data-item-id="{{item.id}}"
                     data-mtt-product-id="{{item.id}}"
                     {{#if @root.mtt.canEditMerchant}}draggable="true"{{/if}}
@@ -121,13 +138,15 @@
                         {{else}}
                           <span class="mtt-merchant-product-name">{{item.displayName}}</span>
                         {{/if}}
-                        {{#if (ne item.displayName item.name)}}
-                          <span class="mtt-merchant-product-source-name">
-                            {{localize "mtt.products.sourceName"}}
-                            {{item.name}}
-                          </span>
+                        {{#if @root.mtt.isEditable}}
+                          {{#if (ne item.displayName item.name)}}
+                            <span class="mtt-merchant-product-source-name">
+                              {{localize "mtt.products.sourceName"}}
+                              {{item.name}}
+                            </span>
+                          {{/if}}
                         {{/if}}
-                        <!--<span class="mtt-merchant-product-type">{{item.type}}</span>-->
+                        <!--<span class="mtt-merchant-product-type">{{item.type}}</span>
                         {{#if item.isHidden}}
                           <span class="mtt-merchant-product-tag mtt-merchant-product-tag-hidden">
                             {{localize "mtt.products.tags.hidden"}}
@@ -138,7 +157,7 @@
                           <span class="mtt-merchant-product-tag mtt-merchant-product-tag-approval">
                             {{localize "mtt.products.tags.requiresApproval"}}
                           </span>
-                        {{/if}}
+                        {{/if}}-->
                       </div>
                     </div>
 
@@ -199,7 +218,8 @@
 
 
                     <div class="mtt-merchant-product-actions">
-                      {{#unless item.isHidden}}
+
+                      {{#if item.isVisible}}
                         <button
                           class="mtt-merchant-product-action"
                           type="button"
@@ -208,7 +228,23 @@
                         >
                           <i class="fas fa-cart-plus"></i>
                         </button>
-                      {{/unless}}
+                      {{/if}}
+
+                      {{#if @root.mtt.isEditable}}
+                        <button
+                          class="mtt-merchant-product-action"
+                          type="button"
+                          data-action="toggleCatalogItemVisibility"
+                          data-catalog-kind="product"
+                          data-tooltip="{{#if item.isVisible}}{{localize 'mtt.products.hide'}}{{else}}{{localize 'mtt.products.show'}}{{/if}}"
+                        >
+                          {{#if item.isVisible}}
+                            <i class="fas fa-eye"></i>
+                          {{else}}
+                            <i class="fas fa-eye-slash"></i>
+                          {{/if}}
+                        </button>
+                      {{/if}}
 
                       {{#if @root.mtt.canEditMerchant}}
                         <button

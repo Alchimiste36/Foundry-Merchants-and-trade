@@ -1221,6 +1221,9 @@
   gap: 0;
   border-bottom: 1px solid var(--mtt-border);
 }
+.mtt-merchant-product-category-header-hidden {
+  background: #d36b5f36;
+}
 .mtt-merchant-product-category-toggle {
   border: 2px solid var(--mtt-border);
   width: 30px;
@@ -1266,6 +1269,10 @@
   border: 1px solid var(--mtt-border);
   border-top: none;
 }
+.mtt-merchant-product-category-item-list-hidden {
+  border-color: var(--mtt-danger);
+  background: #d36b5f36;
+}
 .mtt-merchant-products-drop-help {
   margin: 0 0 0.6rem;
   color: var(--mtt-text-soft);
@@ -1288,6 +1295,9 @@
 .mtt-merchant-product-row:hover {
   border-color: var(--mtt-border);
   background: #363b42;
+}
+.mtt-merchant-catalog-item-hidden {
+  opacity: 0.45;
 }
 .mtt-merchant-product-main {
   display: flex;

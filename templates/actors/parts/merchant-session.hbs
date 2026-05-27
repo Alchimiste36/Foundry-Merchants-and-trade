@@ -249,7 +249,7 @@
             <i class="fas fa-triangle-exclamation"></i>
           </button>
         {{/if}}
-        {{#if @root.mtt.canConfigureMerchant}}
+        {{#if @root.mtt.isEditable}}
           <button class="mtt-merchant-session-final-action valide" type="button" data-action="validateSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.validateTooltip'}}">
             <i class="fas fa-check"></i>
           </button>

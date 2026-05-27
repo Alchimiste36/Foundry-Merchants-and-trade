@@ -22,6 +22,7 @@ import {
   getCategoryLabelMap,
   prepareCurrencyOptions,
   htmlToPlainText,
+  getMerchantSheetLockedState,
 } from "./merchant-utils.mjs"
 import {
   renderMttDialogContent,
@@ -156,17 +157,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (this.#activeTab === "sessions") this.#activeTab = "products"
 
-    const isLocked = this.actor.system.sheet.isLocked
-    const canEditMerchant = this.isEditable && !isLocked
-    const canConfigureMerchant = this.isEditable
+    const isEditable = this.isEditable
+    const isLocked = getMerchantSheetLockedState(this.actor)
+    const isUnlocked = !isLocked
+    const canEditMerchant = isEditable && isUnlocked
 
     context.mtt = {
       css: MTT.CSS,
       activeTab: this.#activeTab,
+      isEditable,
       isLocked,
-      isUnlocked: !isLocked,
+      isUnlocked,
       canEditMerchant,
-      canConfigureMerchant,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         open: "mtt.merchant.status.open",
@@ -539,7 +541,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _onDropDocument(event, document) {
-    if (this.actor.system.sheet.isLocked) {
+    if (getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }
@@ -581,7 +583,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #onProductDragStart(event) {
     const target = event.currentTarget
     const itemId = target.dataset.mttProductId
-    if (!itemId || this.actor.system.sheet.isLocked) return
+    if (!itemId || getMerchantSheetLockedState(this.actor)) return
 
     const item = this.actor.items.get(itemId)
     const sourceCategory = item ? ((item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.category) ?? "") : ""
@@ -594,7 +596,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #onCategoryDragOver(event) {
-    if (this.actor.system.sheet.isLocked) return
+    if (getMerchantSheetLockedState(this.actor)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
   }
@@ -616,7 +618,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (this.actor.system.sheet.isLocked) {
+    if (getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }
@@ -630,13 +632,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Service drag/drop handlers ───────────────────────────────────────────
 
   #onServiceDragOver(event) {
-    if (this.actor.system.sheet.isLocked) return
+    if (getMerchantSheetLockedState(this.actor)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
   }
 
   async #onServiceDrop(event) {
-    if (this.actor.system.sheet.isLocked) {
+    if (getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }
@@ -1605,7 +1607,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #canModifyMerchant() {
     if (!this.isEditable) return false
 
-    if (this.actor.system.sheet.isLocked) {
+    if (getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return false
     }
@@ -2057,12 +2059,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.isEditable) return
 
-    if (!this.actor.system.sheet.isLocked) {
+    const isLocked = getMerchantSheetLockedState(this.actor)
+
+    if (!isLocked) {
       await this.#saveMerchantTextFieldsFromDom()
     }
 
     await this.actor.update({
-      "system.sheet.isLocked": !this.actor.system.sheet.isLocked,
+      "system.sheet.isLocked": !isLocked,
     })
   }
 
@@ -2299,7 +2303,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #saveMerchantTextFieldsFromDom() {
-    if (!this.isEditable || this.actor.system.sheet.isLocked) return
+    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) return
 
     const updateData = {}
 
@@ -2410,7 +2414,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onCreateService(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable || this.actor.system.sheet.isLocked) {
+    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }
@@ -2509,7 +2513,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onDeleteService(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable || this.actor.system.sheet.isLocked) {
+    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }
@@ -2567,7 +2571,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onToggleServiceHidden(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable || this.actor.system.sheet.isLocked) {
+    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }
@@ -2591,7 +2595,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onToggleServiceApproval(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable || this.actor.system.sheet.isLocked) {
+    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return
     }

@@ -161,6 +161,10 @@ export function htmlToPlainText(value) {
     .trim()
 }
 
+export function getMerchantSheetLockedState(actor) {
+  return Boolean(foundry.utils.getProperty(actor, "system.sheet.isLocked"))
+}
+
 export function slugifyCategoryKey(value) {
   return String(value ?? "")
     .trim()

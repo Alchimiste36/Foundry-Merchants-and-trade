@@ -13,7 +13,7 @@
       </section>
     {{/if}}
 
-    {{#if mtt.canConfigureMerchant}}
+    {{#if mtt.isEditable}}
       {{#if (eq mtt.activeTab "configuration")}}
         <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-configuration" data-tab="configuration">
           {{> "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs"}}

@@ -3,7 +3,7 @@
     <button
       class="mtt-merchant-image-button"
       type="button"
-      {{#if mtt.isUnlocked}}
+      {{#if mtt.canEditMerchant}}
         data-action="editMerchantImage"
         data-tooltip="{{localize 'mtt.merchant.image.edit'}}"
       {{else}}
@@ -12,14 +12,14 @@
       {{/if}}
     >
       <img
-        class="mtt-merchant-image {{#if mtt.isUnlocked}}mtt-merchant-image-editable{{/if}}"
+        class="mtt-merchant-image {{#if mtt.canEditMerchant}}mtt-merchant-image-editable{{/if}}"
         src="{{actor.img}}"
         alt="{{actor.name}}"
       />
     </button>
 
     <div class="mtt-merchant-header-title-area">
-      {{#if mtt.isUnlocked}}
+      {{#if mtt.canEditMerchant}}
         <input
           class="mtt-merchant-name-input"
           name="name"
@@ -38,6 +38,7 @@
           class="mtt-merchant-lock-button"
           type="button"
           data-action="toggleLock"
+          {{#unless mtt.isEditable}}disabled{{/unless}}
           data-tooltip="{{#if mtt.isLocked}}{{localize 'mtt.sheet.unlock'}}{{else}}{{localize 'mtt.sheet.lock'}}{{/if}}"
         >
           {{#if mtt.isLocked}}
@@ -84,7 +85,7 @@
             <i class="fas fa-handshake"></i>
           </button>
 
-          {{#if mtt.canConfigureMerchant}}
+          {{#if mtt.isEditable}}
             <button
               class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
               type="button"
@@ -116,7 +117,7 @@
 
   <div class="mtt-merchant-header-right">
     <div class="mtt-merchant-header-manager">
-      {{#if mtt.isUnlocked}}
+      {{#if mtt.canEditMerchant}}
         <div class="mtt-merchant-manager-fields">
           
           <label class="mtt-merchant-field">

@@ -29,7 +29,7 @@
     <i class="fas fa-basket-shopping"></i>
   </button>
 
-  {{#if mtt.canConfigureMerchant}}
+  {{#if mtt.isEditable}}
     <button
       class="mtt-merchant-navigation-tab {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-navigation-tab-active{{/if}}"
       type="button"

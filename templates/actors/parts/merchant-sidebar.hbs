@@ -22,7 +22,7 @@
       <span>{{localize 'mtt.tabs.services'}}</span>
     </button>
 
-    {{#if mtt.canConfigureMerchant}}
+    {{#if mtt.isEditable}}
       <button
         class="mtt-merchant-nav-tab {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-nav-tab-active{{/if}}"
         type="button"

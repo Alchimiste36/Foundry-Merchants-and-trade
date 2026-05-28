@@ -305,7 +305,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         client.isAuthorized ? "mtt-merchant-access-card-authorized" : "mtt-merchant-access-card-unauthorized",
       )
       button.type = "button"
-      button.dataset.action = "toggleClientAccess"
+      if (client.canClickCard) {
+        button.dataset.action = "toggleClientAccess"
+      } else {
+        button.classList.add("mtt-merchant-access-card-readonly")
+      }
       button.dataset.clientActorUuid = client.actorUuid
       button.dataset.clientUserId = client.userId
       button.dataset.tooltip = client.tooltip
@@ -331,7 +335,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rail.append(button)
     })
 
-    if (accessContext.canManage) {
+    if (accessContext.canSeeAccessDropZone) {
       const dropCard = document.createElement("div")
       dropCard.classList.add("mtt-merchant-access-drop-card")
       dropCard.dataset.mttClientDrop = ""
@@ -791,7 +795,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
     event.stopPropagation()
 
-    if (!this.isEditable) return
+    const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    const canManage = game.user.isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    if (!canManage) return
 
     const client = this.#getAccessClientCandidate(target.dataset.clientActorUuid)
     if (!client) return
@@ -1050,13 +1056,40 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ─── Access context ───────────────────────────────────────────────────────
 
+  #userControlsActor(actorUuid) {
+    if (game.user.isGM) return true
+    const normalizedUuid = String(actorUuid ?? "").trim()
+    if (!normalizedUuid) return false
+    if (game.user.character?.uuid === normalizedUuid) return true
+    const actor = game.actors.find((a) => a.uuid === normalizedUuid)
+    if (!actor) return false
+    return actor.testUserPermission(game.user, "OWNER")
+  }
+
   #prepareAccessContext() {
-    const clients = this.#prepareAccessClients()
+    const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    const isGM = Boolean(game.user.isGM)
+    const isOwner = isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    const isObserver = !isOwner && permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+    const isLimited = !isOwner && !isObserver && permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+    const canManageAccessRail = isOwner
+    const canSeeAccessDropZone = canManageAccessRail
+
+    const rawClients = this.#prepareAccessClients()
+    const clients = rawClients
+      .map((client) => {
+        const isOwnClientCard = this.#userControlsActor(client.actorUuid)
+        const canSeeCard = canManageAccessRail || isObserver || (isLimited && isOwnClientCard)
+        const canClickCard = canManageAccessRail || isOwnClientCard
+        return { ...client, isOwnClientCard, canSeeCard, canClickCard }
+      })
+      .filter((client) => client.canSeeCard)
 
     return {
       clients,
       hasClients: clients.length > 0,
-      canManage: this.isEditable,
+      canManage: canManageAccessRail,
+      canSeeAccessDropZone,
     }
   }
 
@@ -1885,6 +1918,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
 
     const actorUuid = target.dataset.clientActorUuid
+    const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    const canManage = game.user.isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    if (!canManage && !this.#userControlsActor(actorUuid)) return
+
     const client = this.#getAccessClientCandidate(actorUuid)
     if (!client) return
 

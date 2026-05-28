@@ -249,7 +249,11 @@
   cursor: default;
 }
 
-.mtt-merchant-access-card:not(:disabled):hover,
+.mtt-merchant-access-card-readonly {
+  cursor: default;
+}
+
+.mtt-merchant-access-card:not(:disabled):not(.mtt-merchant-access-card-readonly):hover,
 .mtt-merchant-access-drop-card:hover {
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);

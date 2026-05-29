@@ -142,7 +142,7 @@
     </div>
 
 
-    {{#if mtt.canEditMerchant}}
+    {{#if mtt.isEditable}}
       <div class="mtt-merchant-header-wallet-summary">
         {{#if mtt.hasHeaderCurrencies}}
           {{#each mtt.headerCurrencies as |currency|}}

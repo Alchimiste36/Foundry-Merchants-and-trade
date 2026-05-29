@@ -1068,6 +1068,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return actor.testUserPermission(game.user, "OWNER")
   }
 
+  #userCanViewSession(session) {
+    if (!session) return false
+    if (this.isEditable) return true
+    return this.#userControlsActor(session.actorUuid)
+  }
+
+  #getPreferredPlayerSession(sessions) {
+    const userCharacterUuid = game.user?.character?.uuid ?? ""
+
+    if (userCharacterUuid) {
+      const characterSession = sessions.find((session) => session.actorUuid === userCharacterUuid)
+      if (characterSession && this.#userControlsActor(characterSession.actorUuid)) return characterSession
+    }
+
+    return sessions.find((session) => this.#userControlsActor(session.actorUuid)) ?? null
+  }
+
   #prepareAccessContext() {
     const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
     const isGM = Boolean(game.user.isGM)
@@ -1282,7 +1299,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.#activeSessionId) return null
 
     const session = this.#getSessions().find((entry) => entry.id === this.#activeSessionId)
-    return session ? normalizeSession(session) : null
+    if (!session) {
+      this.#activeSessionId = null
+      return null
+    }
+
+    if (!this.#userCanViewSession(session)) {
+      this.#activeSessionId = null
+      this.#selectedClientActorUuid = ""
+      return null
+    }
+
+    return normalizeSession(session)
   }
 
   #getSelectedClient() {
@@ -1336,11 +1364,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (this.#activeSessionId) {
       const selectedSession = sessions.find((s) => s.id === this.#activeSessionId)
-      if (selectedSession) return normalizeSession(selectedSession)
+      if (selectedSession && this.#userCanViewSession(selectedSession)) return normalizeSession(selectedSession)
       this.#activeSessionId = null
+      this.#selectedClientActorUuid = ""
     }
 
-    if (this.#selectedClientActorUuid) return null
+    if (this.#selectedClientActorUuid) {
+      const selectedClientSession = sessions.find((session) => session.actorUuid === this.#selectedClientActorUuid)
+      if (selectedClientSession && this.#userCanViewSession(selectedClientSession)) {
+        return this.#selectSession(selectedClientSession.id)
+      }
+
+      if (!this.isEditable) this.#selectedClientActorUuid = ""
+      if (this.isEditable) return null
+    }
+
+    if (!this.isEditable) {
+      const preferredSession = this.#getPreferredPlayerSession(sessions)
+      if (preferredSession) {
+        return this.#selectSession(preferredSession.id)
+      }
+
+      this.#activeSessionId = null
+      this.#selectedClientActorUuid = ""
+      return null
+    }
 
     const activeSession = sessions.find((s) => s.status === "active")
     if (activeSession) {

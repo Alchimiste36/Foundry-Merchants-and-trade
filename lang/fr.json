@@ -278,6 +278,8 @@
       "sourceName": "Objet source :",
       "hide": "Masquer le produit",
       "show": "Afficher le produit",
+      "requireApproval": "Demander une validation MJ",
+      "disableApproval": "Retirer la validation MJ",
       "quantity": {
         "short": "Qté",
         "undefined": "Quantité non définie"

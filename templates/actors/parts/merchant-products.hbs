@@ -242,6 +242,22 @@
                           </button>
                         {{/if}}
 
+                        {{#if @root.mtt.isEditable}}
+                        <button
+                          class="mtt-merchant-product-action"
+                          type="button"
+                          data-action="toggleProductApproval"
+                          data-tooltip="{{#if item.requiresApproval}}{{localize 'mtt.products.disableApproval'}}{{else}}{{localize 'mtt.products.requireApproval'}}{{/if}}"
+                          title="{{#if item.requiresApproval}}{{localize 'mtt.products.disableApproval'}}{{else}}{{localize 'mtt.products.requireApproval'}}{{/if}}"
+                        >
+                          {{#if item.requiresApproval}}
+                            <i class="fas fa-user-check"></i>
+                          {{else}}
+                            <i class="fas fa-user-clock"></i>
+                          {{/if}}
+                        </button>
+                        {{/if}}
+
                         {{#if @root.mtt.canEditMerchant}}
                           <button
                             class="mtt-merchant-product-action mtt-merchant-product-delete"

@@ -126,6 +126,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       deleteService: MerchantSheet.#onDeleteService,
       toggleServiceExpanded: MerchantSheet.#onToggleServiceExpanded,
       toggleCatalogItemVisibility: MerchantSheet.#onToggleCatalogItemVisibility,
+      toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
       toggleOpen: MerchantSheet.#onToggleOpen,
       toggleLock: MerchantSheet.#onToggleLock,
@@ -3274,10 +3275,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onToggleServiceApproval(event, target) {
     event.preventDefault();
 
-    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"));
-      return;
-    }
+    if (!this.isEditable) return;
 
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
@@ -3291,6 +3289,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#saveScrollPositions();
     await this.actor.update({
       "system.services.entries": entries,
+    });
+
+    this.render();
+  }
+
+  static async #onToggleProductApproval(event, target) {
+    event.preventDefault();
+
+    if (!this.isEditable) return;
+
+    const item = this.#getItemFromEvent(target);
+    if (!item) return;
+
+    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+    this.#saveScrollPositions();
+    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+      ...product,
+      requiresApproval: !Boolean(product.requiresApproval),
     });
 
     this.render();

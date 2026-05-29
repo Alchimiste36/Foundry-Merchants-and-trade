@@ -34,9 +34,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const context = await super._prepareContext(options);
     if (this.#currencies === null) {
       try {
-        this.#currencies = JSON.parse(
-          game.settings.get(MTT.ID, "currencies") || "[]",
-        );
+        this.#currencies = JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]");
       } catch {
         this.#currencies = [];
       }
@@ -50,24 +48,17 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       allowedProductTypes: game.settings.get(MTT.ID, "allowedProductTypes"),
       allowedServiceTypes: game.settings.get(MTT.ID, "allowedServiceTypes"),
       itemCategoryPaths: game.settings.get(MTT.ID, "itemCategoryPaths"),
-      useItemTypeAsCategoryFallback: game.settings.get(
-        MTT.ID,
-        "useItemTypeAsCategoryFallback",
-      ),
+      useItemTypeAsCategoryFallback: game.settings.get(MTT.ID, "useItemTypeAsCategoryFallback"),
       categoryLabelMap: game.settings.get(MTT.ID, "categoryLabelMap"),
       currencies: this.#currencies,
     };
   }
 
   static async #onSave(event, target) {
-    const rows = this.element.querySelectorAll(
-      ".mtt-config-currency-row[data-currency-id]",
-    );
+    const rows = this.element.querySelectorAll(".mtt-config-currency-row[data-currency-id]");
     const currencies = Array.from(rows)
       .map((row) => {
-        const get = (field) =>
-          row.querySelector(`[data-mtt-currency-field="${field}"]`)?.value ??
-          "";
+        const get = (field) => row.querySelector(`[data-mtt-currency-field="${field}"]`)?.value ?? "";
         return {
           id: row.dataset.currencyId,
           name: get("name"),
@@ -79,51 +70,15 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .filter((c) => c.name.trim() !== "");
     const form = this.element.querySelector("form.mtt-config-form");
     const fd = new FormData(form);
-    await game.settings.set(
-      MTT.ID,
-      "itemPriceValuePath",
-      fd.get("itemPriceValuePath") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "itemPriceCurrencyPath",
-      fd.get("itemPriceCurrencyPath") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "itemQuantityPath",
-      fd.get("itemQuantityPath") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "itemDescriptionPath",
-      fd.get("itemDescriptionPath") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "allowedProductTypes",
-      fd.get("allowedProductTypes") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "allowedServiceTypes",
-      fd.get("allowedServiceTypes") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "itemCategoryPaths",
-      fd.get("itemCategoryPaths") ?? "",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "useItemTypeAsCategoryFallback",
-      fd.get("useItemTypeAsCategoryFallback") === "on",
-    );
-    await game.settings.set(
-      MTT.ID,
-      "categoryLabelMap",
-      fd.get("categoryLabelMap") ?? "",
-    );
+    await game.settings.set(MTT.ID, "itemPriceValuePath", fd.get("itemPriceValuePath") ?? "");
+    await game.settings.set(MTT.ID, "itemPriceCurrencyPath", fd.get("itemPriceCurrencyPath") ?? "");
+    await game.settings.set(MTT.ID, "itemQuantityPath", fd.get("itemQuantityPath") ?? "");
+    await game.settings.set(MTT.ID, "itemDescriptionPath", fd.get("itemDescriptionPath") ?? "");
+    await game.settings.set(MTT.ID, "allowedProductTypes", fd.get("allowedProductTypes") ?? "");
+    await game.settings.set(MTT.ID, "allowedServiceTypes", fd.get("allowedServiceTypes") ?? "");
+    await game.settings.set(MTT.ID, "itemCategoryPaths", fd.get("itemCategoryPaths") ?? "");
+    await game.settings.set(MTT.ID, "useItemTypeAsCategoryFallback", fd.get("useItemTypeAsCategoryFallback") === "on");
+    await game.settings.set(MTT.ID, "categoryLabelMap", fd.get("categoryLabelMap") ?? "");
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
     this.close();
   }
@@ -159,11 +114,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } catch {
       currencies = [];
     }
-    await game.settings.set(
-      MTT.ID,
-      "currencies",
-      JSON.stringify(currencies.filter((c) => c.id !== id)),
-    );
+    await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies.filter((c) => c.id !== id)));
     this.#currencies = null;
     this.render();
   }

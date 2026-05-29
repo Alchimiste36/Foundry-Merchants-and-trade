@@ -551,10 +551,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _onDropDocument(event, document) {
-    if (getMerchantSheetLockedState(this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
-      return
-    }
+    if (!this.isEditable) return
 
     if (document.documentName !== "Item") {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeDropped"))
@@ -593,7 +590,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #onProductDragStart(event) {
     const target = event.currentTarget
     const itemId = target.dataset.mttProductId
-    if (!itemId || getMerchantSheetLockedState(this.actor)) return
+    if (!itemId || !this.isEditable) return
 
     const item = this.actor.items.get(itemId)
     const sourceCategory = item ? ((item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.category) ?? "") : ""
@@ -606,7 +603,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #onCategoryDragOver(event) {
-    if (getMerchantSheetLockedState(this.actor)) return
+    if (!this.isEditable) return
     event.preventDefault()
     event.dataTransfer.dropEffect = "move"
   }
@@ -628,10 +625,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (getMerchantSheetLockedState(this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
-      return
-    }
+    if (!this.isEditable) return
 
     event.preventDefault()
     event.stopPropagation()
@@ -642,16 +636,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Service drag/drop handlers ───────────────────────────────────────────
 
   #onServiceDragOver(event) {
-    if (getMerchantSheetLockedState(this.actor)) return
+    if (!this.isEditable) return
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
   }
 
   async #onServiceDrop(event) {
-    if (getMerchantSheetLockedState(this.actor)) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
-      return
-    }
+    if (!this.isEditable) return
 
     event.preventDefault()
     event.stopPropagation()

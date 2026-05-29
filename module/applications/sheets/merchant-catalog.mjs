@@ -13,6 +13,7 @@ import {
   getItemPrice,
   getItemCurrency,
   resolveItemCurrencyKey,
+  getReferenceSessionCurrency,
   htmlToPlainText,
 } from "./merchant-utils.mjs"
 
@@ -65,15 +66,7 @@ export function prepareWalletCurrencies(actor) {
 }
 
 export function getReferenceCurrency() {
-  const currencies = getCurrencies()
-  if (!currencies.length) return null
-
-  return (
-    currencies.find((c) => Boolean(c.isDefault)) ??
-    currencies.find((c) => Number(c.rate) === 1) ??
-    currencies[0] ??
-    null
-  )
+  return getReferenceSessionCurrency()
 }
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {

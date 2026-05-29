@@ -4,6 +4,7 @@ import {
   parsePriceValue,
   parseQuantityValue,
   normalizeCurrencyKey,
+  convertPriceToReferenceCurrency,
   formatCurrencyLabel,
   formatPriceLabel,
   escapeHTML,
@@ -1783,8 +1784,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return null;
 
     const normalizedQuantity = Number(quantity);
-    const normalizedUnitPrice = Number(unitPriceValue);
-    const normalizedCurrency = String(priceCurrency ?? "").trim();
+    const convertedPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency);
+    const normalizedUnitPrice = Number(convertedPrice.value);
+    const normalizedCurrency = convertedPrice.currency;
     const normalizedAvailableQuantity = Number(availableQuantity);
     const hasLimitedStock =
       Boolean(hasLimitedQuantity) && Number.isFinite(normalizedAvailableQuantity) && normalizedAvailableQuantity >= 0;
@@ -1858,10 +1860,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     unitPriceValue,
     priceCurrency,
     referenceUnitPriceValue,
+    referencePriceCurrency = priceCurrency,
   }) {
     const normalizedQuantity = Number(quantity);
-    const normalizedUnitPrice = Number(unitPriceValue);
-    const normalizedReference = Number(referenceUnitPriceValue);
+    const convertedUnitPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency);
+    const convertedReference = convertPriceToReferenceCurrency(referenceUnitPriceValue, referencePriceCurrency);
+    const normalizedUnitPrice = Number(convertedUnitPrice.value);
+    const normalizedReference = Number(convertedReference.value);
     const safeQuantity = Number.isFinite(normalizedQuantity) && normalizedQuantity > 0 ? normalizedQuantity : 1;
     const safeUnitPrice = Number.isFinite(normalizedUnitPrice) && normalizedUnitPrice >= 0 ? normalizedUnitPrice : 0;
     const safeReference = Number.isFinite(normalizedReference) && normalizedReference >= 0 ? normalizedReference : 0;
@@ -1879,7 +1884,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       sourceActorUuid: String(sourceActorUuid ?? "").trim(),
       name: String(name ?? "").trim(),
       img: img ?? "",
-      priceCurrency: String(priceCurrency ?? "").trim(),
+      priceCurrency: convertedUnitPrice.currency,
       referenceUnitPriceValue: safeReference,
       status: "active",
       currentTurn: "merchant",
@@ -1932,8 +1937,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return null;
 
     const normalizedQuantity = Number(quantity);
-    const normalizedUnitPrice = Number(unitPriceValue);
-    const normalizedCurrency = String(priceCurrency ?? "").trim();
+    const convertedPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency);
+    const normalizedUnitPrice = Number(convertedPrice.value);
+    const normalizedCurrency = convertedPrice.currency;
     const normalizedSourceUuid = String(sourceUuid ?? "").trim();
     const normalizedAvailableQuantity = Number(availableQuantity);
     const hasLimitedStock =
@@ -2207,6 +2213,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           unitPriceValue,
           priceCurrency: sessionCurrency,
           referenceUnitPriceValue: displayPriceValue,
+          referencePriceCurrency: priceCurrency,
         }),
       );
       if (!negotiation) return;
@@ -3138,6 +3145,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           unitPriceValue,
           priceCurrency: sessionCurrency,
           referenceUnitPriceValue: displayPriceValue,
+          referencePriceCurrency: priceCurrency,
         }),
       );
       if (!negotiation) return;

@@ -78,6 +78,46 @@ export function resolveItemCurrencyKey(currencyText) {
   return String(currency.abbreviation ?? currency.id ?? "").trim()
 }
 
+export function getReferenceSessionCurrency() {
+  const currencies = getCurrencies()
+  return (
+    currencies.find((currency) => Number(currency.rate) === 1) ??
+    currencies.find((currency) => Boolean(currency.isDefault)) ??
+    currencies[0] ??
+    null
+  )
+}
+
+export function convertPriceToReferenceCurrency(value, priceCurrency) {
+  const currencies = getCurrencies()
+  const referenceCurrency = getReferenceSessionCurrency()
+  const rawValue = Number(value)
+  const safeValue = Number.isFinite(rawValue) && rawValue >= 0 ? rawValue : 0
+
+  if (!referenceCurrency) {
+    return {
+      value: Number(safeValue.toFixed(2)),
+      currency: String(priceCurrency ?? "").trim(),
+    }
+  }
+
+  const normalizedCurrency = normalizeCurrencyText(priceCurrency)
+  const sourceCurrency = currencies.find((currency) => {
+    const candidates = [currency.id, currency.abbreviation, currency.name]
+      .map((entry) => normalizeCurrencyText(entry))
+      .filter(Boolean)
+    return candidates.includes(normalizedCurrency)
+  })
+  const sourceRate = Number(sourceCurrency?.rate)
+  const safeRate = Number.isFinite(sourceRate) && sourceRate > 0 ? sourceRate : 1
+  const convertedValue = safeValue * safeRate
+
+  return {
+    value: Number(convertedValue.toFixed(2)),
+    currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim(),
+  }
+}
+
 const MONEY_EPSILON = 1e-8
 
 export function cleanMoneyNumber(value) {

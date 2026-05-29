@@ -58,6 +58,7 @@
                 {{#if @root.mtt.isLimited}}
                 {{else}}
                   {{#if service.isVisible}}
+                  {{#unless @root.mtt.session.isSubmitted}}
                     <button
                       class="mtt-merchant-service-action"
                       type="button"
@@ -67,6 +68,7 @@
                     >
                       <i class="fas fa-cart-plus"></i>
                     </button>
+                    {{/unless}}
                   {{/if}}
 
                   {{#if @root.mtt.isEditable}}

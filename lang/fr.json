@@ -243,6 +243,7 @@
       "noAuthorizedClient": "Aucun client n’est autorisé à commercer avec ce marchand.",
       "multipleAuthorizedClients": "Plusieurs clients sont autorisés. Sélectionnez un client ou une session avant d’ajouter des éléments.",
       "clientNotAuthorizedWarning": "Client non autorisé",
+      "sessionSubmitted": "Session : terminée par l’acheteur",
       "sessionActive": "Session : en cours",
       "sessionPending": "Session : en attente d’une décision",
       "sessionValidated": "Session : validée",
@@ -371,7 +372,8 @@
         "active": "En cours",
         "pending": "En attente d’une décision",
         "validated": "Validée",
-        "refused": "Refusée"
+        "refused": "Refusée",
+        "submitted": "Session terminée"
       },
       "buyerSide": {
         "title": "Le PJ achète / reçoit"
@@ -472,6 +474,9 @@
       "setStatusPending": "Marquer en attente d’une décision",
       "setStatusValidated": "Marquer validée",
       "setStatusRefused": "Marquer refusée",
+      "submitSession": "Session terminée",
+      "unlockSubmittedSession": "Débloquer la session",
+      "submittedMessage": "Cette session est terminée et attend la décision du marchand.",
       "actions": {
         "propose": "Proposer",
         "validate": "Valider",

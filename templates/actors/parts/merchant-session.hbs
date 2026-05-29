@@ -28,6 +28,7 @@
 
               <div class="mtt-merchant-session-item-quantity">
                   <span>
+                    {{#unless @root.mtt.session.isSubmitted}}
                     <span class="mtt-merchant-session-item-controls">
                         <button
                           class="mtt-merchant-session-action"
@@ -53,6 +54,9 @@
                           data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
                         ><i class="fas fa-plus"></i></button>
                     </span>
+                    {{else}}
+                      <span>x {{item.quantity}}</span>
+                    {{/unless}}
                   </span>
               </div>
 
@@ -91,7 +95,7 @@
       
       </section>
 
-      <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if mtt.session.canEdit}}data-mtt-session-seller-drop{{/if}}>
+      <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if mtt.session.canEdit}}{{#unless @root.mtt.session.isSubmitted}}data-mtt-session-seller-drop{{/unless}}{{/if}}>
       <header class="mtt-merchant-session-section-header">
         <i class="fas fa-handshake-angle"></i>
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.sellerSide.title"}}</h3>
@@ -108,10 +112,11 @@
 
               <div class="mtt-merchant-session-item-main">
                 <strong>{{item.name}}</strong>
-              </div>  
-                <div class="mtt-merchant-session-item-quantity">
+              </div>
 
+                <div class="mtt-merchant-session-item-quantity">
                   <span>
+                    {{#unless @root.mtt.session.isSubmitted}}
                     <span class="mtt-merchant-session-item-controls">
                         <button
                           class="mtt-merchant-session-action"
@@ -137,6 +142,9 @@
                           data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
                         ><i class="fas fa-plus"></i></button>
                     </span>
+                    {{else}}
+                      <span>x {{item.quantity}}</span>
+                    {{/unless}}
                   </span>
                 </div>
                 <div class="mtt-merchant-session-item-total-price" data-tooltip="{{item.unitPriceLabel}}" data-tooltip-direction="UP">
@@ -231,6 +239,9 @@
  
     <footer class="mtt-merchant-session-actions">
       {{#if mtt.session.hasSession}}
+        {{#if mtt.session.isSubmitted}}
+          <p class="mtt-merchant-session-submitted-message">{{localize "mtt.sessions.submittedMessage"}}</p>
+        {{/if}}
           <button
             class="mtt-merchant-session-final-action delete"
             type="button"
@@ -250,12 +261,23 @@
           </button>
         {{/if}}
         {{#if @root.mtt.isEditable}}
+          {{#if mtt.session.isSubmitted}}
+            <button class="mtt-merchant-session-final-action" type="button" data-action="unlockSubmittedSession" data-tooltip="{{localize 'mtt.sessions.unlockSubmittedSession'}}">
+              <i class="fas fa-thumbs-down"></i>
+            </button>
+          {{/if}}
           <button class="mtt-merchant-session-final-action valide" type="button" data-action="validateSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.validateTooltip'}}">
             <i class="fas fa-check"></i>
           </button>
           <button class="mtt-merchant-session-final-action refuse" type="button" data-action="refuseSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.refuseTooltip'}}">
             <i class="fas fa-xmark"></i>
           </button>
+        {{else}}
+          {{#unless mtt.session.isSubmitted}}
+            <button class="mtt-merchant-session-final-action" type="button" data-action="submitSession" data-tooltip="{{localize 'mtt.sessions.submitSession'}}">
+              <i class="fas fa-thumbs-up"></i>
+            </button>
+          {{/unless}}
         {{/if}}
       {{/if}}
     </footer>

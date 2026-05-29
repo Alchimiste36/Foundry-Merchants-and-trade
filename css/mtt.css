@@ -302,6 +302,9 @@
 .mtt-merchant-access-session-refused {
   background: var(--mtt-danger);
 }
+.mtt-merchant-access-session-submitted {
+  color: #b00020;
+}
 .mtt-merchant-access-drop-card {
   border: 1px dashed var(--mtt-border);
   color: var(--mtt-text-soft);
@@ -741,10 +744,18 @@
 .mtt-merchant-session-placeholder-text {
   margin: 0;
 }
+.mtt-merchant-session-submitted-message {
+  color: #b00020;
+  font-weight: 700;
+  text-align: center;
+  width: 100%;
+  margin: 0 0 0.25rem;
+}
 .mtt-merchant-session-actions {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 0.45rem;
   padding-top: 0.15rem;
 }

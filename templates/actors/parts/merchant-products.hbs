@@ -214,6 +214,7 @@
                       {{#if @root.mtt.isLimited}}
                       {{else}}
                         {{#if item.isVisible}}
+                        {{#unless @root.mtt.session.isSubmitted}}
                           <button
                             class="mtt-merchant-product-action"
                             type="button"
@@ -222,6 +223,7 @@
                           >
                             <i class="fas fa-cart-plus"></i>
                           </button>
+                        {{/unless}}
                         {{/if}}
 
                         {{#if @root.mtt.isEditable}}

@@ -136,6 +136,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       checkSessionTransaction: MerchantSheet.#onCheckSessionTransaction,
       previewSessionExecution: MerchantSheet.#onPreviewSessionExecution,
       requestSessionDecision: MerchantSheet.#onRequestSessionDecision,
+      submitSession: MerchantSheet.#onSubmitSession,
+      unlockSubmittedSession: MerchantSheet.#onUnlockSubmittedSession,
       validateSessionTransaction: MerchantSheet.#onValidateSessionTransaction,
       refuseSessionTransaction: MerchantSheet.#onRefuseSessionTransaction,
       increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
@@ -1271,7 +1273,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!normalizedActorUuid) return []
 
     return this.#getSessions().filter(
-      (session) => session.actorUuid === normalizedActorUuid && ["active", "pending"].includes(session.status),
+      (session) =>
+        session.actorUuid === normalizedActorUuid && ["active", "pending", "submitted"].includes(session.status),
     )
   }
 
@@ -1317,7 +1320,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (!this.#isMerchantActor(actor)) return false
 
         return (actor.system.sessions?.entries ?? []).some(
-          (session) => session.actorUuid === normalizedActorUuid && ["active", "pending"].includes(session.status),
+          (session) =>
+            session.actorUuid === normalizedActorUuid && ["active", "pending", "submitted"].includes(session.status),
         )
       }) ?? null
     )
@@ -1970,7 +1974,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     const status = target.dataset.sessionStatus
-    if (!["active", "pending", "validated", "refused"].includes(status)) return
+    if (!["active", "pending", "submitted", "validated", "refused"].includes(status)) return
 
     session.status = status
     await this.#saveSession(session)
@@ -2025,6 +2029,30 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     session.status = "pending"
+    await this.#saveSession(session)
+    this.render()
+  }
+
+  static async #onSubmitSession(event) {
+    event.preventDefault()
+
+    const session = this.#getActiveSession()
+    if (!session) return
+
+    session.status = "submitted"
+    session.isSubmitted = true
+    await this.#saveSession(session)
+    this.render()
+  }
+
+  static async #onUnlockSubmittedSession(event) {
+    event.preventDefault()
+
+    const session = this.#getActiveSession()
+    if (!session) return
+
+    session.status = "active"
+    session.isSubmitted = false
     await this.#saveSession(session)
     this.render()
   }

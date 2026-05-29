@@ -358,7 +358,7 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
               required: true,
               blank: false,
               initial: "active",
-              choices: ["active", "pending", "validated", "refused"],
+              choices: ["active", "pending", "submitted", "validated", "refused"],
             }),
             label: new fields.StringField({
               required: true,

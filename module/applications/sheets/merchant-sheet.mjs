@@ -56,6 +56,8 @@ import {
 import {
   normalizeSession,
   normalizeSessionItem,
+  normalizeNegotiationOffer,
+  normalizeSessionNegotiation,
   normalizeAccessClient,
   buildAccessClientFromActor,
   buildSessionData,
@@ -144,6 +146,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
       decreaseSessionItemQuantity: MerchantSheet.#onDecreaseSessionItemQuantity,
       removeSessionItem: MerchantSheet.#onRemoveSessionItem,
+      submitNegotiationOffer: MerchantSheet.#onSubmitNegotiationOffer,
+      acceptNegotiationOffer: MerchantSheet.#onAcceptNegotiationOffer,
+      refuseNegotiationOffer: MerchantSheet.#onRefuseNegotiationOffer,
       clearSessionDraft: MerchantSheet.#onClearSessionDraft,
       editMerchantImage: MerchantSheet.#onEditMerchantImage,
       rollNegotiation: MerchantSheet.#onRollNegotiation,
@@ -253,6 +258,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .querySelectorAll("[data-mtt-session-field]")
       .forEach((input) => input.addEventListener("change", (event) => this.#onSessionFieldChange(event)));
 
+    this.element
+      .querySelectorAll("[data-mtt-negotiation-field]")
+      .forEach((input) => input.addEventListener("input", (event) => this.#onNegotiationDraftFieldInput(event)));
+
     this.element.querySelectorAll("[data-mtt-session-seller-drop]").forEach((dropZone) => {
       if (dropZone.dataset.mttSellerDropBound) return;
       dropZone.dataset.mttSellerDropBound = "1";
@@ -270,6 +279,145 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#renderAccessRail(context);
 
     requestAnimationFrame(() => this.#restoreScrollPositions());
+  }
+
+  #onNegotiationDraftFieldInput(event) {
+    const input = event.currentTarget;
+    const field = input.dataset.mttNegotiationField;
+    const draft = input.closest("[data-negotiation-draft]");
+    if (!draft || !field) return;
+
+    this.#recalculateNegotiationDraft(draft, field);
+  }
+
+  #recalculateNegotiationDraft(draft, changedField) {
+    const quantityInput = draft.querySelector('[data-mtt-negotiation-field="quantity"]');
+    const unitInput = draft.querySelector('[data-mtt-negotiation-field="unitPriceValue"]');
+    const totalInput = draft.querySelector('[data-mtt-negotiation-field="totalPriceValue"]');
+    const percentInput = draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]');
+    if (!quantityInput || !unitInput || !totalInput || !percentInput) return;
+
+    const reference = Number(draft.dataset.referenceUnitPrice);
+    let quantity = Number(quantityInput.value);
+    let unitPrice = Number(unitInput.value);
+    let totalPrice = Number(totalInput.value);
+    let percent = Number(percentInput.value);
+
+    if (!Number.isFinite(quantity) || quantity <= 0) quantity = 1;
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) unitPrice = 0;
+    if (!Number.isFinite(totalPrice) || totalPrice < 0) totalPrice = 0;
+    if (!Number.isFinite(percent) || percent < 0) percent = 0;
+
+    if (["quantity", "unitPriceValue"].includes(changedField)) {
+      totalPrice = quantity * unitPrice;
+      percent = reference > 0 ? (unitPrice / reference) * 100 : 100;
+    }
+
+    if (changedField === "totalPriceValue") {
+      unitPrice = quantity > 0 ? totalPrice / quantity : 0;
+      percent = reference > 0 ? (unitPrice / reference) * 100 : 100;
+    }
+
+    if (changedField === "percentOfReference") {
+      unitPrice = reference > 0 ? (reference * percent) / 100 : 0;
+      totalPrice = quantity * unitPrice;
+    }
+
+    if (changedField !== "quantity") quantityInput.value = Number(quantity.toFixed(2));
+    if (changedField !== "unitPriceValue") unitInput.value = Number(unitPrice.toFixed(2));
+    if (changedField !== "totalPriceValue") totalInput.value = Number(totalPrice.toFixed(2));
+    if (changedField !== "percentOfReference") percentInput.value = Number(percent.toFixed(2));
+  }
+
+  #getNegotiationFromEvent(target, session) {
+    const negotiationId = target.closest("[data-negotiation-id]")?.dataset.negotiationId;
+    if (!negotiationId || !session) return null;
+
+    session.negotiations = Array.isArray(session.negotiations) ? session.negotiations : [];
+    return session.negotiations.find((negotiation) => negotiation.id === negotiationId) ?? null;
+  }
+
+  #getNegotiationOfferSide() {
+    return this.isEditable ? "merchant" : "buyer";
+  }
+
+  #canAnswerNegotiation(negotiation) {
+    if (!negotiation || negotiation.status !== "active") return false;
+    return negotiation.currentTurn === this.#getNegotiationOfferSide();
+  }
+
+  #getNegotiationDraftValues(target) {
+    const draft =
+      target.closest("[data-negotiation-draft]") ??
+      target.closest("[data-negotiation-id]")?.querySelector("[data-negotiation-draft]");
+    if (!draft) return null;
+
+    const quantity = Number(draft.querySelector('[data-mtt-negotiation-field="quantity"]')?.value);
+    const unitPriceValue = Number(draft.querySelector('[data-mtt-negotiation-field="unitPriceValue"]')?.value);
+    const totalPriceValue = Number(draft.querySelector('[data-mtt-negotiation-field="totalPriceValue"]')?.value);
+    const percentOfReference = Number(
+      draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]')?.value,
+    );
+
+    if (!Number.isFinite(quantity) || quantity <= 0) return null;
+    if (!Number.isFinite(unitPriceValue) || unitPriceValue < 0) return null;
+    if (!Number.isFinite(totalPriceValue) || totalPriceValue < 0) return null;
+    if (!Number.isFinite(percentOfReference) || percentOfReference < 0) return null;
+
+    return {
+      quantity,
+      unitPriceValue,
+      totalPriceValue,
+      percentOfReference,
+    };
+  }
+
+  #createSubmittedNegotiationOffer(values, side) {
+    return normalizeNegotiationOffer({
+      id: foundry.utils.randomID(),
+      side: side === "merchant" ? "merchant" : "buyer",
+      quantity: Number(values.quantity),
+      unitPriceValue: Number(Number(values.unitPriceValue).toFixed(2)),
+      totalPriceValue: Number(Number(values.totalPriceValue).toFixed(2)),
+      percentOfReference: Number(Number(values.percentOfReference).toFixed(2)),
+      status: "submitted",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  #getLastNegotiationOffer(negotiation) {
+    const offers = Array.isArray(negotiation?.offers) ? negotiation.offers : [];
+    return offers.length > 0 ? offers[offers.length - 1] : null;
+  }
+
+  #getNegotiationSourceLabel(negotiation) {
+    if (negotiation.type === "service") return game.i18n.localize("mtt.sessions.item.service");
+    if (negotiation.type === "item") return game.i18n.localize("mtt.sessions.item.object");
+    return game.i18n.localize("mtt.sessions.item.product");
+  }
+
+  #buildSessionItemFromNegotiationOffer(negotiation, offer) {
+    const quantity = Number(offer.quantity);
+    const unitPriceValue = Number(offer.unitPriceValue);
+    if (!Number.isFinite(quantity) || quantity <= 0) return null;
+    if (!Number.isFinite(unitPriceValue) || unitPriceValue < 0) return null;
+
+    return normalizeSessionItem({
+      id: foundry.utils.randomID(),
+      type: negotiation.type,
+      sourceId: negotiation.sourceId,
+      sourceUuid: negotiation.sourceUuid,
+      sourceActorUuid: negotiation.sourceActorUuid,
+      name: negotiation.name,
+      img: negotiation.img,
+      quantity,
+      unitPriceValue,
+      priceCurrency: negotiation.priceCurrency,
+      totalPriceValue: Number((quantity * unitPriceValue).toFixed(2)),
+      sourceLabel: this.#getNegotiationSourceLabel(negotiation),
+      proposedUnitPriceValue: unitPriceValue,
+      isFromActor: negotiation.side === "seller",
+    });
   }
 
   #saveScrollPositions() {
@@ -864,6 +1012,32 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       requestedTotal > sellerData.availableQuantity
     ) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughSellerItemQuantity"));
+      return;
+    }
+
+    const referenceUnitPriceValue = Number(sellerData.unitPriceValue ?? 0);
+    const proposedUnitPriceValue = Number(dialogData.unitPriceValue);
+    const priceWasChanged = Math.abs(proposedUnitPriceValue - referenceUnitPriceValue) > 0.0001;
+
+    if (priceWasChanged) {
+      const negotiation = await this.#addSessionNegotiation(
+        this.#createNegotiation({
+          side: "seller",
+          type: "item",
+          sourceUuid: sellerData.sourceUuid,
+          sourceActorUuid: sellerData.sourceActorUuid,
+          sourceId: sellerData.sourceId,
+          name: sellerData.name,
+          img: sellerData.img,
+          quantity: dialogData.quantity,
+          unitPriceValue: dialogData.unitPriceValue,
+          priceCurrency: dialogData.priceCurrency,
+          referenceUnitPriceValue,
+        }),
+      );
+      if (!negotiation) return;
+
+      this.render();
       return;
     }
 
@@ -1672,6 +1846,73 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return sessionItem;
   }
 
+  #createNegotiation({
+    side,
+    type,
+    sourceId = "",
+    sourceUuid = "",
+    sourceActorUuid = "",
+    name,
+    img = "",
+    quantity,
+    unitPriceValue,
+    priceCurrency,
+    referenceUnitPriceValue,
+  }) {
+    const normalizedQuantity = Number(quantity);
+    const normalizedUnitPrice = Number(unitPriceValue);
+    const normalizedReference = Number(referenceUnitPriceValue);
+    const safeQuantity = Number.isFinite(normalizedQuantity) && normalizedQuantity > 0 ? normalizedQuantity : 1;
+    const safeUnitPrice = Number.isFinite(normalizedUnitPrice) && normalizedUnitPrice >= 0 ? normalizedUnitPrice : 0;
+    const safeReference = Number.isFinite(normalizedReference) && normalizedReference >= 0 ? normalizedReference : 0;
+    const totalPriceValue = Number((safeQuantity * safeUnitPrice).toFixed(2));
+    const percentOfReference =
+      safeReference > 0 ? Number(((safeUnitPrice / safeReference) * 100).toFixed(2)) : 100;
+    const now = new Date().toISOString();
+
+    return {
+      id: foundry.utils.randomID(),
+      side: side === "seller" ? "seller" : "buyer",
+      type: ["product", "service", "item"].includes(type) ? type : "product",
+      sourceId: String(sourceId ?? "").trim(),
+      sourceUuid: String(sourceUuid ?? "").trim(),
+      sourceActorUuid: String(sourceActorUuid ?? "").trim(),
+      name: String(name ?? "").trim(),
+      img: img ?? "",
+      priceCurrency: String(priceCurrency ?? "").trim(),
+      referenceUnitPriceValue: safeReference,
+      status: "active",
+      currentTurn: "merchant",
+      offers: [
+        {
+          id: foundry.utils.randomID(),
+          side: "buyer",
+          quantity: safeQuantity,
+          unitPriceValue: safeUnitPrice,
+          totalPriceValue,
+          percentOfReference,
+          status: "submitted",
+          createdAt: now,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  async #addSessionNegotiation(negotiationData) {
+    const session = await this.#getOrCreateActiveSession();
+    if (!session) return null;
+
+    const negotiation = normalizeSessionNegotiation(negotiationData);
+    session.negotiations = Array.isArray(session.negotiations) ? session.negotiations : [];
+    session.negotiations.push(negotiation);
+    session.status = "pending";
+
+    await this.#saveSession(session);
+    return negotiation;
+  }
+
   async #addSessionSellerItem({
     type,
     sourceUuid,
@@ -1932,7 +2173,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
     if (!dialogData) return;
 
-    const unitPriceValue = hasFreePrice ? Number(dialogData.proposedPrice) : displayPriceValue;
+    const hasProposedPrice = dialogData.proposedPrice !== "";
+    const unitPriceValue = hasFreePrice || hasProposedPrice ? Number(dialogData.proposedPrice) : displayPriceValue;
 
     const requestedTotal =
       dialogData.quantity +
@@ -1945,6 +2187,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && requestedTotal > availableQuantity) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughQuantity"));
+      return;
+    }
+
+    const requiresApproval = Boolean(product.requiresApproval);
+    const priceWasChanged = Math.abs(Number(unitPriceValue) - Number(displayPriceValue)) > 0.0001;
+    const shouldNegotiate = requiresApproval || hasFreePrice || priceWasChanged;
+
+    if (shouldNegotiate) {
+      const negotiation = await this.#addSessionNegotiation(
+        this.#createNegotiation({
+          side: "buyer",
+          type: "product",
+          sourceId: item.id,
+          sourceUuid: item.uuid,
+          name: displayName,
+          img: item.img,
+          quantity: dialogData.quantity,
+          unitPriceValue,
+          priceCurrency: sessionCurrency,
+          referenceUnitPriceValue: displayPriceValue,
+        }),
+      );
+      if (!negotiation) return;
+
+      this.render();
       return;
     }
 
@@ -1979,6 +2246,85 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const side = target.closest("[data-session-side]")?.dataset.sessionSide ?? "buyer";
 
     if (!removeSessionItemById(session, itemId, side)) return;
+
+    await this.#saveSession(session);
+    this.render();
+  }
+
+  static async #onSubmitNegotiationOffer(event, target) {
+    event.preventDefault();
+
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const negotiation = this.#getNegotiationFromEvent(target, session);
+    if (!negotiation || negotiation.status !== "active") return;
+
+    const side = this.#getNegotiationOfferSide();
+    if (negotiation.currentTurn !== side) return;
+
+    const values = this.#getNegotiationDraftValues(target);
+    if (!values) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidNegotiationOffer"));
+      return;
+    }
+
+    const offer = this.#createSubmittedNegotiationOffer(values, side);
+    negotiation.offers = Array.isArray(negotiation.offers) ? negotiation.offers : [];
+    negotiation.offers.push(offer);
+    negotiation.currentTurn = side === "buyer" ? "merchant" : "buyer";
+    negotiation.updatedAt = new Date().toISOString();
+    session.status = "pending";
+
+    await this.#saveSession(session);
+    this.render();
+  }
+
+  static async #onAcceptNegotiationOffer(event, target) {
+    event.preventDefault();
+
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const negotiation = this.#getNegotiationFromEvent(target, session);
+    if (!negotiation || negotiation.status !== "active") return;
+    if (!this.#canAnswerNegotiation(negotiation)) return;
+
+    const lastOffer = this.#getLastNegotiationOffer(negotiation);
+    if (!lastOffer) return;
+
+    const acceptedItem = this.#buildSessionItemFromNegotiationOffer(negotiation, lastOffer);
+    if (!acceptedItem) return;
+
+    if (negotiation.side === "seller") {
+      session.sellerItems = Array.isArray(session.sellerItems) ? session.sellerItems : [];
+      session.sellerItems.push(acceptedItem);
+    } else {
+      session.buyerItems = Array.isArray(session.buyerItems) ? session.buyerItems : [];
+      session.buyerItems.push(acceptedItem);
+    }
+
+    negotiation.status = "accepted";
+    negotiation.updatedAt = new Date().toISOString();
+    session.status = "active";
+
+    await this.#saveSession(session);
+    this.render();
+  }
+
+  static async #onRefuseNegotiationOffer(event, target) {
+    event.preventDefault();
+
+    const session = this.#getActiveSession();
+    if (!session) return;
+
+    const negotiation = this.#getNegotiationFromEvent(target, session);
+    if (!negotiation || negotiation.status !== "active") return;
+    if (!this.#canAnswerNegotiation(negotiation)) return;
+
+    negotiation.status = "refused";
+    negotiation.updatedAt = new Date().toISOString();
+    session.status = "active";
 
     await this.#saveSession(session);
     this.render();
@@ -2752,12 +3098,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
       availableQuantity,
+      includeProposedPrice: !hasFreePrice,
       hasFreePrice,
       referenceCurrencyLabel,
     });
     if (!dialogData) return;
 
-    const unitPriceValue = hasFreePrice ? Number(dialogData.proposedPrice) : displayPriceValue;
+    const hasProposedPrice = dialogData.proposedPrice !== "";
+    const unitPriceValue = hasFreePrice || hasProposedPrice ? Number(dialogData.proposedPrice) : displayPriceValue;
 
     const requestedTotal =
       dialogData.quantity +
@@ -2770,6 +3118,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && requestedTotal > availableQuantity) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughQuantity"));
+      return;
+    }
+
+    const requiresApproval = Boolean(service.requiresApproval);
+    const priceWasChanged = Math.abs(Number(unitPriceValue) - Number(displayPriceValue)) > 0.0001;
+    const shouldNegotiate = requiresApproval || hasFreePrice || priceWasChanged;
+
+    if (shouldNegotiate) {
+      const negotiation = await this.#addSessionNegotiation(
+        this.#createNegotiation({
+          side: "buyer",
+          type: "service",
+          sourceId: service.id,
+          sourceUuid: service.sourceUuid,
+          name: service.name,
+          img: service.sourceImg,
+          quantity: dialogData.quantity,
+          unitPriceValue,
+          priceCurrency: sessionCurrency,
+          referenceUnitPriceValue: displayPriceValue,
+        }),
+      );
+      if (!negotiation) return;
+
+      this.render();
       return;
     }
 

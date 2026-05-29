@@ -58,6 +58,49 @@ export function normalizeSessionItem(item) {
   };
 }
 
+export function normalizeNegotiationOffer(offer = {}) {
+  const quantity = Number(offer.quantity);
+  const unitPriceValue = Number(offer.unitPriceValue);
+  const totalPriceValue = Number(offer.totalPriceValue);
+  const percentOfReference = Number(offer.percentOfReference);
+
+  return {
+    id: offer.id || foundry.utils.randomID(),
+    side: ["buyer", "merchant"].includes(offer.side) ? offer.side : "buyer",
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+    unitPriceValue: Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0,
+    totalPriceValue: Number.isFinite(totalPriceValue) && totalPriceValue >= 0 ? totalPriceValue : 0,
+    percentOfReference: Number.isFinite(percentOfReference) && percentOfReference >= 0 ? percentOfReference : 100,
+    status: ["draft", "submitted"].includes(offer.status) ? offer.status : "submitted",
+    createdAt: offer.createdAt || new Date().toISOString(),
+  };
+}
+
+export function normalizeSessionNegotiation(negotiation = {}) {
+  const referenceUnitPriceValue = Number(negotiation.referenceUnitPriceValue);
+
+  return {
+    id: negotiation.id || foundry.utils.randomID(),
+    side: ["buyer", "seller"].includes(negotiation.side) ? negotiation.side : "buyer",
+    type: ["product", "service", "item"].includes(negotiation.type) ? negotiation.type : "product",
+    sourceId: String(negotiation.sourceId ?? "").trim(),
+    sourceUuid: String(negotiation.sourceUuid ?? "").trim(),
+    sourceActorUuid: String(negotiation.sourceActorUuid ?? "").trim(),
+    name: String(negotiation.name ?? "").trim(),
+    img: negotiation.img ?? "",
+    priceCurrency: String(negotiation.priceCurrency ?? "").trim(),
+    referenceUnitPriceValue:
+      Number.isFinite(referenceUnitPriceValue) && referenceUnitPriceValue >= 0 ? referenceUnitPriceValue : 0,
+    status: ["active", "accepted", "refused"].includes(negotiation.status) ? negotiation.status : "active",
+    currentTurn: ["buyer", "merchant"].includes(negotiation.currentTurn) ? negotiation.currentTurn : "merchant",
+    offers: Array.isArray(negotiation.offers)
+      ? negotiation.offers.map((offer) => normalizeNegotiationOffer(offer))
+      : [],
+    createdAt: negotiation.createdAt || new Date().toISOString(),
+    updatedAt: negotiation.updatedAt || new Date().toISOString(),
+  };
+}
+
 export function normalizeSession(session) {
   const normalizedStatus = ["active", "pending", "validated", "refused", "submitted"].includes(session.status)
     ? session.status
@@ -77,6 +120,9 @@ export function normalizeSession(session) {
     buyerItems: Array.isArray(session.buyerItems) ? session.buyerItems.map((item) => normalizeSessionItem(item)) : [],
     sellerItems: Array.isArray(session.sellerItems)
       ? session.sellerItems.map((item) => normalizeSessionItem(item))
+      : [],
+    negotiations: Array.isArray(session.negotiations)
+      ? session.negotiations.map((negotiation) => normalizeSessionNegotiation(negotiation))
       : [],
     createdAt: session.createdAt || new Date().toISOString(),
     updatedAt: session.updatedAt || new Date().toISOString(),
@@ -100,6 +146,7 @@ export function buildSessionData(client = null) {
     userName: client?.userName ?? "",
     buyerItems: [],
     sellerItems: [],
+    negotiations: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -331,6 +378,60 @@ export function prepareSessionClientContext(session, accessClients) {
   };
 }
 
+function prepareNegotiationForDisplay(negotiation) {
+  const offers = (negotiation.offers ?? []).map((offer) => ({
+    ...offer,
+    unitPriceLabel: formatPriceLabel(offer.unitPriceValue, negotiation.priceCurrency),
+    totalPriceLabel: formatPriceLabel(offer.totalPriceValue, negotiation.priceCurrency),
+    percentLabel: `${offer.percentOfReference} %`,
+    isBuyerOffer: offer.side === "buyer",
+    isMerchantOffer: offer.side === "merchant",
+    sideClass:
+      offer.side === "merchant" ? "mtt-merchant-negotiation-offer-merchant" : "mtt-merchant-negotiation-offer-buyer",
+    sideLabel: game.i18n.localize(`mtt.sessions.negotiations.side.${offer.side}`),
+  }));
+
+  const lastOffer = offers.at(-1) ?? null;
+  const quantity = Number(lastOffer?.quantity ?? 1);
+  const unitPriceValue = Number(lastOffer?.unitPriceValue ?? negotiation.referenceUnitPriceValue ?? 0);
+  const referenceUnitPriceValue = Number(negotiation.referenceUnitPriceValue);
+  const draftQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+  const draftUnitPriceValue = Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0;
+  const draftTotalPriceValue = Number((draftQuantity * draftUnitPriceValue).toFixed(2));
+  const draftPercentOfReference =
+    Number.isFinite(referenceUnitPriceValue) && referenceUnitPriceValue > 0
+      ? Number(((draftUnitPriceValue / referenceUnitPriceValue) * 100).toFixed(2))
+      : 100;
+
+  return {
+    ...negotiation,
+    offers,
+    hasOffers: offers.length > 0,
+    lastOffer,
+    referenceUnitPriceLabel: formatPriceLabel(referenceUnitPriceValue, negotiation.priceCurrency),
+    hasDraft: negotiation.status === "active",
+    draft: {
+      quantity: draftQuantity,
+      unitPriceValue: draftUnitPriceValue,
+      totalPriceValue: draftTotalPriceValue,
+      percentOfReference: draftPercentOfReference,
+    },
+    isBuyerTurn: negotiation.currentTurn === "buyer",
+    isMerchantTurn: negotiation.currentTurn === "merchant",
+    draftSideClass:
+      negotiation.currentTurn === "buyer"
+        ? "mtt-merchant-negotiation-offer-buyer"
+        : "mtt-merchant-negotiation-offer-merchant",
+    draftSideLabel: game.i18n.localize(`mtt.sessions.negotiations.side.${negotiation.currentTurn}`),
+    isBuyerNegotiation: negotiation.side === "buyer",
+    isSellerNegotiation: negotiation.side === "seller",
+    isRefused: negotiation.status === "refused",
+    isAccepted: negotiation.status === "accepted",
+    isActive: negotiation.status === "active",
+    canShowMerchantDecisionActions: negotiation.status === "active",
+  };
+}
+
 export function prepareSessionContext(
   actor,
   { session, selectedClient, sessionCheckResult, sellPercent, accessClients },
@@ -345,8 +446,14 @@ export function prepareSessionContext(
       statusLabel: "",
       buyerItems: [],
       sellerItems: [],
+      buyerNegotiations: [],
+      sellerNegotiations: [],
+      refusedNegotiations: [],
       hasBuyerItems: false,
       hasSellerItems: false,
+      hasBuyerNegotiations: false,
+      hasSellerNegotiations: false,
+      hasRefusedNegotiations: false,
       buyerTotalByCurrency: [],
       sellerTotalByCurrency: [],
       hasBuyerTotals: false,
@@ -412,6 +519,17 @@ export function prepareSessionContext(
     };
   });
 
+  const negotiations = Array.isArray(session.negotiations)
+    ? session.negotiations.map((negotiation) => prepareNegotiationForDisplay(negotiation))
+    : [];
+  const buyerNegotiations = negotiations.filter(
+    (negotiation) => negotiation.side === "buyer" && negotiation.status === "active",
+  );
+  const sellerNegotiations = negotiations.filter(
+    (negotiation) => negotiation.side === "seller" && negotiation.status === "active",
+  );
+  const refusedNegotiations = negotiations.filter((negotiation) => negotiation.status === "refused");
+
   const buyerTotalByCurrency = prepareSessionTotals(buyerItems);
   const sellerTotalByCurrency = prepareSessionTotals(sellerItems);
   const moneyAdjustments = prepareMoneyAdjustments(buyerTotalByCurrency, sellerTotalByCurrency);
@@ -429,8 +547,14 @@ export function prepareSessionContext(
     statusLabel: game.i18n.localize(`mtt.sessions.status.${status}`),
     buyerItems,
     sellerItems,
+    buyerNegotiations,
+    sellerNegotiations,
+    refusedNegotiations,
     hasBuyerItems: buyerItems.length > 0,
     hasSellerItems: sellerItems.length > 0,
+    hasBuyerNegotiations: buyerNegotiations.length > 0,
+    hasSellerNegotiations: sellerNegotiations.length > 0,
+    hasRefusedNegotiations: refusedNegotiations.length > 0,
     buyerTotalByCurrency,
     sellerTotalByCurrency,
     hasBuyerTotals: buyerTotalByCurrency.length > 0,
@@ -1700,6 +1824,7 @@ export async function executeSessionItemTransfers(actor, plan) {
 export function clearSessionAfterExecution(session) {
   session.buyerItems = [];
   session.sellerItems = [];
+  session.negotiations = [];
   session.status = "active";
   session.isSubmitted = false;
   session.updatedAt = new Date().toISOString();

@@ -87,6 +87,137 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
         }),
       });
 
+    const negotiationOfferSchema = () =>
+      new fields.SchemaField({
+        id: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        side: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "buyer",
+          choices: ["buyer", "merchant"],
+        }),
+        quantity: new fields.NumberField({
+          required: true,
+          initial: 1,
+          min: 0,
+        }),
+        unitPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        totalPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        percentOfReference: new fields.NumberField({
+          required: true,
+          initial: 100,
+          min: 0,
+        }),
+        status: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "submitted",
+          choices: ["draft", "submitted"],
+        }),
+        createdAt: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+      });
+
+    const sessionNegotiationSchema = () =>
+      new fields.SchemaField({
+        id: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        side: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "buyer",
+          choices: ["buyer", "seller"],
+        }),
+        type: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "product",
+          choices: ["product", "service", "item"],
+        }),
+        sourceId: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        sourceUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        sourceActorUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        name: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        img: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        priceCurrency: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        referenceUnitPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        status: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "active",
+          choices: ["active", "accepted", "refused"],
+        }),
+        currentTurn: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "merchant",
+          choices: ["buyer", "merchant"],
+        }),
+        offers: new fields.ArrayField(
+          negotiationOfferSchema(),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
+        createdAt: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        updatedAt: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+      });
+
     return {
       merchant: new fields.SchemaField({
         description: new fields.HTMLField({
@@ -394,6 +525,13 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
             ),
             sellerItems: new fields.ArrayField(
               sessionItemSchema(),
+              {
+                required: true,
+                initial: [],
+              },
+            ),
+            negotiations: new fields.ArrayField(
+              sessionNegotiationSchema(),
               {
                 required: true,
                 initial: [],

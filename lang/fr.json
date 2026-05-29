@@ -144,6 +144,7 @@
       "invalidTradePercent": "Le pourcentage doit être un nombre positif ou égal à zéro.",
       "invalidWalletAmount": "Le montant de monnaie doit être un nombre positif ou égal à zéro.",
       "invalidNegotiationFormula": "La formule de négociation est invalide.",
+      "invalidNegotiationOffer": "La proposition de négociation est invalide.",
       "emptyNegotiationFormula": "Aucune formule de négociation n’est renseignée.",
       "invalidSessionQuantity": "La quantité demandée doit être un nombre positif.",
       "notEnoughQuantity": "La quantité demandée dépasse la quantité disponible.",
@@ -380,6 +381,33 @@
       },
       "sellerSide": {
         "title": "Le PJ vend / donne"
+      },
+      "negotiations": {
+        "buyerTitle": "Négociations d’achat",
+        "sellerTitle": "Négociations de vente / troc",
+        "refusedTitle": "Négociations refusées",
+        "referencePrice": "Prix de référence",
+        "quantity": "Quantité",
+        "unitPrice": "Prix unitaire",
+        "totalPrice": "Prix total",
+        "percent": "Pourcentage du prix de référence",
+        "sideShort": "Côté",
+        "quantityShort": "Qté",
+        "unitPriceShort": "PU",
+        "totalShort": "Total",
+        "percentShort": "%",
+        "waitingBuyer": "En attente d’une réponse de l’acheteur.",
+        "waitingMerchant": "En attente d’une réponse du marchand.",
+        "refusedMessage": "Cette négociation a été refusée.",
+        "actions": {
+          "submit": "Proposer",
+          "accept": "Accepter",
+          "refuse": "Refuser"
+        },
+        "side": {
+          "buyer": "Acheteur",
+          "merchant": "Marchand"
+        }
       },
       "emptyBuyer": "Aucun élément reçu pour le moment.",
       "emptySeller": "Aucun élément donné pour le moment.",

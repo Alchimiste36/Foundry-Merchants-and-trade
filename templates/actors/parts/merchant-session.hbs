@@ -19,6 +19,96 @@
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.buyerSide.title"}}</h3>
       </header>
 
+      {{#if mtt.session.hasBuyerNegotiations}}
+        <section class="mtt-merchant-session-negotiations mtt-merchant-session-buyer-negotiations">
+          <header class="mtt-merchant-negotiation-section-header">
+            <i class="fas fa-comments-dollar"></i>
+            <h4>{{localize "mtt.sessions.negotiations.buyerTitle"}}</h4>
+          </header>
+
+          <ul class="mtt-merchant-negotiation-list">
+            {{#each mtt.session.buyerNegotiations as |negotiation|}}
+              <li class="mtt-merchant-negotiation-item mtt-merchant-negotiation-item-buyer" data-negotiation-id="{{negotiation.id}}">
+                <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
+                <div class="mtt-merchant-negotiation-main">
+                  <strong>{{negotiation.name}}</strong>
+                  <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
+                  <p class="mtt-merchant-negotiation-status">
+                    <i class="fas fa-hourglass-half"></i>
+                    {{#if negotiation.isBuyerTurn}}{{localize "mtt.sessions.negotiations.waitingBuyer"}}{{else}}{{localize "mtt.sessions.negotiations.waitingMerchant"}}{{/if}}
+                  </p>
+
+                  <div class="mtt-merchant-negotiation-grid-header">
+                    <span>{{localize "mtt.sessions.negotiations.sideShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.quantityShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.unitPriceShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.totalShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.percentShort"}}</span>
+                  </div>
+
+                  {{#if negotiation.hasOffers}}
+                    <ul class="mtt-merchant-negotiation-offers">
+                      {{#each negotiation.offers as |offer|}}
+                        <li class="mtt-merchant-negotiation-offer {{offer.sideClass}} mtt-merchant-negotiation-offer-submitted">
+                          <span>{{offer.sideLabel}}</span>
+                          <span>{{offer.quantity}}</span>
+                          <span>{{offer.unitPriceLabel}}</span>
+                          <span>{{offer.totalPriceLabel}}</span>
+                          <span>{{offer.percentLabel}}</span>
+                        </li>
+                      {{/each}}
+                    </ul>
+                  {{/if}}
+
+                  {{#if negotiation.hasDraft}}
+                    <div
+                      class="mtt-merchant-negotiation-offer mtt-merchant-negotiation-offer-draft {{negotiation.draftSideClass}}"
+                      data-negotiation-draft
+                      data-negotiation-id="{{negotiation.id}}"
+                      data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
+                    >
+                      <span>{{negotiation.draftSideLabel}}</span>
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-percent" type="number" min="0" step="1" value="{{negotiation.draft.percentOfReference}}" data-mtt-negotiation-field="percentOfReference" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.percent'}}" />
+                    </div>
+
+                    <div class="mtt-merchant-negotiation-actions">
+                      {{#if @root.mtt.isEditable}}
+                        {{#if negotiation.isMerchantTurn}}
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
+                            <i class="fas fa-paper-plane"></i>
+                          </button>
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
+                            <i class="fas fa-check"></i>
+                          </button>
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
+                            <i class="fas fa-xmark"></i>
+                          </button>
+                        {{/if}}
+                      {{else}}
+                        {{#if negotiation.isBuyerTurn}}
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
+                            <i class="fas fa-paper-plane"></i>
+                          </button>
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
+                            <i class="fas fa-check"></i>
+                          </button>
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
+                            <i class="fas fa-xmark"></i>
+                          </button>
+                        {{/if}}
+                      {{/if}}
+                    </div>
+                  {{/if}}
+                </div>
+              </li>
+            {{/each}}
+          </ul>
+        </section>
+      {{/if}}
+
       <ol class="mtt-merchant-session-list">
         {{#if mtt.session.hasBuyerLines}}
           {{#if mtt.session.hasBuyerItems}}
@@ -106,6 +196,96 @@
         <i class="fas fa-handshake-angle"></i>
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.sellerSide.title"}}</h3>
       </header>
+
+      {{#if mtt.session.hasSellerNegotiations}}
+        <section class="mtt-merchant-session-negotiations mtt-merchant-session-seller-negotiations">
+          <header class="mtt-merchant-negotiation-section-header">
+            <i class="fas fa-handshake"></i>
+            <h4>{{localize "mtt.sessions.negotiations.sellerTitle"}}</h4>
+          </header>
+
+          <ul class="mtt-merchant-negotiation-list">
+            {{#each mtt.session.sellerNegotiations as |negotiation|}}
+              <li class="mtt-merchant-negotiation-item mtt-merchant-negotiation-item-seller" data-negotiation-id="{{negotiation.id}}">
+                <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
+                <div class="mtt-merchant-negotiation-main">
+                  <strong>{{negotiation.name}}</strong>
+                  <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
+                  <p class="mtt-merchant-negotiation-status">
+                    <i class="fas fa-hourglass-half"></i>
+                    {{#if negotiation.isBuyerTurn}}{{localize "mtt.sessions.negotiations.waitingBuyer"}}{{else}}{{localize "mtt.sessions.negotiations.waitingMerchant"}}{{/if}}
+                  </p>
+
+                  <div class="mtt-merchant-negotiation-grid-header">
+                    <span>{{localize "mtt.sessions.negotiations.sideShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.quantityShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.unitPriceShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.totalShort"}}</span>
+                    <span>{{localize "mtt.sessions.negotiations.percentShort"}}</span>
+                  </div>
+
+                  {{#if negotiation.hasOffers}}
+                    <ul class="mtt-merchant-negotiation-offers">
+                      {{#each negotiation.offers as |offer|}}
+                        <li class="mtt-merchant-negotiation-offer {{offer.sideClass}} mtt-merchant-negotiation-offer-submitted">
+                          <span>{{offer.sideLabel}}</span>
+                          <span>{{offer.quantity}}</span>
+                          <span>{{offer.unitPriceLabel}}</span>
+                          <span>{{offer.totalPriceLabel}}</span>
+                          <span>{{offer.percentLabel}}</span>
+                        </li>
+                      {{/each}}
+                    </ul>
+                  {{/if}}
+
+                  {{#if negotiation.hasDraft}}
+                    <div
+                      class="mtt-merchant-negotiation-offer mtt-merchant-negotiation-offer-draft {{negotiation.draftSideClass}}"
+                      data-negotiation-draft
+                      data-negotiation-id="{{negotiation.id}}"
+                      data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
+                    >
+                      <span>{{negotiation.draftSideLabel}}</span>
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.01" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.01" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-percent" type="number" min="0" step="0.01" value="{{negotiation.draft.percentOfReference}}" data-mtt-negotiation-field="percentOfReference" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.percent'}}" />
+                    </div>
+
+                    <div class="mtt-merchant-negotiation-actions">
+                      {{#if @root.mtt.isEditable}}
+                        {{#if negotiation.isMerchantTurn}}
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
+                            <i class="fas fa-paper-plane"></i>
+                          </button>
+                        {{/if}}
+                        <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
+                          <i class="fas fa-check"></i>
+                        </button>
+                        <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
+                          <i class="fas fa-xmark"></i>
+                        </button>
+                      {{else}}
+                        {{#if negotiation.isBuyerTurn}}
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
+                            <i class="fas fa-paper-plane"></i>
+                          </button>
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
+                            <i class="fas fa-check"></i>
+                          </button>
+                          <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
+                            <i class="fas fa-xmark"></i>
+                          </button>
+                        {{/if}}
+                      {{/if}}
+                    </div>
+                  {{/if}}
+                </div>
+              </li>
+            {{/each}}
+          </ul>
+        </section>
+      {{/if}}
 
       <ol class="mtt-merchant-session-list">
         {{#if mtt.session.hasSellerLines}}
@@ -243,7 +423,7 @@
     {{/if}}
 
  
-    <footer class="mtt-merchant-session-actions">
+    <section class="mtt-merchant-session-actions">
       {{#if mtt.session.hasSession}}
         {{#if mtt.session.isSubmitted}}
           <p class="mtt-merchant-session-submitted-message">{{localize "mtt.sessions.submittedMessage"}}</p>
@@ -286,6 +466,53 @@
           {{/unless}}
         {{/if}}
       {{/if}}
-    </footer>
+    </section>
+
+    {{#if mtt.session.hasRefusedNegotiations}}
+      <section class="mtt-merchant-session-negotiations mtt-merchant-session-refused-negotiations">
+        <header class="mtt-merchant-negotiation-section-header">
+          <i class="fas fa-circle-xmark"></i>
+          <h4>{{localize "mtt.sessions.negotiations.refusedTitle"}}</h4>
+        </header>
+
+        <ul class="mtt-merchant-negotiation-list">
+          {{#each mtt.session.refusedNegotiations as |negotiation|}}
+            <li class="mtt-merchant-negotiation-item mtt-merchant-negotiation-item-refused" data-negotiation-id="{{negotiation.id}}">
+              <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
+              <div class="mtt-merchant-negotiation-main">
+                <strong>{{negotiation.name}}</strong>
+                <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
+                <p class="mtt-merchant-negotiation-status mtt-merchant-negotiation-status-refused">
+                  <i class="fas fa-ban"></i>
+                  {{localize "mtt.sessions.negotiations.refusedMessage"}}
+                </p>
+
+                <div class="mtt-merchant-negotiation-grid-header">
+                  <span>{{localize "mtt.sessions.negotiations.sideShort"}}</span>
+                  <span>{{localize "mtt.sessions.negotiations.quantityShort"}}</span>
+                  <span>{{localize "mtt.sessions.negotiations.unitPriceShort"}}</span>
+                  <span>{{localize "mtt.sessions.negotiations.totalShort"}}</span>
+                  <span>{{localize "mtt.sessions.negotiations.percentShort"}}</span>
+                </div>
+
+                {{#if negotiation.hasOffers}}
+                  <ul class="mtt-merchant-negotiation-offers">
+                    {{#each negotiation.offers as |offer|}}
+                      <li class="mtt-merchant-negotiation-offer {{offer.sideClass}} mtt-merchant-negotiation-offer-submitted">
+                        <span>{{offer.sideLabel}}</span>
+                        <span>{{offer.quantity}}</span>
+                        <span>{{offer.unitPriceLabel}}</span>
+                        <span>{{offer.totalPriceLabel}}</span>
+                        <span>{{offer.percentLabel}}</span>
+                      </li>
+                    {{/each}}
+                  </ul>
+                {{/if}}
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      </section>
+    {{/if}}
   </section>
 </aside>

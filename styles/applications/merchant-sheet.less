@@ -28,6 +28,7 @@
 .mtt-merchant-window {
   //position: relative;
   overflow: visible;
+  min-width: 650px;
 }
 
 .mtt-merchant-sheet {
@@ -775,6 +776,13 @@
   color: var(--mtt-text);
   overflow-wrap: anywhere;
 }
+
+.mtt-merchant-session-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mtt-merchant-session-item-price,
 .mtt-merchant-session-item-total-price {
   text-align: right;
@@ -1459,6 +1467,7 @@
   gap: 0.5rem;
   height: 100%;
   padding: 0.3rem;
+  min-width: 350px;
 }
 
 .mtt-merchant-section-title {
@@ -1763,6 +1772,9 @@
 .mtt-merchant-product-name {
   font-weight: 700;
   color: var(--mtt-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mtt-merchant-product-name-input {
@@ -1774,6 +1786,9 @@
 .mtt-merchant-product-type {
   color: var(--mtt-text-soft);
   font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mtt-merchant-product-details {

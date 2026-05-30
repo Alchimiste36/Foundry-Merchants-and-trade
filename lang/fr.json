@@ -6,7 +6,8 @@
       "ready": "Prêt"
     },
     "sheets": {
-      "merchant": "Feuille de marchand"
+      "merchant": "Feuille de marchand",
+      "merchantTitle": "MTT - Marchand : {name}"
     },
     "settings": {
       "debug": {

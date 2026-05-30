@@ -164,6 +164,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     },
   };
 
+  get title() {
+    return game.i18n.format("mtt.sheets.merchantTitle", {
+      name: this.actor?.name ?? "",
+    });
+  }
+
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
 
@@ -357,9 +363,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const quantity = Number(draft.querySelector('[data-mtt-negotiation-field="quantity"]')?.value);
     const unitPriceValue = Number(draft.querySelector('[data-mtt-negotiation-field="unitPriceValue"]')?.value);
     const totalPriceValue = Number(draft.querySelector('[data-mtt-negotiation-field="totalPriceValue"]')?.value);
-    const percentOfReference = Number(
-      draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]')?.value,
-    );
+    const percentOfReference = Number(draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]')?.value);
 
     if (!Number.isFinite(quantity) || quantity <= 0) return null;
     if (!Number.isFinite(unitPriceValue) || unitPriceValue < 0) return null;
@@ -1872,8 +1876,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const safeUnitPrice = Number.isFinite(normalizedUnitPrice) && normalizedUnitPrice >= 0 ? normalizedUnitPrice : 0;
     const safeReference = Number.isFinite(normalizedReference) && normalizedReference >= 0 ? normalizedReference : 0;
     const totalPriceValue = Number((safeQuantity * safeUnitPrice).toFixed(2));
-    const percentOfReference =
-      safeReference > 0 ? Number(((safeUnitPrice / safeReference) * 100).toFixed(2)) : 100;
+    const percentOfReference = safeReference > 0 ? Number(((safeUnitPrice / safeReference) * 100).toFixed(2)) : 100;
     const now = new Date().toISOString();
 
     return {

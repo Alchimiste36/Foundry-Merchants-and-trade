@@ -38,6 +38,35 @@ export function registerSettings() {
     default: "",
   });
 
+  // Actor delivery only: these paths distribute purchased Items into receiving actor stacks.
+  // They must never limit or split the merchant's independent commercial catalogue stock.
+  game.settings.register(MTT.ID, "deliveryItemQuantityPath", {
+    name: "mtt.settings.deliveryItemQuantityPath.name",
+    hint: "mtt.settings.deliveryItemQuantityPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "deliveryItemMaxQuantityPath", {
+    name: "mtt.settings.deliveryItemMaxQuantityPath.name",
+    hint: "mtt.settings.deliveryItemMaxQuantityPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "allowExtendedItemMerge", {
+    name: "mtt.settings.allowExtendedItemMerge.name",
+    hint: "mtt.settings.allowExtendedItemMerge.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MTT.ID, "itemDescriptionPath", {
     name: "mtt.settings.itemDescriptionPath.name",
     hint: "mtt.settings.itemDescriptionPath.hint",

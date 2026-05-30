@@ -103,6 +103,7 @@
                           type="number"
                           min="0"
                           value="{{item.quantity}}"
+                          placeholder="{{localize 'mtt.products.quantity.unlimited'}}"
                           data-mtt-product-field="quantity"
                         />
                       {{else}}
@@ -112,7 +113,7 @@
                           </div>
                         {{else}}
                           <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">
-                            <i class="fa-solid fa-empty-set"></i>
+                            <i class="fa-solid fa-infinity"></i>
                           </span>
                         {{/if}}
                       {{/if}}

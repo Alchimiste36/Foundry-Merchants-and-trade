@@ -39,6 +39,184 @@ export function parseQuantityValue(value) {
   return null
 }
 
+export function isUnlimitedQuantity(value) {
+  return value === "" || value === null || value === undefined
+}
+
+export function normalizeFiniteQuantity(value) {
+  if (isUnlimitedQuantity(value)) return null
+
+  const quantity = Number(value)
+  return Number.isFinite(quantity) && quantity >= 0 ? quantity : null
+}
+
+export function getConfiguredItemQuantity(itemOrData, quantityPath) {
+  if (!quantityPath) return undefined
+  return foundry.utils.getProperty(itemOrData, quantityPath)
+}
+
+export function getConfiguredItemMaxQuantity(itemOrData, maxQuantityPath) {
+  if (!maxQuantityPath) return undefined
+  return foundry.utils.getProperty(itemOrData, maxQuantityPath)
+}
+
+export function isUnlimitedMaxQuantity(value) {
+  return value === "" || value === null || value === undefined
+}
+
+export function normalizeMaxQuantity(value) {
+  if (isUnlimitedMaxQuantity(value)) return Infinity
+
+  const quantity = Number(value)
+  if (!Number.isFinite(quantity) || quantity < 1) return Infinity
+
+  return Math.floor(quantity)
+}
+
+export function normalizeItemQuantity(value, fallback = 0) {
+  const quantity = Number(value)
+  if (!Number.isFinite(quantity)) return fallback
+
+  return Math.max(0, Math.floor(quantity))
+}
+
+export function getAvailableStackSpace(currentQuantity, maxQuantity) {
+  if (maxQuantity === Infinity) return Infinity
+
+  return Math.max(0, maxQuantity - currentQuantity)
+}
+
+export function getDeliveryStackingConfig() {
+  return {
+    quantityPath:
+      String(getModuleSetting("deliveryItemQuantityPath") ?? "").trim() ||
+      String(getModuleSetting("itemQuantityPath") ?? "").trim(),
+    maxQuantityPath: String(getModuleSetting("deliveryItemMaxQuantityPath") ?? "").trim(),
+  }
+}
+
+export function isProductCommerciallyModified(productData = {}) {
+  return Boolean(
+    productData?.isCommerciallyModified ||
+      productData?.secretName ||
+      productData?.secretPrice ||
+      productData?.secretDescription,
+  )
+}
+
+export function getMttSourceUuid(itemOrData, productData = null) {
+  const directSourceUuid = String(productData?.sourceUuid ?? "").trim()
+  if (directSourceUuid) return directSourceUuid
+
+  const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
+  const product =
+    (itemOrData ? foundry.utils.getProperty(itemOrData, productFlagPath) : null) ??
+    itemOrData?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ??
+    {}
+
+  return String(product.sourceUuid ?? "").trim()
+}
+
+function getMttProductFlags(itemOrData) {
+  const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
+  return (
+    (itemOrData ? foundry.utils.getProperty(itemOrData, productFlagPath) : null) ??
+    itemOrData?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ??
+    {}
+  )
+}
+
+function normalizeComparableText(value) {
+  return String(value ?? "").trim().toLocaleLowerCase()
+}
+
+function normalizeComparableNumber(value) {
+  const number = parsePriceValue(value)
+  return Number.isFinite(number) ? number : null
+}
+
+function getComparableSubtypePath(existingItem, deliveredItemData, productData) {
+  const productPath = String(productData?.systemCategoryPath ?? "").trim()
+  if (productPath && productPath !== "type") return productPath
+
+  return (
+    getCategoryPaths().find((path) => {
+      const existingValue = foundry.utils.getProperty(existingItem, path)
+      const deliveredValue = foundry.utils.getProperty(deliveredItemData, path)
+      return normalizeComparableText(existingValue) || normalizeComparableText(deliveredValue)
+    }) ?? ""
+  )
+}
+
+function getComparableInitialPrice(itemOrData) {
+  return normalizeComparableNumber(
+    getConfiguredItemValue(itemOrData, "itemPriceValuePath") ?? getItemPrice(itemOrData),
+  )
+}
+
+function getComparableCurrency(itemOrData) {
+  const configuredCurrency = getConfiguredItemValue(itemOrData, "itemPriceCurrencyPath")
+  const rawCurrency =
+    typeof configuredCurrency === "string" && configuredCurrency.trim()
+      ? configuredCurrency
+      : getItemCurrency(itemOrData)
+  const normalizedCurrency = normalizeComparableText(rawCurrency)
+  if (!normalizedCurrency) return ""
+
+  const currency = getCurrencies().find((entry) => {
+    const candidates = [entry.id, entry.abbreviation, entry.name]
+      .map((value) => normalizeComparableText(value))
+      .filter(Boolean)
+    return candidates.includes(normalizedCurrency)
+  })
+
+  return currency ? normalizeComparableText(currency.id ?? currency.abbreviation) : normalizedCurrency
+}
+
+export function canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
+  const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
+  const existingSourceUuid = getMttSourceUuid(existingItem)
+
+  return Boolean(sourceUuid && existingSourceUuid && sourceUuid === existingSourceUuid)
+}
+
+export function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
+  const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
+  const existingSourceUuid = getMttSourceUuid(existingItem)
+  if (sourceUuid && existingSourceUuid) return false
+
+  if (normalizeComparableText(existingItem?.name) !== normalizeComparableText(deliveredItemData?.name)) return false
+  if (normalizeComparableText(existingItem?.type) !== normalizeComparableText(deliveredItemData?.type)) return false
+
+  const subtypePath = getComparableSubtypePath(existingItem, deliveredItemData, productData)
+  const existingSubtype = subtypePath ? normalizeComparableText(foundry.utils.getProperty(existingItem, subtypePath)) : ""
+  const deliveredSubtype = subtypePath
+    ? normalizeComparableText(foundry.utils.getProperty(deliveredItemData, subtypePath))
+    : ""
+  if (existingSubtype !== deliveredSubtype) return false
+
+  if (getComparableInitialPrice(existingItem) !== getComparableInitialPrice(deliveredItemData)) return false
+  if (getComparableCurrency(existingItem) !== getComparableCurrency(deliveredItemData)) return false
+
+  return true
+}
+
+export function getDeliveredItemMergeMode(existingItem, deliveredItemData, productData = {}) {
+  const deliveredProduct = getMttProductFlags(deliveredItemData)
+  const existingProduct = getMttProductFlags(existingItem)
+  const isCommerciallyModified =
+    isProductCommerciallyModified(productData) ||
+    isProductCommerciallyModified(deliveredProduct) ||
+    isProductCommerciallyModified(existingProduct)
+
+  if (isCommerciallyModified) return null
+  if (canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "strict"
+  if (!getModuleSetting("allowExtendedItemMerge")) return null
+  if (canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "extended"
+
+  return null
+}
+
 export function normalizeCurrencyKey(priceCurrency) {
   const currency = String(priceCurrency ?? "").trim()
   return currency || "__none"

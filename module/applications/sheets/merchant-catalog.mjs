@@ -3,6 +3,7 @@ import { getCurrencies } from "../../config/settings.mjs"
 import {
   parsePriceValue,
   parseQuantityValue,
+  isUnlimitedQuantity,
   formatPriceLabel,
   normalizeAutomaticCategoryValue,
   slugifyCategoryKey,
@@ -72,7 +73,7 @@ export function getReferenceCurrency() {
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
   return actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-    const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity
+    const quantity = product.quantity
     const displayName = product.displayName || item.name
     const basePriceValue =
       Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
@@ -92,7 +93,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       type: item.type,
       img: item.img,
       quantity,
-      hasQuantity: quantity !== null && quantity !== undefined,
+      hasQuantity: !isUnlimitedQuantity(quantity),
       document: item,
       secretName: product.secretName ?? "",
       secretPrice: product.secretPrice ?? "",
@@ -157,7 +158,7 @@ export function prepareServices(actor, sellPercent, { includeHidden = false } = 
       displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
       basePriceLabel: formatPriceLabel(basePriceValue, priceCurrency),
       quantity: service.quantity,
-      hasQuantity: service.quantity !== null && service.quantity !== undefined,
+      hasQuantity: !isUnlimitedQuantity(service.quantity),
       isHidden,
       isVisible,
       requiresApproval: service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
@@ -393,6 +394,8 @@ export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", a
 
   if (existingProduct) {
     const product = existingProduct.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    if (isUnlimitedQuantity(product.quantity)) return
+
     const currentQuantity = Number.isFinite(Number(product.quantity))
       ? Number(product.quantity)
       : MTT.PRODUCT_DEFAULTS.quantity
@@ -410,6 +413,7 @@ export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", a
     automaticCategory,
     sourceUuid: normalizedSourceUuid,
   })
+  // Catalogue drop: this creates merchant commercial stock, not a purchased Item on a client actor.
   await actor.createEmbeddedDocuments("Item", [productData])
 }
 

@@ -43,8 +43,46 @@
         />
         <p class="mtt-config-hint">{{localize
             "mtt.settings.itemQuantityPath.hint"
+        }}</p>
+      </div>
+
+      <div class="mtt-config-field">
+        <label>{{localize "mtt.settings.deliveryItemQuantityPath.name"}}</label>
+        <input
+          type="text"
+          name="deliveryItemQuantityPath"
+          value="{{deliveryItemQuantityPath}}"
+          placeholder="system.quantity.value"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.deliveryItemQuantityPath.hint"
           }}</p>
       </div>
+
+      <div class="mtt-config-field">
+        <label>{{localize "mtt.settings.deliveryItemMaxQuantityPath.name"}}</label>
+        <input
+          type="text"
+          name="deliveryItemMaxQuantityPath"
+          value="{{deliveryItemMaxQuantityPath}}"
+          placeholder="system.quantity.max"
+        />
+        <p class="mtt-config-hint">{{localize
+            "mtt.settings.deliveryItemMaxQuantityPath.hint"
+        }}</p>
+      </div>
+
+      <label class="mtt-config-checkbox-field">
+        <input
+          type="checkbox"
+          name="allowExtendedItemMerge"
+          {{#if allowExtendedItemMerge}}checked{{/if}}
+        />
+        <span>{{localize "mtt.settings.allowExtendedItemMerge.name"}}</span>
+      </label>
+      <p class="mtt-config-hint">{{localize
+          "mtt.settings.allowExtendedItemMerge.hint"
+        }}</p>
 
       <div class="mtt-config-field">
         <label>{{localize "mtt.settings.itemDescriptionPath.name"}}</label>

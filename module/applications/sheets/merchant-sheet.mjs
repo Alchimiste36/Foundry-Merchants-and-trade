@@ -3,6 +3,8 @@ import { getCurrencies } from "../../config/settings.mjs";
 import {
   parsePriceValue,
   parseQuantityValue,
+  isUnlimitedQuantity,
+  normalizeFiniteQuantity,
   normalizeCurrencyKey,
   convertPriceToReferenceCurrency,
   formatCurrencyLabel,
@@ -2101,6 +2103,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       type,
     });
 
+    // Manual catalogue creation: this is independent from client actor delivery.
     await this.actor.createEmbeddedDocuments("Item", [itemData]);
   }
 
@@ -2155,8 +2158,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : MTT.PRODUCT_DEFAULTS.priceValue;
     const displayPriceValue = adjustPriceValue(basePriceValue, getSellPercent(this.actor));
     const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
-    const quantity = product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
-    const availableQuantity = Number.isFinite(Number(quantity)) && Number(quantity) >= 0 ? Number(quantity) : null;
+    const quantity = product.quantity;
+    const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = Boolean(product.hasFreePrice);
     const minimumPriceValue =
       Number.isFinite(Number(product.minimumPriceValue)) && Number(product.minimumPriceValue) >= 0
@@ -2233,7 +2236,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       img: item.img,
       quantity: dialogData.quantity,
       availableQuantity,
-      hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,
+      hasLimitedQuantity: !isUnlimitedQuantity(quantity) && availableQuantity !== null,
       unitPriceValue,
       priceCurrency: sessionCurrency,
       sourceLabel: game.i18n.localize("mtt.sessions.item.product"),
@@ -2642,7 +2645,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
 
-      await executeSessionItemTransfers(this.actor, executionPlan);
+      const itemTransferResult = await executeSessionItemTransfers(this.actor, executionPlan);
+      executionPlan.itemTransferResult = itemTransferResult;
       if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
         await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan);
       }
@@ -2809,9 +2813,20 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (field === "quantity") {
-      const quantity = Number(target.value);
+      const quantity = target.value?.trim();
 
-      if (!Number.isFinite(quantity) || quantity < 0) {
+      if (quantity === "") {
+        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+          ...product,
+          quantity: "",
+        });
+        return;
+      }
+
+      const quantityNum = Number(quantity);
+
+      if (!Number.isFinite(quantityNum) || quantityNum < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
         target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
         return;
@@ -2821,7 +2836,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
-        quantity,
+        quantity: quantityNum,
       });
     }
 
@@ -3088,7 +3103,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const displayPriceValue = adjustPriceValue(basePriceValue, getSellPercent(this.actor));
     const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency;
     const quantity = service.quantity;
-    const availableQuantity = Number.isFinite(Number(quantity)) && Number(quantity) >= 0 ? Number(quantity) : null;
+    const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = Boolean(service.hasFreePrice);
     const minimumPriceValue =
       Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
@@ -3165,7 +3180,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       img: service.sourceImg,
       quantity: dialogData.quantity,
       availableQuantity,
-      hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,
+      hasLimitedQuantity: !isUnlimitedQuantity(quantity) && availableQuantity !== null,
       unitPriceValue,
       priceCurrency: sessionCurrency,
       sourceLabel: game.i18n.localize("mtt.sessions.item.service"),

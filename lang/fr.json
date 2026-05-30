@@ -26,6 +26,18 @@
         "name": "Chemin de la quantité",
         "hint": "Chemin du système de l’item pour lire la quantité disponible. Exemple : system.quantity"
       },
+      "deliveryItemQuantityPath": {
+        "name": "Livraison acteur : chemin de la quantité",
+        "hint": "Chemin utilisé uniquement lors de la livraison d’un item sur un acteur client. Laisser vide pour réutiliser le chemin général de quantité. Exemple : system.quantity.value"
+      },
+      "deliveryItemMaxQuantityPath": {
+        "name": "Livraison acteur : chemin de la quantité maximale par pile",
+        "hint": "Chemin utilisé uniquement lors de la livraison d’un item sur un acteur client. Une valeur vide ou invalide signifie que la pile est illimitée. Exemple : system.quantity.max"
+      },
+      "allowExtendedItemMerge": {
+        "name": "Autoriser la fusion étendue des items livrés",
+        "hint": "Permet à MTT de fusionner un item acheté avec un item déjà présent sur l’acteur lorsqu’aucune origine MTT fiable commune n’est trouvée, en comparant son nom, son type, son sous-type, son prix initial et sa monnaie. Désactivé par défaut."
+      },
       "itemDescriptionPath": {
         "name": "Chemin de la description",
         "hint": "Chemin du système de l’item pour lire la description. Exemple : system.description.value"
@@ -283,7 +295,8 @@
       "disableApproval": "Retirer la validation MJ",
       "quantity": {
         "short": "Qté",
-        "undefined": "Quantité non définie"
+        "undefined": "Quantité non définie",
+        "unlimited": "Illimité"
       },
       "tags": {
         "hidden": "Masqué",
@@ -594,6 +607,15 @@
         "sellerItemMissing": "L’objet donné ou vendu est introuvable : {name}.",
         "sellerQuantityInsufficient": "Quantité insuffisante pour {name}.",
         "emptySession": "La session ne contient aucun élément exécutable.",
+        "deliveryActorMissing": "Impossible de livrer l’objet : acteur destinataire introuvable.",
+        "deliveryItemDataMissing": "Impossible de livrer l’objet : données de livraison introuvables.",
+        "deliveryQuantityInvalid": "Impossible de livrer l’objet : quantité à livrer invalide.",
+        "deliveryQuantityPathMissing": "Impossible de livrer l’objet : chemin de quantité non configuré ou introuvable.",
+        "deliveryIncomplete": "Impossible de livrer entièrement l’objet.",
+        "deliveryCreationFailed": "Impossible de créer une pile d’objet sur l’acteur destinataire.",
+        "deliveryFailed": "Impossible de livrer l’objet sur l’acteur destinataire.",
+        "deliveryQuantityMismatch": "Impossible de finaliser la transaction : la quantité livrée ne correspond pas à la quantité achetée.",
+        "activeNegotiation": "Impossible de valider la transaction : une négociation est encore en cours.",
         "currencyConfigurationMissing": "Aucune monnaie n’est configurée dans le module.",
         "referenceCurrencyMissing": "Aucune monnaie de référence n’a pu être déterminée.",
         "currencyPathUnreadable": "Impossible de lire la monnaie {currency} sur {actor}.",

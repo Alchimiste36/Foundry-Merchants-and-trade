@@ -7,6 +7,16 @@ import {
   formatPriceLabel,
   createCheckMessage,
   parseQuantityValue,
+  isUnlimitedQuantity,
+  normalizeFiniteQuantity,
+  getConfiguredItemQuantity,
+  getConfiguredItemMaxQuantity,
+  normalizeMaxQuantity,
+  normalizeItemQuantity,
+  getAvailableStackSpace,
+  getDeliveryStackingConfig,
+  getMttSourceUuid,
+  getDeliveredItemMergeMode,
   roundToSmallestCurrencyUnit,
 } from "./merchant-utils.mjs";
 import {
@@ -197,8 +207,8 @@ export function syncSessionItemAvailability(actor, item) {
   if (item.type === "product") {
     const source = actor.items.get(item.sourceId);
     const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const availableQuantity = Number(product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity);
-    const hasLimitedQuantity = Number.isFinite(availableQuantity) && availableQuantity >= 0;
+    const availableQuantity = normalizeFiniteQuantity(product.quantity);
+    const hasLimitedQuantity = !isUnlimitedQuantity(product.quantity) && availableQuantity !== null;
 
     item.availableQuantity = hasLimitedQuantity ? availableQuantity : null;
     item.hasLimitedQuantity = hasLimitedQuantity;
@@ -1018,8 +1028,10 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
 export function getProductCheckAvailableQuantity(actor, item) {
   const source = actor.items.get(item.sourceId);
   const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-  const productQuantity = Number(product.quantity);
-  if (Number.isFinite(productQuantity) && productQuantity >= 0) return productQuantity;
+  if (isUnlimitedQuantity(product.quantity)) return null;
+
+  const productQuantity = normalizeFiniteQuantity(product.quantity);
+  if (productQuantity !== null) return productQuantity;
 
   const sessionQuantity = Number(item.availableQuantity);
   return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
@@ -1027,15 +1039,17 @@ export function getProductCheckAvailableQuantity(actor, item) {
 
 export function getServiceCheckAvailableQuantity(actor, item) {
   const service = actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
-  const serviceQuantity = Number(service?.quantity);
-  if (Number.isFinite(serviceQuantity) && serviceQuantity >= 0) return serviceQuantity;
+  if (isUnlimitedQuantity(service?.quantity)) return null;
+
+  const serviceQuantity = normalizeFiniteQuantity(service?.quantity);
+  if (serviceQuantity !== null) return serviceQuantity;
 
   const sessionQuantity = Number(item.availableQuantity);
   return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
 }
 
 export function checkLimitedSessionQuantity({ item, availableQuantity, result, messageId, messageKey, icon }) {
-  if (!item.hasLimitedQuantity) return;
+  if (availableQuantity === null || availableQuantity === undefined || availableQuantity === "") return;
 
   const requestedQuantity = Number(item.quantity);
   const normalizedAvailableQuantity = Number(availableQuantity);
@@ -1308,6 +1322,7 @@ export async function buildExecutionPreview(actor, session) {
     client: null,
     merchant: { id: actor.id, name: actor.name, img: actor.img },
     buyerDeliveries: [],
+    actorDeliverySimulations: [],
     sellerDeliveries: [],
     merchantStockUpdates: [],
     clientItemUpdates: [],
@@ -1387,6 +1402,23 @@ export async function buildExecutionPreview(actor, session) {
         preview.errors.push(game.i18n.format("mtt.sessions.preview.merchantStockInsufficient", { name: item.name }));
       }
 
+      const product = merchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const deliveryProductData = { ...product, id: merchantItem.id };
+      const deliveredItemData = buildVisibleProductItemData(merchantItem, product, item.quantity);
+      const deliverySimulation = simulatePurchasedItemDeliveryToActor(
+        clientActor,
+        deliveryProductData,
+        deliveredItemData,
+        item.quantity,
+      );
+      preview.actorDeliverySimulations.push(deliverySimulation);
+      for (const error of deliverySimulation.errors) {
+        if (!preview.errors.includes(error)) preview.errors.push(error);
+      }
+      for (const warning of deliverySimulation.warnings) {
+        if (!preview.warnings.includes(warning)) preview.warnings.push(warning);
+      }
+
       preview.buyerDeliveries.push({
         type: "product",
         id: item.id,
@@ -1397,13 +1429,16 @@ export async function buildExecutionPreview(actor, session) {
         totalPriceLabel,
         sourceLabel: item.sourceLabel,
         missing: false,
+        deliverySimulation,
       });
-      preview.merchantStockUpdates.push({
-        name: item.name,
-        img: item.img,
-        quantityToReduce: item.quantity,
-        availableQuantity: available,
-      });
+      if (Number.isFinite(available) && available >= 0) {
+        preview.merchantStockUpdates.push({
+          name: item.name,
+          img: item.img,
+          quantityToReduce: item.quantity,
+          availableQuantity: available,
+        });
+      }
     } else if (item.type === "service") {
       const available = getServiceCheckAvailableQuantity(actor, item);
       if (Number.isFinite(available) && available >= 0 && available < item.quantity) {
@@ -1618,9 +1653,175 @@ function buildVisibleProductItemData(sourceItem, product, quantity) {
   if (product.img) itemData.img = product.img;
 
   if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID];
+  foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
+    sourceUuid: getMttSourceUuid(sourceItem, product),
+    isCommerciallyModified: Boolean(product.isCommerciallyModified),
+  });
+  // TODO MTT secrets:
+  // Ensure itemData contains the visible commercial data and owner-only secret block
+  // before delivery stacking duplicates it into several actor item lines.
   setItemDataQuantity(itemData, quantity, sourceItem);
 
   return itemData;
+}
+
+function getDeliveryQuantityPath(itemData, config) {
+  return config.quantityPath || getQuantityPathForItem(itemData);
+}
+
+function createDeliveryResult({ actor = null, productData = {}, quantityToDeliver = 0 } = {}) {
+  const requestedQuantity = Number(quantityToDeliver);
+
+  return {
+    ok: false,
+    actor,
+    productId: productData.id ?? "",
+    sourceUuid: getMttSourceUuid(null, productData),
+    requestedQuantity: Number.isFinite(requestedQuantity) ? requestedQuantity : 0,
+    deliveredQuantity: 0,
+    updated: [],
+    created: [],
+    warnings: [],
+    errors: [],
+  };
+}
+
+export function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver) {
+  const result = createDeliveryResult({ actor, productData, quantityToDeliver });
+  const requestedQuantity = Number(quantityToDeliver);
+
+  if (!actor) {
+    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryActorMissing"));
+    return result;
+  }
+
+  if (!deliveredItemData || typeof deliveredItemData !== "object") {
+    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryItemDataMissing"));
+    return result;
+  }
+
+  if (!Number.isFinite(requestedQuantity) || !Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryQuantityInvalid"));
+    return result;
+  }
+
+  const config = getDeliveryStackingConfig();
+  const quantityPath = getDeliveryQuantityPath(deliveredItemData, config);
+  if (!quantityPath) {
+    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryQuantityPathMissing"));
+    return result;
+  }
+
+  let remaining = normalizeItemQuantity(requestedQuantity, 0);
+
+  const compatibleItems = actor.items
+    .map((item) => ({
+      item,
+      mergeMode: getDeliveredItemMergeMode(item, deliveredItemData, productData),
+    }))
+    .filter(({ mergeMode }) => Boolean(mergeMode));
+
+  for (const { item, mergeMode } of compatibleItems) {
+    if (remaining <= 0) break;
+
+    const currentQuantity = normalizeItemQuantity(getConfiguredItemQuantity(item, quantityPath), 0);
+    const maxQuantity = normalizeMaxQuantity(getConfiguredItemMaxQuantity(item, config.maxQuantityPath));
+    const availableSpace = getAvailableStackSpace(currentQuantity, maxQuantity);
+    if (availableSpace <= 0) continue;
+
+    const quantityToAdd = maxQuantity === Infinity ? remaining : Math.min(remaining, availableSpace);
+    const quantity = currentQuantity + quantityToAdd;
+    if (quantityToAdd <= 0) continue;
+
+    result.updated.push({
+      item,
+      itemId: item.id ?? "",
+      name: item.name ?? deliveredItemData.name ?? "",
+      beforeQuantity: currentQuantity,
+      addedQuantity: quantityToAdd,
+      afterQuantity: quantity,
+      mergeMode,
+    });
+    remaining -= quantityToAdd;
+  }
+
+  const maxQuantity = normalizeMaxQuantity(
+    getConfiguredItemMaxQuantity(deliveredItemData, config.maxQuantityPath),
+  );
+
+  while (remaining > 0) {
+    const quantity = maxQuantity === Infinity ? remaining : Math.min(remaining, maxQuantity);
+    if (quantity <= 0) break;
+
+    result.created.push({
+      name: deliveredItemData.name ?? "",
+      quantity,
+      mergeMode: "none",
+    });
+    remaining -= quantity;
+  }
+
+  result.ok = remaining === 0;
+  result.deliveredQuantity = result.ok ? requestedQuantity : requestedQuantity - remaining;
+  if (!result.ok) result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryIncomplete"));
+
+  return result;
+}
+
+export async function deliverPurchasedItemToActor(actor, productData, deliveredItemData, quantityToDeliver) {
+  const simulation = simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver);
+  if (!simulation.ok) return simulation;
+
+  const config = getDeliveryStackingConfig();
+  const quantityPath = getDeliveryQuantityPath(deliveredItemData, config);
+  const result = {
+    ...simulation,
+    deliveredQuantity: 0,
+    updated: [],
+    created: [],
+  };
+
+  try {
+    for (const stack of simulation.updated) {
+      const updateData = { [quantityPath]: stack.afterQuantity };
+      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`;
+      const deliveredProductFlags = foundry.utils.getProperty(deliveredItemData, productFlagPath) ?? {};
+      const existingProductFlags = stack.item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      updateData[productFlagPath] = {
+        ...deliveredProductFlags,
+        ...existingProductFlags,
+        sourceUuid:
+          getMttSourceUuid(stack.item) ||
+          getMttSourceUuid(deliveredItemData, productData),
+        isCommerciallyModified: false,
+      };
+      await stack.item.update(updateData);
+      result.updated.push(stack);
+      result.deliveredQuantity += stack.addedQuantity;
+    }
+
+    for (const stack of simulation.created) {
+      const itemData = foundry.utils.deepClone(deliveredItemData);
+      foundry.utils.setProperty(itemData, quantityPath, stack.quantity);
+      const documents = await actor.createEmbeddedDocuments("Item", [itemData]);
+      const item = documents[0];
+      if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"));
+
+      result.created.push({
+        item,
+        itemId: item.id ?? "",
+        name: item.name ?? stack.name,
+        quantity: stack.quantity,
+        mergeMode: "none",
+      });
+      result.deliveredQuantity += stack.quantity;
+    }
+  } catch (error) {
+    result.ok = false;
+    result.errors.push(error?.message || game.i18n.localize("mtt.sessions.errors.deliveryFailed"));
+  }
+
+  return result;
 }
 
 function buildMerchantReceivedItemData(sourceItem, quantity, options = {}) {
@@ -1665,6 +1866,8 @@ export async function buildSessionItemExecutionPlan(actor, session) {
     productTransfers: [],
     sellerTransfers: [],
   };
+  const deliveryPlans = [];
+  const reservedMerchantQuantities = new Map();
 
   if (!session || ((session.buyerItems ?? []).length === 0 && (session.sellerItems ?? []).length === 0)) {
     if (!errors.includes(game.i18n.localize("mtt.sessions.errors.emptySession"))) {
@@ -1687,6 +1890,10 @@ export async function buildSessionItemExecutionPlan(actor, session) {
     errors.push(game.i18n.localize("mtt.sessions.execution.servicesNotImplemented"));
   }
 
+  if ((session?.negotiations ?? []).some((negotiation) => negotiation.status === "active")) {
+    errors.push(game.i18n.localize("mtt.sessions.errors.activeNegotiation"));
+  }
+
   for (const item of session?.buyerItems ?? []) {
     if (item.type !== "product") continue;
 
@@ -1697,16 +1904,35 @@ export async function buildSessionItemExecutionPlan(actor, session) {
     }
 
     const product = merchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const availableQuantity = Number(product.quantity ?? MTT.PRODUCT_DEFAULTS.quantity);
+    const availableQuantity = normalizeFiniteQuantity(product.quantity);
+    const hasLimitedQuantity = !isUnlimitedQuantity(product.quantity);
     const requestedQuantity = Number(item.quantity);
+    const reservedQuantity = reservedMerchantQuantities.get(merchantItem.id) ?? 0;
+    const totalRequestedQuantity = reservedQuantity + requestedQuantity;
 
     if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
       errors.push(game.i18n.format("mtt.sessions.errors.merchantStockInsufficient", { name: item.name }));
       continue;
     }
 
-    if (!Number.isFinite(availableQuantity) || availableQuantity < requestedQuantity) {
+    if (hasLimitedQuantity && (availableQuantity === null || availableQuantity < totalRequestedQuantity)) {
       errors.push(game.i18n.format("mtt.sessions.errors.merchantStockInsufficient", { name: item.name }));
+      continue;
+    }
+
+    reservedMerchantQuantities.set(merchantItem.id, totalRequestedQuantity);
+
+    const deliveryProductData = { ...product, id: merchantItem.id };
+    const deliveredItemData = buildVisibleProductItemData(merchantItem, product, requestedQuantity);
+    const deliveryPlan = simulatePurchasedItemDeliveryToActor(
+      clientActor,
+      deliveryProductData,
+      deliveredItemData,
+      requestedQuantity,
+    );
+    deliveryPlans.push(deliveryPlan);
+    if (!deliveryPlan.ok) {
+      errors.push(...deliveryPlan.errors);
       continue;
     }
 
@@ -1714,8 +1940,12 @@ export async function buildSessionItemExecutionPlan(actor, session) {
       sessionItem: item,
       merchantItem,
       product,
+      deliveryProductData,
+      deliveredItemData,
+      deliveryPlan,
       quantity: requestedQuantity,
-      nextQuantity: Number((availableQuantity - requestedQuantity).toFixed(2)),
+      nextQuantity: hasLimitedQuantity ? Number((availableQuantity - totalRequestedQuantity).toFixed(2)) : null,
+      hasLimitedQuantity,
     });
   }
 
@@ -1774,6 +2004,7 @@ export async function buildSessionItemExecutionPlan(actor, session) {
     canExecute: errors.length === 0,
     errors: Array.from(new Set(errors)),
     clientActor,
+    deliveryPlans,
     operations,
   };
 }
@@ -1782,13 +2013,57 @@ export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor;
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"));
 
-  for (const transfer of plan.operations.productTransfers) {
-    const itemData = buildVisibleProductItemData(transfer.merchantItem, transfer.product, transfer.quantity);
-    await clientActor.createEmbeddedDocuments("Item", [itemData]);
+  const deliveries = [];
+  const executionResult = {
+    ok: false,
+    deliveries,
+    delivered: deliveries,
+    merchantStockUpdates: [],
+    warnings: [],
+    errors: [],
+  };
 
-    await transfer.merchantItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...transfer.product,
-      quantity: transfer.nextQuantity,
+  const deliveryPreflightPlans = plan.operations.productTransfers.map((transfer) =>
+    simulatePurchasedItemDeliveryToActor(
+      clientActor,
+      transfer.deliveryProductData,
+      transfer.deliveredItemData,
+      transfer.quantity,
+    ),
+  );
+  const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors);
+  if (deliveryPreflightErrors.length > 0) {
+    executionResult.errors.push(...deliveryPreflightErrors);
+    throw new Error(deliveryPreflightErrors.join(" "));
+  }
+
+  for (const transfer of plan.operations.productTransfers) {
+    const delivery = await deliverPurchasedItemToActor(
+      clientActor,
+      transfer.deliveryProductData,
+      transfer.deliveredItemData,
+      transfer.quantity,
+    );
+    if (!delivery.ok) throw new Error(delivery.errors.join(" "));
+    if (delivery.deliveredQuantity !== transfer.quantity) {
+      throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryQuantityMismatch"));
+    }
+
+    executionResult.deliveries.push(delivery);
+
+    if (transfer.hasLimitedQuantity) {
+      await transfer.merchantItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...transfer.product,
+        quantity: transfer.nextQuantity,
+      });
+    }
+
+    executionResult.merchantStockUpdates.push({
+      itemId: transfer.merchantItem.id,
+      name: transfer.merchantItem.name,
+      purchasedQuantity: transfer.quantity,
+      remainingQuantity: transfer.nextQuantity,
+      hasLimitedQuantity: transfer.hasLimitedQuantity,
     });
   }
 
@@ -1812,6 +2087,7 @@ export async function executeSessionItemTransfers(actor, plan) {
         automaticCategory,
         categoryValue,
       });
+      // Seller transfer: this creates merchant catalogue stock, not a purchased Item on the client actor.
       await actor.createEmbeddedDocuments("Item", [itemData]);
     }
 
@@ -1819,6 +2095,9 @@ export async function executeSessionItemTransfers(actor, plan) {
       [transfer.quantityPath]: transfer.nextQuantity,
     });
   }
+
+  executionResult.ok = true;
+  return executionResult;
 }
 
 export function clearSessionAfterExecution(session) {

@@ -484,11 +484,6 @@
             <i class="fas fa-clipboard-list"></i>
           </button>
         {{/if}}
-        {{#if mtt.session.canEdit}}
-          <button class="mtt-merchant-session-final-action" type="button" data-action="requestSessionDecision" data-tooltip="{{localize 'mtt.sessions.actions.requestDecisionTooltip'}}">
-            <i class="fas fa-triangle-exclamation"></i>
-          </button>
-        {{/if}}
         {{#if @root.mtt.isEditable}}
           {{#if mtt.session.isSubmitted}}
             <button class="mtt-merchant-session-final-action" type="button" data-action="unlockSubmittedSession" data-tooltip="{{localize 'mtt.sessions.unlockSubmittedSession'}}">

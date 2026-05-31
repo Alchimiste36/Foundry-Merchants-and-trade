@@ -116,7 +116,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       setSessionStatus: MerchantSheet.#onSetSessionStatus,
       checkSessionTransaction: MerchantSheet.#onCheckSessionTransaction,
       previewSessionExecution: MerchantSheet.#onPreviewSessionExecution,
-      requestSessionDecision: MerchantSheet.#onRequestSessionDecision,
       submitSession: MerchantSheet.#onSubmitSession,
       unlockSubmittedSession: MerchantSheet.#onUnlockSubmittedSession,
       validateSessionTransaction: MerchantSheet.#onValidateSessionTransaction,
@@ -2398,17 +2397,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     this.render();
     await openPreviewDialog(preview);
-  }
-
-  static async #onRequestSessionDecision(event) {
-    event.preventDefault();
-
-    const session = this.#getActiveSession();
-    if (!session) return;
-
-    session.status = "pending";
-    await this.#saveSession(session);
-    this.render();
   }
 
   static async #onSubmitSession(event) {

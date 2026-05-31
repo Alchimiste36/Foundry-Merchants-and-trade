@@ -531,8 +531,6 @@
         "cancel": "Annuler",
         "preview": "Prévisualiser",
         "previewTooltip": "Prévisualiser l'exécution",
-        "requestDecision": "Demander une décision MJ",
-        "requestDecisionTooltip": "Placer la session en attente d'une décision MJ",
         "validateSession": "Valider la session",
         "validateTooltip": "Vérifier puis valider la session",
         "refuseSession": "Refuser la transaction",

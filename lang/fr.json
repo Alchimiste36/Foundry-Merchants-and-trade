@@ -380,6 +380,7 @@
     },
     "sessions": {
       "title": "Session de transaction",
+      "buyerFortune": "Fortune :",
       "status": {
         "label": "État",
         "active": "En cours",

@@ -468,9 +468,10 @@ function prepareNegotiationForDisplay(negotiation) {
 
 export function prepareSessionContext(
   actor,
-  { session, selectedClient, sessionCheckResult, accessClients },
+  { session, selectedClient, sessionCheckResult, accessClients, buyerActor },
 ) {
   const checkResult = prepareSessionCheckContext(sessionCheckResult);
+  const buyerFortune = session ? prepareBuyerFortune(buyerActor) : [];
 
   if (!session) {
     return {
@@ -509,6 +510,7 @@ export function prepareSessionContext(
       hasMoneyAdjustments: false,
       hasBuyerLines: false,
       hasSellerLines: false,
+      buyerFortune,
       client: {
         hasClient: Boolean(selectedClient?.actorUuid),
         actorUuid: selectedClient?.actorUuid ?? "",
@@ -609,6 +611,7 @@ export function prepareSessionContext(
     isBalanced: hasAnyItems && moneyAdjustments.length === 0,
     hasBuyerLines: buyerItems.length > 0 || buyerMoneyAdjustments.length > 0,
     hasSellerLines: sellerItems.length > 0 || sellerMoneyAdjustments.length > 0,
+    buyerFortune,
     client,
     checkResult,
   };
@@ -796,6 +799,22 @@ export function getActorCurrencyAmount(actor, currency) {
   } catch {
     return null;
   }
+}
+
+export function prepareBuyerFortune(actor) {
+  if (!actor) return [];
+
+  return getCurrencies()
+    .map((currency) => {
+      const abbreviation = String(currency.abbreviation ?? currency.name ?? currency.id ?? "").trim();
+      if (!abbreviation) return null;
+
+      return {
+        value: getActorCurrencyAmount(actor, currency) ?? 0,
+        abbreviation,
+      };
+    })
+    .filter(Boolean);
 }
 
 export function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies) {

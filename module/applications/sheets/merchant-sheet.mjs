@@ -582,11 +582,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #prepareSessionContext() {
     const accessClients = this.#prepareAccessClients();
+    const session = this.#getActiveSession();
+    const buyerActor = session?.actorUuid ? game.actors.find((actor) => actor.uuid === session.actorUuid) : null;
     return prepareSessionContext(this.actor, {
-      session: this.#getActiveSession(),
+      session,
       selectedClient: this.#getSelectedClient(),
       sessionCheckResult: this.#sessionCheckResult,
       accessClients,
+      buyerActor,
     });
   }
 

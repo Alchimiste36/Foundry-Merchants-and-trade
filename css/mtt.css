@@ -409,12 +409,25 @@
   display: flex;
   flex-direction: row;
   gap: 0.4rem;
+  margin-bottom: 0.3rem;
 }
 .mtt-merchant-session-title {
   margin: 0;
   color: var(--mtt-accent);
   font-size: 1.5rem;
   font-weight: 700;
+}
+.mtt-merchant-session-buyer-fortune {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  color: var(--mtt-text-soft);
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+.mtt-merchant-session-buyer-fortune-values span + span::before {
+  content: "·";
+  margin: 0 0.25rem;
 }
 .mtt-merchant-session-actor-image {
   width: 50px;

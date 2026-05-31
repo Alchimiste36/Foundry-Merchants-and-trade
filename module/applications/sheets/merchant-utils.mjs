@@ -222,6 +222,16 @@ export function normalizeCurrencyKey(priceCurrency) {
   return currency || "__none"
 }
 
+export const FREE_PRICE_CURRENCY_KEY = "__freePrice"
+
+export function isFreePriceCurrency(value) {
+  return String(value ?? "").trim() === FREE_PRICE_CURRENCY_KEY
+}
+
+export function isFreePriceService(serviceData) {
+  return Boolean(serviceData?.hasFreePrice) || isFreePriceCurrency(serviceData?.priceCurrency)
+}
+
 export function normalizeCurrencyText(value) {
   return String(value ?? "").trim().toLowerCase()
 }
@@ -578,8 +588,8 @@ export function prepareCurrencyOptions() {
     })
     .filter(Boolean)
   options.push({
-    key: "__freePrice",
-    value: "__freePrice",
+    key: FREE_PRICE_CURRENCY_KEY,
+    value: FREE_PRICE_CURRENCY_KEY,
     abbreviation: "",
     label: game.i18n.localize("mtt.price.freePrice"),
     isFreePrice: true,

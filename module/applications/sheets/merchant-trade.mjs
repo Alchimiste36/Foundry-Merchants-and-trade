@@ -8,6 +8,7 @@ import {
   createCheckMessage,
   parseQuantityValue,
   isUnlimitedQuantity,
+  isFreePriceService,
   normalizeFiniteQuantity,
   getConfiguredItemQuantity,
   getConfiguredItemMaxQuantity,
@@ -53,9 +54,12 @@ export function normalizeSessionItem(item) {
     priceCurrency: String(item.priceCurrency ?? "").trim(),
     totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
     sourceLabel: item.sourceLabel ?? "",
-    proposedUnitPriceValue: Number.isFinite(Number(item.proposedUnitPriceValue))
-      ? Number(item.proposedUnitPriceValue)
-      : null,
+    proposedUnitPriceValue:
+      item.proposedUnitPriceValue !== null &&
+      item.proposedUnitPriceValue !== undefined &&
+      Number.isFinite(Number(item.proposedUnitPriceValue))
+        ? Number(item.proposedUnitPriceValue)
+        : null,
     isFromActor: Boolean(item.isFromActor),
     isFreePrice: Boolean(item.isFreePrice),
     minimumPriceValue:
@@ -88,6 +92,8 @@ export function normalizeNegotiationOffer(offer = {}) {
 
 export function normalizeSessionNegotiation(negotiation = {}) {
   const referenceUnitPriceValue = Number(negotiation.referenceUnitPriceValue);
+  const proposedUnitPriceValue = Number(negotiation.proposedUnitPriceValue);
+  const minimumPriceValue = Number(negotiation.minimumPriceValue);
 
   return {
     id: negotiation.id || foundry.utils.randomID(),
@@ -101,6 +107,16 @@ export function normalizeSessionNegotiation(negotiation = {}) {
     priceCurrency: String(negotiation.priceCurrency ?? "").trim(),
     referenceUnitPriceValue:
       Number.isFinite(referenceUnitPriceValue) && referenceUnitPriceValue >= 0 ? referenceUnitPriceValue : 0,
+    proposedUnitPriceValue:
+      Number.isFinite(proposedUnitPriceValue) && proposedUnitPriceValue >= 0 ? proposedUnitPriceValue : null,
+    isFreePrice: Boolean(negotiation.isFreePrice),
+    minimumPriceValue:
+      negotiation.minimumPriceValue !== null &&
+      negotiation.minimumPriceValue !== undefined &&
+      Number.isFinite(minimumPriceValue) &&
+      minimumPriceValue >= 0
+        ? minimumPriceValue
+        : null,
     status: ["active", "accepted", "refused"].includes(negotiation.status) ? negotiation.status : "active",
     currentTurn: ["buyer", "merchant"].includes(negotiation.currentTurn) ? negotiation.currentTurn : "merchant",
     offers: Array.isArray(negotiation.offers)
@@ -405,6 +421,12 @@ function prepareNegotiationForDisplay(negotiation) {
   const quantity = Number(lastOffer?.quantity ?? 1);
   const unitPriceValue = Number(lastOffer?.unitPriceValue ?? negotiation.referenceUnitPriceValue ?? 0);
   const referenceUnitPriceValue = Number(negotiation.referenceUnitPriceValue);
+  const minimumPriceValue = Number(negotiation.minimumPriceValue);
+  const hasMinimumPrice =
+    negotiation.minimumPriceValue !== null &&
+    negotiation.minimumPriceValue !== undefined &&
+    Number.isFinite(minimumPriceValue) &&
+    minimumPriceValue >= 0;
   const draftQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
   const draftUnitPriceValue = Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0;
   const draftTotalPriceValue = Number((draftQuantity * draftUnitPriceValue).toFixed(2));
@@ -419,6 +441,8 @@ function prepareNegotiationForDisplay(negotiation) {
     hasOffers: offers.length > 0,
     lastOffer,
     referenceUnitPriceLabel: formatPriceLabel(referenceUnitPriceValue, negotiation.priceCurrency),
+    hasMinimumPrice,
+    minimumPriceLabel: hasMinimumPrice ? formatPriceLabel(minimumPriceValue, negotiation.priceCurrency) : "",
     hasDraft: negotiation.status === "active",
     draft: {
       quantity: draftQuantity,
@@ -1457,11 +1481,6 @@ export async function buildExecutionPreview(actor, session) {
     }
   }
 
-  if (preview.services.length > 0) {
-    const warningText = game.i18n.localize("mtt.sessions.preview.serviceExecutionLater");
-    if (!preview.warnings.includes(warningText)) preview.warnings.push(warningText);
-  }
-
   // Check seller items (client → merchant)
   for (const item of sellerItems) {
     const totalPriceValue = Number((item.unitPriceValue * item.quantity).toFixed(2));
@@ -1864,10 +1883,12 @@ export async function buildSessionItemExecutionPlan(actor, session) {
   const clientActor = await getClientActor(session, errors);
   const operations = {
     productTransfers: [],
+    serviceTransfers: [],
     sellerTransfers: [],
   };
   const deliveryPlans = [];
   const reservedMerchantQuantities = new Map();
+  const reservedServiceQuantities = new Map();
 
   if (!session || ((session.buyerItems ?? []).length === 0 && (session.sellerItems ?? []).length === 0)) {
     if (!errors.includes(game.i18n.localize("mtt.sessions.errors.emptySession"))) {
@@ -1884,10 +1905,6 @@ export async function buildSessionItemExecutionPlan(actor, session) {
     for (const err of preview.currencyTransferPlan.errors ?? []) {
       if (!errors.includes(err)) errors.push(err);
     }
-  }
-
-  if ((preview.services ?? []).length > 0) {
-    errors.push(game.i18n.localize("mtt.sessions.execution.servicesNotImplemented"));
   }
 
   if ((session?.negotiations ?? []).some((negotiation) => negotiation.status === "active")) {
@@ -1945,6 +1962,48 @@ export async function buildSessionItemExecutionPlan(actor, session) {
       deliveryPlan,
       quantity: requestedQuantity,
       nextQuantity: hasLimitedQuantity ? Number((availableQuantity - totalRequestedQuantity).toFixed(2)) : null,
+      hasLimitedQuantity,
+    });
+  }
+
+  for (const item of session?.buyerItems ?? []) {
+    if (item.type !== "service") continue;
+
+    const service = actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
+    if (!service) {
+      errors.push(game.i18n.format("mtt.sessions.errors.merchantServiceMissing", { name: item.name }));
+      continue;
+    }
+
+    const availableQuantity = normalizeFiniteQuantity(service.quantity);
+    const hasLimitedQuantity = !isUnlimitedQuantity(service.quantity);
+    const requestedQuantity = Number(item.quantity);
+    const unitPriceValue = Number(item.unitPriceValue);
+    const reservedQuantity = reservedServiceQuantities.get(service.id) ?? 0;
+    const totalRequestedQuantity = reservedQuantity + requestedQuantity;
+
+    if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
+      errors.push(game.i18n.format("mtt.sessions.errors.serviceQuantityInsufficient", { name: item.name }));
+      continue;
+    }
+
+    if (isFreePriceService(service) && (!item.isFreePrice || !Number.isFinite(unitPriceValue) || unitPriceValue <= 0)) {
+      errors.push(game.i18n.format("mtt.sessions.errors.serviceFreePriceInvalid", { name: item.name }));
+      continue;
+    }
+
+    if (hasLimitedQuantity && (availableQuantity === null || availableQuantity < totalRequestedQuantity)) {
+      errors.push(game.i18n.format("mtt.sessions.errors.serviceQuantityInsufficient", { name: item.name }));
+      continue;
+    }
+
+    reservedServiceQuantities.set(service.id, totalRequestedQuantity);
+    operations.serviceTransfers.push({
+      sessionItem: item,
+      service,
+      quantity: requestedQuantity,
+      stockBefore: hasLimitedQuantity ? Number((availableQuantity - reservedQuantity).toFixed(2)) : null,
+      stockAfter: hasLimitedQuantity ? Number((availableQuantity - totalRequestedQuantity).toFixed(2)) : null,
       hasLimitedQuantity,
     });
   }
@@ -2019,6 +2078,7 @@ export async function executeSessionItemTransfers(actor, plan) {
     deliveries,
     delivered: deliveries,
     merchantStockUpdates: [],
+    services: [],
     warnings: [],
     errors: [],
   };
@@ -2064,6 +2124,43 @@ export async function executeSessionItemTransfers(actor, plan) {
       purchasedQuantity: transfer.quantity,
       remainingQuantity: transfer.nextQuantity,
       hasLimitedQuantity: transfer.hasLimitedQuantity,
+    });
+  }
+
+  if (plan.operations.serviceTransfers.length > 0) {
+    const services = foundry.utils.deepClone(actor.system.services?.entries ?? []);
+
+    for (const transfer of plan.operations.serviceTransfers) {
+      const service = services.find((entry) => entry.id === transfer.service.id);
+      if (!service) {
+        throw new Error(game.i18n.format("mtt.sessions.errors.merchantServiceMissing", { name: transfer.sessionItem.name }));
+      }
+
+      if (transfer.hasLimitedQuantity) service.quantity = transfer.stockAfter;
+
+      // TODO MTT services secrets:
+      // Add an owner-only / GM-only secret description block for services.
+      // This block must later be copied into the merchant transaction journal.
+      executionResult.services.push({
+        serviceId: service.id,
+        name: transfer.sessionItem.name,
+        quantity: transfer.quantity,
+        unitPriceValue: transfer.sessionItem.unitPriceValue,
+        proposedUnitPriceValue: transfer.sessionItem.proposedUnitPriceValue,
+        acceptedUnitPriceValue: transfer.sessionItem.unitPriceValue,
+        totalPriceValue: transfer.sessionItem.totalPriceValue,
+        currency: transfer.sessionItem.priceCurrency,
+        isFreePrice: Boolean(transfer.sessionItem.isFreePrice),
+        stockBefore: transfer.stockBefore,
+        stockAfter: transfer.stockAfter,
+        buyer: clientActor.uuid,
+        merchant: actor.uuid,
+        status: "validated",
+      });
+    }
+
+    await actor.update({
+      "system.services.entries": services,
     });
   }
 

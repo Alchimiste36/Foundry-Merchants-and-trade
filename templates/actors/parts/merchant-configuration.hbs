@@ -58,6 +58,23 @@
         {{/if}}
         <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.sellPercentHint"}}</span>
       </label>
+
+      <label class="mtt-merchant-configuration-field">
+        <span class="mtt-merchant-field-label">{{localize "mtt.configuration.serviceSellPercent"}}</span>
+        {{#if mtt.canEditMerchant}}
+          <input
+            class="mtt-merchant-configuration-input"
+            type="number"
+            min="0"
+            step="1"
+            value="{{trade.serviceSellPercent}}"
+            data-mtt-merchant-config-field="trade.serviceSellPercent"
+          />
+        {{else}}
+          <div class="mtt-merchant-configuration-readonly">{{trade.serviceSellPercent}}</div>
+        {{/if}}
+        <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.serviceSellPercentHint"}}</span>
+      </label>
     </div>
 
     <label class="mtt-merchant-configuration-field">

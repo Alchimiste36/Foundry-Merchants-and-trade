@@ -4,6 +4,8 @@ import {
   parsePriceValue,
   parseQuantityValue,
   isUnlimitedQuantity,
+  FREE_PRICE_CURRENCY_KEY,
+  isFreePriceService,
   formatPriceLabel,
   normalizeAutomaticCategoryValue,
   slugifyCategoryKey,
@@ -23,6 +25,11 @@ export function getSellPercent(actor) {
   return Number.isFinite(sellPercent) && sellPercent >= 0 ? sellPercent : 100
 }
 
+export function getServiceSellPercent(actor) {
+  const serviceSellPercent = Number(actor.system.trade?.serviceSellPercent)
+  return Number.isFinite(serviceSellPercent) && serviceSellPercent >= 0 ? serviceSellPercent : 100
+}
+
 export function adjustPriceValue(basePriceValue, sellPercent) {
   const priceValue = Number(basePriceValue)
   if (!Number.isFinite(priceValue) || priceValue < 0) return 0
@@ -39,6 +46,10 @@ export function prepareTrade(actor) {
     sellPercent:
       Number.isFinite(Number(actor.system.trade?.sellPercent)) && Number(actor.system.trade.sellPercent) >= 0
         ? Number(actor.system.trade.sellPercent)
+        : 100,
+    serviceSellPercent:
+      Number.isFinite(Number(actor.system.trade?.serviceSellPercent)) && Number(actor.system.trade.serviceSellPercent) >= 0
+        ? Number(actor.system.trade.serviceSellPercent)
         : 100,
     negotiationFormula: actor.system.trade?.negotiationFormula ?? "",
   }
@@ -126,20 +137,21 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
           : MTT.PRODUCT_DEFAULTS.minimumPriceValue,
       selectedCurrencyKey:
         (product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice)
-          ? "__freePrice"
+          ? FREE_PRICE_CURRENCY_KEY
           : (product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency),
     }
   }).filter((item) => includeHidden || item.isVisible)
 }
 
-export function prepareServices(actor, sellPercent, { includeHidden = false } = {}) {
+export function prepareServices(actor, serviceSellPercent, { includeHidden = false } = {}) {
   const entries = actor.system.services?.entries ?? []
   return entries.map((service) => {
     const basePriceValue =
       Number.isFinite(Number(service.priceValue)) && Number(service.priceValue) >= 0
         ? Number(service.priceValue)
         : MTT.SERVICE_DEFAULTS.priceValue
-    const displayPriceValue = adjustPriceValue(basePriceValue, sellPercent)
+    const hasFreePrice = isFreePriceService(service)
+    const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, serviceSellPercent)
     const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency
     const isHidden = Boolean(service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden)
     const isVisible = !isHidden
@@ -174,14 +186,14 @@ export function prepareServices(actor, sellPercent, { includeHidden = false } = 
       systemCategoryPath: service.systemCategoryPath ?? "",
       isCommerciallyModified: Boolean(service.isCommerciallyModified),
       hasSystemCategory: Boolean(service.systemCategoryKey || service.systemCategoryLabel),
-      hasFreePrice: service.hasFreePrice ?? MTT.SERVICE_DEFAULTS.hasFreePrice,
+      hasFreePrice,
       minimumPriceValue:
         Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
           ? Number(service.minimumPriceValue)
           : MTT.SERVICE_DEFAULTS.minimumPriceValue,
       selectedCurrencyKey:
-        (service.hasFreePrice ?? MTT.SERVICE_DEFAULTS.hasFreePrice)
-          ? "__freePrice"
+        hasFreePrice
+          ? FREE_PRICE_CURRENCY_KEY
           : (service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency),
     }
   }).filter((service) => includeHidden || service.isVisible)

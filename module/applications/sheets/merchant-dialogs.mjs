@@ -47,7 +47,7 @@ export function renderSessionPreparationDialog({
   const proposedPriceField = hasFreePrice
     ? `<label class="mtt-session-dialog-field">
           <span>${game.i18n.localize("mtt.price.proposedPrice")}${currencySuffix}</span>
-          <input type="number" name="proposedPrice" min="0" step="1" value="" required />
+          <input type="number" name="proposedPrice" min="0.01" step="0.01" value="" required />
         </label>`
     : includeProposedPrice
       ? `<label class="mtt-session-dialog-field">
@@ -142,7 +142,7 @@ export async function openSessionPreparationDialog({
 
   if (hasFreePrice) {
     const proposedPrice = Number(result.proposedPrice)
-    if (!Number.isFinite(proposedPrice) || proposedPrice < 0) {
+    if (!Number.isFinite(proposedPrice) || proposedPrice <= 0) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.missingProposedPrice"))
       return
     }

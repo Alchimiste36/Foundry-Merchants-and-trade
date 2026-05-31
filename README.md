@@ -30,7 +30,22 @@ L'option `allowExtendedItemMerge`, désactivée par défaut, autorise un fallbac
 - [ ] Vérifier qu'un stock marchand insuffisant bloque la validation avant tout transfert.
 - [ ] Vérifier qu'une erreur de livraison bloque les transferts monétaires.
 - [ ] Vérifier qu'une vente du PJ au marchand fonctionne toujours.
-- [ ] Vérifier que les services restent bloqués proprement tant que leur exécution n'est pas implémentée.
+- [ ] Acheter un service illimité avec une quantité vide et vérifier qu'aucun Item n'est créé sur l'acteur acheteur.
+- [ ] Acheter un service limité avec un stock de `3`, puis vérifier que son stock passe à `2`.
+- [ ] Tenter d'acheter `2` unités d'un service limité à `1` et vérifier que la validation est bloquée sans paiement.
+- [ ] Acheter `5` unités d'un service illimité et vérifier que sa quantité reste vide.
+- [ ] Configurer le taux produit à `120 %` et le taux service à `100 %`, puis vérifier qu'un produit à `10` vaut `12` et qu'un service à `10` vaut `10`.
+- [ ] Configurer le taux service à `150 %`, puis vérifier qu'un service à `10` vaut `15`.
+- [ ] Valider un service négocié ou soumis à validation MJ et vérifier que son stock limité diminue sans livrer d'Item.
+- [ ] Sélectionner `Prix libre` comme monnaie d'un service et vérifier que la liste n'affiche aucun prix fixe calculé.
+- [ ] Ajouter un service à prix libre avec une proposition positive et vérifier que la négociation utilise la monnaie de référence.
+- [ ] Configurer le taux service à `150 %`, proposer `20` pour un service à prix libre et vérifier que la session conserve `20`, pas `30`.
+- [ ] Refuser successivement une proposition vide, `0`, `-5` ou invalide pour un service à prix libre.
+- [ ] Contre-proposer un nouveau prix pour un service à prix libre, l'accepter, puis vérifier que le stock diminue sans livrer d'Item.
+- [ ] Vérifier que le MJ ou propriétaire voit le prix minimum indiqué dans une négociation à prix libre.
+- [ ] Vérifier qu'un acheteur classique ne voit ni le prix minimum ni une ligne de prix de référence pour une négociation à prix libre.
+- [ ] Vérifier qu'une négociation à prix libre sans minimum affiche l'absence de minimum uniquement au MJ ou propriétaire.
+- [ ] Vérifier qu'une proposition inférieure au minimum reste négociable et n'est pas refusée automatiquement.
 - [ ] Désactiver la fusion étendue et vérifier qu'un Item acteur sans flags MTT reçoit une nouvelle ligne.
 - [ ] Activer la fusion étendue et vérifier qu'un Item acteur compatible sans flags MTT reçoit la quantité et les flags MTT sans perdre sa description locale.
 - [ ] Vérifier qu'un nom, un type, un sous-type, un prix initial ou une monnaie différente bloque la fusion étendue.

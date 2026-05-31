@@ -35,6 +35,7 @@ import {
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
   createProductFlags,
+  updateMerchantProductCommercialData,
   addOrMergeProduct,
   moveProductToCategory,
   createServiceFromItem,
@@ -2644,12 +2645,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "displayName") {
       const displayName = target.value?.trim();
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
 
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        displayName: displayName || item.name,
-        isCommerciallyModified: true,
+      await updateMerchantProductCommercialData(item, {
+        displayName,
       });
 
       return;
@@ -2692,34 +2690,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
 
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
+      await updateMerchantProductCommercialData(item, {
         priceValue: rawValue,
-        isCommerciallyModified: true,
       });
       return;
     }
 
     if (field === "priceCurrency") {
       const selectedValue = target.value?.trim() ?? "";
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      if (isFreePriceCurrency(selectedValue)) {
-        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-          ...product,
-          hasFreePrice: true,
-          isCommerciallyModified: true,
-        });
-      } else {
-        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-          ...product,
-          priceCurrency: selectedValue,
-          hasFreePrice: false,
-          isCommerciallyModified: true,
-        });
-      }
+      await updateMerchantProductCommercialData(item, {
+        priceCurrency: selectedValue,
+      });
       return;
     }
 

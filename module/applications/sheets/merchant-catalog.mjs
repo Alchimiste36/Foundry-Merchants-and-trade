@@ -5,6 +5,7 @@ import {
   parseQuantityValue,
   isUnlimitedQuantity,
   FREE_PRICE_CURRENCY_KEY,
+  isFreePriceCurrency,
   isFreePriceService,
   formatPriceLabel,
   normalizeAutomaticCategoryValue,
@@ -12,6 +13,7 @@ import {
   getCategoryPaths,
   getCategoryLabelMap,
   getConfiguredItemValue,
+  getModuleSetting,
   getItemDescription,
   getItemPrice,
   getItemCurrency,
@@ -346,6 +348,45 @@ export function createProductFlags(itemData, options = {}) {
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags)
 
   return itemData
+}
+
+export async function updateMerchantProductCommercialData(item, changes = {}) {
+  const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+  const updatedProduct = {
+    ...product,
+    isCommerciallyModified: true,
+  }
+  const updateData = {}
+
+  if (Object.hasOwn(changes, "displayName")) {
+    const displayName = String(changes.displayName ?? "").trim() || item.name
+    updatedProduct.displayName = displayName
+    updateData.name = displayName
+  }
+
+  if (Object.hasOwn(changes, "priceValue")) {
+    updatedProduct.priceValue = changes.priceValue
+
+    const pricePath = String(getModuleSetting("itemPriceValuePath") ?? "").trim()
+    if (pricePath) updateData[pricePath] = changes.priceValue
+  }
+
+  if (Object.hasOwn(changes, "priceCurrency")) {
+    const priceCurrency = String(changes.priceCurrency ?? "").trim()
+
+    if (isFreePriceCurrency(priceCurrency)) {
+      updatedProduct.hasFreePrice = true
+    } else {
+      updatedProduct.priceCurrency = priceCurrency
+      updatedProduct.hasFreePrice = false
+
+      const currencyPath = String(getModuleSetting("itemPriceCurrencyPath") ?? "").trim()
+      if (currencyPath) updateData[currencyPath] = priceCurrency
+    }
+  }
+
+  updateData[`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`] = updatedProduct
+  await item.update(updateData)
 }
 
 export function prepareMerchantCatalogItemData(sourceItem, options = {}) {

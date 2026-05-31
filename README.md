@@ -46,6 +46,11 @@ L'option `allowExtendedItemMerge`, désactivée par défaut, autorise un fallbac
 - [ ] Vérifier qu'un acheteur classique ne voit ni le prix minimum ni une ligne de prix de référence pour une négociation à prix libre.
 - [ ] Vérifier qu'une négociation à prix libre sans minimum affiche l'absence de minimum uniquement au MJ ou propriétaire.
 - [ ] Vérifier qu'une proposition inférieure au minimum reste négociable et n'est pas refusée automatiquement.
+- [ ] Dans une négociation à prix libre, modifier la quantité et vérifier que le total est recalculé sans afficher de pourcentage.
+- [ ] Dans une négociation à prix libre, modifier le prix unitaire et vérifier que le total est recalculé.
+- [ ] Dans une négociation à prix libre, modifier le total et vérifier que le prix unitaire est recalculé.
+- [ ] Proposer puis accepter une offre à prix libre après recalcul et vérifier qu'aucune erreur liée au pourcentage absent ne survient.
+- [ ] Vérifier qu'une négociation classique recalcule toujours le pourcentage, le prix unitaire et le total.
 - [ ] Désactiver la fusion étendue et vérifier qu'un Item acteur sans flags MTT reçoit une nouvelle ligne.
 - [ ] Activer la fusion étendue et vérifier qu'un Item acteur compatible sans flags MTT reçoit la quantité et les flags MTT sans perdre sa description locale.
 - [ ] Vérifier qu'un nom, un type, un sous-type, un prix initial ou une monnaie différente bloque la fusion étendue.

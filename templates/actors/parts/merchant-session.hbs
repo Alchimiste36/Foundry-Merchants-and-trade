@@ -33,15 +33,16 @@
                 <div class="mtt-merchant-negotiation-main">
                   <strong>{{negotiation.name}}</strong>
                   {{#if negotiation.isFreePrice}}
-                    {{#if @root.mtt.isEditable}}
-                      <span class="mtt-merchant-negotiation-price-hint">
+                    <span class="mtt-merchant-negotiation-price-hint">
+                      {{localize "mtt.sessions.negotiations.freePrice"}}
+                      {{#if @root.mtt.isEditable}}
                         {{#if negotiation.hasMinimumPrice}}
                           {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
                         {{else}}
                           {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
                         {{/if}}
-                      </span>
-                    {{/if}}
+                      {{/if}}
+                    </span>
                   {{else}}
                     <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
                   {{/if}}
@@ -82,6 +83,7 @@
                       data-negotiation-draft
                       data-negotiation-id="{{negotiation.id}}"
                       data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
+                      data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
                       <span>{{negotiation.draftSideLabel}}</span>
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
@@ -278,6 +280,7 @@
                       data-negotiation-draft
                       data-negotiation-id="{{negotiation.id}}"
                       data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
+                      data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
                       <span>{{negotiation.draftSideLabel}}</span>
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />

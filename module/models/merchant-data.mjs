@@ -81,6 +81,16 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           initial: null,
           min: 0,
         }),
+        isFreePrice: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+        minimumPriceValue: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
         isFromActor: new fields.BooleanField({
           required: true,
           initial: false,
@@ -187,6 +197,22 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           initial: 0,
           min: 0,
         }),
+        proposedUnitPriceValue: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
+        isFreePrice: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+        minimumPriceValue: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
         status: new fields.StringField({
           required: true,
           blank: false,
@@ -270,6 +296,11 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           min: 0,
         }),
         sellPercent: new fields.NumberField({
+          required: true,
+          initial: 100,
+          min: 0,
+        }),
+        serviceSellPercent: new fields.NumberField({
           required: true,
           initial: 100,
           min: 0,
@@ -419,6 +450,15 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
             requiresApproval: new fields.BooleanField({
               required: true,
               initial: false,
+            }),
+            hasFreePrice: new fields.BooleanField({
+              required: true,
+              initial: false,
+            }),
+            minimumPriceValue: new fields.NumberField({
+              required: true,
+              initial: 0,
+              min: 0,
             }),
             sourceUuid: new fields.StringField({
               required: false,

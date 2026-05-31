@@ -4,6 +4,8 @@ import {
   parsePriceValue,
   parseQuantityValue,
   isUnlimitedQuantity,
+  isFreePriceCurrency,
+  isFreePriceService,
   normalizeFiniteQuantity,
   normalizeCurrencyKey,
   convertPriceToReferenceCurrency,
@@ -40,6 +42,7 @@ import {
 } from "./merchant-dialogs.mjs";
 import {
   getSellPercent,
+  getServiceSellPercent,
   adjustPriceValue,
   prepareTrade,
   prepareWalletCurrencies,
@@ -207,7 +210,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sellPercent = this.#getSellPercent();
     context.items = prepareItems(this.actor, sellPercent, { includeHidden: isEditable });
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable });
-    context.services = prepareServices(this.actor, sellPercent, { includeHidden: isEditable });
+    context.services = prepareServices(this.actor, getServiceSellPercent(this.actor), { includeHidden: isEditable });
     context.trade = prepareTrade(this.actor);
     context.wallet = this.actor.system.wallet ?? {};
     context.mtt.walletCurrencies = prepareWalletCurrencies(this.actor);
@@ -409,6 +412,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const unitPriceValue = Number(offer.unitPriceValue);
     if (!Number.isFinite(quantity) || quantity <= 0) return null;
     if (!Number.isFinite(unitPriceValue) || unitPriceValue < 0) return null;
+    if (negotiation.isFreePrice && unitPriceValue <= 0) return null;
 
     return normalizeSessionItem({
       id: foundry.utils.randomID(),
@@ -423,7 +427,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       priceCurrency: negotiation.priceCurrency,
       totalPriceValue: Number((quantity * unitPriceValue).toFixed(2)),
       sourceLabel: this.#getNegotiationSourceLabel(negotiation),
-      proposedUnitPriceValue: unitPriceValue,
+      proposedUnitPriceValue: negotiation.proposedUnitPriceValue ?? unitPriceValue,
+      isFreePrice: Boolean(negotiation.isFreePrice),
+      minimumPriceValue: negotiation.minimumPriceValue,
       isFromActor: negotiation.side === "seller",
     });
   }
@@ -1868,6 +1874,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     priceCurrency,
     referenceUnitPriceValue,
     referencePriceCurrency = priceCurrency,
+    isFreePrice = false,
+    minimumPriceValue = null,
   }) {
     const normalizedQuantity = Number(quantity);
     const convertedUnitPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency);
@@ -1892,6 +1900,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       img: img ?? "",
       priceCurrency: convertedUnitPrice.currency,
       referenceUnitPriceValue: safeReference,
+      proposedUnitPriceValue: safeUnitPrice,
+      isFreePrice: Boolean(isFreePrice),
+      minimumPriceValue:
+        minimumPriceValue !== null && Number.isFinite(Number(minimumPriceValue)) && Number(minimumPriceValue) >= 0
+          ? Number(minimumPriceValue)
+          : null,
       status: "active",
       currentTurn: "merchant",
       offers: [
@@ -2221,6 +2235,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           priceCurrency: sessionCurrency,
           referenceUnitPriceValue: displayPriceValue,
           referencePriceCurrency: priceCurrency,
+          isFreePrice: hasFreePrice,
+          minimumPriceValue: hasFreePrice ? minimumPriceValue : null,
         }),
       );
       if (!negotiation) return;
@@ -2282,6 +2298,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidNegotiationOffer"));
       return;
     }
+    if (negotiation.isFreePrice && Number(values.unitPriceValue) <= 0) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.missingProposedPrice"));
+      return;
+    }
 
     const offer = this.#createSubmittedNegotiationOffer(values, side);
     negotiation.offers = Array.isArray(negotiation.offers) ? negotiation.offers : [];
@@ -2306,6 +2326,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const lastOffer = this.#getLastNegotiationOffer(negotiation);
     if (!lastOffer) return;
+    if (negotiation.isFreePrice && Number(lastOffer.unitPriceValue) <= 0) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.missingProposedPrice"));
+      return;
+    }
 
     const acceptedItem = this.#buildSessionItemFromNegotiationOffer(negotiation, lastOffer);
     if (!acceptedItem) return;
@@ -2863,7 +2887,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const selectedValue = target.value?.trim() ?? "";
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
 
-      if (selectedValue === "__freePrice") {
+      if (isFreePriceCurrency(selectedValue)) {
         await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
           ...product,
           hasFreePrice: true,
@@ -2978,7 +3002,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const field = target.dataset.mttMerchantConfigField;
     if (!field) return;
 
-    if (["trade.buyPercent", "trade.sellPercent"].includes(field)) {
+    if (["trade.buyPercent", "trade.sellPercent", "trade.serviceSellPercent"].includes(field)) {
       const value = Number(target.value);
 
       if (!Number.isFinite(value) || value < 0) {
@@ -3100,11 +3124,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       Number.isFinite(Number(service.priceValue)) && Number(service.priceValue) >= 0
         ? Number(service.priceValue)
         : MTT.SERVICE_DEFAULTS.priceValue;
-    const displayPriceValue = adjustPriceValue(basePriceValue, getSellPercent(this.actor));
     const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency;
     const quantity = service.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
-    const hasFreePrice = Boolean(service.hasFreePrice);
+    const hasFreePrice = isFreePriceService(service);
+    const displayPriceValue = hasFreePrice ? 0 : adjustPriceValue(basePriceValue, getServiceSellPercent(this.actor));
     const minimumPriceValue =
       Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
         ? Number(service.minimumPriceValue)
@@ -3165,6 +3189,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           priceCurrency: sessionCurrency,
           referenceUnitPriceValue: displayPriceValue,
           referencePriceCurrency: priceCurrency,
+          isFreePrice: hasFreePrice,
+          minimumPriceValue: hasFreePrice ? minimumPriceValue : null,
         }),
       );
       if (!negotiation) return;
@@ -3377,7 +3403,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "priceCurrency") {
       const selectedValue = target.value?.trim() ?? "";
-      if (selectedValue === "__freePrice") {
+      if (isFreePriceCurrency(selectedValue)) {
         entries[serviceIndex].hasFreePrice = true;
         entries[serviceIndex].isCommerciallyModified = true;
       } else {

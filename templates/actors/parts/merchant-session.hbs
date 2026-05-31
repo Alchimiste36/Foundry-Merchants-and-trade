@@ -29,27 +29,30 @@
           <ul class="mtt-merchant-negotiation-list">
             {{#each mtt.session.buyerNegotiations as |negotiation|}}
               <li class="mtt-merchant-negotiation-item mtt-merchant-negotiation-item-buyer" data-negotiation-id="{{negotiation.id}}">
-                <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
-                <div class="mtt-merchant-negotiation-main">
-                  <strong>{{negotiation.name}}</strong>
-                  {{#if negotiation.isFreePrice}}
-                    <span class="mtt-merchant-negotiation-price-hint">
-                      {{localize "mtt.sessions.negotiations.freePrice"}}
-                      {{#if @root.mtt.isEditable}}
-                        {{#if negotiation.hasMinimumPrice}}
-                          {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
-                        {{else}}
-                          {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
+                <div class="mtt-merchant-negotiation-head">
+                  <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
+                  <div class="mtt-merchant-negotiation-main">
+                    <strong>{{negotiation.name}}</strong>
+                    {{#if negotiation.isFreePrice}}
+                      <span class="mtt-merchant-negotiation-price-hint">
+                        {{localize "mtt.sessions.negotiations.freePrice"}}
+                        {{#if @root.mtt.isEditable}}
+                          {{#if negotiation.hasMinimumPrice}}
+                            {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
+                          {{else}}
+                            {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
+                          {{/if}}
                         {{/if}}
-                      {{/if}}
-                    </span>
-                  {{else}}
-                    <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
-                  {{/if}}
-                  <p class="mtt-merchant-negotiation-status">
-                    <i class="fas fa-hourglass-half"></i>
-                    {{#if negotiation.isBuyerTurn}}{{localize "mtt.sessions.negotiations.waitingBuyer"}}{{else}}{{localize "mtt.sessions.negotiations.waitingMerchant"}}{{/if}}
-                  </p>
+                      </span>
+                    {{else}}
+                      <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
+                    {{/if}}
+                    <p class="mtt-merchant-negotiation-status">
+                      <i class="fas fa-hourglass-half"></i>
+                      {{#if negotiation.isBuyerTurn}}{{localize "mtt.sessions.negotiations.waitingBuyer"}}{{else}}{{localize "mtt.sessions.negotiations.waitingMerchant"}}{{/if}}
+                    </p>
+                  </div>
+                </div>
 
                   <div class="mtt-merchant-negotiation-grid-header">
                     <span>{{localize "mtt.sessions.negotiations.sideShort"}}</span>
@@ -65,7 +68,7 @@
                     <ul class="mtt-merchant-negotiation-offers">
                       {{#each negotiation.offers as |offer|}}
                         <li class="mtt-merchant-negotiation-offer {{offer.sideClass}} mtt-merchant-negotiation-offer-submitted">
-                          <span>{{offer.sideLabel}}</span>
+                          <span class="mtt-merchant-negotiation-offer-side">{{offer.sideLabel}}</span>
                           <span>{{offer.quantity}}</span>
                           <span>{{offer.unitPriceLabel}}</span>
                           <span>{{offer.totalPriceLabel}}</span>
@@ -85,7 +88,7 @@
                       data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
                       data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
-                      <span>{{negotiation.draftSideLabel}}</span>
+                      <span class="mtt-merchant-negotiation-offer-side">{{negotiation.draftSideLabel}}</span>
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" />
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" />
@@ -122,7 +125,6 @@
                       {{/if}}
                     </div>
                   {{/if}}
-                </div>
               </li>
             {{/each}}
           </ul>
@@ -227,29 +229,32 @@
           <ul class="mtt-merchant-negotiation-list">
             {{#each mtt.session.sellerNegotiations as |negotiation|}}
               <li class="mtt-merchant-negotiation-item mtt-merchant-negotiation-item-seller" data-negotiation-id="{{negotiation.id}}">
-                <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
-                <div class="mtt-merchant-negotiation-main">
-                  <strong>{{negotiation.name}}</strong>
-                  {{#if negotiation.isFreePrice}}
-                    {{#if @root.mtt.isEditable}}
-                      <span class="mtt-merchant-negotiation-price-hint">
-                        {{#if negotiation.hasMinimumPrice}}
-                          {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
-                        {{else}}
-                          {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
-                        {{/if}}
-                      </span>
+                <div class="mtt-merchant-negotiation-head">
+                  <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
+                  <div class="mtt-merchant-negotiation-main">
+                    <strong>{{negotiation.name}}</strong>
+                    {{#if negotiation.isFreePrice}}
+                      {{#if @root.mtt.isEditable}}
+                        <span class="mtt-merchant-negotiation-price-hint">
+                          {{#if negotiation.hasMinimumPrice}}
+                            {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
+                          {{else}}
+                            {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
+                          {{/if}}
+                        </span>
+                      {{/if}}
+                    {{else}}
+                      <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
                     {{/if}}
-                  {{else}}
-                    <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
-                  {{/if}}
-                  <p class="mtt-merchant-negotiation-status">
-                    <i class="fas fa-hourglass-half"></i>
-                    {{#if negotiation.isBuyerTurn}}{{localize "mtt.sessions.negotiations.waitingBuyer"}}{{else}}{{localize "mtt.sessions.negotiations.waitingMerchant"}}{{/if}}
-                  </p>
+                    <p class="mtt-merchant-negotiation-status">
+                      <i class="fas fa-hourglass-half"></i>
+                      {{#if negotiation.isBuyerTurn}}{{localize "mtt.sessions.negotiations.waitingBuyer"}}{{else}}{{localize "mtt.sessions.negotiations.waitingMerchant"}}{{/if}}
+                    </p>
+                  </div>
+                </div>
 
                   <div class="mtt-merchant-negotiation-grid-header">
-                    <span>{{localize "mtt.sessions.negotiations.sideShort"}}</span>
+                    <span class="mtt-merchant-negotiation-offer-side">{{localize "mtt.sessions.negotiations.sideShort"}}</span>
                     <span>{{localize "mtt.sessions.negotiations.quantityShort"}}</span>
                     <span>{{localize "mtt.sessions.negotiations.unitPriceShort"}}</span>
                     <span>{{localize "mtt.sessions.negotiations.totalShort"}}</span>
@@ -262,7 +267,7 @@
                     <ul class="mtt-merchant-negotiation-offers">
                       {{#each negotiation.offers as |offer|}}
                         <li class="mtt-merchant-negotiation-offer {{offer.sideClass}} mtt-merchant-negotiation-offer-submitted">
-                          <span>{{offer.sideLabel}}</span>
+                          <span class="mtt-merchant-negotiation-offer-side">{{offer.sideLabel}}</span>
                           <span>{{offer.quantity}}</span>
                           <span>{{offer.unitPriceLabel}}</span>
                           <span>{{offer.totalPriceLabel}}</span>
@@ -282,7 +287,7 @@
                       data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
                       data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
-                      <span>{{negotiation.draftSideLabel}}</span>
+                      <span class="mtt-merchant-negotiation-offer-side">{{negotiation.draftSideLabel}}</span>
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" />
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" />
@@ -319,7 +324,6 @@
                       {{/if}}
                     </div>
                   {{/if}}
-                </div>
               </li>
             {{/each}}
           </ul>
@@ -517,29 +521,32 @@
         <ul class="mtt-merchant-negotiation-list">
           {{#each mtt.session.refusedNegotiations as |negotiation|}}
             <li class="mtt-merchant-negotiation-item mtt-merchant-negotiation-item-refused" data-negotiation-id="{{negotiation.id}}">
-              <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
-              <div class="mtt-merchant-negotiation-main">
-                <strong>{{negotiation.name}}</strong>
-                {{#if negotiation.isFreePrice}}
-                  {{#if @root.mtt.isEditable}}
-                    <span class="mtt-merchant-negotiation-price-hint">
-                      {{#if negotiation.hasMinimumPrice}}
-                        {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
-                      {{else}}
-                        {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
-                      {{/if}}
-                    </span>
+              <div class="mtt-merchant-negotiation-head">
+                <img class="mtt-merchant-negotiation-img" src="{{negotiation.img}}" alt="{{negotiation.name}}" />
+                <div class="mtt-merchant-negotiation-main">
+                  <strong>{{negotiation.name}}</strong>
+                  {{#if negotiation.isFreePrice}}
+                    {{#if @root.mtt.isEditable}}
+                      <span class="mtt-merchant-negotiation-price-hint">
+                        {{#if negotiation.hasMinimumPrice}}
+                          {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
+                        {{else}}
+                          {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
+                        {{/if}}
+                      </span>
+                    {{/if}}
+                  {{else}}
+                    <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
                   {{/if}}
-                {{else}}
-                  <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
-                {{/if}}
-                <p class="mtt-merchant-negotiation-status mtt-merchant-negotiation-status-refused">
-                  <i class="fas fa-ban"></i>
-                  {{localize "mtt.sessions.negotiations.refusedMessage"}}
-                </p>
+                  <p class="mtt-merchant-negotiation-status mtt-merchant-negotiation-status-refused">
+                    <i class="fas fa-ban"></i>
+                    {{localize "mtt.sessions.negotiations.refusedMessage"}}
+                  </p>
+                </div>
+              </div>
 
                 <div class="mtt-merchant-negotiation-grid-header">
-                  <span>{{localize "mtt.sessions.negotiations.sideShort"}}</span>
+                  <span class="mtt-merchant-negotiation-offer-side">{{localize "mtt.sessions.negotiations.sideShort"}}</span>
                   <span>{{localize "mtt.sessions.negotiations.quantityShort"}}</span>
                   <span>{{localize "mtt.sessions.negotiations.unitPriceShort"}}</span>
                   <span>{{localize "mtt.sessions.negotiations.totalShort"}}</span>
@@ -552,7 +559,7 @@
                   <ul class="mtt-merchant-negotiation-offers">
                     {{#each negotiation.offers as |offer|}}
                       <li class="mtt-merchant-negotiation-offer {{offer.sideClass}} mtt-merchant-negotiation-offer-submitted">
-                        <span>{{offer.sideLabel}}</span>
+                        <span class="mtt-merchant-negotiation-offer-side">{{offer.sideLabel}}</span>
                         <span>{{offer.quantity}}</span>
                         <span>{{offer.unitPriceLabel}}</span>
                         <span>{{offer.totalPriceLabel}}</span>
@@ -563,8 +570,7 @@
                     {{/each}}
                   </ul>
                 {{/if}}
-              </div>
-            </li>
+              </li>
           {{/each}}
         </ul>
       </section>

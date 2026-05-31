@@ -226,22 +226,6 @@
                         {{/if}}
 
                         {{#if @root.mtt.isEditable}}
-                          <button
-                            class="mtt-merchant-product-action"
-                            type="button"
-                            data-action="toggleCatalogItemVisibility"
-                            data-catalog-kind="product"
-                            data-tooltip="{{#if item.isVisible}}{{localize 'mtt.products.hide'}}{{else}}{{localize 'mtt.products.show'}}{{/if}}"
-                          >
-                            {{#if item.isVisible}}
-                              <i class="fas fa-eye"></i>
-                            {{else}}
-                              <i class="fas fa-eye-slash"></i>
-                            {{/if}}
-                          </button>
-                        {{/if}}
-
-                        {{#if @root.mtt.isEditable}}
                         <button
                           class="mtt-merchant-product-action"
                           type="button"
@@ -255,6 +239,22 @@
                             <i class="fas fa-user-clock"></i>
                           {{/if}}
                         </button>
+                        {{/if}}
+
+                        {{#if @root.mtt.isEditable}}
+                          <button
+                            class="mtt-merchant-product-action"
+                            type="button"
+                            data-action="toggleCatalogItemVisibility"
+                            data-catalog-kind="product"
+                            data-tooltip="{{#if item.isVisible}}{{localize 'mtt.products.hide'}}{{else}}{{localize 'mtt.products.show'}}{{/if}}"
+                          >
+                            {{#if item.isVisible}}
+                              <i class="fas fa-eye"></i>
+                            {{else}}
+                              <i class="fas fa-eye-slash"></i>
+                            {{/if}}
+                          </button>
                         {{/if}}
 
                         {{#if @root.mtt.canEditMerchant}}

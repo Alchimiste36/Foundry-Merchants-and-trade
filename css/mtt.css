@@ -784,6 +784,12 @@
   margin: 0;
   font-size: 0.78rem;
 }
+.mtt-merchant-negotiation-head {
+  display: grid;
+  grid-template-columns: 60px auto;
+  align-items: center;
+  margin-bottom: 8px;
+}
 .mtt-merchant-negotiation-list {
   display: grid;
   gap: 0.25rem;
@@ -794,13 +800,12 @@
 }
 .mtt-merchant-negotiation-item {
   display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
+  flex-direction: column;
   min-width: 0;
 }
 .mtt-merchant-negotiation-img {
-  width: 24px;
-  height: 24px;
+  width: 50px;
+  height: 50px;
   object-fit: cover;
 }
 .mtt-merchant-negotiation-main {
@@ -820,7 +825,7 @@
 }
 .mtt-merchant-negotiation-offer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(2.5rem, 3rem) minmax(0, 4.5rem) minmax(0, 4.5rem) minmax(0, 3.5rem);
+  grid-template-columns: minmax(60px, 1fr) minmax(2.5rem, 3rem) minmax(0, 4.5rem) minmax(0, 4.5rem) minmax(0, 3.5rem);
   gap: 0.35rem;
   align-items: center;
   font-size: 0.72rem;
@@ -832,13 +837,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
+}
+.mtt-merchant-negotiation-offer-side {
+  text-align: right;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 .mtt-merchant-negotiation-grid-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(2.5rem, 3rem) minmax(0, 4.5rem) minmax(0, 4.5rem) minmax(0, 3.5rem);
+  grid-template-columns: minmax(60px, 1fr) minmax(2.5rem, 3rem) minmax(0, 4.5rem) minmax(0, 4.5rem) minmax(0, 3.5rem);
   gap: 0.35rem;
   color: var(--mtt-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
+  justify-items: center;
 }
 .mtt-merchant-negotiation-grid-header > * {
   min-width: 0;
@@ -870,11 +882,7 @@
   height: 1.45rem;
   padding: 0 0.15rem;
   font-size: 0.72rem;
-}
-.mtt-merchant-negotiation-offer input[type="number"] {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
+  text-align: center;
 }
 .mtt-merchant-negotiation-actions {
   display: flex;

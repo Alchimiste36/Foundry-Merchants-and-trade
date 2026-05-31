@@ -308,13 +308,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const unitInput = draft.querySelector('[data-mtt-negotiation-field="unitPriceValue"]');
     const totalInput = draft.querySelector('[data-mtt-negotiation-field="totalPriceValue"]');
     const percentInput = draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]');
-    if (!quantityInput || !unitInput || !totalInput || !percentInput) return;
+    const isFreePrice = draft.dataset.isFreePrice === "true";
+    if (!quantityInput || !unitInput || !totalInput) return;
+    if (!isFreePrice && !percentInput) return;
 
     const reference = Number(draft.dataset.referenceUnitPrice);
     let quantity = Number(quantityInput.value);
     let unitPrice = Number(unitInput.value);
     let totalPrice = Number(totalInput.value);
-    let percent = Number(percentInput.value);
+    let percent = percentInput ? Number(percentInput.value) : 100;
 
     if (!Number.isFinite(quantity) || quantity <= 0) quantity = 1;
     if (!Number.isFinite(unitPrice) || unitPrice < 0) unitPrice = 0;
@@ -323,15 +325,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (["quantity", "unitPriceValue"].includes(changedField)) {
       totalPrice = quantity * unitPrice;
-      percent = reference > 0 ? (unitPrice / reference) * 100 : 100;
+      if (!isFreePrice) percent = reference > 0 ? (unitPrice / reference) * 100 : 100;
     }
 
     if (changedField === "totalPriceValue") {
       unitPrice = quantity > 0 ? totalPrice / quantity : 0;
-      percent = reference > 0 ? (unitPrice / reference) * 100 : 100;
+      if (!isFreePrice) percent = reference > 0 ? (unitPrice / reference) * 100 : 100;
     }
 
-    if (changedField === "percentOfReference") {
+    if (!isFreePrice && changedField === "percentOfReference") {
       unitPrice = reference > 0 ? (reference * percent) / 100 : 0;
       totalPrice = quantity * unitPrice;
     }
@@ -339,7 +341,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (changedField !== "quantity") quantityInput.value = Number(quantity.toFixed(2));
     if (changedField !== "unitPriceValue") unitInput.value = Number(unitPrice.toFixed(2));
     if (changedField !== "totalPriceValue") totalInput.value = Number(totalPrice.toFixed(2));
-    if (changedField !== "percentOfReference") percentInput.value = Number(percent.toFixed(2));
+    if (!isFreePrice && percentInput && changedField !== "percentOfReference") {
+      percentInput.value = Number(percent.toFixed(2));
+    }
   }
 
   #getNegotiationFromEvent(target, session) {
@@ -368,18 +372,21 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const quantity = Number(draft.querySelector('[data-mtt-negotiation-field="quantity"]')?.value);
     const unitPriceValue = Number(draft.querySelector('[data-mtt-negotiation-field="unitPriceValue"]')?.value);
     const totalPriceValue = Number(draft.querySelector('[data-mtt-negotiation-field="totalPriceValue"]')?.value);
-    const percentOfReference = Number(draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]')?.value);
+    const isFreePrice = draft.dataset.isFreePrice === "true";
+    const percentInput = draft.querySelector('[data-mtt-negotiation-field="percentOfReference"]');
+    const percentOfReference = percentInput ? Number(percentInput.value) : 100;
 
     if (!Number.isFinite(quantity) || quantity <= 0) return null;
     if (!Number.isFinite(unitPriceValue) || unitPriceValue < 0) return null;
     if (!Number.isFinite(totalPriceValue) || totalPriceValue < 0) return null;
-    if (!Number.isFinite(percentOfReference) || percentOfReference < 0) return null;
+    if (!isFreePrice && (!Number.isFinite(percentOfReference) || percentOfReference < 0)) return null;
 
     return {
       quantity,
       unitPriceValue,
       totalPriceValue,
-      percentOfReference,
+      percentOfReference:
+        Number.isFinite(percentOfReference) && percentOfReference >= 0 ? percentOfReference : 100,
     };
   }
 

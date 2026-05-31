@@ -82,6 +82,7 @@
                       data-negotiation-draft
                       data-negotiation-id="{{negotiation.id}}"
                       data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
+                      data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
                       <span>{{negotiation.draftSideLabel}}</span>
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
@@ -278,6 +279,7 @@
                       data-negotiation-draft
                       data-negotiation-id="{{negotiation.id}}"
                       data-reference-unit-price="{{negotiation.referenceUnitPriceValue}}"
+                      data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
                       <span>{{negotiation.draftSideLabel}}</span>
                       <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />

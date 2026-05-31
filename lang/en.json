@@ -109,6 +109,7 @@
       }
     },
     "sessions": {
+      "buyerFortune": "Wealth:",
       "submittedNotice": "The transaction is waiting for the merchant’s decision."
     },
     "configuration": {

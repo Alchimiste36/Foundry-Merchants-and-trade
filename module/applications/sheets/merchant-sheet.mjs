@@ -116,7 +116,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       setSessionStatus: MerchantSheet.#onSetSessionStatus,
       checkSessionTransaction: MerchantSheet.#onCheckSessionTransaction,
       previewSessionExecution: MerchantSheet.#onPreviewSessionExecution,
-      requestSessionDecision: MerchantSheet.#onRequestSessionDecision,
       submitSession: MerchantSheet.#onSubmitSession,
       unlockSubmittedSession: MerchantSheet.#onUnlockSubmittedSession,
       validateSessionTransaction: MerchantSheet.#onValidateSessionTransaction,
@@ -583,11 +582,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #prepareSessionContext() {
     const accessClients = this.#prepareAccessClients();
+    const session = this.#getActiveSession();
+    const buyerActor = session?.actorUuid ? game.actors.find((actor) => actor.uuid === session.actorUuid) : null;
     return prepareSessionContext(this.actor, {
-      session: this.#getActiveSession(),
+      session,
       selectedClient: this.#getSelectedClient(),
       sessionCheckResult: this.#sessionCheckResult,
       accessClients,
+      buyerActor,
     });
   }
 
@@ -2398,17 +2400,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     this.render();
     await openPreviewDialog(preview);
-  }
-
-  static async #onRequestSessionDecision(event) {
-    event.preventDefault();
-
-    const session = this.#getActiveSession();
-    if (!session) return;
-
-    session.status = "pending";
-    await this.#saveSession(session);
-    this.render();
   }
 
   static async #onSubmitSession(event) {

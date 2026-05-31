@@ -344,42 +344,6 @@ export async function openPreviewErrorDialog(preview) {
   }
 }
 
-export async function openValidateConfirmDialog(preview) {
-  const form = renderPreviewDialogContent(preview)
-  const content = await renderMttDialogContent({
-    icon: "fa-circle-check",
-    title: game.i18n.localize("mtt.sessions.confirm.validateTitle"),
-    variant: "default",
-    form,
-  })
-
-  let result = null
-  try {
-    result = await foundry.applications.api.DialogV2.wait({
-      window: { title: game.i18n.localize("mtt.sessions.confirm.validateTitle") },
-      content,
-      rejectClose: false,
-      buttons: [
-        {
-          action: "cancel",
-          label: game.i18n.localize("mtt.sessions.confirm.cancel"),
-          callback: () => false,
-        },
-        {
-          action: "confirm",
-          label: game.i18n.localize("mtt.sessions.confirm.validateConfirm"),
-          default: true,
-          callback: () => true,
-        },
-      ],
-    })
-  } catch {
-    return false
-  }
-
-  return Boolean(result)
-}
-
 export async function openSessionValidationDialog(preview) {
   const form = renderPreviewDialogContent(preview)
   const content = await renderMttDialogContent({

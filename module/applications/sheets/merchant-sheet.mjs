@@ -1,30 +1,12 @@
 import { MTT } from "../../config/constants.mjs";
-import { getCurrencies } from "../../config/settings.mjs";
 import {
-  parsePriceValue,
-  parseQuantityValue,
   isUnlimitedQuantity,
   isFreePriceCurrency,
   isFreePriceService,
   normalizeFiniteQuantity,
-  normalizeCurrencyKey,
   convertPriceToReferenceCurrency,
-  formatCurrencyLabel,
   formatPriceLabel,
-  escapeHTML,
-  slugifyCategoryKey,
-  formatAutomaticCategoryLabel,
-  normalizeAutomaticCategoryValue,
-  createCheckMessage,
-  getItemDescription,
-  getItemPrice,
-  getItemCurrency,
-  getModuleSetting,
-  getConfiguredItemValue,
-  getAllowedTypes,
   isItemTypeAllowed,
-  getCategoryPaths,
-  getCategoryLabelMap,
   prepareCurrencyOptions,
   htmlToPlainText,
   getMerchantSheetLockedState,
@@ -56,7 +38,6 @@ import {
   addOrMergeProduct,
   moveProductToCategory,
   createServiceFromItem,
-  getItemAvailableQuantity,
   prepareSellerItemDropData,
 } from "./merchant-catalog.mjs";
 import {
@@ -72,21 +53,11 @@ import {
   setSessionItemQuantity,
   getSessionItemsForSide,
   removeSessionItemById,
-  syncSessionItemAvailability,
   canAcceptSessionQuantity,
-  prepareSessionTotals,
-  prepareMoneyAdjustments,
-  getSessionStatusNotice,
-  prepareSessionCheckContext,
   prepareSessionContext,
   getStoredAccessClients,
-  getAccessSessionBadgeIcon,
-  getAccessSessionTooltipLabel,
-  formatAccessClientTooltip,
   getBestSessionForClient,
   prepareAccessClients,
-  getConfiguredCurrency,
-  getMerchantWalletAmount,
   checkSessionTransaction,
   isMerchantSellerDropBlocked,
   buildExecutionPreview,
@@ -559,109 +530,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return renderMttDialogContent(options);
   }
 
-  async #openSessionPreparationDialog(options) {
-    return openSessionPreparationDialog(options);
-  }
-
   async #openSellerItemDialog(options) {
     return openSellerItemDialog(options);
   }
 
   // ─── Wrappers for imported utility functions ──────────────────────────────
 
-  #parsePriceValue(value) {
-    return parsePriceValue(value);
-  }
-  #parseQuantityValue(value) {
-    return parseQuantityValue(value);
-  }
-  #normalizeCurrencyKey(c) {
-    return normalizeCurrencyKey(c);
-  }
-  #formatCurrencyLabel(c) {
-    return formatCurrencyLabel(c);
-  }
-  #formatPriceLabel(v, c) {
-    return formatPriceLabel(v, c);
-  }
-  #escapeHTML(v) {
-    return escapeHTML(v);
-  }
-  #slugifyCategoryKey(v) {
-    return slugifyCategoryKey(v);
-  }
-  #formatAutomaticCategoryLabel(v) {
-    return formatAutomaticCategoryLabel(v);
-  }
-  #normalizeAutomaticCategoryValue(v) {
-    return normalizeAutomaticCategoryValue(v);
-  }
-  #createCheckMessage(l, i, t, ic) {
-    return createCheckMessage(l, i, t, ic);
-  }
   #htmlToPlainText(v) {
     return htmlToPlainText(v);
   }
-  #getItemDescription(item) {
-    return getItemDescription(item);
-  }
-  #getItemPrice(item) {
-    return getItemPrice(item);
-  }
-  #getItemCurrency(item) {
-    return getItemCurrency(item);
-  }
-  #getModuleSetting(key) {
-    return getModuleSetting(key);
-  }
-  #getConfiguredItemValue(item, key) {
-    return getConfiguredItemValue(item, key);
-  }
-  #getAllowedTypes(key) {
-    return getAllowedTypes(key);
-  }
-  #isItemTypeAllowed(item, key) {
-    return isItemTypeAllowed(item, key);
-  }
-  #getCategoryPaths() {
-    return getCategoryPaths();
-  }
-  #getCategoryLabelMap() {
-    return getCategoryLabelMap();
-  }
-
   // ─── Wrappers for imported catalog functions ──────────────────────────────
 
   #getSellPercent() {
     return getSellPercent(this.actor);
-  }
-  #adjustPriceValue(basePriceValue) {
-    return adjustPriceValue(basePriceValue, this.#getSellPercent());
-  }
-  #getReferenceCurrency() {
-    return getReferenceCurrency();
-  }
-  #getItemAvailableQuantity(item) {
-    return getItemAvailableQuantity(item);
-  }
-  #getItemCurrencyHelper(item) {
-    return getItemCurrency(item);
-  }
-
-  #getAutomaticItemCategory(item) {
-    return getAutomaticItemCategory(item);
-  }
-
-  async #getOrCreateAutomaticProductCategory(automaticCategory) {
-    return getOrCreateAutomaticProductCategory(this.actor, automaticCategory);
-  }
-
-  #createProductFlags(itemData) {
-    return createProductFlags(itemData);
-  }
-
-  async #addOrMergeProduct(itemData, categoryValue, automaticCategory, sourceUuid = "") {
-    return addOrMergeProduct(this.actor, itemData, categoryValue, automaticCategory, sourceUuid);
   }
 
   async #moveProductToCategory(itemId, categoryValue) {
@@ -674,35 +555,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render();
   }
 
-  #prepareSellerItemDropData(item) {
-    return prepareSellerItemDropData(this.actor, item);
-  }
-
   // ─── Wrappers for imported trade functions ────────────────────────────────
 
-  #normalizeSession(session) {
-    return normalizeSession(session);
-  }
-  #normalizeSessionItem(item) {
-    return normalizeSessionItem(item);
-  }
-  #normalizeAccessClient(client) {
-    return normalizeAccessClient(client);
-  }
-  #buildAccessClientFromActor(actor, opts) {
-    return buildAccessClientFromActor(actor, opts);
-  }
-  #buildSessionData(client) {
-    return buildSessionData(client);
-  }
   #getSessions() {
     return getSessions(this.actor);
-  }
-  #getStoredAccessClients() {
-    return getStoredAccessClients(this.actor);
-  }
-  #recalculateSessionItemTotal(item) {
-    return recalculateSessionItemTotal(item);
   }
   #setSessionItemQuantity(item, quantity) {
     return setSessionItemQuantity(item, quantity);
@@ -713,26 +569,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #removeSessionItemById(session, itemId, side) {
     return removeSessionItemById(session, itemId, side);
   }
-  #syncSessionItemAvailability(item) {
-    return syncSessionItemAvailability(this.actor, item);
-  }
   #canAcceptSessionQuantity(item, quantity) {
     return canAcceptSessionQuantity(this.actor, item, quantity);
-  }
-  #getAccessSessionBadgeIcon(status) {
-    return getAccessSessionBadgeIcon(status);
-  }
-  #getAccessSessionTooltipLabel(status) {
-    return getAccessSessionTooltipLabel(status);
-  }
-  #getBestSessionForClient(actorUuid) {
-    return getBestSessionForClient(this.actor, actorUuid);
-  }
-  #getConfiguredCurrency(currency) {
-    return getConfiguredCurrency(currency);
-  }
-  #getMerchantWalletAmount(currency) {
-    return getMerchantWalletAmount(this.actor, currency);
   }
 
   #prepareAccessClients() {
@@ -749,7 +587,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       session: this.#getActiveSession(),
       selectedClient: this.#getSelectedClient(),
       sessionCheckResult: this.#sessionCheckResult,
-      sellPercent: this.#getSellPercent(),
       accessClients,
     });
   }
@@ -1593,16 +1430,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ─── Session state management ─────────────────────────────────────────────
 
-  #getOpenSessionsForClient(actorUuid) {
-    const normalizedActorUuid = String(actorUuid ?? "").trim();
-    if (!normalizedActorUuid) return [];
-
-    return this.#getSessions().filter(
-      (session) =>
-        session.actorUuid === normalizedActorUuid && ["active", "pending", "submitted"].includes(session.status),
-    );
-  }
-
   #getSelectedSession() {
     if (!this.#activeSessionId) return null;
 
@@ -1638,12 +1465,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#selectedClientActorUuid = session.actorUuid ?? "";
     this.#sessionCheckResult = null;
     return normalizeSession(session);
-  }
-
-  #selectClient(client) {
-    this.#selectedClientActorUuid = client?.actorUuid ?? "";
-    this.#activeSessionId = null;
-    this.#sessionCheckResult = null;
   }
 
   #findExternalOpenSessionForClient(actorUuid) {

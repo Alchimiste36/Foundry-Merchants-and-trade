@@ -468,7 +468,7 @@ function prepareNegotiationForDisplay(negotiation) {
 
 export function prepareSessionContext(
   actor,
-  { session, selectedClient, sessionCheckResult, sellPercent, accessClients },
+  { session, selectedClient, sessionCheckResult, accessClients },
 ) {
   const checkResult = prepareSessionCheckContext(sessionCheckResult);
 

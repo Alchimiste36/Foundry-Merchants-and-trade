@@ -33,15 +33,16 @@
                 <div class="mtt-merchant-negotiation-main">
                   <strong>{{negotiation.name}}</strong>
                   {{#if negotiation.isFreePrice}}
-                    {{#if @root.mtt.isEditable}}
-                      <span class="mtt-merchant-negotiation-price-hint">
+                    <span class="mtt-merchant-negotiation-price-hint">
+                      {{localize "mtt.sessions.negotiations.freePrice"}}
+                      {{#if @root.mtt.isEditable}}
                         {{#if negotiation.hasMinimumPrice}}
                           {{localize "mtt.sessions.negotiations.freePriceMinimum" price=negotiation.minimumPriceLabel}}
                         {{else}}
                           {{localize "mtt.sessions.negotiations.freePriceNoMinimum"}}
                         {{/if}}
-                      </span>
-                    {{/if}}
+                      {{/if}}
+                    </span>
                   {{else}}
                     <span>{{localize "mtt.sessions.negotiations.referencePrice"}} : {{negotiation.referenceUnitPriceLabel}}</span>
                   {{/if}}

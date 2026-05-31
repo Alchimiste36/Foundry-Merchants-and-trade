@@ -60,7 +60,7 @@
     },
     "notifications": {
       "sheetLocked": "The merchant sheet is locked.",
-      "onlyItemsCanBeDropped": "Seuls les objets peuvent être ajoutés au marchand."
+      "onlyItemsCanBeDropped": "Only items can be added to the merchant."
     },
     "navigation": {
       "label": "Merchant sheet navigation"
@@ -68,7 +68,6 @@
     "tabs": {
       "products": "Products",
       "services": "Services",
-      "sessions": "Sessions",
       "configuration": "Configuration"
     },
     "items": {
@@ -105,15 +104,12 @@
     },
     "services": {
       "empty": {
-        "title": "Services",
-        "text": "Service management will be added in a later step."
+        "title": "No services",
+        "text": "This merchant does not offer any services yet."
       }
     },
     "sessions": {
-      "empty": {
-        "title": "Sessions",
-        "text": "Player / merchant sessions will be added later."
-      }
+      "submittedNotice": "The transaction is waiting for the merchant’s decision."
     },
     "configuration": {
       "empty": {

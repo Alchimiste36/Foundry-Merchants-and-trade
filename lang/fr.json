@@ -145,7 +145,7 @@
     },
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",
-      "onlyItemsCanBeDropped": "Only items can be added to the merchant.",
+      "onlyItemsCanBeDropped": "Seuls les objets peuvent être ajoutés au marchand.",
       "productQuantityIncreased": "La quantité du produit existant a été augmentée.",
       "invalidQuantity": "La quantité doit être un nombre positif ou égal à zéro.",
       "invalidPrice": "Le prix doit être un nombre positif ou égal à zéro.",
@@ -161,7 +161,6 @@
       "emptyNegotiationFormula": "Aucune formule de négociation n’est renseignée.",
       "invalidSessionQuantity": "La quantité demandée doit être un nombre positif.",
       "notEnoughQuantity": "La quantité demandée dépasse la quantité disponible.",
-      "sessionAddNotImplemented": "L’ajout à la session sera implémenté dans une prochaine étape.",
       "productAddedToSession": "Produit ajouté à la session.",
       "serviceAddedToSession": "Service ajouté à la session.",
       "sessionItemRemoved": "Élément retiré de la session.",
@@ -180,7 +179,6 @@
       "notEnoughSellerItemQuantity": "La quantité demandée dépasse la quantité disponible sur l’objet source.",
       "invalidSellerItemPrice": "La valeur proposée doit être un nombre positif ou égal à zéro.",
       "sessionPending": "Session passée en attente de décision.",
-      "sessionValidatedNoTransfer": "Session validée, mais aucun transfert réel n’est encore effectué.",
       "sessionRefused": "Session refusée.",
       "sessionCheckSuccess": "Vérification terminée : aucun problème bloquant détecté.",
       "sessionCheckFailed": "Vérification terminée : des problèmes bloquants ont été détectés.",
@@ -211,7 +209,6 @@
       "transactionPreviewFailed": "La transaction ne peut pas être prévisualisée.",
       "missingProposedPrice": "Vous devez proposer un prix pour cet élément.",
       "selectSessionBeforeAction": "Sélectionnez une session avant d'effectuer cette action.",
-      "transactionExecutionNotReady": "L'exécution réelle de la transaction sera développée dans une prochaine étape.",
       "sessionSocketNoResponse": "La demande de modification de session n’a pas reçu de réponse.",
       "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
       "sessionSocketRequestDenied": "La demande de modification de session a été refusée."
@@ -270,7 +267,6 @@
     "tabs": {
       "products": "Produits",
       "services": "Services",
-      "sessions": "Sessions",
       "configuration": "Configuration"
     },
     "items": {
@@ -486,9 +482,10 @@
       "summary": "Résumé",
       "undefinedCurrency": "monnaie non définie",
       "requestValidation": "Demander validation",
-      "validatedNoTransfer": "Session validée : le transfert réel n’est pas encore implémenté.",
+      "validatedNoTransfer": "Transaction validée.",
       "refusedNotice": "Session refusée.",
       "pendingNotice": "En attente d’une décision.",
+      "submittedNotice": "La transaction est en attente d’une décision du marchand.",
       "activeNotice": "Brouillon de transaction en cours.",
       "authorizationCreatesSession": "Autoriser un client ouvre automatiquement une session.",
       "noVisibleSession": "Aucune session de transaction disponible.",
@@ -514,7 +511,7 @@
         "merchantCurrencyInsufficient": "Le marchand n’a pas assez de {currency} pour rendre la monnaie.",
         "unknownCurrency": "Monnaie inconnue : {currency}.",
         "undefinedCurrency": "Monnaie non définie.",
-        "alreadyValidated": "La session est déjà marquée validée, mais aucun transfert réel n’est encore implémenté.",
+        "alreadyValidated": "La session est déjà marquée validée.",
         "alreadyRefused": "La session est refusée."
       },
       "setStatusActive": "Marquer en cours",
@@ -547,12 +544,7 @@
         "quantity": "Quantité",
         "proposedPrice": "Prix proposé",
         "availableQuantity": "Quantité disponible",
-        "unlimitedQuantity": "Illimité",
-        "notImplemented": "L’ajout à la session sera implémenté dans une prochaine étape."
-      },
-      "empty": {
-        "title": "Sessions",
-        "text": "Les sessions joueur / marchand seront ajoutées plus tard."
+        "unlimitedQuantity": "Illimité"
       },
       "preview": {
         "action": "Prévisualiser l'exécution",
@@ -591,14 +583,10 @@
         "validateTitle": "Valider la session",
         "validateConfirm": "Valider la transaction",
         "validateCancel": "Annuler",
-        "itemsOnlyWarning": "Aucun transfert monétaire ne sera effectué dans cette étape.",
-        "moneyNotImplemented": "Le transfert monétaire n’est pas encore implémenté.",
-        "moneyAdjustmentBlocksExecution": "La transaction nécessite un ajustement monétaire. L’exécution réelle sera possible quand le transfert de monnaie sera implémenté.",
         "clientReceives": "Le PJ recevra",
         "merchantReceives": "Le marchand recevra",
         "quantitiesUpdated": "Quantités qui seront diminuées",
-        "executionErrorTitle": "Transaction impossible",
-        "executionSuccess": "Transaction d’objets effectuée."
+        "executionErrorTitle": "Transaction impossible"
       },
       "errors": {
         "clientMissing": "L’acteur client de la session est introuvable.",

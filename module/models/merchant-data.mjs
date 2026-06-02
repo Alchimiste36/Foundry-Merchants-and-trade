@@ -244,6 +244,225 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
         }),
       });
 
+    const journalTransactionEntrySchema = () =>
+      new fields.SchemaField({
+        id: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        type: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "product",
+          choices: ["product", "service", "item", "money"],
+        }),
+        side: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "buyer",
+          choices: ["buyer", "seller"],
+        }),
+        sourceId: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        sourceUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        sourceActorUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        name: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        img: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        quantity: new fields.NumberField({
+          required: true,
+          initial: 1,
+          min: 0,
+        }),
+        unitPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        totalPriceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+          min: 0,
+        }),
+        priceCurrency: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        referenceUnitPriceValue: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
+        percentOfReference: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 0,
+        }),
+        isNegotiated: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+        negotiationStatus: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        isFreePrice: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+        hasSecrets: new fields.BooleanField({
+          required: true,
+          initial: false,
+        }),
+        secretData: new fields.ObjectField({
+          required: false,
+          nullable: true,
+          initial: null,
+        }),
+      });
+
+    const journalMoneyAdjustmentSchema = () =>
+      new fields.SchemaField({
+        id: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        side: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "buyer",
+          choices: ["buyer", "seller"],
+        }),
+        value: new fields.NumberField({
+          required: true,
+          initial: 0,
+        }),
+        currency: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        label: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+      });
+
+    const journalTransactionSchema = () =>
+      new fields.SchemaField({
+        id: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        transactionNumber: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 1,
+        }),
+        createdAt: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "",
+        }),
+        status: new fields.StringField({
+          required: true,
+          blank: false,
+          initial: "validated",
+          choices: ["validated", "refused"],
+        }),
+        merchantActorUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        merchantName: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        buyerActorUuid: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        buyerName: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        buyerImg: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        referenceCurrency: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        totalReferenceValue: new fields.NumberField({
+          required: true,
+          initial: 0,
+        }),
+        summaryLabel: new fields.StringField({
+          required: false,
+          blank: true,
+          initial: "",
+        }),
+        entries: new fields.ArrayField(
+          journalTransactionEntrySchema(),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
+        moneyAdjustments: new fields.ArrayField(
+          journalMoneyAdjustmentSchema(),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
+        secrets: new fields.ArrayField(
+          new fields.ObjectField({
+            required: false,
+            blank: true,
+            initial: {},
+          }),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
+      });
+
     return {
       merchant: new fields.SchemaField({
         description: new fields.HTMLField({
@@ -318,6 +537,21 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           blank: true,
           initial: {},
         }),
+      }),
+
+      journal: new fields.SchemaField({
+        nextTransactionNumber: new fields.NumberField({
+          required: true,
+          initial: 1,
+          min: 1,
+        }),
+        transactions: new fields.ArrayField(
+          journalTransactionSchema(),
+          {
+            required: true,
+            initial: [],
+          },
+        ),
       }),
 
       access: new fields.SchemaField({

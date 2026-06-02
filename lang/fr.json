@@ -267,7 +267,49 @@
     "tabs": {
       "products": "Produits",
       "services": "Services",
-      "configuration": "Configuration"
+      "configuration": "Configuration",
+      "journal": "Journal"
+    },
+    "journal": {
+      "title": "Journal",
+      "empty": "Aucune transaction enregistr\u00e9e.",
+      "noDetail": "Aucun d\u00e9tail disponible.",
+      "status": {
+        "validated": "Valid\u00e9e",
+        "refused": "Refus\u00e9e"
+      },
+      "columns": {
+        "type": "Type",
+        "name": "Nom",
+        "side": "Sens",
+        "number": "N°",
+        "buyer": "Acheteur",
+        "date": "Date",
+        "status": "Statut",
+        "paid": "Payé",
+        "received": "Reçu",
+        "adjustment": "Ajust.",
+        "quantity": "Qt\u00e9",
+        "unitPrice": "Prix unitaire",
+        "unitPriceShort": "PU",
+        "total": "Total",
+        "negotiation": "N\u00e9gociation",
+        "negotiationShort": "Négo."
+      },
+      "type": {
+        "product": "Produit",
+        "service": "Service",
+        "item": "Objet",
+        "money": "Monnaie"
+      },
+      "side": {
+        "buyer": "Re\u00e7u / achet\u00e9",
+        "seller": "Donn\u00e9 / vendu"
+      },
+      "negotiation": {
+        "accepted": "Négociation acceptée",
+        "refused": "Négociation refusée"
+      }
     },
     "items": {
       "newItem": "Nouvel objet",

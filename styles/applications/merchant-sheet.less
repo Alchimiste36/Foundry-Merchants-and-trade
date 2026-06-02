@@ -455,8 +455,8 @@
 }
 
 .mtt-merchant-session-sidebar {
-  width: 370px;
-  flex: 0 0 370px;
+  width: 340px;
+  flex: 0 0 340px;
   max-width: 45%;
   padding: 0.3rem;
   overflow: auto;
@@ -2103,6 +2103,218 @@
 .mtt-merchant-configuration-empty {
   color: var(--mtt-text-soft);
   font-size: 0.86rem;
+}
+
+.mtt-merchant-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  //padding: 0.75rem;
+}
+
+.mtt-merchant-journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mtt-merchant-journal-title {
+  margin: 0;
+  color: var(--mtt-accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.mtt-merchant-journal-empty,
+.mtt-merchant-journal-no-detail {
+  margin: 0;
+  padding: 0.65rem;
+  border: 1px dashed var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-soft);
+  text-align: center;
+}
+
+.mtt-merchant-journal-list {
+  display: grid;
+  //gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mtt-merchant-journal-sortbar {
+  display: grid;
+  grid-template-columns: 1.5rem auto 3rem 4rem 4rem 4rem;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0 0.5rem;
+  text-align: center;
+}
+
+.mtt-merchant-journal-sortbar > span {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  color: var(--mtt-text-muted);
+  font-weight: 700;
+}
+
+.mtt-merchant-journal-sortbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text-muted);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mtt-merchant-journal-sortbar button:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+  color: var(--mtt-text);
+}
+
+.mtt-merchant-journal-sortbar i {
+  color: var(--mtt-accent);
+}
+
+.mtt-merchant-journal-entry {
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+}
+
+.mtt-merchant-journal-entry details {
+  padding: 0.5rem;
+}
+
+.mtt-merchant-journal-summary {
+  display: grid;
+  grid-template-columns: 1.5rem auto 3rem 4rem 4rem 4rem;
+  gap: 0.3rem;
+  align-items: center;
+  color: var(--mtt-text-muted);
+  cursor: pointer;
+}
+
+.mtt-merchant-journal-buyer {
+  color: var(--mtt-text);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mtt-merchant-journal-status {
+  font-weight: 700;
+}
+
+.mtt-merchant-journal-status-validated {
+  color: var(--mtt-accent);
+  font-weight: 600;
+}
+
+.mtt-merchant-journal-status-refused {
+  color: #b33939;
+  font-weight: 700;
+}
+
+.mtt-merchant-journal-paid,
+.mtt-merchant-journal-received,
+.mtt-merchant-journal-adjustment {
+  text-align: right;
+}
+
+.mtt-merchant-journal-adjustment {
+  font-weight: 700;
+}
+
+.mtt-merchant-journal-details {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.mtt-merchant-journal-items {
+  display: grid;
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+  background-color: #c79a4817;
+}
+
+.mtt-merchant-journal-item-row {
+  display: grid;
+  grid-template-columns: 3rem auto 3rem 4.5rem 4.5rem 2.5rem;
+  gap: 0.4rem;
+  align-items: center;
+  border-top: 1px solid var(--mtt-border-soft);
+}
+
+.mtt-merchant-journal-item-type,
+.mtt-merchant-journal-item-quantity,
+.mtt-merchant-journal-item-negotiation {
+  text-align: center;
+}
+
+.mtt-merchant-journal-item-name {
+  text-align: left;
+}
+
+.mtt-merchant-journal-item-unit-price,
+.mtt-merchant-journal-item-total {
+  text-align: right;
+}
+
+.mtt-merchant-journal-item-head {
+  color: var(--mtt-text);
+  font-weight: 700;
+  text-align: right;
+  font-size: 0.7rem;
+}
+
+.mtt-merchant-journal-transaction-number,
+.mtt-merchant-journal-item-type,
+.mtt-merchant-journal-item-negotiation {
+  text-align: center;
+}
+
+.mtt-merchant-journal-item-type i,
+.mtt-merchant-journal-item-negotiation i {
+  color: var(--mtt-accent);
+}
+
+.mtt-merchant-journal-item-negotiation .fa-check {
+  color: #6fbf8f;
+}
+
+.mtt-merchant-journal-item-negotiation .fa-times {
+  color: var(--mtt-danger);
+}
+
+.mtt-merchant-journal-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .mtt-merchant-journal-sortbar,
+  .mtt-merchant-journal-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .mtt-merchant-journal-paid,
+  .mtt-merchant-journal-received,
+  .mtt-merchant-journal-adjustment {
+    text-align: left;
+  }
 }
 
 .mtt-merchant-wallet-currency-input {

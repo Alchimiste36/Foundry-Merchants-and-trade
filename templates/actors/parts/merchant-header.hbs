@@ -88,6 +88,16 @@
             <i class="fas fa-handshake"></i>
           </button>
 
+          <button
+            class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'journal')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+            type="button"
+            data-action="selectTab"
+            data-tab="journal"
+            data-tooltip="{{localize 'mtt.tabs.journal'}}"
+          >
+            <i class="fas fa-book"></i>
+          </button>
+
           {{#if mtt.isEditable}}
             <button
               class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
@@ -112,6 +122,9 @@
           {{/if}}
           {{#if (eq mtt.activeTab "configuration")}}
             <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.configuration"}}</h2>
+          {{/if}}
+          {{#if (eq mtt.activeTab "journal")}}
+            <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.journal"}}</h2>
           {{/if}}
         </div>
       </div>

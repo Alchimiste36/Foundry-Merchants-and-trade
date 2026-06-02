@@ -35,6 +35,7 @@ import {
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
   createProductFlags,
+  updateMerchantProductCommercialData,
   addOrMergeProduct,
   moveProductToCategory,
   createServiceFromItem,
@@ -102,6 +103,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       deleteService: MerchantSheet.#onDeleteService,
       toggleServiceExpanded: MerchantSheet.#onToggleServiceExpanded,
       toggleCatalogItemVisibility: MerchantSheet.#onToggleCatalogItemVisibility,
+      toggleProductOwnership: MerchantSheet.#onToggleProductOwnership,
       toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
       toggleOpen: MerchantSheet.#onToggleOpen,
@@ -1955,8 +1957,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     const item = this.#getItemFromEvent(target);
+    if (!item) return;
 
-    item?.sheet?.render(true);
+    if (this.isEditable) {
+      item.sheet?.render(true);
+      return;
+    }
+
+    const itemData = item.toObject();
+    delete itemData._id;
+    delete itemData.uuid;
+
+    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const configuredOwnershipLevel = Number(
+      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+    );
+    const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
+      ? configuredOwnershipLevel
+      : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+
+    itemData.ownership = {
+      default: ownershipLevel,
+    };
+
+    const previewItem = new item.constructor(itemData);
+    previewItem.sheet?.render(true);
   }
 
   static async #onDeleteItem(event, target) {
@@ -2644,12 +2669,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "displayName") {
       const displayName = target.value?.trim();
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
 
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        displayName: displayName || item.name,
-        isCommerciallyModified: true,
+      await updateMerchantProductCommercialData(item, {
+        displayName,
       });
 
       return;
@@ -2692,34 +2714,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
 
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
+      await updateMerchantProductCommercialData(item, {
         priceValue: rawValue,
-        isCommerciallyModified: true,
       });
       return;
     }
 
     if (field === "priceCurrency") {
       const selectedValue = target.value?.trim() ?? "";
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      if (isFreePriceCurrency(selectedValue)) {
-        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-          ...product,
-          hasFreePrice: true,
-          isCommerciallyModified: true,
-        });
-      } else {
-        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-          ...product,
-          priceCurrency: selectedValue,
-          hasFreePrice: false,
-          isCommerciallyModified: true,
-        });
-      }
+      await updateMerchantProductCommercialData(item, {
+        priceCurrency: selectedValue,
+      });
       return;
     }
 
@@ -3130,6 +3135,35 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#saveScrollPositions();
     await this.actor.update({
       "system.services.entries": entries,
+    });
+
+    this.render();
+  }
+
+  static async #onToggleProductOwnership(event, target) {
+    event.preventDefault();
+
+    if (!this.isEditable) return;
+
+    const item = this.#getItemFromEvent(target);
+    if (!item) return;
+
+    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const currentLevel = Number(
+      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+    );
+    const nextLevel =
+      currentLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+        ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+        : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+
+    this.#saveScrollPositions();
+    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+      ...product,
+      ownershipLevel: nextLevel,
+    });
+    await item.update({
+      "ownership.default": nextLevel,
     });
 
     this.render();

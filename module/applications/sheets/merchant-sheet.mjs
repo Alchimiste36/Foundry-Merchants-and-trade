@@ -67,6 +67,11 @@ import {
   applyCurrencyTransferPlan,
   clearSessionAfterExecution,
 } from "./merchant-trade.mjs";
+import {
+  prepareMerchantJournalContext,
+  buildMerchantJournalEntryFromSession,
+  appendMerchantJournalEntry,
+} from "./merchant-journal.mjs";
 import { requestMerchantSessionUpdate } from "./merchant-session-socket.mjs";
 
 const { ActorSheetV2 } = foundry.applications.sheets;
@@ -77,6 +82,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #activeSessionId = null;
   #selectedClientActorUuid = "";
   #sessionCheckResult = null;
+  #journalSort = { key: "date", direction: "desc" };
   #scrollPositions = {};
 
   static DEFAULT_OPTIONS = {
@@ -132,6 +138,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       editMerchantImage: MerchantSheet.#onEditMerchantImage,
       rollNegotiation: MerchantSheet.#onRollNegotiation,
       selectTab: MerchantSheet.#onSelectTab,
+      sortJournal: MerchantSheet.#onSortJournal,
     },
   };
 
@@ -191,6 +198,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.currencyOptions = prepareCurrencyOptions();
     context.mtt.access = this.#prepareAccessContext();
     context.mtt.session = this.#prepareSessionContext();
+    context.mtt.journal = prepareMerchantJournalContext(this.actor, {
+      user: game.user,
+      sort: this.#journalSort,
+    });
 
     return context;
   }
@@ -2518,6 +2529,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
         await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan);
       }
+      await appendMerchantJournalEntry(
+        this.actor,
+        buildMerchantJournalEntryFromSession(this.actor, session, {
+          status: "validated",
+          executionPlan,
+        }),
+      );
       clearSessionAfterExecution(session);
       await this.#saveSession(session);
       this.#sessionCheckResult = null;
@@ -2547,6 +2565,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const confirmed = await openRefuseConfirmDialog();
     if (!confirmed) return;
 
+    await appendMerchantJournalEntry(
+      this.actor,
+      buildMerchantJournalEntryFromSession(this.actor, session, {
+        status: "refused",
+      }),
+    );
     clearSessionAfterExecution(session);
     await this.#saveSession(session);
     this.render();
@@ -2652,6 +2676,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (tab === "configuration" && !this.isEditable) return;
 
     this.#activeTab = tab;
+    this.render();
+  }
+
+  static #onSortJournal(event, target) {
+    event.preventDefault();
+
+    const key = target.dataset.sortKey;
+    if (!["date", "buyer", "status", "total"].includes(key)) return;
+
+    const direction = this.#journalSort.key === key && this.#journalSort.direction === "asc" ? "desc" : "asc";
+    this.#journalSort = { key, direction };
     this.render();
   }
 

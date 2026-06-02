@@ -68,7 +68,39 @@
     "tabs": {
       "products": "Products",
       "services": "Services",
-      "configuration": "Configuration"
+      "configuration": "Configuration",
+      "journal": "Journal"
+    },
+    "journal": {
+      "title": "Journal",
+      "empty": "No recorded transaction.",
+      "noDetail": "No detail available.",
+      "status": {
+        "validated": "Validated",
+        "refused": "Refused"
+      },
+      "columns": {
+        "type": "Type",
+        "name": "Name",
+        "side": "Side",
+        "buyer": "Buyer",
+        "date": "Date",
+        "status": "Status",
+        "quantity": "Qty",
+        "unitPrice": "Unit price",
+        "total": "Total",
+        "negotiation": "Negotiation"
+      },
+      "type": {
+        "product": "Product",
+        "service": "Service",
+        "item": "Item",
+        "money": "Money"
+      },
+      "side": {
+        "buyer": "Received / bought",
+        "seller": "Given / sold"
+      }
     },
     "items": {
       "newItem": "New item",

@@ -54,6 +54,55 @@ export const MTT = {
     minimumPriceValue: 0,
   },
 
+  JOURNAL_DEFAULTS: {
+    transactions: [],
+    nextTransactionNumber: 1,
+  },
+
+  JOURNAL_ENTRY_DEFAULTS: {
+    transactionNumber: null,
+    status: "validated",
+    merchantActorUuid: "",
+    merchantName: "",
+    buyerActorUuid: "",
+    buyerName: "",
+    buyerImg: "",
+    referenceCurrency: "",
+    totalReferenceValue: 0,
+    summaryLabel: "",
+    entries: [],
+    moneyAdjustments: [],
+    secrets: [],
+  },
+
+  JOURNAL_TRANSACTION_ENTRY_DEFAULTS: {
+    type: "product",
+    side: "buyer",
+    sourceId: "",
+    sourceUuid: "",
+    sourceActorUuid: "",
+    name: "",
+    img: "",
+    quantity: 1,
+    unitPriceValue: 0,
+    totalPriceValue: 0,
+    priceCurrency: "",
+    referenceUnitPriceValue: null,
+    percentOfReference: null,
+    isNegotiated: false,
+    negotiationStatus: "",
+    isFreePrice: false,
+    hasSecrets: false,
+    secretData: null,
+  },
+
+  JOURNAL_MONEY_ADJUSTMENT_DEFAULTS: {
+    side: "buyer",
+    value: 0,
+    currency: "",
+    label: "",
+  },
+
   TEMPLATES: {
     MERCHANT_SHEET: "modules/mtt-merchants/templates/actors/merchant-sheet.hbs",
     MERCHANT_HEADER:
@@ -66,6 +115,8 @@ export const MTT = {
       "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs",
     MERCHANT_CONFIGURATION:
       "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs",
+    MERCHANT_JOURNAL:
+      "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs",
     MERCHANT_SESSION:
       "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",

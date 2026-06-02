@@ -20,5 +20,11 @@
         </section>
       {{/if}}
     {{/if}}
+
+    {{#if (eq mtt.activeTab "journal")}}
+      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-journal" data-tab="journal">
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs"}}
+      </section>
+    {{/if}}
   </section>
 </section>

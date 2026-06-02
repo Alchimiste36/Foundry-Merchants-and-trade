@@ -96,6 +96,20 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
     const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
     const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
     const isVisible = !isHidden
+    const configuredOwnershipLevel = Number(
+      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+    )
+    const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
+      ? configuredOwnershipLevel
+      : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+    const isObserverOwnership = ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+    const isLimitedOwnership = !isObserverOwnership
+    const ownershipClass = isObserverOwnership
+      ? "mtt-merchant-product-ownership-observer"
+      : "mtt-merchant-product-ownership-limited"
+    const ownershipLabelKey = isObserverOwnership
+      ? "mtt.products.ownership.observer"
+      : "mtt.products.ownership.limited"
 
     return {
       id: item.id,
@@ -126,6 +140,11 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
       isHidden,
       isVisible,
+      ownershipLevel,
+      isLimitedOwnership,
+      isObserverOwnership,
+      ownershipClass,
+      ownershipLabelKey,
       requiresApproval: product.requiresApproval ?? MTT.PRODUCT_DEFAULTS.requiresApproval,
       priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
       displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
@@ -328,6 +347,7 @@ export function createProductFlags(itemData, options = {}) {
   productFlags.displayName = itemData.name ?? ""
   productFlags.sourceUuid = String(options.sourceUuid ?? productFlags.sourceUuid ?? "").trim()
   productFlags.isCommerciallyModified = false
+  productFlags.ownershipLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
 
   const configuredPrice = getConfiguredItemValue(itemData, "itemPriceValuePath")
   const parsedPrice = parsePriceValue(configuredPrice) ?? getItemPrice(itemData)
@@ -466,8 +486,19 @@ export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", a
     automaticCategory,
     sourceUuid: normalizedSourceUuid,
   })
+  productData.ownership = {
+    default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+  }
   // Catalogue drop: this creates merchant commercial stock, not a purchased Item on a client actor.
-  await actor.createEmbeddedDocuments("Item", [productData])
+  const [createdItem] = await actor.createEmbeddedDocuments("Item", [productData])
+
+  if (createdItem) {
+    await createdItem.update({
+      ownership: {
+        default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+      },
+    })
+  }
 }
 
 export async function moveProductToCategory(actor, itemId, categoryValue) {

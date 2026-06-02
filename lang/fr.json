@@ -289,6 +289,10 @@
       "show": "Afficher le produit",
       "requireApproval": "Demander une validation MJ",
       "disableApproval": "Retirer la validation MJ",
+      "ownership": {
+        "limited": "Droit : Limité",
+        "observer": "Droit : Observateur"
+      },
       "quantity": {
         "short": "Qté",
         "undefined": "Quantité non définie",

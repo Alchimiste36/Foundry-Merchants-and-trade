@@ -121,7 +121,7 @@
                     </div>
 
 
-                    <div class="mtt-merchant-product-main">
+                    <div class="mtt-merchant-product-main {{#if item.isLimitedOwnership}}mtt-merchant-product-ownership-limited{{/if}}{{#if item.isObserverOwnership}}mtt-merchant-product-ownership-observer{{/if}}">
                       <img
                         class="mtt-merchant-product-image"
                         data-action="editItem"
@@ -139,7 +139,17 @@
                             data-mtt-product-field="displayName"
                           />
                         {{else}}
-                          <span class="mtt-merchant-product-name">{{item.displayName}}</span>
+                          {{#if @root.mtt.isEditable}}
+                            <span
+                              class="mtt-merchant-product-name"
+                              data-action="toggleProductOwnership"
+                              data-tooltip="{{localize item.ownershipLabelKey}}"
+                            >
+                              {{item.displayName}}
+                            </span>
+                          {{else}}
+                            <span class="mtt-merchant-product-name">{{item.displayName}}</span>
+                          {{/if}}
                         {{/if}}
                         {{#if @root.mtt.isEditable}}
                           {{#if (ne item.displayName item.name)}}

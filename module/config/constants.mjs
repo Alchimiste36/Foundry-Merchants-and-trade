@@ -24,6 +24,7 @@ export const MTT = {
     systemCategoryPath: "",
     sourceUuid: "",
     isCommerciallyModified: false,
+    ownershipLevel: 2,
     isSecretExpanded: false,
     isHidden: false,
     requiresApproval: false,

@@ -1767,6 +1767,7 @@
   align-items: center;
   gap: 0.65rem;
   min-width: 0;
+  border-left: 4px solid transparent;
 }
 
 .mtt-merchant-product-image {
@@ -1777,6 +1778,14 @@
   object-fit: cover;
   //border: 1px solid var(--mtt-border);
   //background: var(--mtt-bg-field);
+}
+
+.mtt-merchant-product-main.mtt-merchant-product-ownership-limited {
+  border-left: 4px solid #a33;
+}
+
+.mtt-merchant-product-main.mtt-merchant-product-ownership-observer {
+  border-left: 4px solid #2f8f46;
 }
 
 .mtt-merchant-product-identity {

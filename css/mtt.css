@@ -1487,12 +1487,19 @@
   align-items: center;
   gap: 0.65rem;
   min-width: 0;
+  border-left: 4px solid transparent;
 }
 .mtt-merchant-product-image {
   width: 25px;
   height: 25px;
   flex: 0 0 25px;
   object-fit: cover;
+}
+.mtt-merchant-product-main.mtt-merchant-product-ownership-limited {
+  border-left: 4px solid #a33;
+}
+.mtt-merchant-product-main.mtt-merchant-product-ownership-observer {
+  border-left: 4px solid #2f8f46;
 }
 .mtt-merchant-product-identity {
   display: flex;

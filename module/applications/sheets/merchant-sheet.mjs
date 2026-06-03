@@ -11,6 +11,7 @@ import {
   htmlToPlainText,
   getMerchantSheetLockedState,
   getMerchantLimitedState,
+  productHasSecretInfo,
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
@@ -21,6 +22,7 @@ import {
   openSessionValidationDialog,
   openSessionExecutionErrorsDialog,
   openRefuseConfirmDialog,
+  openCatalogItemSecretsDialog,
 } from "./merchant-dialogs.mjs";
 import {
   getSellPercent,
@@ -109,7 +111,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       deleteService: MerchantSheet.#onDeleteService,
       toggleServiceExpanded: MerchantSheet.#onToggleServiceExpanded,
       toggleCatalogItemVisibility: MerchantSheet.#onToggleCatalogItemVisibility,
-      toggleProductOwnership: MerchantSheet.#onToggleProductOwnership,
       toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
       toggleOpen: MerchantSheet.#onToggleOpen,
@@ -234,6 +235,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element
       .querySelectorAll("[data-mtt-service-field]")
       .forEach((input) => input.addEventListener("change", (event) => this.#onServiceFieldChange(event)));
+
+    this.element
+      .querySelectorAll("[data-mtt-catalog-context-menu]")
+      .forEach((target) =>
+        target.addEventListener("contextmenu", (event) => this.#onCatalogItemContextMenu(event, target)),
+      );
 
     this.element.querySelectorAll("[data-mtt-service-drop]").forEach((dropZone) => {
       if (dropZone.dataset.mttDropBound) return;
@@ -368,8 +375,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       quantity,
       unitPriceValue,
       totalPriceValue,
-      percentOfReference:
-        Number.isFinite(percentOfReference) && percentOfReference >= 0 ? percentOfReference : 100,
+      percentOfReference: Number.isFinite(percentOfReference) && percentOfReference >= 0 ? percentOfReference : 100,
     };
   }
 
@@ -1016,6 +1022,273 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #closeAccessContextMenu() {
     const applicationElement = this.#getApplicationElement();
     applicationElement?.querySelectorAll(".mtt-merchant-access-context-menu").forEach((menu) => menu.remove());
+  }
+
+  async #onCatalogItemContextMenu(event, target) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!this.isEditable) return;
+
+    const catalogItem = this.#getCatalogContextItem(target);
+    if (!catalogItem) return;
+
+    this.#openCatalogItemContextMenu(event, catalogItem);
+  }
+
+  #getCatalogContextItem(target) {
+    const kind = target.dataset.catalogKind ?? "";
+
+    if (kind === "product") {
+      const item = this.#getItemFromEvent(target);
+      if (!item) return null;
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      return {
+        kind,
+        name: product.displayName || item.name,
+        hasSecrets: productHasSecretInfo(product),
+        requiresApproval: Boolean(product.requiresApproval),
+        isObserverOwnership:
+          Number(product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
+          CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+        productItem: item,
+        data: product,
+      };
+    }
+
+    if (kind === "service") {
+      const service = this.#getServiceFromEvent(target);
+      if (!service) return null;
+
+      return {
+        kind,
+        name: service.name,
+        hasSecrets: productHasSecretInfo(service),
+        requiresApproval: Boolean(service.requiresApproval),
+        serviceId: service.id,
+        data: service,
+      };
+    }
+
+    return null;
+  }
+
+  #openCatalogItemContextMenu(event, catalogItem) {
+    const applicationElement = this.#getApplicationElement();
+    if (!applicationElement) return;
+
+    this.#closeAccessContextMenu();
+
+    const menu = document.createElement("nav");
+    menu.classList.add("mtt-merchant-access-context-menu", "mtt-merchant-catalog-context-menu");
+    menu.style.left = `${event.clientX}px`;
+    menu.style.top = `${event.clientY}px`;
+    menu.setAttribute("aria-label", game.i18n.localize("mtt.catalog.context.title"));
+
+    const secretInfo = this.#createCatalogContextButton({
+      icon: "fa-mask",
+      label: game.i18n.localize("mtt.catalog.context.secretInfo"),
+      onClick: async () => this.#editCatalogItemSecrets(catalogItem),
+    });
+    menu.append(secretInfo);
+
+    if (catalogItem.hasSecrets) {
+      const deleteSecrets = this.#createCatalogContextButton({
+        icon: "fa-eraser",
+        label: game.i18n.localize("mtt.catalog.context.deleteSecretInfo"),
+        onClick: async () => this.#deleteCatalogItemSecrets(catalogItem),
+      });
+      menu.append(deleteSecrets);
+    }
+
+    const approvalLabel = catalogItem.requiresApproval
+      ? game.i18n.localize("mtt.catalog.context.removeApproval")
+      : game.i18n.localize("mtt.catalog.context.requestApproval");
+    const approval = this.#createCatalogContextButton({
+      icon: catalogItem.requiresApproval ? "fa-user-minus" : "fa-user-check",
+      label: approvalLabel,
+      onClick: async () => this.#toggleCatalogItemApproval(catalogItem),
+    });
+    menu.append(approval);
+
+    if (catalogItem.kind === "product") {
+      const ownershipLabel = catalogItem.isObserverOwnership
+        ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
+        : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership");
+      const ownership = this.#createCatalogContextButton({
+        icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
+        label: ownershipLabel,
+        onClick: async () => this.#toggleCatalogProductOwnership(catalogItem),
+      });
+      menu.append(ownership);
+    }
+
+    applicationElement.append(menu);
+
+    window.setTimeout(() => {
+      const closeMenu = (closeEvent) => {
+        if (!menu.contains(closeEvent.target)) this.#closeAccessContextMenu();
+        document.removeEventListener("click", closeMenu, true);
+      };
+      document.addEventListener("click", closeMenu, true);
+    }, 0);
+  }
+
+  #createCatalogContextButton({ icon, label, onClick }) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.classList.add("mtt-merchant-access-context-menu-button");
+
+    const iconElement = document.createElement("i");
+    iconElement.classList.add("fas", ...String(icon ?? "").split(" ").filter(Boolean));
+    const labelElement = document.createElement("span");
+    labelElement.textContent = label;
+
+    button.append(iconElement, labelElement);
+    button.addEventListener("click", async () => {
+      this.#closeAccessContextMenu();
+      await onClick();
+    });
+
+    return button;
+  }
+
+  async #editCatalogItemSecrets(catalogItem) {
+    if (!this.isEditable) return;
+
+    const result = await openCatalogItemSecretsDialog({
+      name: catalogItem.name,
+      secretName: catalogItem.data.secretName ?? "",
+      secretPrice: catalogItem.data.secretPrice ?? "",
+      secretCurrency: this.#getCatalogItemSecretCurrency(catalogItem),
+      secretDescription: catalogItem.data.secretDescription ?? "",
+    });
+    if (!result) return;
+
+    await this.#updateCatalogItemSecretData(catalogItem, result);
+  }
+
+  async #deleteCatalogItemSecrets(catalogItem) {
+    if (!this.isEditable) return;
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: game.i18n.localize("mtt.secrets.deleteTitle"),
+      },
+      content: `<p>${game.i18n.localize("mtt.secrets.deleteConfirm")}</p>`,
+      yes: {
+        label: game.i18n.localize("mtt.actions.delete"),
+      },
+      no: {
+        label: game.i18n.localize("mtt.actions.cancel"),
+      },
+    });
+    if (!confirmed) return;
+
+    await this.#updateCatalogItemSecretData(catalogItem, {
+      secretName: "",
+      secretPrice: "",
+      secretCurrency: "",
+      secretDescription: "",
+    });
+  }
+
+  #getCatalogItemSecretCurrency(catalogItem) {
+    const configuredCurrency = String(catalogItem.data.secretCurrency ?? "").trim();
+    if (configuredCurrency) return configuredCurrency;
+
+    const referenceCurrency = getReferenceCurrency();
+    const referenceKey = String(referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? "").trim();
+    if (referenceKey) return referenceKey;
+
+    return String(catalogItem.data.priceCurrency ?? "").trim();
+  }
+
+  async #updateCatalogItemSecretData(catalogItem, secrets) {
+    if (!this.isEditable) return;
+
+    this.#saveScrollPositions();
+
+    if (catalogItem.kind === "product") {
+      await catalogItem.productItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...catalogItem.data,
+        ...secrets,
+        isCommerciallyModified: true,
+      });
+      this.render();
+      return;
+    }
+
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const index = entries.findIndex((service) => service.id === catalogItem.serviceId);
+    if (index === -1) return;
+
+    entries[index] = {
+      ...entries[index],
+      ...secrets,
+      isCommerciallyModified: true,
+    };
+
+    await this.actor.update({
+      "system.services.entries": entries,
+    });
+
+    this.render();
+  }
+
+  async #toggleCatalogItemApproval(catalogItem) {
+    if (!this.isEditable) return;
+
+    this.#saveScrollPositions();
+
+    if (catalogItem.kind === "product") {
+      await catalogItem.productItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...catalogItem.data,
+        requiresApproval: !catalogItem.requiresApproval,
+      });
+      this.render();
+      return;
+    }
+
+    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const index = entries.findIndex((service) => service.id === catalogItem.serviceId);
+    if (index === -1) return;
+
+    entries[index].requiresApproval = !catalogItem.requiresApproval;
+
+    await this.actor.update({
+      "system.services.entries": entries,
+    });
+
+    this.render();
+  }
+
+  async #toggleCatalogProductOwnership(catalogItem) {
+    if (!this.isEditable || catalogItem.kind !== "product") return;
+
+    const item = catalogItem.productItem;
+    if (!item) return;
+
+    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const currentLevel = Number(
+      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+    );
+    const nextLevel =
+      currentLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+        ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+        : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+
+    this.#saveScrollPositions();
+    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+      ...product,
+      ownershipLevel: nextLevel,
+    });
+    await item.update({
+      "ownership.default": nextLevel,
+    });
+
+    this.render();
   }
 
   // ─── Dropped document helpers ─────────────────────────────────────────────
@@ -2500,7 +2773,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!confirmed) return;
 
     try {
-      const executionPlan = await buildSessionItemExecutionPlan(this.actor, session);
+      const transactionNumber = this.#getNextJournalTransactionNumber();
+      const executionPlan = await buildSessionItemExecutionPlan(this.actor, session, { transactionNumber });
       if (!executionPlan.canExecute) {
         this.#sessionCheckResult = {
           checked: true,
@@ -2534,6 +2808,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         buildMerchantJournalEntryFromSession(this.actor, session, {
           status: "validated",
           executionPlan,
+          transactionNumber,
         }),
       );
       clearSessionAfterExecution(session);
@@ -2565,15 +2840,24 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const confirmed = await openRefuseConfirmDialog();
     if (!confirmed) return;
 
+    const transactionNumber = this.#getNextJournalTransactionNumber();
     await appendMerchantJournalEntry(
       this.actor,
       buildMerchantJournalEntryFromSession(this.actor, session, {
         status: "refused",
+        transactionNumber,
       }),
     );
     clearSessionAfterExecution(session);
     await this.#saveSession(session);
     this.render();
+  }
+
+  #getNextJournalTransactionNumber() {
+    const nextTransactionNumber = Number(this.actor.system?.journal?.nextTransactionNumber);
+    if (!Number.isFinite(nextTransactionNumber) || nextTransactionNumber <= 0) return 1;
+
+    return Math.floor(nextTransactionNumber);
   }
 
   static async #onToggleOpen(event) {
@@ -3170,35 +3454,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#saveScrollPositions();
     await this.actor.update({
       "system.services.entries": entries,
-    });
-
-    this.render();
-  }
-
-  static async #onToggleProductOwnership(event, target) {
-    event.preventDefault();
-
-    if (!this.isEditable) return;
-
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
-
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const currentLevel = Number(
-      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-    );
-    const nextLevel =
-      currentLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
-        ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
-        : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
-
-    this.#saveScrollPositions();
-    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      ownershipLevel: nextLevel,
-    });
-    await item.update({
-      "ownership.default": nextLevel,
     });
 
     this.render();

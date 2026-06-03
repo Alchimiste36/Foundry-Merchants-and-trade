@@ -288,11 +288,16 @@
   color: var(--mtt-text);
   text-align: left;
   cursor: pointer;
+  justify-content: flex-start;
 }
 
 .mtt-merchant-access-context-menu-button:hover {
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);
+}
+
+.mtt-merchant-catalog-context-menu {
+  z-index: 135;
 }
 
 .mtt-merchant-access-card-selected {
@@ -1967,6 +1972,28 @@
   min-width: 0;
 }
 
+.mtt-merchant-catalog-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.mtt-merchant-secret-indicator,
+.mtt-merchant-approval-indicator {
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+}
+
+.mtt-merchant-secret-indicator {
+  color: var(--mtt-danger);
+  cursor: help;
+}
+
+.mtt-merchant-approval-indicator {
+  color: var(--mtt-danger);
+}
+
 .mtt-merchant-product-name {
   font-weight: 700;
   color: var(--mtt-text);
@@ -2439,6 +2466,12 @@
   text-align: left;
 }
 
+.mtt-journal-secret-indicator {
+  color: var(--mtt-danger);
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
+
 .mtt-merchant-journal-item-unit-price,
 .mtt-merchant-journal-item-total {
   text-align: right;
@@ -2760,6 +2793,10 @@
   flex: 1;
 }
 
+.mtt-merchant-service-name-row {
+  flex: 1;
+}
+
 .mtt-merchant-service-name {
   border: 1px solid var(--mtt-border);
   background: var(--mtt-bg-field);
@@ -2783,6 +2820,30 @@
   display: grid;
   grid-template-columns: 1fr 0.5fr auto;
   gap: 0.2rem;
+}
+
+.mtt-secret-info-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mtt-secret-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mtt-secret-info-price-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) 7rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mtt-secret-info-field textarea {
+  min-height: 6rem;
+  resize: vertical;
 }
 
 .mtt-merchant-service-price-bloc {

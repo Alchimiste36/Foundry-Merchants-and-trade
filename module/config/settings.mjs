@@ -68,6 +68,15 @@ export function registerSettings() {
     default: false,
   });
 
+  game.settings.register(MTT.ID, "writeDeliveryDescriptionInfo", {
+    name: "mtt.settings.writeDeliveryDescriptionInfo.name",
+    hint: "mtt.settings.writeDeliveryDescriptionInfo.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   game.settings.register(MTT.ID, "itemDescriptionPath", {
     name: "mtt.settings.itemDescriptionPath.name",
     hint: "mtt.settings.itemDescriptionPath.hint",

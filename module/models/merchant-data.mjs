@@ -333,14 +333,9 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           required: true,
           initial: false,
         }),
-        hasSecrets: new fields.BooleanField({
+        hadSecrets: new fields.BooleanField({
           required: true,
           initial: false,
-        }),
-        secretData: new fields.ObjectField({
-          required: false,
-          nullable: true,
-          initial: null,
         }),
       });
 
@@ -657,6 +652,26 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
               initial: "",
             }),
             description: new fields.HTMLField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretName: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretPrice: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretCurrency: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretDescription: new fields.StringField({
               required: false,
               blank: true,
               initial: "",

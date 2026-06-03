@@ -19,6 +19,10 @@ import {
   getMttSourceUuid,
   getDeliveredItemMergeMode,
   roundToSmallestCurrencyUnit,
+  escapeHTML,
+  getModuleSetting,
+  hasSecretValue,
+  productHasSecretInfo,
 } from "./merchant-utils.mjs";
 import {
   prepareMerchantCatalogItemData,
@@ -1682,6 +1686,93 @@ function setItemDataQuantity(itemData, quantity, sourceItem = null) {
   foundry.utils.setProperty(itemData, targetPath, quantity);
 }
 
+function catalogEntryHasSecretData(entry = {}) {
+  return productHasSecretInfo(entry);
+}
+
+function formatDeliveryTransactionNumber(transactionNumber) {
+  const number = Number(transactionNumber);
+  if (!Number.isFinite(number) || number <= 0) return "";
+
+  return String(Math.floor(number));
+}
+
+function buildDeliveredItemOriginHtml(productData = {}) {
+  const merchantName = String(productData.merchantName ?? "").trim();
+  if (!merchantName) return "";
+
+  const transactionNumber = formatDeliveryTransactionNumber(productData.transactionNumber);
+  const originText = transactionNumber
+    ? game.i18n.format("mtt.delivery.originWithTransaction", {
+        merchantName,
+        transactionNumber,
+      })
+    : game.i18n.format("mtt.delivery.origin", { merchantName });
+
+  return `<p class="mtt-delivery-origin">${escapeHTML(originText)}</p>`;
+}
+
+function buildDeliveredItemSecretHtml(productData = {}) {
+  if (!catalogEntryHasSecretData(productData)) return "";
+
+  const lines = [];
+  if (hasSecretValue(productData.secretName)) {
+    lines.push(
+      game.i18n.format("mtt.delivery.secretName", {
+        value: String(productData.secretName ?? "").trim(),
+      }),
+    );
+  }
+
+  if (hasSecretValue(productData.secretPrice) || hasSecretValue(productData.secretCurrency)) {
+    const formattedPrice = hasSecretValue(productData.secretPrice)
+      ? formatPriceLabel(productData.secretPrice, productData.secretCurrency)
+      : "";
+    const priceLabel =
+      formattedPrice ||
+      [productData.secretPrice, productData.secretCurrency]
+        .map((part) => String(part ?? "").trim())
+        .filter(Boolean)
+        .join(" ");
+    if (priceLabel) {
+      lines.push(game.i18n.format("mtt.delivery.secretPrice", { value: priceLabel }));
+    }
+  }
+
+  if (hasSecretValue(productData.secretDescription)) {
+    lines.push(
+      game.i18n.format("mtt.delivery.secretDescription", {
+        value: String(productData.secretDescription ?? "").trim(),
+      }),
+    );
+  }
+
+  if (lines.length === 0) return "";
+
+  const paragraphs = lines
+    .map((line) => `<p>${escapeHTML(line).replace(/\r?\n/g, "<br>")}</p>`)
+    .join("");
+
+  return `<section class="secret"><h4>${escapeHTML(game.i18n.localize("mtt.delivery.secretTitle"))}</h4>${paragraphs}</section>`;
+}
+
+function addDeliveredItemDescriptionBlock(itemData, productData = {}) {
+  if (!getModuleSetting("writeDeliveryDescriptionInfo")) return;
+
+  const descriptionPath = String(getModuleSetting("itemDescriptionPath") ?? "").trim();
+  if (!descriptionPath) return;
+
+  const originHtml = buildDeliveredItemOriginHtml(productData);
+  const secretHtml = buildDeliveredItemSecretHtml(productData);
+  if (!originHtml && !secretHtml) return;
+
+  const originalDescription = foundry.utils.getProperty(itemData, descriptionPath);
+  const originalHtml =
+    originalDescription === null || originalDescription === undefined ? "" : String(originalDescription);
+
+  foundry.utils.setProperty(itemData, descriptionPath, [originHtml, secretHtml, originalHtml].filter(Boolean).join("\n"));
+}
+
 function buildVisibleProductItemData(sourceItem, product, quantity) {
   const itemData = sourceItem.toObject();
   delete itemData._id;
@@ -1693,11 +1784,8 @@ function buildVisibleProductItemData(sourceItem, product, quantity) {
   if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID];
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
     sourceUuid: getMttSourceUuid(sourceItem, product),
-    isCommerciallyModified: Boolean(product.isCommerciallyModified),
+    isCommerciallyModified: Boolean(product.isCommerciallyModified) || productHasSecretInfo(product),
   });
-  // TODO MTT secrets:
-  // Ensure itemData contains the visible commercial data and owner-only secret block
-  // before delivery stacking duplicates it into several actor item lines.
   setItemDataQuantity(itemData, quantity, sourceItem);
 
   return itemData;
@@ -1841,6 +1929,7 @@ export async function deliverPurchasedItemToActor(actor, productData, deliveredI
     for (const stack of simulation.created) {
       const itemData = foundry.utils.deepClone(deliveredItemData);
       foundry.utils.setProperty(itemData, quantityPath, stack.quantity);
+      addDeliveredItemDescriptionBlock(itemData, productData);
       const documents = await actor.createEmbeddedDocuments("Item", [itemData]);
       const item = documents[0];
       if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"));
@@ -1896,7 +1985,7 @@ async function getClientActor(session, errors) {
   return null;
 }
 
-export async function buildSessionItemExecutionPlan(actor, session) {
+export async function buildSessionItemExecutionPlan(actor, session, options = {}) {
   const preview = await buildExecutionPreview(actor, session);
   const errors = [...(preview.errors ?? [])];
   const clientActor = await getClientActor(session, errors);
@@ -1958,7 +2047,12 @@ export async function buildSessionItemExecutionPlan(actor, session) {
 
     reservedMerchantQuantities.set(merchantItem.id, totalRequestedQuantity);
 
-    const deliveryProductData = { ...product, id: merchantItem.id };
+    const deliveryProductData = {
+      ...product,
+      id: merchantItem.id,
+      merchantName: actor?.name ?? "",
+      transactionNumber: options.transactionNumber,
+    };
     const deliveredItemData = buildVisibleProductItemData(merchantItem, product, requestedQuantity);
     const deliveryPlan = simulatePurchasedItemDeliveryToActor(
       clientActor,

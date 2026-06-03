@@ -8,7 +8,7 @@
             class="mtt-merchant-product-category-group {{#if category.isCollapsed}}mtt-merchant-product-category-collapsed{{/if}}"
             data-mtt-category-drop
             data-category="{{category.categoryValue}}"
-            data-tooltip="{{localize 'mtt.products.category.dropTooltip'}}"
+            <!--data-tooltip="{{localize 'mtt.products.category.dropTooltip'}}"-->
           >
             <header class="mtt-merchant-product-category-header {{#unless category.isVisible}}mtt-merchant-product-category-header-hidden{{/unless}}">
               <div class="mtt-merchant-product-category-header-main">
@@ -91,6 +91,10 @@
                     class="mtt-merchant-product-row draggable {{#unless item.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}"
                     data-item-id="{{item.id}}"
                     data-mtt-product-id="{{item.id}}"
+                    {{#if @root.mtt.isEditable}}
+                      data-mtt-catalog-context-menu
+                      data-catalog-kind="product"
+                    {{/if}}
                     {{#if @root.mtt.canEditMerchant}}draggable="true"{{/if}}
                   >
 
@@ -132,23 +136,55 @@
 
                       <div class="mtt-merchant-product-identity">
                         {{#if @root.mtt.canEditMerchant}}
+                          <div class="mtt-merchant-catalog-name-row">
+                            {{#if item.hasSecrets}}
+                              <i
+                                class="fa-solid fa-mask mtt-merchant-secret-indicator"
+                                data-tooltip="{{item.secretTooltip}}"
+                                aria-hidden="true"
+                              ></i>
+                            {{/if}}
+                            {{#if item.requiresApproval}}
+                              <i
+                                class="fas fa-user-check mtt-merchant-approval-indicator"
+                                data-tooltip="{{localize 'mtt.products.tags.requiresApproval'}}"
+                                aria-hidden="true"
+                              ></i>
+                            {{/if}}
                           <input
                             class="mtt-merchant-product-name-input"
                             type="text"
                             value="{{item.displayName}}"
                             data-mtt-product-field="displayName"
                           />
+                          </div>
                         {{else}}
                           {{#if @root.mtt.isEditable}}
+                            <span class="mtt-merchant-catalog-name-row">
+                              {{#if item.hasSecrets}}
+                                <i
+                                  class="fa-solid fa-mask mtt-merchant-secret-indicator"
+                                  data-tooltip="{{item.secretTooltip}}"
+                                  aria-hidden="true"
+                                ></i>
+                              {{/if}}
+                              {{#if item.requiresApproval}}
+                                <i
+                                  class="fas fa-user-check mtt-merchant-approval-indicator"
+                                  data-tooltip="{{localize 'mtt.products.tags.requiresApproval'}}"
+                                  aria-hidden="true"
+                                ></i>
+                              {{/if}}
                             <span
                               class="mtt-merchant-product-name"
-                              data-action="toggleProductOwnership"
-                              data-tooltip="{{localize item.ownershipLabelKey}}"
                             >
                               {{item.displayName}}
                             </span>
+                            </span>
                           {{else}}
-                            <span class="mtt-merchant-product-name">{{item.displayName}}</span>
+                            <span class="mtt-merchant-catalog-name-row">
+                              <span class="mtt-merchant-product-name">{{item.displayName}}</span>
+                            </span>
                           {{/if}}
                         {{/if}}
                         {{#if @root.mtt.isEditable}}
@@ -233,22 +269,6 @@
                             <i class="fas fa-cart-plus"></i>
                           </button>
                         {{/unless}}
-                        {{/if}}
-
-                        {{#if @root.mtt.isEditable}}
-                        <button
-                          class="mtt-merchant-product-action"
-                          type="button"
-                          data-action="toggleProductApproval"
-                          data-tooltip="{{#if item.requiresApproval}}{{localize 'mtt.products.disableApproval'}}{{else}}{{localize 'mtt.products.requireApproval'}}{{/if}}"
-                          title="{{#if item.requiresApproval}}{{localize 'mtt.products.disableApproval'}}{{else}}{{localize 'mtt.products.requireApproval'}}{{/if}}"
-                        >
-                          {{#if item.requiresApproval}}
-                            <i class="fas fa-user-check"></i>
-                          {{else}}
-                            <i class="fas fa-user-clock"></i>
-                          {{/if}}
-                        </button>
                         {{/if}}
 
                         {{#if @root.mtt.isEditable}}

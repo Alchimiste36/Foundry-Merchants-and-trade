@@ -46,6 +46,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
       deliveryItemQuantityPath: game.settings.get(MTT.ID, "deliveryItemQuantityPath"),
       deliveryItemMaxQuantityPath: game.settings.get(MTT.ID, "deliveryItemMaxQuantityPath"),
+      writeDeliveryDescriptionInfo: game.settings.get(MTT.ID, "writeDeliveryDescriptionInfo"),
       itemDescriptionPath: game.settings.get(MTT.ID, "itemDescriptionPath"),
       allowedProductTypes: game.settings.get(MTT.ID, "allowedProductTypes"),
       allowedServiceTypes: game.settings.get(MTT.ID, "allowedServiceTypes"),
@@ -77,6 +78,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "itemQuantityPath", fd.get("itemQuantityPath") ?? "");
     await game.settings.set(MTT.ID, "deliveryItemQuantityPath", fd.get("deliveryItemQuantityPath") ?? "");
     await game.settings.set(MTT.ID, "deliveryItemMaxQuantityPath", fd.get("deliveryItemMaxQuantityPath") ?? "");
+    await game.settings.set(MTT.ID, "writeDeliveryDescriptionInfo", fd.get("writeDeliveryDescriptionInfo") === "on");
     await game.settings.set(MTT.ID, "itemDescriptionPath", fd.get("itemDescriptionPath") ?? "");
     await game.settings.set(MTT.ID, "allowedProductTypes", fd.get("allowedProductTypes") ?? "");
     await game.settings.set(MTT.ID, "allowedServiceTypes", fd.get("allowedServiceTypes") ?? "");

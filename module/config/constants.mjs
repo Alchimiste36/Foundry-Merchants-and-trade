@@ -120,6 +120,8 @@ export const MTT = {
     MERCHANT_SESSION:
       "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",
+    MTT_GLOBAL_JOURNAL:
+      "modules/mtt-merchants/templates/apps/mtt-global-journal.hbs",
     MTT_DIALOG: "modules/mtt-merchants/templates/apps/mtt-dialog.hbs",
   },
 

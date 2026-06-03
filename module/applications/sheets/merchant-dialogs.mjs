@@ -191,80 +191,121 @@ export function renderSellerItemDialog({ availableQuantityLabel, availableQuanti
 
 // ─── Preview dialog helpers ───────────────────────────────────────────────────
 
-function renderPreviewItemList(items) {
-  if (!items || items.length === 0) return ""
-  return `<ul class="mtt-dialog-preview-list">${items
-    .map(
-      (item) => `<li class="mtt-dialog-preview-item${item.missing ? " mtt-dialog-preview-item-missing" : ""}">
-      ${item.img ? `<img class="mtt-dialog-preview-img" src="${escapeHTML(item.img)}" alt="${escapeHTML(item.name)}" />` : ""}
-      <span class="mtt-dialog-preview-name">${escapeHTML(item.name)}</span>
-      <span class="mtt-dialog-preview-quantity">×${escapeHTML(String(item.quantity))}</span>
-      <span class="mtt-dialog-preview-total">${escapeHTML(item.totalPriceLabel)}</span>
-    </li>`,
-    )
-    .join("")}</ul>`
+function getPreviewItemTypeLabel(item) {
+  if (item.type === "service") return game.i18n.localize("mtt.services.title")
+  return game.i18n.localize("mtt.products.title")
 }
 
-function renderPreviewDialogContent(preview) {
+function renderPreviewItemTable(items) {
+  const loc = (key) => escapeHTML(game.i18n.localize(key))
+
+  if (!items || items.length === 0) {
+    return `<p class="mtt-dialog-preview-empty">${loc("mtt.dialog.transaction.empty")}</p>`
+  }
+
+  return `<div class="mtt-dialog-preview-table-wrap">
+    <table class="mtt-dialog-preview-table">
+      <thead>
+        <tr>
+          <th class="mtt-dialog-preview-col-img">${loc("mtt.dialog.transaction.columns.image")}</th>
+          <th>${loc("mtt.dialog.transaction.columns.type")}</th>
+          <th>${loc("mtt.dialog.transaction.columns.quantity")}</th>
+          <th>${loc("mtt.dialog.transaction.columns.name")}</th>
+          <th>${loc("mtt.dialog.transaction.columns.unitPrice")}</th>
+          <th>${loc("mtt.dialog.transaction.columns.total")}</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items
+          .map(
+            (item) => `<tr class="${item.missing ? "mtt-dialog-preview-row-missing" : ""}">
+              <td class="mtt-dialog-preview-col-img">${
+                item.img
+                  ? `<img class="mtt-dialog-preview-img" src="${escapeHTML(item.img)}" alt="${escapeHTML(item.name)}" />`
+                  : ""
+              }</td>
+              <td>${escapeHTML(getPreviewItemTypeLabel(item))}</td>
+              <td class="mtt-dialog-preview-number">${escapeHTML(String(item.quantity ?? ""))}</td>
+              <td class="mtt-dialog-preview-name">${escapeHTML(item.name ?? "")}</td>
+              <td class="mtt-dialog-preview-price">${escapeHTML(item.unitPriceLabel ?? "")}</td>
+              <td class="mtt-dialog-preview-price">${escapeHTML(item.totalPriceLabel ?? "")}</td>
+            </tr>`,
+          )
+          .join("")}
+      </tbody>
+    </table>
+  </div>`
+}
+
+function renderPreviewItemSection(titleKey, items) {
+  return `<section class="mtt-dialog-preview-section">
+    <h4 class="mtt-dialog-preview-section-title">${escapeHTML(game.i18n.localize(titleKey))}</h4>
+    ${renderPreviewItemTable(items)}
+  </section>`
+}
+
+function getMoneyTransferGroups(transfers) {
+  const groups = []
+  for (const transfer of transfers ?? []) {
+    const payer = transfer.payer ?? ""
+    const receiver = transfer.receiver ?? ""
+    const key = `${payer}\u0000${receiver}`
+    let group = groups.find((g) => g.key === key)
+    if (!group) {
+      group = { key, payer, receiver, amounts: [], hasWarning: false }
+      groups.push(group)
+    }
+    if (transfer.amountLabel) group.amounts.push(transfer.amountLabel)
+    if (!transfer.hasEnough) group.hasWarning = true
+  }
+  return groups
+}
+
+function renderMoneyTransfers(preview) {
+  const groups = getMoneyTransferGroups(preview.moneyTransfers)
+
+  let html = `<section class="mtt-dialog-preview-section">
+    <h4 class="mtt-dialog-preview-section-title">${escapeHTML(game.i18n.localize("mtt.dialog.transaction.moneyTransfer"))}</h4>`
+
+  if (groups.length === 0) {
+    html += `<p class="mtt-dialog-preview-empty">${escapeHTML(game.i18n.localize("mtt.dialog.transaction.noMoneyTransfer"))}</p>`
+  } else {
+    html += `<div class="mtt-dialog-preview-money">`
+    for (const group of groups) {
+      const sentence = game.i18n.format("mtt.dialog.transaction.moneyTransferSentence", {
+        payer: group.payer,
+        amount: group.amounts.join(", "),
+        receiver: group.receiver,
+      })
+      html += `<p class="mtt-dialog-preview-money-line${group.hasWarning ? " mtt-dialog-preview-money-warning" : ""}">
+        <i class="fas fa-coins"></i>
+        <span>${escapeHTML(sentence)}</span>
+        ${group.hasWarning ? `<i class="fas fa-triangle-exclamation mtt-dialog-preview-warning-icon"></i>` : ""}
+      </p>`
+    }
+    html += `</div>`
+  }
+
+  html += `</section>`
+  return html
+}
+
+function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}) {
   const loc = (key) => escapeHTML(game.i18n.localize(key))
 
   let html = `<div class="mtt-dialog-preview-header">
-    <p><strong>${loc("mtt.sessions.preview.client")}</strong> ${escapeHTML(preview.client?.actorName ?? "—")}</p>
-    <p><strong>${loc("mtt.sessions.preview.merchant")}</strong> ${escapeHTML(preview.merchant?.name ?? "—")}</p>
+    <p><strong>${loc("mtt.sessions.preview.client")}</strong> ${escapeHTML(preview.client?.actorName ?? "-")}</p>
+    <p><strong>${loc("mtt.sessions.preview.merchant")}</strong> ${escapeHTML(preview.merchant?.name ?? "-")}</p>
   </div>`
 
-  if (preview.buyerDeliveries.length > 0) {
-    html += `<section class="mtt-dialog-preview-section">
-      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.buyerReceives")}</h4>
-      ${renderPreviewItemList(preview.buyerDeliveries)}
-    </section>`
-  }
+  const buyerReceives = [
+    ...(preview.buyerDeliveries ?? []),
+    ...(preview.services ?? []).map((item) => ({ ...item, type: "service" })),
+  ]
 
-  if (preview.services.length > 0) {
-    html += `<section class="mtt-dialog-preview-section">
-      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.services")}</h4>
-      ${renderPreviewItemList(preview.services)}
-    </section>`
-  }
-
-  if (preview.sellerDeliveries.length > 0) {
-    html += `<section class="mtt-dialog-preview-section">
-      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.merchantReceives")}</h4>
-      ${renderPreviewItemList(preview.sellerDeliveries)}
-    </section>`
-  }
-
-  const stockUpdates = [...(preview.merchantStockUpdates ?? []), ...(preview.clientItemUpdates ?? [])]
-  if (stockUpdates.length > 0) {
-    html += `<section class="mtt-dialog-preview-section">
-      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.stockUpdates")}</h4>
-      <ul class="mtt-dialog-preview-list">${stockUpdates
-        .map(
-          (u) => `<li class="mtt-dialog-preview-item">
-          ${u.img ? `<img class="mtt-dialog-preview-img" src="${escapeHTML(u.img)}" alt="${escapeHTML(u.name)}" />` : ""}
-          <span class="mtt-dialog-preview-name">${escapeHTML(u.name)}</span>
-          <span class="mtt-dialog-preview-quantity">−${escapeHTML(String(u.quantityToReduce))}</span>
-        </li>`,
-        )
-        .join("")}</ul>
-    </section>`
-  }
-
-  if ((preview.moneyTransfers ?? []).length > 0) {
-    html += `<section class="mtt-dialog-preview-section">
-      <h4 class="mtt-dialog-preview-section-title">${loc("mtt.sessions.preview.moneyTransfers")}</h4>
-      <ul class="mtt-dialog-preview-list">${preview.moneyTransfers
-        .map(
-          (t) => `<li class="mtt-dialog-preview-item${t.hasEnough ? "" : " mtt-dialog-preview-item-warning"}">
-          <i class="fas fa-coins"></i>
-          <span class="mtt-dialog-preview-name">${escapeHTML(t.amountLabel)}</span>
-          <span class="mtt-dialog-preview-meta">${escapeHTML(t.payer)} → ${escapeHTML(t.receiver)}</span>
-          ${!t.hasEnough ? `<i class="fas fa-triangle-exclamation mtt-dialog-preview-warning-icon"></i>` : ""}
-        </li>`,
-        )
-        .join("")}</ul>
-    </section>`
-  }
+  html += renderPreviewItemSection("mtt.dialog.transaction.buyerReceives", buyerReceives)
+  html += renderPreviewItemSection("mtt.dialog.transaction.buyerGives", preview.sellerDeliveries ?? [])
+  html += renderMoneyTransfers(preview)
 
   if ((preview.warnings ?? []).length > 0) {
     html += `<ul class="mtt-dialog-preview-list mtt-dialog-preview-warnings">${preview.warnings
@@ -272,7 +313,9 @@ function renderPreviewDialogContent(preview) {
       .join("")}</ul>`
   }
 
-  html += `<p class="mtt-dialog-preview-notice"><i class="fas fa-circle-info"></i> ${loc("mtt.sessions.preview.previewOnly")}</p>`
+  if (isPreviewOnly) {
+    html += `<p class="mtt-dialog-preview-notice"><i class="fas fa-circle-info"></i> ${loc("mtt.dialog.transaction.previewOnly")}</p>`
+  }
   return html
 }
 
@@ -345,7 +388,7 @@ export async function openPreviewErrorDialog(preview) {
 }
 
 export async function openSessionValidationDialog(preview) {
-  const form = renderPreviewDialogContent(preview)
+  const form = renderPreviewDialogContent(preview, { isPreviewOnly: false })
   const content = await renderMttDialogContent({
     icon: "fa-circle-check",
     title: game.i18n.localize("mtt.sessions.execution.validateTitle"),

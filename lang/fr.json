@@ -71,6 +71,11 @@
         "label": "Ouvrir la configuration",
         "hint": "Ouvre la fenêtre de configuration avancée du module MTT."
       },
+      "openGlobalJournal": {
+        "name": "Journal global des transactions",
+        "label": "Ouvrir le journal global",
+        "hint": "Ouvre le journal global des transactions MTT pour tous les marchands."
+      },
       "currencies": {
         "name": "Devises configurées",
         "hint": "Liste des devises du module MTT. Géré via la fenêtre de configuration MTT."
@@ -138,10 +143,31 @@
       "clearSessionMessage": "La session sera remise à zéro. Aucune transaction ne sera effectuée.",
       "clearSessionConfirm": "Vider la session",
       "noTransactionNoJournal": "Aucune transaction ne sera effectuée et aucune entrée de journal ne sera créée.",
+      "transaction": {
+        "buyerReceives": "Acheteur achète / reçoit",
+        "buyerGives": "Acheteur vend / donne",
+        "moneyTransfer": "Transfert monétaire",
+        "moneyTransferSentence": "{payer} paye {amount} à {receiver}.",
+        "noMoneyTransfer": "Aucun transfert monétaire.",
+        "empty": "Aucun élément.",
+        "previewOnly": "Prévisualisation uniquement : aucune modification n’a encore été effectuée.",
+        "columns": {
+          "image": "Image",
+          "type": "Type",
+          "quantity": "Qté",
+          "name": "Nom",
+          "unitPrice": "PU",
+          "total": "Total"
+        }
+      },
       "deleteItem": {
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
       }
+    },
+    "globalJournal": {
+      "title": "Journal global des transactions",
+      "placeholder": "Fonction à venir."
     },
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",
@@ -700,6 +726,8 @@
       "cancel": "Annuler",
       "sections": {
         "items": "Chemins des objets",
+        "delivery": "Chemins de livraison",
+        "types": "Types autorisés",
         "currencies": "Devises et conversion"
       },
       "currencies": {
@@ -715,7 +743,8 @@
           "name": "Nom",
           "abbreviation": "Abrév.",
           "actorPath": "Chemin acteur",
-          "rate": "Valeur"
+          "rate": "Valeur",
+          "actions": "Action"
         }
       }
     }

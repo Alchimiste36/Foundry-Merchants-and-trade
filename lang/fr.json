@@ -143,6 +143,23 @@
       "clearSessionMessage": "La session sera remise à zéro. Aucune transaction ne sera effectuée.",
       "clearSessionConfirm": "Vider la session",
       "noTransactionNoJournal": "Aucune transaction ne sera effectuée et aucune entrée de journal ne sera créée.",
+      "transaction": {
+        "buyerReceives": "Acheteur achète / reçoit",
+        "buyerGives": "Acheteur vend / donne",
+        "moneyTransfer": "Transfert monétaire",
+        "moneyTransferSentence": "{payer} paye {amount} à {receiver}.",
+        "noMoneyTransfer": "Aucun transfert monétaire.",
+        "empty": "Aucun élément.",
+        "previewOnly": "Prévisualisation uniquement : aucune modification n’a encore été effectuée.",
+        "columns": {
+          "image": "Image",
+          "type": "Type",
+          "quantity": "Qté",
+          "name": "Nom",
+          "unitPrice": "PU",
+          "total": "Total"
+        }
+      },
       "deleteItem": {
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"

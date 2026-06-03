@@ -774,7 +774,7 @@
       "merchantDescription": "Description du marchand",
       "buyPercent": "Pourcentage de rachat",
       "buyPercentHint": "Pourcentage du prix de base auquel le marchand rachète les objets aux joueurs.",
-      "sellPercent": "Pourcentage de vente",
+      "sellPercent": "Pourcentage de vente des produits",
       "sellPercentHint": "Pourcentage appliqué au prix de base lorsque le marchand vend aux acheteurs.",
       "serviceSellPercent": "Pourcentage de vente des services",
       "serviceSellPercentHint": "Pourcentage appliqué au prix de base lorsque le marchand vend un service aux acheteurs.",

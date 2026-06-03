@@ -1779,8 +1779,20 @@
 
 .mtt-merchant-manager-summary {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.25rem;
+  justify-content: space-between;
+}
+
+.mtt-merchant-header-action {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--mtt-text);
+  cursor: pointer;
+  align-items: center;
+  height: auto;
+  min-height: 0;
 }
 
 .mtt-merchant-manager-mode {

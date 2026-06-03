@@ -294,6 +294,20 @@
   align-items: center;
   justify-content: center;
 }
+.mtt-client-custom-rates-icon {
+  position: absolute;
+  top: 0.05rem;
+  right: 0.05rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #d6a84f;
+  font-size: 0.62rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .mtt-merchant-access-session-active {
   background: #5f86d3;
 }
@@ -2386,6 +2400,37 @@
 }
 .mtt-secret-info-field textarea {
   min-height: 6rem;
+  resize: vertical;
+}
+.mtt-client-rates-dialog {
+  display: grid;
+  gap: 0.75rem;
+}
+.mtt-client-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.mtt-client-rates-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.mtt-client-rates-field span {
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.mtt-client-rates-field input,
+.mtt-client-rates-field textarea {
+  min-width: 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+.mtt-client-rates-field textarea {
+  min-height: 4.5rem;
   resize: vertical;
 }
 .mtt-merchant-service-price-bloc {

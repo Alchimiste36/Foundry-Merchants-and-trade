@@ -507,6 +507,23 @@
         "description": "Description secrète :"
       }
     },
+    "clientRates": {
+      "menu": "Pourcentages personnalisés",
+      "reset": "Réinitialiser les pourcentages personnalisés",
+      "titleWithName": "Pourcentages personnalisés - {name}",
+      "productSellPercent": "Achat des produits (%)",
+      "serviceSellPercent": "Achat des services (%)",
+      "itemBuyPercent": "Rachat des Items (%)",
+      "note": "Note MJ",
+      "save": "Valider",
+      "cancel": "Annuler",
+      "tooltip": {
+        "product": "Produits : {value} %",
+        "service": "Services : {value} %",
+        "itemBuy": "Rachat : {value} %",
+        "note": "Note MJ : {note}"
+      }
+    },
     "sessions": {
       "title": "Session de transaction",
       "buyerFortune": "Fortune :",

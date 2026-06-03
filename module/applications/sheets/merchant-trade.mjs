@@ -624,6 +624,16 @@ export function prepareSessionContext(
 // ─── Access / client helpers ──────────────────────────────────────────────────
 
 export function normalizeAccessClient(client) {
+  const customRates =
+    client.customRates && typeof client.customRates === "object"
+      ? {
+          productSellPercent: normalizeClientRateValue(client.customRates.productSellPercent, 100),
+          serviceSellPercent: normalizeClientRateValue(client.customRates.serviceSellPercent, 100),
+          itemBuyPercent: normalizeClientRateValue(client.customRates.itemBuyPercent, 50),
+          note: String(client.customRates.note ?? "").trim(),
+        }
+      : null;
+
   return {
     actorUuid: String(client.actorUuid ?? "").trim(),
     actorId: String(client.actorId ?? "").trim(),
@@ -634,7 +644,67 @@ export function normalizeAccessClient(client) {
     userName: String(client.userName ?? "").trim(),
     isAuthorized: Boolean(client.isAuthorized),
     isFromPlayerCharacter: Boolean(client.isFromPlayerCharacter),
+    customRates,
   };
+}
+
+export function normalizeClientRateValue(value, fallback) {
+  const number = Number(value);
+  if (Number.isFinite(number) && number >= 0) return Number(number.toFixed(2));
+
+  return fallback;
+}
+
+function getMerchantTradePercent(actor, key, fallback) {
+  const value = Number(actor?.system?.trade?.[key]);
+  if (Number.isFinite(value) && value >= 0) return value;
+
+  return fallback;
+}
+
+export function getMerchantDefaultClientRates(actor) {
+  return {
+    productSellPercent: getMerchantTradePercent(actor, "sellPercent", 100),
+    serviceSellPercent: getMerchantTradePercent(actor, "serviceSellPercent", 100),
+    itemBuyPercent: getMerchantTradePercent(actor, "buyPercent", 50),
+    note: "",
+  };
+}
+
+export function normalizeClientCustomRates(customRates, defaults) {
+  if (!customRates || typeof customRates !== "object") return null;
+
+  return {
+    productSellPercent: normalizeClientRateValue(customRates.productSellPercent, defaults.productSellPercent),
+    serviceSellPercent: normalizeClientRateValue(customRates.serviceSellPercent, defaults.serviceSellPercent),
+    itemBuyPercent: normalizeClientRateValue(customRates.itemBuyPercent, defaults.itemBuyPercent),
+    note: String(customRates.note ?? "").trim(),
+  };
+}
+
+export function getEffectiveClientRates(actor, actorUuid) {
+  const defaults = getMerchantDefaultClientRates(actor);
+  const client = getStoredAccessClients(actor).find((entry) => entry.actorUuid === String(actorUuid ?? "").trim());
+  const customRates = normalizeClientCustomRates(client?.customRates, defaults);
+
+  return {
+    ...defaults,
+    ...(customRates ?? {}),
+    hasCustomRates: Boolean(customRates),
+  };
+}
+
+export function formatClientCustomRatesTooltip(customRates) {
+  if (!customRates) return "";
+
+  const parts = [
+    game.i18n.format("mtt.clientRates.tooltip.product", { value: customRates.productSellPercent }),
+    game.i18n.format("mtt.clientRates.tooltip.service", { value: customRates.serviceSellPercent }),
+    game.i18n.format("mtt.clientRates.tooltip.itemBuy", { value: customRates.itemBuyPercent }),
+  ];
+  if (customRates.note) parts.push(game.i18n.format("mtt.clientRates.tooltip.note", { note: customRates.note }));
+
+  return parts.join(" - ");
 }
 
 export function buildAccessClientFromActor(
@@ -744,8 +814,12 @@ export function prepareAccessClients(actor, { selectedSession, selectedClientAct
     .map((client) => {
       const session = getBestSessionForClient(actor, client.actorUuid);
       const sessionStatus = session?.status ?? "";
+      const hasCustomRates = Boolean(client.customRates);
       const preparedClient = {
         ...client,
+        hasCustomRates,
+        canShowCustomRates: Boolean(isEditable && hasCustomRates),
+        customRatesTooltip: isEditable ? formatClientCustomRatesTooltip(client.customRates) : "",
         statusLabel: game.i18n.localize(client.isAuthorized ? "mtt.access.authorized" : "mtt.access.unauthorized"),
         sourceLabel: game.i18n.localize(
           client.isFromPlayerCharacter ? "mtt.access.playerCharacter" : "mtt.access.manualActor",

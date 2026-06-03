@@ -595,6 +595,11 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
               required: true,
               initial: false,
             }),
+            customRates: new fields.ObjectField({
+              required: false,
+              nullable: true,
+              initial: null,
+            }),
           }),
           {
             required: true,

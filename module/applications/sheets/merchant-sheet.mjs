@@ -23,10 +23,9 @@ import {
   openSessionExecutionErrorsDialog,
   openRefuseConfirmDialog,
   openCatalogItemSecretsDialog,
+  openClientRatesDialog,
 } from "./merchant-dialogs.mjs";
 import {
-  getSellPercent,
-  getServiceSellPercent,
   adjustPriceValue,
   prepareTrade,
   prepareWalletCurrencies,
@@ -60,6 +59,9 @@ import {
   prepareSessionContext,
   getStoredAccessClients,
   getBestSessionForClient,
+  getEffectiveClientRates,
+  getMerchantDefaultClientRates,
+  normalizeClientCustomRates,
   prepareAccessClients,
   checkSessionTransaction,
   isMerchantSellerDropBlocked,
@@ -187,10 +189,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.system = this.actor.system;
 
-    const sellPercent = this.#getSellPercent();
-    context.items = prepareItems(this.actor, sellPercent, { includeHidden: isEditable });
+    const activeSession = this.#getActiveSession();
+    const effectiveRates = this.#getEffectiveRatesForSession(activeSession);
+    context.items = prepareItems(this.actor, effectiveRates.productSellPercent, { includeHidden: isEditable });
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable });
-    context.services = prepareServices(this.actor, getServiceSellPercent(this.actor), { includeHidden: isEditable });
+    context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable });
     context.trade = prepareTrade(this.actor);
     context.wallet = this.actor.system.wallet ?? {};
     context.mtt.walletCurrencies = prepareWalletCurrencies(this.actor);
@@ -501,6 +504,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       image.alt = client.actorName;
       button.append(image);
 
+      if (client.canShowCustomRates) {
+        const customRatesIcon = document.createElement("i");
+        customRatesIcon.classList.add("fa-solid", "fa-percent", "mtt-client-custom-rates-icon");
+        customRatesIcon.dataset.tooltip = client.customRatesTooltip;
+        customRatesIcon.setAttribute("aria-hidden", "true");
+        button.append(customRatesIcon);
+      }
+
       if (client.hasSession) {
         const badge = document.createElement("i");
         badge.classList.add(
@@ -558,10 +569,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return htmlToPlainText(v);
   }
   // ─── Wrappers for imported catalog functions ──────────────────────────────
-
-  #getSellPercent() {
-    return getSellPercent(this.actor);
-  }
 
   async #moveProductToCategory(itemId, categoryValue) {
     await moveProductToCategory(this.actor, itemId, categoryValue);
@@ -869,7 +876,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const sellerData = prepareSellerItemDropData(this.actor, item);
+    const rates = this.#getEffectiveRatesForSession(session);
+    const sellerData = prepareSellerItemDropData(this.actor, item, { buyPercent: rates.itemBuyPercent });
     const dialogData = await this.#openSellerItemDialog({
       ...sellerData,
       availableQuantity: sellerData.availableQuantity,
@@ -994,6 +1002,35 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeClientAuthorization(client);
     });
 
+    const customRates = document.createElement("button");
+    customRates.type = "button";
+    customRates.classList.add("mtt-merchant-access-context-menu-button");
+    const customRatesIcon = document.createElement("i");
+    customRatesIcon.classList.add("fas", "fa-percent");
+    const customRatesLabel = document.createElement("span");
+    customRatesLabel.textContent = game.i18n.localize("mtt.clientRates.menu");
+    customRates.append(customRatesIcon, customRatesLabel);
+    customRates.addEventListener("click", async () => {
+      this.#closeAccessContextMenu();
+      await this.#editClientCustomRates(client);
+    });
+
+    let resetCustomRates = null;
+    if (client.hasCustomRates) {
+      resetCustomRates = document.createElement("button");
+      resetCustomRates.type = "button";
+      resetCustomRates.classList.add("mtt-merchant-access-context-menu-button");
+      const resetCustomRatesIcon = document.createElement("i");
+      resetCustomRatesIcon.classList.add("fas", "fa-rotate-left");
+      const resetCustomRatesLabel = document.createElement("span");
+      resetCustomRatesLabel.textContent = game.i18n.localize("mtt.clientRates.reset");
+      resetCustomRates.append(resetCustomRatesIcon, resetCustomRatesLabel);
+      resetCustomRates.addEventListener("click", async () => {
+        this.#closeAccessContextMenu();
+        await this.#resetClientCustomRates(client);
+      });
+    }
+
     const removeActor = document.createElement("button");
     removeActor.type = "button";
     removeActor.classList.add("mtt-merchant-access-context-menu-button");
@@ -1007,6 +1044,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeAccessClient(client);
     });
 
+    menu.append(customRates);
+    if (resetCustomRates) menu.append(resetCustomRates);
     menu.append(removeAuthorization, removeActor);
     applicationElement.append(menu);
 
@@ -1582,6 +1621,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...clients[index],
         ...normalizedClient,
         isFromPlayerCharacter: clients[index].isFromPlayerCharacter || normalizedClient.isFromPlayerCharacter,
+        customRates: normalizedClient.customRates ?? clients[index].customRates ?? null,
       };
     }
 
@@ -1608,6 +1648,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       clients[clientIndex] = {
         ...clients[clientIndex],
         ...normalizedClient,
+        customRates: normalizedClient.customRates ?? clients[clientIndex].customRates ?? null,
       };
     }
 
@@ -1717,6 +1758,44 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   // ─── Session state management ─────────────────────────────────────────────
+
+  async #editClientCustomRates(client) {
+    const defaults = getMerchantDefaultClientRates(this.actor);
+    const existingRates = normalizeClientCustomRates(client.customRates, defaults) ?? defaults;
+    const result = await openClientRatesDialog({
+      clientName: client.actorName,
+      rates: existingRates,
+    });
+    if (!result) return false;
+
+    const customRates = normalizeClientCustomRates(result, defaults) ?? defaults;
+    await this.#setClientCustomRates(client, customRates);
+    return true;
+  }
+
+  async #resetClientCustomRates(client) {
+    await this.#setClientCustomRates(client, null);
+    return true;
+  }
+
+  async #setClientCustomRates(client, customRates) {
+    const normalizedActorUuid = String(client?.actorUuid ?? "").trim();
+    if (!normalizedActorUuid) return;
+
+    const clients = getStoredAccessClients(this.actor);
+    const clientIndex = clients.findIndex((entry) => entry.actorUuid === normalizedActorUuid);
+    if (clientIndex === -1) return;
+
+    clients[clientIndex] = normalizeAccessClient({
+      ...clients[clientIndex],
+      customRates,
+    });
+
+    await this.actor.update({
+      "system.access.clients": clients,
+    });
+    this.render();
+  }
 
   #getSelectedSession() {
     if (!this.#activeSessionId) return null;
@@ -1857,6 +1936,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   // ─── Session quantity helpers ─────────────────────────────────────────────
+
+  #getEffectiveRatesForSession(session = this.#getSessionForAddingItem()) {
+    return getEffectiveClientRates(this.actor, session?.actorUuid ?? "");
+  }
 
   #getSessionBuyerQuantity({ type, sourceId, unitPriceValue, priceCurrency }) {
     const session = this.#getSelectedSession();
@@ -2309,7 +2392,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
         ? Number(product.priceValue)
         : MTT.PRODUCT_DEFAULTS.priceValue;
-    const displayPriceValue = adjustPriceValue(basePriceValue, getSellPercent(this.actor));
+    const rates = this.#getEffectiveRatesForSession();
+    const displayPriceValue = adjustPriceValue(basePriceValue, rates.productSellPercent);
     const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
     const quantity = product.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
@@ -3271,7 +3355,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const quantity = service.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = isFreePriceService(service);
-    const displayPriceValue = hasFreePrice ? 0 : adjustPriceValue(basePriceValue, getServiceSellPercent(this.actor));
+    const rates = this.#getEffectiveRatesForSession();
+    const displayPriceValue = hasFreePrice ? 0 : adjustPriceValue(basePriceValue, rates.serviceSellPercent);
     const minimumPriceValue =
       Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
         ? Number(service.minimumPriceValue)

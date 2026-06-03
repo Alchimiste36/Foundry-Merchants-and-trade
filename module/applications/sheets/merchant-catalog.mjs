@@ -617,15 +617,17 @@ export function getItemAvailableQuantity(item) {
   return null
 }
 
-export function prepareSellerItemDropData(actor, item) {
+export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {}) {
   const availableQuantity = getItemAvailableQuantity(item)
   const basePriceValue =
     parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath")) ?? getItemPrice(item) ?? 0
-  const buyPercent =
-    Number.isFinite(Number(actor.system.trade?.buyPercent)) && Number(actor.system.trade.buyPercent) >= 0
+  const effectiveBuyPercent =
+    Number.isFinite(Number(buyPercent)) && Number(buyPercent) >= 0
+      ? Number(buyPercent)
+      : Number.isFinite(Number(actor.system.trade?.buyPercent)) && Number(actor.system.trade.buyPercent) >= 0
       ? Number(actor.system.trade.buyPercent)
       : 50
-  const unitPriceValue = Number(((basePriceValue * buyPercent) / 100).toFixed(2))
+  const unitPriceValue = Number(((basePriceValue * effectiveBuyPercent) / 100).toFixed(2))
   const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
   const priceCurrency = resolveItemCurrencyKey(
     typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item),

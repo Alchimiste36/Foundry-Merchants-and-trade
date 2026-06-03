@@ -5,7 +5,14 @@
     {{#if @root.services}}
       <ol class="mtt-merchant-service-list">
         {{#each @root.services as |service|}}
-          <li class="mtt-merchant-service-row {{#unless service.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}" data-service-id="{{service.id}}">
+          <li
+            class="mtt-merchant-service-row {{#unless service.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}"
+            data-service-id="{{service.id}}"
+            {{#if @root.mtt.isEditable}}
+              data-mtt-catalog-context-menu
+              data-catalog-kind="service"
+            {{/if}}
+          >
             <div class="mtt-merchant-service-main">
               <button
                 class="mtt-merchant-service-action"
@@ -69,11 +76,6 @@
                   {{/if}}
                   <span
                     class="mtt-merchant-service-name-readonly"
-                    {{#if @root.mtt.canManageMerchant}}
-                      data-mtt-catalog-context-menu
-                      data-catalog-kind="service"
-                      data-service-id="{{service.id}}"
-                    {{/if}}
                   >{{service.name}}</span>
                 </span>
               {{/if}}

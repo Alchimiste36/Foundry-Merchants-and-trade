@@ -162,7 +162,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isEditable = this.isEditable;
     const isLocked = getMerchantSheetLockedState(this.actor);
     const isUnlocked = !isLocked;
-    const canManageMerchant = isEditable;
     const canEditMerchant = isEditable && isUnlocked;
     const isLimited = getMerchantLimitedState(this.actor);
 
@@ -172,7 +171,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isEditable,
       isLocked,
       isUnlocked,
-      canManageMerchant,
       canEditMerchant,
       isLimited,
       labels: {
@@ -1029,7 +1027,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
     event.stopPropagation();
 
-    if (!this.#canManageMerchant()) return;
+    if (!this.isEditable) return;
 
     const catalogItem = this.#getCatalogContextItem(target);
     if (!catalogItem) return;
@@ -1156,7 +1154,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #editCatalogItemSecrets(catalogItem) {
-    if (!this.#canManageMerchant()) return;
+    if (!this.isEditable) return;
 
     const result = await openCatalogItemSecretsDialog({
       name: catalogItem.name,
@@ -1171,7 +1169,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #deleteCatalogItemSecrets(catalogItem) {
-    if (!this.#canManageMerchant()) return;
+    if (!this.isEditable) return;
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: {
@@ -1207,7 +1205,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #updateCatalogItemSecretData(catalogItem, secrets) {
-    if (!this.#canManageMerchant()) return;
+    if (!this.isEditable) return;
 
     this.#saveScrollPositions();
 
@@ -1239,7 +1237,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #toggleCatalogItemApproval(catalogItem) {
-    if (!this.#canManageMerchant()) return;
+    if (!this.isEditable) return;
 
     this.#saveScrollPositions();
 
@@ -1266,7 +1264,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #toggleCatalogProductOwnership(catalogItem) {
-    if (!this.#canManageMerchant() || catalogItem.kind !== "product") return;
+    if (!this.isEditable || catalogItem.kind !== "product") return;
 
     const item = catalogItem.productItem;
     if (!item) return;
@@ -2218,10 +2216,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     return true;
-  }
-
-  #canManageMerchant() {
-    return Boolean(this.isEditable);
   }
 
   // ─── Action handlers ──────────────────────────────────────────────────────

@@ -1670,11 +1670,11 @@
   font-size: 0.82rem;
 }
 .mtt-merchant-secret-indicator {
-  color: var(--mtt-secret);
+  color: var(--mtt-danger);
   cursor: help;
 }
 .mtt-merchant-approval-indicator {
-  color: var(--mtt-accent);
+  color: var(--mtt-danger);
 }
 .mtt-merchant-product-name {
   font-weight: 700;

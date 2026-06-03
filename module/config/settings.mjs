@@ -1,5 +1,6 @@
 import { MTT } from "./constants.mjs";
 import { MttConfigApp } from "../applications/mtt-config-app.mjs";
+import { MttGlobalJournalApp } from "../applications/mtt-global-journal-app.mjs";
 
 export function registerSettings() {
   game.settings.register(MTT.ID, "debug", {
@@ -15,7 +16,7 @@ export function registerSettings() {
     name: "mtt.settings.itemPriceValuePath.name",
     hint: "mtt.settings.itemPriceValuePath.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -24,7 +25,7 @@ export function registerSettings() {
     name: "mtt.settings.itemPriceCurrencyPath.name",
     hint: "mtt.settings.itemPriceCurrencyPath.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -33,7 +34,7 @@ export function registerSettings() {
     name: "mtt.settings.itemQuantityPath.name",
     hint: "mtt.settings.itemQuantityPath.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -62,7 +63,7 @@ export function registerSettings() {
     name: "mtt.settings.allowExtendedItemMerge.name",
     hint: "mtt.settings.allowExtendedItemMerge.hint",
     scope: "world",
-    config: false,
+    config: true,
     type: Boolean,
     default: false,
   });
@@ -71,7 +72,7 @@ export function registerSettings() {
     name: "mtt.settings.itemDescriptionPath.name",
     hint: "mtt.settings.itemDescriptionPath.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -80,7 +81,7 @@ export function registerSettings() {
     name: "mtt.settings.allowedProductTypes.name",
     hint: "mtt.settings.allowedProductTypes.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -89,7 +90,7 @@ export function registerSettings() {
     name: "mtt.settings.allowedServiceTypes.name",
     hint: "mtt.settings.allowedServiceTypes.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -125,7 +126,7 @@ export function registerSettings() {
     name: "mtt.settings.actorCurrencyPath.name",
     hint: "mtt.settings.actorCurrencyPath.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     default: "",
   });
@@ -145,6 +146,15 @@ export function registerSettings() {
     hint: "mtt.settings.openConfigWindow.hint",
     icon: "fas fa-shop",
     type: MttConfigApp,
+    restricted: true,
+  });
+
+  game.settings.registerMenu(MTT.ID, "openGlobalJournalWindow", {
+    name: "mtt.settings.openGlobalJournal.name",
+    label: "mtt.settings.openGlobalJournal.label",
+    hint: "mtt.settings.openGlobalJournal.hint",
+    icon: "fas fa-book",
+    type: MttGlobalJournalApp,
     restricted: true,
   });
 }

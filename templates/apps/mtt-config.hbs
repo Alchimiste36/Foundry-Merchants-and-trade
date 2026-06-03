@@ -1,143 +1,182 @@
-<div class="mtt-config-body">
+<section class="mtt-config">
   <form class="mtt-config-form">
-
-    {{! Section : Chemins des objets }}
     <section class="mtt-config-section">
-      <h3 class="mtt-config-section-title">{{localize
-          "mtt.config.sections.items"
-        }}</h3>
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.items"}}</h2>
 
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.itemPriceValuePath.name"}}</label>
-        <input
-          type="text"
-          name="itemPriceValuePath"
-          value="{{itemPriceValuePath}}"
-          placeholder="system.price.value"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.itemPriceValuePath.hint"
-          }}</p>
-      </div>
+      <div class="mtt-config-grid">
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-price-value">
+              {{localize "mtt.settings.itemPriceValuePath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemPriceValuePath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-price-value"
+            type="text"
+            name="itemPriceValuePath"
+            value="{{itemPriceValuePath}}"
+            placeholder="system.price.value"
+          />
+        </div>
 
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.itemPriceCurrencyPath.name"}}</label>
-        <input
-          type="text"
-          name="itemPriceCurrencyPath"
-          value="{{itemPriceCurrencyPath}}"
-          placeholder="system.price.currency"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.itemPriceCurrencyPath.hint"
-          }}</p>
-      </div>
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-price-currency">
+              {{localize "mtt.settings.itemPriceCurrencyPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemPriceCurrencyPath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-price-currency"
+            type="text"
+            name="itemPriceCurrencyPath"
+            value="{{itemPriceCurrencyPath}}"
+            placeholder="system.price.currency"
+          />
+        </div>
 
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.itemQuantityPath.name"}}</label>
-        <input
-          type="text"
-          name="itemQuantityPath"
-          value="{{itemQuantityPath}}"
-          placeholder="system.quantity"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.itemQuantityPath.hint"
-        }}</p>
-      </div>
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-quantity">
+              {{localize "mtt.settings.itemQuantityPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemQuantityPath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-quantity"
+            type="text"
+            name="itemQuantityPath"
+            value="{{itemQuantityPath}}"
+            placeholder="system.quantity"
+          />
+        </div>
 
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.deliveryItemQuantityPath.name"}}</label>
-        <input
-          type="text"
-          name="deliveryItemQuantityPath"
-          value="{{deliveryItemQuantityPath}}"
-          placeholder="system.quantity.value"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.deliveryItemQuantityPath.hint"
-          }}</p>
-      </div>
-
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.deliveryItemMaxQuantityPath.name"}}</label>
-        <input
-          type="text"
-          name="deliveryItemMaxQuantityPath"
-          value="{{deliveryItemMaxQuantityPath}}"
-          placeholder="system.quantity.max"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.deliveryItemMaxQuantityPath.hint"
-        }}</p>
-      </div>
-
-      <label class="mtt-config-checkbox-field">
-        <input
-          type="checkbox"
-          name="allowExtendedItemMerge"
-          {{#if allowExtendedItemMerge}}checked{{/if}}
-        />
-        <span>{{localize "mtt.settings.allowExtendedItemMerge.name"}}</span>
-      </label>
-      <p class="mtt-config-hint">{{localize
-          "mtt.settings.allowExtendedItemMerge.hint"
-        }}</p>
-
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.itemDescriptionPath.name"}}</label>
-        <input
-          type="text"
-          name="itemDescriptionPath"
-          value="{{itemDescriptionPath}}"
-          placeholder="system.description.value"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.itemDescriptionPath.hint"
-          }}</p>
-      </div>
-
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.allowedProductTypes.name"}}</label>
-        <input
-          type="text"
-          name="allowedProductTypes"
-          value="{{allowedProductTypes}}"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.allowedProductTypes.hint"
-          }}</p>
-      </div>
-
-      <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.allowedServiceTypes.name"}}</label>
-        <input
-          type="text"
-          name="allowedServiceTypes"
-          value="{{allowedServiceTypes}}"
-        />
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.allowedServiceTypes.hint"
-          }}</p>
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-description">
+              {{localize "mtt.settings.itemDescriptionPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemDescriptionPath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-description"
+            type="text"
+            name="itemDescriptionPath"
+            value="{{itemDescriptionPath}}"
+            placeholder="system.description.value"
+          />
+        </div>
       </div>
     </section>
 
-    {{! Section : Catégories automatiques }}
     <section class="mtt-config-section">
-      <h3 class="mtt-config-section-title">{{localize
-          "mtt.configuration.automaticCategories"
-        }}</h3>
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.delivery"}}</h2>
+
+      <div class="mtt-config-grid">
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-delivery-quantity">
+              {{localize "mtt.settings.deliveryItemQuantityPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.deliveryItemQuantityPath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-delivery-quantity"
+            type="text"
+            name="deliveryItemQuantityPath"
+            value="{{deliveryItemQuantityPath}}"
+            placeholder="system.quantity.value"
+          />
+        </div>
+
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-delivery-max-quantity">
+              {{localize "mtt.settings.deliveryItemMaxQuantityPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.deliveryItemMaxQuantityPath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-delivery-max-quantity"
+            type="text"
+            name="deliveryItemMaxQuantityPath"
+            value="{{deliveryItemMaxQuantityPath}}"
+            placeholder="system.quantity.max"
+          />
+        </div>
+      </div>
+    </section>
+
+    <section class="mtt-config-section">
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.types"}}</h2>
+
+      <div class="mtt-config-grid">
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-product-types">
+              {{localize "mtt.settings.allowedProductTypes.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.allowedProductTypes.hint'}}"
+            ></i>
+          </div>
+          <input id="mtt-config-product-types" type="text" name="allowedProductTypes" value="{{allowedProductTypes}}" />
+        </div>
+
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-service-types">
+              {{localize "mtt.settings.allowedServiceTypes.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.allowedServiceTypes.hint'}}"
+            ></i>
+          </div>
+          <input id="mtt-config-service-types" type="text" name="allowedServiceTypes" value="{{allowedServiceTypes}}" />
+        </div>
+      </div>
+    </section>
+
+    <section class="mtt-config-section">
+      <h2 class="mtt-config-section-title">{{localize "mtt.configuration.automaticCategories"}}</h2>
 
       <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.itemCategoryPaths.name"}}</label>
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-config-category-paths">
+            {{localize "mtt.settings.itemCategoryPaths.name"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.settings.itemCategoryPaths.hint'}}"
+          ></i>
+        </div>
         <textarea
+          id="mtt-config-category-paths"
           name="itemCategoryPaths"
           class="mtt-config-textarea"
           placeholder="{{localize 'mtt.configuration.categoryPathsPlaceholder'}}"
         >{{itemCategoryPaths}}</textarea>
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.itemCategoryPaths.hint"
-          }}</p>
       </div>
 
       <label class="mtt-config-checkbox-field">
@@ -147,101 +186,106 @@
           {{#if useItemTypeAsCategoryFallback}}checked{{/if}}
         />
         <span>{{localize "mtt.settings.useItemTypeAsCategoryFallback.name"}}</span>
+        <i
+          class="fas fa-circle-info mtt-config-info-icon"
+          data-tooltip="{{localize 'mtt.settings.useItemTypeAsCategoryFallback.hint'}}"
+        ></i>
       </label>
-      <p class="mtt-config-hint">{{localize
-          "mtt.settings.useItemTypeAsCategoryFallback.hint"
-        }}</p>
 
       <div class="mtt-config-field">
-        <label>{{localize "mtt.settings.categoryLabelMap.name"}}</label>
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-config-category-map">
+            {{localize "mtt.settings.categoryLabelMap.name"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.settings.categoryLabelMap.hint'}}"
+          ></i>
+        </div>
         <textarea
+          id="mtt-config-category-map"
           name="categoryLabelMap"
           class="mtt-config-textarea"
           placeholder="{{localize 'mtt.configuration.categoryLabelMapPlaceholder'}}"
         >{{categoryLabelMap}}</textarea>
-        <p class="mtt-config-hint">{{localize
-            "mtt.settings.categoryLabelMap.hint"
-          }}</p>
       </div>
     </section>
 
-    {{! Section : Devises et conversion }}
-    <section class="mtt-config-section">
-      <h3 class="mtt-config-section-title">{{localize
-          "mtt.config.sections.currencies"
-        }}</h3>
-      <p class="mtt-config-explanation">{{localize
-          "mtt.config.currencies.explanation"
-        }}</p>
+    <section class="mtt-config-section mtt-config-currencies">
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.currencies"}}</h2>
+      <p class="mtt-config-explanation">{{localize "mtt.config.currencies.explanation"}}</p>
 
-      <div class="mtt-config-currencies-header">
-        <span>{{localize "mtt.config.currencies.columns.name"}}</span>
-        <span>{{localize "mtt.config.currencies.columns.abbreviation"}}</span>
-        <span>{{localize "mtt.config.currencies.columns.actorPath"}}</span>
-        <span>{{localize "mtt.config.currencies.columns.rate"}}</span>
-        <span></span>
-      </div>
-
-      {{#each currencies as |currency|}}
-        <div class="mtt-config-currency-row" data-currency-id="{{currency.id}}">
-          <input
-            type="text"
-            class="mtt-config-currency-input"
-            data-mtt-currency-field="name"
-            value="{{currency.name}}"
-            placeholder="{{localize 'mtt.config.currencies.namePlaceholder'}}"
-          />
-          <input
-            type="text"
-            class="mtt-config-currency-input mtt-config-currency-abbr"
-            data-mtt-currency-field="abbreviation"
-            value="{{currency.abbreviation}}"
-            placeholder="{{localize 'mtt.config.currencies.abbrPlaceholder'}}"
-          />
-          <input
-            type="text"
-            class="mtt-config-currency-input mtt-config-currency-path"
-            data-mtt-currency-field="actorPath"
-            value="{{currency.actorPath}}"
-            placeholder="{{localize 'mtt.config.currencies.pathPlaceholder'}}"
-          />
-          <input
-            type="number"
-            class="mtt-config-currency-input mtt-config-currency-rate"
-            data-mtt-currency-field="rate"
-            value="{{currency.rate}}"
-            min="0.0001"
-            step="0.0001"
-            placeholder="{{localize 'mtt.config.currencies.ratePlaceholder'}}"
-          />
-          <button
-            type="button"
-            class="mtt-config-currency-delete"
-            data-action="deleteCurrency"
-            data-currency-id="{{currency.id}}"
-            data-tooltip="{{localize 'mtt.config.currencies.delete'}}"
-          >
-            <i class="fas fa-trash"></i>
-          </button>
+      <div class="mtt-config-currency-table">
+        <div class="mtt-config-currency-table-head">
+          <span>{{localize "mtt.config.currencies.columns.name"}}</span>
+          <span>{{localize "mtt.config.currencies.columns.abbreviation"}}</span>
+          <span>{{localize "mtt.config.currencies.columns.rate"}}</span>
+          <span>{{localize "mtt.config.currencies.columns.actorPath"}}</span>
+          <span>{{localize "mtt.config.currencies.columns.actions"}}</span>
         </div>
-      {{else}}
-        <p class="mtt-config-currencies-empty">{{localize
-            "mtt.config.currencies.empty"
-          }}</p>
-      {{/each}}
 
-      <button
-        type="button"
-        class="mtt-config-btn mtt-config-btn--add"
-        data-action="addCurrency"
-        data-tooltip="{{localize 'mtt.config.currencies.add'}}"
-      >
-        <i class="fas fa-plus"></i>
-        {{localize "mtt.config.currencies.add"}}
-      </button>
+        <div class="mtt-config-currency-table-body">
+          {{#each currencies as |currency|}}
+            <div class="mtt-config-currency-row" data-currency-id="{{currency.id}}">
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="name"
+                value="{{currency.name}}"
+                placeholder="{{localize 'mtt.config.currencies.namePlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input mtt-config-currency-abbr"
+                data-mtt-currency-field="abbreviation"
+                value="{{currency.abbreviation}}"
+                placeholder="{{localize 'mtt.config.currencies.abbrPlaceholder'}}"
+              />
+              <input
+                type="number"
+                class="mtt-config-currency-input mtt-config-currency-rate"
+                data-mtt-currency-field="rate"
+                value="{{currency.rate}}"
+                min="0.0001"
+                step="0.0001"
+                placeholder="{{localize 'mtt.config.currencies.ratePlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input mtt-config-currency-path"
+                data-mtt-currency-field="actorPath"
+                value="{{currency.actorPath}}"
+                placeholder="{{localize 'mtt.config.currencies.pathPlaceholder'}}"
+              />
+              <button
+                type="button"
+                class="mtt-config-currency-delete"
+                data-action="deleteCurrency"
+                data-currency-id="{{currency.id}}"
+                data-tooltip="{{localize 'mtt.config.currencies.delete'}}"
+              >
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          {{else}}
+            <p class="mtt-config-currencies-empty">{{localize "mtt.config.currencies.empty"}}</p>
+          {{/each}}
+        </div>
+      </div>
+
+      <div class="mtt-config-currency-actions">
+        <button
+          type="button"
+          class="mtt-config-btn mtt-config-btn--add"
+          data-action="addCurrency"
+          data-tooltip="{{localize 'mtt.config.currencies.add'}}"
+        >
+          <i class="fas fa-plus"></i>
+          {{localize "mtt.config.currencies.add"}}
+        </button>
+      </div>
     </section>
 
-    {{! Footer }}
     <footer class="mtt-config-footer">
       <button
         type="button"
@@ -262,6 +306,5 @@
         {{localize "mtt.config.cancel"}}
       </button>
     </footer>
-
   </form>
-</div>
+</section>

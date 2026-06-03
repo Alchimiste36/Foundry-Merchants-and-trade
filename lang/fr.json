@@ -71,6 +71,11 @@
         "label": "Ouvrir la configuration",
         "hint": "Ouvre la fenêtre de configuration avancée du module MTT."
       },
+      "openGlobalJournal": {
+        "name": "Journal global des transactions",
+        "label": "Ouvrir le journal global",
+        "hint": "Ouvre le journal global des transactions MTT pour tous les marchands."
+      },
       "currencies": {
         "name": "Devises configurées",
         "hint": "Liste des devises du module MTT. Géré via la fenêtre de configuration MTT."
@@ -142,6 +147,10 @@
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
       }
+    },
+    "globalJournal": {
+      "title": "Journal global des transactions",
+      "placeholder": "Fonction à venir."
     },
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",
@@ -700,6 +709,8 @@
       "cancel": "Annuler",
       "sections": {
         "items": "Chemins des objets",
+        "delivery": "Chemins de livraison",
+        "types": "Types autorisés",
         "currencies": "Devises et conversion"
       },
       "currencies": {
@@ -715,7 +726,8 @@
           "name": "Nom",
           "abbreviation": "Abrév.",
           "actorPath": "Chemin acteur",
-          "rate": "Valeur"
+          "rate": "Valeur",
+          "actions": "Action"
         }
       }
     }

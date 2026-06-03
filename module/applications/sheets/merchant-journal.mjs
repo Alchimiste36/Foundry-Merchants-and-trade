@@ -387,7 +387,7 @@ function compareJournalTransactions(a, b, sort) {
   return (dateA - dateB) * direction
 }
 
-function prepareJournalEntryDisplay(entry) {
+export function prepareJournalEntryDisplay(entry) {
   const normalized = normalizeJournalEntry(entry)
   const createdAt = new Date(normalized.createdAt)
   const createdAtLabel = Number.isNaN(createdAt.getTime()) ? "" : createdAt.toLocaleString()
@@ -425,7 +425,10 @@ function prepareJournalEntryDisplay(entry) {
         : "mtt-merchant-journal-status-validated",
     createdAtLabel,
     createdAtShortLabel,
+    paidTotalValue: paidTotal,
     totalReferenceLabel: formatPriceLabel(normalized.totalReferenceValue, normalized.referenceCurrency),
+    receivedTotalValue: receivedTotal,
+    moneyAdjustmentValue,
     paidTotalLabel: formatSignedPriceLabel(paidTotal, normalized.referenceCurrency, "-"),
     receivedTotalLabel: formatSignedPriceLabel(receivedTotal, normalized.referenceCurrency, "+"),
     moneyAdjustmentLabel: formatSignedPriceLabel(moneyAdjustmentValue, normalized.referenceCurrency, moneyAdjustmentSign),

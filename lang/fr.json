@@ -167,7 +167,23 @@
     },
     "globalJournal": {
       "title": "Journal global des transactions",
-      "placeholder": "Fonction à venir."
+      "empty": "Aucune transaction enregistrée.",
+      "filters": {
+        "merchant": "Marchand",
+        "buyer": "Acheteur",
+        "allMerchants": "Tous les marchands",
+        "allBuyers": "Tous les acheteurs",
+        "clear": "Réinitialiser"
+      },
+      "columns": {
+        "transactionNumber": "N°",
+        "merchant": "Marchand",
+        "buyer": "Acheteur",
+        "status": "Statut",
+        "paid": "Payé",
+        "received": "Reçu",
+        "adjustment": "Ajustement"
+      }
     },
     "notifications": {
       "sheetLocked": "La feuille du marchand est verrouillée.",

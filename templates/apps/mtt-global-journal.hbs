@@ -1,4 +1,209 @@
 <section class="mtt-global-journal">
-  <h2 class="mtt-global-journal-title">{{localize "mtt.globalJournal.title"}}</h2>
-  <p class="mtt-global-journal-placeholder">{{localize "mtt.globalJournal.placeholder"}}</p>
+  <header class="mtt-global-journal-header">
+    <h2 class="mtt-global-journal-title">{{localize "mtt.globalJournal.title"}}</h2>
+  </header>
+
+  <section class="mtt-global-journal-filters">
+    <label class="mtt-global-journal-filter">
+      <span>{{localize "mtt.globalJournal.filters.merchant"}}</span>
+      <select name="merchantUuid" data-action="setGlobalJournalFilter" data-filter-key="merchantUuid">
+        <option value="">{{localize "mtt.globalJournal.filters.allMerchants"}}</option>
+        {{#each merchants as |merchant|}}
+          <option value="{{merchant.uuid}}" {{#if merchant.selected}}selected{{/if}}>
+            {{merchant.name}}
+          </option>
+        {{/each}}
+      </select>
+    </label>
+
+    <label class="mtt-global-journal-filter">
+      <span>{{localize "mtt.globalJournal.filters.buyer"}}</span>
+      <select name="buyerUuid" data-action="setGlobalJournalFilter" data-filter-key="buyerUuid">
+        <option value="">{{localize "mtt.globalJournal.filters.allBuyers"}}</option>
+        {{#each buyers as |buyer|}}
+          <option value="{{buyer.uuid}}" {{#if buyer.selected}}selected{{/if}}>
+            {{buyer.name}}
+          </option>
+        {{/each}}
+      </select>
+    </label>
+
+    <button type="button" data-action="clearGlobalJournalFilters">
+      <i class="fas fa-rotate-left"></i>
+      <span>{{localize "mtt.globalJournal.filters.clear"}}</span>
+    </button>
+  </section>
+
+  {{#unless hasTransactions}}
+    <p class="mtt-global-journal-empty">
+      {{localize "mtt.globalJournal.empty"}}
+    </p>
+  {{/unless}}
+
+  {{#if hasTransactions}}
+    <header class="mtt-global-journal-sortbar">
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="date">
+        <span>{{localize "mtt.globalJournal.columns.transactionNumber"}}</span>
+        {{#if (eq sort.key "date")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="merchant">
+        <span>{{localize "mtt.globalJournal.columns.merchant"}}</span>
+        {{#if (eq sort.key "merchant")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="buyer">
+        <span>{{localize "mtt.globalJournal.columns.buyer"}}</span>
+        {{#if (eq sort.key "buyer")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="status">
+        <span>{{localize "mtt.globalJournal.columns.status"}}</span>
+        {{#if (eq sort.key "status")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="paid">
+        <span>{{localize "mtt.globalJournal.columns.paid"}}</span>
+        {{#if (eq sort.key "paid")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="received">
+        <span>{{localize "mtt.globalJournal.columns.received"}}</span>
+        {{#if (eq sort.key "received")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortGlobalJournal" data-sort-key="adjustment">
+        <span>{{localize "mtt.globalJournal.columns.adjustment"}}</span>
+        {{#if (eq sort.key "adjustment")}}
+          {{#if (eq sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+    </header>
+
+    <ol class="mtt-global-journal-list">
+      {{#each transactions as |transaction|}}
+        <li class="mtt-global-journal-entry" data-journal-entry-id="{{transaction.id}}">
+          <details>
+            <summary class="mtt-global-journal-summary">
+              <span class="mtt-global-journal-transaction-number" data-tooltip="{{transaction.createdAtShortLabel}}">
+                {{transaction.transactionNumberLabel}}
+              </span>
+              <span class="mtt-global-journal-merchant" title="{{transaction.merchantName}}">
+                {{transaction.merchantName}}
+              </span>
+              <span class="mtt-global-journal-buyer" title="{{transaction.buyerName}}">
+                {{transaction.buyerName}}
+              </span>
+              <span class="mtt-global-journal-status {{transaction.statusClass}}">
+                {{localize transaction.statusLabelKey}}
+              </span>
+              <span class="mtt-global-journal-paid">{{transaction.paidTotalLabel}}</span>
+              <span class="mtt-global-journal-received">{{transaction.receivedTotalLabel}}</span>
+              <span class="mtt-global-journal-adjustment">{{transaction.moneyAdjustmentLabel}}</span>
+            </summary>
+
+            <div class="mtt-global-journal-details">
+              {{#if transaction.hasEntries}}
+                <div class="mtt-merchant-journal-items" role="table">
+                  <div class="mtt-merchant-journal-item-row mtt-merchant-journal-item-head" role="row">
+                    <div class="mtt-merchant-journal-item-type" role="columnheader">{{localize
+                        "mtt.journal.columns.type"
+                      }}</div>
+                    <div class="mtt-merchant-journal-item-name" role="columnheader">{{localize
+                        "mtt.journal.columns.name"
+                      }}</div>
+                    <div class="mtt-merchant-journal-item-quantity" role="columnheader">{{localize
+                        "mtt.journal.columns.quantity"
+                      }}</div>
+                    <div class="mtt-merchant-journal-item-unit-price" role="columnheader">{{localize
+                        "mtt.journal.columns.unitPriceShort"
+                      }}</div>
+                    <div class="mtt-merchant-journal-item-total" role="columnheader">{{localize
+                        "mtt.journal.columns.total"
+                      }}</div>
+                    <div class="mtt-merchant-journal-item-negotiation" role="columnheader">{{localize
+                        "mtt.journal.columns.negotiationShort"
+                      }}</div>
+                  </div>
+
+                  {{#each transaction.entries as |entry|}}
+                    <div class="mtt-merchant-journal-item-row" role="row">
+                      <span class="mtt-merchant-journal-item-type" role="cell">
+                        <i
+                          class="{{entry.typeIcon}} mtt-merchant-journal-item-row-center"
+                          data-tooltip="{{entry.typeLabel}}"
+                        ></i>
+                      </span>
+                      <span class="mtt-merchant-journal-item-name" title="{{entry.name}}" role="cell">
+                        {{entry.name}}
+                      </span>
+                      <span class="mtt-merchant-journal-item-quantity" role="cell">{{entry.quantity}}</span>
+                      <span class="mtt-merchant-journal-item-unit-price" role="cell">
+                        {{entry.signedUnitPriceLabel}}
+                      </span>
+                      <span class="mtt-merchant-journal-item-total" role="cell">
+                        {{entry.signedTotalPriceLabel}}
+                      </span>
+                      <span class="mtt-merchant-journal-item-negotiation" role="cell">
+                        {{#if entry.hasNegotiationIcon}}
+                          <i
+                            class="{{entry.negotiationIcon}}"
+                            data-tooltip="{{localize entry.negotiationTooltipKey}}"
+                          ></i>
+                        {{/if}}
+                      </span>
+                    </div>
+                  {{/each}}
+                </div>
+              {{else}}
+                <p class="mtt-global-journal-no-detail">
+                  {{localize "mtt.journal.noDetail"}}
+                </p>
+              {{/if}}
+            </div>
+          </details>
+        </li>
+      {{/each}}
+    </ol>
+  {{/if}}
 </section>

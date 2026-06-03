@@ -38,6 +38,10 @@
         "name": "Autoriser la fusion étendue des items livrés",
         "hint": "Permet à MTT de fusionner un item acheté avec un item déjà présent sur l’acteur lorsqu’aucune origine MTT fiable commune n’est trouvée, en comparant son nom, son type, son sous-type, son prix initial et sa monnaie. Désactivé par défaut."
       },
+      "writeDeliveryDescriptionInfo": {
+        "name": "Écrire la provenance et les informations secrètes dans la description des objets livrés",
+        "hint": "Si cette option est activée, MTT ajoute au début de la description des objets livrés une ligne visible indiquant le marchand et la transaction, ainsi qu’un bloc secret Foundry si le produit avait des informations secrètes. Si elle est désactivée, la description de l’objet livré n’est pas modifiée."
+      },
       "itemDescriptionPath": {
         "name": "Chemin de la description",
         "hint": "Chemin du système de l’item pour lire la description. Exemple : system.description.value"
@@ -351,7 +355,16 @@
       "negotiation": {
         "accepted": "Négociation acceptée",
         "refused": "Négociation refusée"
-      }
+      },
+      "secretIndicator": "Informations secrètes présentes lors de la transaction."
+    },
+    "delivery": {
+      "origin": "Objet acheté chez {merchantName}.",
+      "originWithTransaction": "Objet acheté chez {merchantName} - transaction #{transactionNumber}.",
+      "secretTitle": "Informations secrètes MTT",
+      "secretName": "Nom secret : {value}",
+      "secretPrice": "Prix secret : {value}",
+      "secretDescription": "Description secrète : {value}"
     },
     "items": {
       "newItem": "Nouvel objet",

@@ -175,6 +175,15 @@
                         ></i>
                       </span>
                       <span class="mtt-merchant-journal-item-name" title="{{entry.name}}" role="cell">
+                        {{#if entry.canShowSecretIndicator}}
+                          {{#if @root.canSeeSecretIndicators}}
+                            <i
+                              class="fa-solid fa-mask mtt-journal-secret-indicator"
+                              data-tooltip="{{localize 'mtt.journal.secretIndicator'}}"
+                              aria-hidden="true"
+                            ></i>
+                          {{/if}}
+                        {{/if}}
                         {{entry.name}}
                       </span>
                       <span class="mtt-merchant-journal-item-quantity" role="cell">{{entry.quantity}}</span>

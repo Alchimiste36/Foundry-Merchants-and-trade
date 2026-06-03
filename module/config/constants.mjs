@@ -97,8 +97,7 @@ export const MTT = {
     isNegotiated: false,
     negotiationStatus: "",
     isFreePrice: false,
-    hasSecrets: false,
-    secretData: null,
+    hadSecrets: false,
   },
 
   JOURNAL_MONEY_ADJUSTMENT_DEFAULTS: {

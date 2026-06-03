@@ -146,6 +146,7 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
     return {
       ...context,
       transactions: filteredTransactions,
+      canSeeSecretIndicators: Boolean(game.user?.isGM),
       hasTransactions: filteredTransactions.length > 0,
       hasCollectedTransactions: collectedTransactions.length > 0,
       merchants: merchants

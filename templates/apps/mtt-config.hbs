@@ -123,6 +123,19 @@
             placeholder="system.quantity.max"
           />
         </div>
+
+        <label class="mtt-config-checkbox-field">
+          <input
+            type="checkbox"
+            name="writeDeliveryDescriptionInfo"
+            {{#if writeDeliveryDescriptionInfo}}checked{{/if}}
+          />
+          <span>{{localize "mtt.settings.writeDeliveryDescriptionInfo.name"}}</span>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.settings.writeDeliveryDescriptionInfo.hint'}}"
+          ></i>
+        </label>
       </div>
     </section>
 

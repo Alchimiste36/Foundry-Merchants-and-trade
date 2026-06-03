@@ -95,14 +95,21 @@ export function getDeliveryStackingConfig() {
   }
 }
 
-export function isProductCommerciallyModified(productData = {}) {
+export function hasSecretValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== ""
+}
+
+export function productHasSecretInfo(productData = {}) {
   return Boolean(
-    productData?.isCommerciallyModified ||
-      productData?.secretName ||
-      productData?.secretPrice ||
-      productData?.secretCurrency ||
-      productData?.secretDescription,
+    hasSecretValue(productData?.secretName) ||
+      hasSecretValue(productData?.secretPrice) ||
+      hasSecretValue(productData?.secretCurrency) ||
+      hasSecretValue(productData?.secretDescription),
   )
+}
+
+export function isProductCommerciallyModified(productData = {}) {
+  return Boolean(productData?.isCommerciallyModified || productHasSecretInfo(productData))
 }
 
 export function getMttSourceUuid(itemOrData, productData = null) {
@@ -175,6 +182,8 @@ function getComparableCurrency(itemOrData) {
 }
 
 export function canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
+  if (productHasSecretInfo(productData)) return false
+
   const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
   const existingSourceUuid = getMttSourceUuid(existingItem)
 
@@ -182,6 +191,8 @@ export function canStrictMergeDeliveredItem(existingItem, deliveredItemData, pro
 }
 
 export function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
+  if (productHasSecretInfo(productData)) return false
+
   const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
   const existingSourceUuid = getMttSourceUuid(existingItem)
   if (sourceUuid && existingSourceUuid) return false

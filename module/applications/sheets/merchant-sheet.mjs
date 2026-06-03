@@ -11,6 +11,7 @@ import {
   htmlToPlainText,
   getMerchantSheetLockedState,
   getMerchantLimitedState,
+  productHasSecretInfo,
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
@@ -1046,7 +1047,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return {
         kind,
         name: product.displayName || item.name,
-        hasSecrets: Boolean(product.secretName || product.secretPrice || product.secretCurrency || product.secretDescription),
+        hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
         isObserverOwnership:
           Number(product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
@@ -1063,7 +1064,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return {
         kind,
         name: service.name,
-        hasSecrets: Boolean(service.secretName || service.secretPrice || service.secretCurrency || service.secretDescription),
+        hasSecrets: productHasSecretInfo(service),
         requiresApproval: Boolean(service.requiresApproval),
         serviceId: service.id,
         data: service,
@@ -2772,7 +2773,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!confirmed) return;
 
     try {
-      const executionPlan = await buildSessionItemExecutionPlan(this.actor, session);
+      const transactionNumber = this.#getNextJournalTransactionNumber();
+      const executionPlan = await buildSessionItemExecutionPlan(this.actor, session, { transactionNumber });
       if (!executionPlan.canExecute) {
         this.#sessionCheckResult = {
           checked: true,
@@ -2806,6 +2808,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         buildMerchantJournalEntryFromSession(this.actor, session, {
           status: "validated",
           executionPlan,
+          transactionNumber,
         }),
       );
       clearSessionAfterExecution(session);
@@ -2837,15 +2840,24 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const confirmed = await openRefuseConfirmDialog();
     if (!confirmed) return;
 
+    const transactionNumber = this.#getNextJournalTransactionNumber();
     await appendMerchantJournalEntry(
       this.actor,
       buildMerchantJournalEntryFromSession(this.actor, session, {
         status: "refused",
+        transactionNumber,
       }),
     );
     clearSessionAfterExecution(session);
     await this.#saveSession(session);
     this.render();
+  }
+
+  #getNextJournalTransactionNumber() {
+    const nextTransactionNumber = Number(this.actor.system?.journal?.nextTransactionNumber);
+    if (!Number.isFinite(nextTransactionNumber) || nextTransactionNumber <= 0) return 1;
+
+    return Math.floor(nextTransactionNumber);
   }
 
   static async #onToggleOpen(event) {

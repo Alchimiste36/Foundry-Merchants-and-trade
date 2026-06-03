@@ -1,5 +1,5 @@
 import { MTT } from "../../config/constants.mjs"
-import { formatPriceLabel } from "./merchant-utils.mjs"
+import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
@@ -56,8 +56,7 @@ function normalizeJournalTransactionEntry(entry = {}) {
     isNegotiated: Boolean(entry.isNegotiated ?? defaults.isNegotiated),
     negotiationStatus: String(entry.negotiationStatus ?? defaults.negotiationStatus),
     isFreePrice: Boolean(entry.isFreePrice ?? defaults.isFreePrice),
-    hasSecrets: Boolean(entry.hasSecrets ?? defaults.hasSecrets),
-    secretData: entry.secretData ?? defaults.secretData,
+    hadSecrets: Boolean(entry.hadSecrets ?? entry.hasSecrets ?? defaults.hadSecrets),
   }
 }
 
@@ -99,7 +98,28 @@ function getLastNegotiationOffer(negotiation) {
   return offers.length > 0 ? offers[offers.length - 1] : null
 }
 
-function buildJournalLineFromSessionItem(item, side, negotiationsByLineKey) {
+function catalogEntryHasSecrets(entry = {}) {
+  return productHasSecretInfo(entry)
+}
+
+function getJournalLineHadSecrets(actor, item, side) {
+  if (side !== "buyer") return false
+
+  if (item.type === "product") {
+    const productItem = actor?.items?.get?.(item.sourceId)
+    const product = productItem?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    return catalogEntryHasSecrets(product)
+  }
+
+  if (item.type === "service") {
+    const service = actor?.system?.services?.entries?.find((entry) => entry.id === item.sourceId) ?? {}
+    return catalogEntryHasSecrets(service)
+  }
+
+  return false
+}
+
+function buildJournalLineFromSessionItem(actor, item, side, negotiationsByLineKey) {
   const proposedUnitPriceValue = item.proposedUnitPriceValue
   const line = {
     id: foundry.utils.randomID(),
@@ -119,8 +139,7 @@ function buildJournalLineFromSessionItem(item, side, negotiationsByLineKey) {
     isNegotiated: proposedUnitPriceValue !== null && proposedUnitPriceValue !== undefined,
     negotiationStatus: "",
     isFreePrice: Boolean(item.isFreePrice),
-    hasSecrets: false,
-    secretData: null,
+    hadSecrets: getJournalLineHadSecrets(actor, item, side),
   }
 
   const negotiation = negotiationsByLineKey.get(getJournalLineKey(line))
@@ -135,7 +154,7 @@ function buildJournalLineFromSessionItem(item, side, negotiationsByLineKey) {
   return line
 }
 
-function buildJournalLineFromNegotiation(negotiation, status) {
+function buildJournalLineFromNegotiation(actor, negotiation, status) {
   const lastOffer = getLastNegotiationOffer(negotiation)
   const quantity = normalizeJournalNumber(lastOffer?.quantity, 1)
   const unitPriceValue = normalizeJournalNumber(lastOffer?.unitPriceValue ?? negotiation.proposedUnitPriceValue, 0)
@@ -158,12 +177,11 @@ function buildJournalLineFromNegotiation(negotiation, status) {
     isNegotiated: true,
     negotiationStatus: status === "refused" && negotiation.status === "active" ? "refused" : String(negotiation.status ?? ""),
     isFreePrice: Boolean(negotiation.isFreePrice),
-    hasSecrets: false,
-    secretData: null,
+    hadSecrets: getJournalLineHadSecrets(actor, negotiation, normalizeJournalEntrySide(negotiation.side)),
   }
 }
 
-function prepareJournalNegotiations(session, status) {
+function prepareJournalNegotiations(actor, session, status) {
   const negotiations = Array.isArray(session?.negotiations) ? session.negotiations : []
   const acceptedByLineKey = new Map()
   const extraLines = []
@@ -172,13 +190,13 @@ function prepareJournalNegotiations(session, status) {
     const negotiationStatus = String(negotiation.status ?? "")
 
     if (negotiationStatus === "accepted") {
-      const line = buildJournalLineFromNegotiation(negotiation, status)
+      const line = buildJournalLineFromNegotiation(actor, negotiation, status)
       acceptedByLineKey.set(getJournalLineKey(line), negotiation)
       continue
     }
 
     if (negotiationStatus === "refused" || (status === "refused" && negotiationStatus === "active")) {
-      extraLines.push(buildJournalLineFromNegotiation(negotiation, status))
+      extraLines.push(buildJournalLineFromNegotiation(actor, negotiation, status))
     }
   }
 
@@ -227,12 +245,12 @@ function getJournalReferenceCurrency(entries) {
 export function buildMerchantJournalEntryFromSession(actor, session, options = {}) {
   const status = options.status === "refused" ? "refused" : "validated"
   const buyerName = String(session?.actorName ?? session?.label ?? "")
-  const { acceptedByLineKey, extraLines } = prepareJournalNegotiations(session, status)
+  const { acceptedByLineKey, extraLines } = prepareJournalNegotiations(actor, session, status)
   const buyerItems = Array.isArray(session?.buyerItems) ? session.buyerItems : []
   const sellerItems = Array.isArray(session?.sellerItems) ? session.sellerItems : []
   const entries = [
-    ...buyerItems.map((item) => buildJournalLineFromSessionItem(item, "buyer", acceptedByLineKey)),
-    ...sellerItems.map((item) => buildJournalLineFromSessionItem(item, "seller", acceptedByLineKey)),
+    ...buyerItems.map((item) => buildJournalLineFromSessionItem(actor, item, "buyer", acceptedByLineKey)),
+    ...sellerItems.map((item) => buildJournalLineFromSessionItem(actor, item, "seller", acceptedByLineKey)),
     ...extraLines,
   ]
   const buyerTotal = entries
@@ -262,6 +280,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
     entries,
     moneyAdjustments: options.moneyAdjustments ?? prepareJournalMoneyAdjustments(entries),
     secrets: [],
+    transactionNumber: options.transactionNumber,
   })
 }
 
@@ -349,6 +368,7 @@ export function prepareMerchantJournalContext(actor, options = {}) {
 
   return {
     canSeeAll,
+    canSeeSecretIndicators: canSeeAll,
     hasTransactions: transactions.length > 0,
     transactions,
     sort,
@@ -461,5 +481,6 @@ function prepareJournalLineDisplay(line) {
     hasNegotiationIcon,
     negotiationIcon: negotiationStatus === "accepted" ? "fas fa-check" : "fas fa-times",
     negotiationTooltipKey: `mtt.journal.negotiation.${negotiationStatus}`,
+    canShowSecretIndicator: Boolean(normalized.hadSecrets),
   }
 }

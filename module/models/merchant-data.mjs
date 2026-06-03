@@ -333,14 +333,9 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           required: true,
           initial: false,
         }),
-        hasSecrets: new fields.BooleanField({
+        hadSecrets: new fields.BooleanField({
           required: true,
           initial: false,
-        }),
-        secretData: new fields.ObjectField({
-          required: false,
-          nullable: true,
-          initial: null,
         }),
       });
 

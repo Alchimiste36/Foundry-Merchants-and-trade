@@ -2069,6 +2069,11 @@
 .mtt-merchant-journal-item-name {
   text-align: left;
 }
+.mtt-journal-secret-indicator {
+  color: var(--mtt-danger);
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
 .mtt-merchant-journal-item-unit-price,
 .mtt-merchant-journal-item-total {
   text-align: right;

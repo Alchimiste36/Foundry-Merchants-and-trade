@@ -20,6 +20,7 @@ import {
   resolveItemCurrencyKey,
   getReferenceSessionCurrency,
   htmlToPlainText,
+  productHasSecretInfo,
 } from "./merchant-utils.mjs"
 
 export function getSellPercent(actor) {
@@ -126,7 +127,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
     const secretPrice = product.secretPrice ?? ""
     const secretCurrency = product.secretCurrency ?? ""
     const secretDescription = product.secretDescription ?? ""
-    const hasSecrets = Boolean(secretName || secretPrice || secretCurrency || secretDescription)
+    const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
 
     return {
       id: item.id,
@@ -200,7 +201,7 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
     const secretPrice = service.secretPrice ?? ""
     const secretCurrency = service.secretCurrency ?? ""
     const secretDescription = service.secretDescription ?? ""
-    const hasSecrets = Boolean(secretName || secretPrice || secretCurrency || secretDescription)
+    const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
 
     return {
       id: service.id,

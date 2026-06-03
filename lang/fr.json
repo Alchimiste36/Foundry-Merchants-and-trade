@@ -66,6 +66,10 @@
         "name": "Libellés des catégories automatiques",
         "hint": "Correspondances entre valeurs techniques et libellés affichés. Format : valeur=Libellé, une ligne par correspondance."
       },
+      "defaultCustomCategories": {
+        "name": "Catégories personnalisées par défaut",
+        "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne."
+      },
       "actorCurrencyPath": {
         "name": "Chemin de la monnaie principale de l’acteur",
         "hint": "Chemin pour lire la monnaie principale sur un acteur. Exemple : system.currency.gp. Laisser vide si la monnaie est gérée par devises séparées."
@@ -803,6 +807,13 @@
         "delivery": "Chemins de livraison",
         "types": "Types autorisés",
         "currencies": "Devises et conversion"
+      },
+      "categories": {
+        "title": "Catégories",
+        "defaultCustomCategories": {
+          "label": "Catégories personnalisées par défaut",
+          "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque marchand."
+        }
       },
       "currencies": {
         "explanation": "Définissez les devises utilisées dans votre système de jeu. Chaque devise a un nom, une abréviation, un chemin pour lire la valeur sur l'acteur, et une valeur de conversion relative. Exemple : si la pièce de base vaut 1, une pièce valant le double vaut 2, une pièce valant la moitié vaut 0.5.",

@@ -131,6 +131,15 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "defaultCustomCategories", {
+    name: "mtt.settings.defaultCustomCategories.name",
+    hint: "mtt.settings.defaultCustomCategories.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "actorCurrencyPath", {
     name: "mtt.settings.actorCurrencyPath.name",
     hint: "mtt.settings.actorCurrencyPath.hint",
@@ -178,4 +187,19 @@ export function getCurrencies() {
 
 export function setCurrencies(currencies) {
   return game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
+}
+
+export function parseDefaultCustomCategories(value) {
+  const seen = new Set();
+
+  return String(value ?? "")
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = entry.toLocaleLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }

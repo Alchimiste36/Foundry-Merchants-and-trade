@@ -83,6 +83,18 @@ export function getReferenceCurrency() {
   return getReferenceSessionCurrency()
 }
 
+function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency = "", secretDescription = "" } = {}) {
+  const description = String(secretDescription ?? "").trim()
+  const shortDescription = description.length > 180 ? `${description.slice(0, 177)}...` : description
+  const priceLabel = [secretPrice, secretCurrency].map((value) => String(value ?? "").trim()).filter(Boolean).join(" ")
+
+  return [
+    `${game.i18n.localize("mtt.secrets.tooltip.name")} ${secretName || "-"}`,
+    `${game.i18n.localize("mtt.secrets.tooltip.price")} ${priceLabel || "-"}`,
+    `${game.i18n.localize("mtt.secrets.tooltip.description")} ${shortDescription || "-"}`,
+  ].join("\n")
+}
+
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
   return actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
@@ -110,6 +122,11 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
     const ownershipLabelKey = isObserverOwnership
       ? "mtt.products.ownership.observer"
       : "mtt.products.ownership.limited"
+    const secretName = product.secretName ?? ""
+    const secretPrice = product.secretPrice ?? ""
+    const secretCurrency = product.secretCurrency ?? ""
+    const secretDescription = product.secretDescription ?? ""
+    const hasSecrets = Boolean(secretName || secretPrice || secretCurrency || secretDescription)
 
     return {
       id: item.id,
@@ -122,9 +139,10 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       quantity,
       hasQuantity: !isUnlimitedQuantity(quantity),
       document: item,
-      secretName: product.secretName ?? "",
-      secretPrice: product.secretPrice ?? "",
-      secretDescription: product.secretDescription ?? "",
+      secretName,
+      secretPrice,
+      secretCurrency,
+      secretDescription,
       priceValue: basePriceValue,
       basePriceValue,
       displayPriceValue,
@@ -149,7 +167,9 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
       displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
       basePriceLabel: formatPriceLabel(basePriceValue, priceCurrency),
-      hasSecretInfos: Boolean(product.secretName || product.secretPrice || product.secretDescription),
+      hasSecrets,
+      hasSecretInfos: hasSecrets,
+      secretTooltip: hasSecrets ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription }) : "",
       isSecretExpanded: product.isSecretExpanded ?? MTT.PRODUCT_DEFAULTS.isSecretExpanded,
       hasFreePrice: product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice,
       minimumPriceValue:
@@ -176,12 +196,23 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
     const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency
     const isHidden = Boolean(service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden)
     const isVisible = !isHidden
+    const secretName = service.secretName ?? ""
+    const secretPrice = service.secretPrice ?? ""
+    const secretCurrency = service.secretCurrency ?? ""
+    const secretDescription = service.secretDescription ?? ""
+    const hasSecrets = Boolean(secretName || secretPrice || secretCurrency || secretDescription)
 
     return {
       id: service.id,
       name: service.name,
       description: service.description || "",
       descriptionText: htmlToPlainText(service.description || ""),
+      secretName,
+      secretPrice,
+      secretCurrency,
+      secretDescription,
+      hasSecrets,
+      secretTooltip: hasSecrets ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription }) : "",
       priceValue: basePriceValue,
       basePriceValue,
       displayPriceValue,

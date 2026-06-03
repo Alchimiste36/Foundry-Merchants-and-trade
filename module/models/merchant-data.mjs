@@ -661,6 +661,26 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
               blank: true,
               initial: "",
             }),
+            secretName: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretPrice: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretCurrency: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
+            secretDescription: new fields.StringField({
+              required: false,
+              blank: true,
+              initial: "",
+            }),
             priceValue: new fields.NumberField({
               required: true,
               initial: 0,

@@ -15,6 +15,7 @@ export const MTT = {
     quantity: 1,
     secretName: "",
     secretPrice: "",
+    secretCurrency: "",
     secretDescription: "",
     priceValue: 0,
     priceCurrency: "",
@@ -35,6 +36,10 @@ export const MTT = {
   SERVICE_DEFAULTS: {
     name: "",
     description: "",
+    secretName: "",
+    secretPrice: "",
+    secretCurrency: "",
+    secretDescription: "",
     priceValue: 0,
     priceCurrency: "",
     quantity: null,

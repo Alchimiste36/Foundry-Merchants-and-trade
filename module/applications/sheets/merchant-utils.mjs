@@ -100,6 +100,7 @@ export function isProductCommerciallyModified(productData = {}) {
     productData?.isCommerciallyModified ||
       productData?.secretName ||
       productData?.secretPrice ||
+      productData?.secretCurrency ||
       productData?.secretDescription,
   )
 }

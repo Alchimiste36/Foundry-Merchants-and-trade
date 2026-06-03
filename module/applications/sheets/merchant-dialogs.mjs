@@ -161,6 +161,68 @@ export async function openSessionPreparationDialog({
   }
 }
 
+export async function openCatalogItemSecretsDialog({
+  name,
+  secretName = "",
+  secretPrice = "",
+  secretCurrency = "",
+  secretDescription = "",
+}) {
+  const title = game.i18n.format("mtt.secrets.titleWithName", { name })
+  const content = `<form class="mtt-secret-info-dialog">
+    <label class="mtt-secret-info-field">
+      <span>${game.i18n.localize("mtt.secrets.name")}</span>
+      <input type="text" name="secretName" value="${escapeHTML(secretName)}" />
+    </label>
+    <div class="mtt-secret-info-field">
+      <span>${game.i18n.localize("mtt.secrets.price")}</span>
+      <div class="mtt-secret-info-price-row">
+        <input type="text" name="secretPrice" value="${escapeHTML(secretPrice)}" />
+        <select name="secretCurrency" aria-label="${escapeHTML(game.i18n.localize("mtt.secrets.currency"))}">
+          ${buildCurrencySelectOptions(secretCurrency)}
+        </select>
+      </div>
+    </div>
+    <label class="mtt-secret-info-field">
+      <span>${game.i18n.localize("mtt.secrets.description")}</span>
+      <textarea name="secretDescription">${escapeHTML(secretDescription)}</textarea>
+    </label>
+  </form>`
+
+  try {
+    return await foundry.applications.api.DialogV2.wait({
+      window: { title },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "cancel",
+          label: game.i18n.localize("mtt.secrets.cancel"),
+          callback: () => null,
+        },
+        {
+          action: "save",
+          label: game.i18n.localize("mtt.secrets.save"),
+          default: true,
+          callback: (event, button, dialog) => {
+            const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form")
+            if (!form) return null
+            const formData = new FormData(form)
+            return {
+              secretName: String(formData.get("secretName") ?? "").trim(),
+              secretPrice: String(formData.get("secretPrice") ?? "").trim(),
+              secretCurrency: String(formData.get("secretCurrency") ?? "").trim(),
+              secretDescription: String(formData.get("secretDescription") ?? "").trim(),
+            }
+          },
+        },
+      ],
+    })
+  } catch {
+    return null
+  }
+}
+
 export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency }) {
   const quantityMax =
     Number.isFinite(availableQuantity) && availableQuantity >= 0

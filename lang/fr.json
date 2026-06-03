@@ -466,6 +466,34 @@
         "help": "Déverrouillez la feuille pour ajouter un service."
       }
     },
+    "catalog": {
+      "context": {
+        "title": "Actions de catalogue",
+        "secretInfo": "Informations secrètes",
+        "deleteSecretInfo": "Supprimer les informations secrètes",
+        "requestApproval": "Demander l’approbation du MJ",
+        "removeApproval": "Retirer l’approbation du MJ",
+        "switchToLimitedOwnership": "Passer en droit Limité",
+        "switchToObserverOwnership": "Passer en droit Observateur"
+      }
+    },
+    "secrets": {
+      "title": "Informations secrètes",
+      "titleWithName": "Informations secrètes - {name}",
+      "name": "Nom secret",
+      "price": "Prix secret",
+      "currency": "Monnaie secrète",
+      "description": "Description secrète",
+      "save": "Valider",
+      "cancel": "Annuler",
+      "deleteTitle": "Supprimer les informations secrètes",
+      "deleteConfirm": "Supprimer les informations secrètes de cet élément ?",
+      "tooltip": {
+        "name": "Nom secret :",
+        "price": "Prix secret :",
+        "description": "Description secrète :"
+      }
+    },
     "sessions": {
       "title": "Session de transaction",
       "buyerFortune": "Fortune :",

@@ -1833,18 +1833,40 @@ function buildDeliveredItemSecretHtml(productData = {}) {
 function addDeliveredItemDescriptionBlock(itemData, productData = {}) {
   if (!getModuleSetting("writeDeliveryDescriptionInfo")) return;
 
-  const descriptionPath = String(getModuleSetting("itemDescriptionPath") ?? "").trim();
-  if (!descriptionPath) return;
+  const visiblePath = String(getModuleSetting("itemDescriptionPath") ?? "").trim();
+  if (!visiblePath) return;
+
+  const secretPath = String(getModuleSetting("itemSecretDescriptionPath") ?? "").trim();
 
   const originHtml = buildDeliveredItemOriginHtml(productData);
   const secretHtml = buildDeliveredItemSecretHtml(productData);
   if (!originHtml && !secretHtml) return;
 
-  const originalDescription = foundry.utils.getProperty(itemData, descriptionPath);
-  const originalHtml =
-    originalDescription === null || originalDescription === undefined ? "" : String(originalDescription);
+  const originalVisible = String(foundry.utils.getProperty(itemData, visiblePath) ?? "");
 
-  foundry.utils.setProperty(itemData, descriptionPath, [originHtml, secretHtml, originalHtml].filter(Boolean).join("\n"));
+  if (!secretPath || secretPath === visiblePath) {
+    // Cas C (secret vide) : origin seulement dans le champ visible
+    // Cas A (même chemin) : origin + bloc secret + original dans le même champ
+    const parts = secretPath === visiblePath
+      ? [originHtml, secretHtml, originalVisible]
+      : [originHtml, originalVisible];
+    foundry.utils.setProperty(itemData, visiblePath, parts.filter(Boolean).join("\n"));
+  } else {
+    // Cas B : chemins distincts
+    foundry.utils.setProperty(
+      itemData,
+      visiblePath,
+      [originHtml, originalVisible].filter(Boolean).join("\n"),
+    );
+    if (secretHtml) {
+      const originalSecret = String(foundry.utils.getProperty(itemData, secretPath) ?? "");
+      foundry.utils.setProperty(
+        itemData,
+        secretPath,
+        [secretHtml, originalSecret].filter(Boolean).join("\n"),
+      );
+    }
+  }
 }
 
 function buildVisibleProductItemData(sourceItem, product, quantity) {

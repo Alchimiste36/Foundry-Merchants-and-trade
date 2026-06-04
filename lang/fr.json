@@ -46,6 +46,10 @@
         "name": "Chemin de la description",
         "hint": "Chemin du système de l’item pour lire la description. Exemple : system.description.value"
       },
+      "itemSecretDescriptionPath": {
+        "name": "Chemin de la description secrète de l’Item livré",
+        "hint": "Chemin où MTT écrit les informations secrètes des objets livrés. Si identique au chemin de description visible, les informations sont ajoutées dans un bloc secret Foundry dans le même champ. Si différent, les informations secrètes sont écrites dans ce champ séparé. Si vide, les informations secrètes ne sont pas copiées dans l’objet livré."
+      },
       "allowedProductTypes": {
         "name": "Types d’items autorisés comme produits",
         "hint": "Liste de types séparés par des virgules. Laisser vide pour autoriser tous les types."

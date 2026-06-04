@@ -79,6 +79,26 @@
             placeholder="system.description.value"
           />
         </div>
+
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-secret-description">
+              {{localize "mtt.settings.itemSecretDescriptionPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemSecretDescriptionPath.hint'}}"
+              aria-hidden="true"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-secret-description"
+            type="text"
+            name="itemSecretDescriptionPath"
+            value="{{itemSecretDescriptionPath}}"
+            placeholder="system.description.unidentified"
+          />
+        </div>
       </div>
     </section>
 

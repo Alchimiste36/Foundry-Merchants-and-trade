@@ -150,6 +150,12 @@
         "text": "General merchant options and the transaction log will be grouped here."
       }
     },
+    "settings": {
+      "itemSecretDescriptionPath": {
+        "name": "Secret description path for delivered Items",
+        "hint": "Path where MTT writes secret information on delivered items. If identical to the visible description path, secrets are added in a Foundry secret block in the same field. If different, secret information is written to this separate field. If empty, secret information is not copied to the delivered item."
+      }
+    },
     "config": {
       "currencies": {
         "columns": {

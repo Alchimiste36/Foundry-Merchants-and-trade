@@ -86,6 +86,15 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemSecretDescriptionPath", {
+    name: "mtt.settings.itemSecretDescriptionPath.name",
+    hint: "mtt.settings.itemSecretDescriptionPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "allowedProductTypes", {
     name: "mtt.settings.allowedProductTypes.name",
     hint: "mtt.settings.allowedProductTypes.hint",

@@ -842,9 +842,20 @@
           "name": "Nom",
           "abbreviation": "Abrév.",
           "actorPath": "Chemin acteur",
-          "rate": "Valeur",
+          "actorPathHint": "Chemin pour lire et écrire cette monnaie sur un acteur. Exemple : system.currency.sp",
+          "itemPricePath": "Chemin prix Item",
+          "itemPricePathHint": "Chemin où lire le montant de cette monnaie sur un Item. Exemple : system.price.value",
+          "itemCurrencyPath": "Chemin monnaie Item",
+          "itemCurrencyPathHint": "Chemin où lire la monnaie de l'Item si le système utilise une valeur + une devise. Laisser vide si chaque monnaie a son propre chemin de valeur. Exemple : system.price.currency",
+          "itemCurrencyValues": "Valeurs monnaie Item",
+          "itemCurrencyValuesHint": "Liste d'alias séparés par des virgules permettant de reconnaître cette monnaie dans le champ monnaie Item. Exemple : pa, PA, sp, SP",
+          "rate": "Conversion",
           "actions": "Action"
-        }
+        },
+        "actorPathPlaceholder": "system.currency.sp",
+        "itemPricePathPlaceholder": "system.price.value",
+        "itemCurrencyPathPlaceholder": "system.price.currency",
+        "itemCurrencyValuesPlaceholder": "pa, PA, sp, SP"
       }
     }
   }

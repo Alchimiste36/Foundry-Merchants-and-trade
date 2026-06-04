@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json', 'utf8'\\)\\); console.log\\('JSON valid'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json', 'utf8'\\)\\); console.log\\('JSON valid'\\)\")",
+      "Bash(node -e ' *)"
     ]
   }
 }

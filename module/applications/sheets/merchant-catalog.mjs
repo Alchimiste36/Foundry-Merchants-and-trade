@@ -21,6 +21,7 @@ import {
   getReferenceSessionCurrency,
   htmlToPlainText,
   productHasSecretInfo,
+  readItemReferencePrice,
 } from "./merchant-utils.mjs"
 
 export function getSellPercent(actor) {
@@ -101,12 +102,32 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const quantity = product.quantity
     const displayName = product.displayName || item.name
-    const basePriceValue =
-      Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
-        ? Number(product.priceValue)
-        : MTT.PRODUCT_DEFAULTS.priceValue
-    const displayPriceValue = adjustPriceValue(basePriceValue, sellPercent)
-    const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+    const hasFreePrice = product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice
+    const isCommerciallyModified = Boolean(product.isCommerciallyModified)
+
+    let basePriceValue, priceCurrency
+
+    if (hasFreePrice || isCommerciallyModified) {
+      basePriceValue =
+        Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
+          ? Number(product.priceValue)
+          : MTT.PRODUCT_DEFAULTS.priceValue
+      priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+    } else {
+      const universalPrice = readItemReferencePrice(item)
+      if (universalPrice !== null) {
+        basePriceValue = universalPrice.value
+        priceCurrency = universalPrice.currency
+      } else {
+        basePriceValue =
+          Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
+            ? Number(product.priceValue)
+            : MTT.PRODUCT_DEFAULTS.priceValue
+        priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+      }
+    }
+
+    const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, sellPercent)
     const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
     const isVisible = !isHidden
     const configuredOwnershipLevel = Number(
@@ -381,15 +402,20 @@ export function createProductFlags(itemData, options = {}) {
   productFlags.isCommerciallyModified = false
   productFlags.ownershipLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
 
-  const configuredPrice = getConfiguredItemValue(itemData, "itemPriceValuePath")
-  const parsedPrice = parsePriceValue(configuredPrice) ?? getItemPrice(itemData)
-  if (parsedPrice !== null) {
-    productFlags.priceValue = parsedPrice
+  const universalPrice = readItemReferencePrice(itemData)
+  if (universalPrice !== null) {
+    productFlags.priceValue = universalPrice.value
+    productFlags.priceCurrency = universalPrice.currency
+  } else {
+    const configuredPrice = getConfiguredItemValue(itemData, "itemPriceValuePath")
+    const parsedPrice = parsePriceValue(configuredPrice) ?? getItemPrice(itemData)
+    if (parsedPrice !== null) {
+      productFlags.priceValue = parsedPrice
+    }
+    const configuredCurrency = getConfiguredItemValue(itemData, "itemPriceCurrencyPath")
+    const rawCurrency = typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(itemData)
+    productFlags.priceCurrency = resolveItemCurrencyKey(rawCurrency)
   }
-
-  const configuredCurrency = getConfiguredItemValue(itemData, "itemPriceCurrencyPath")
-  const rawCurrency = typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(itemData)
-  productFlags.priceCurrency = resolveItemCurrencyKey(rawCurrency)
 
   const configuredQuantity = getConfiguredItemValue(itemData, "itemQuantityPath")
   const parsedQuantity = parseQuantityValue(configuredQuantity)
@@ -558,15 +584,22 @@ export async function createServiceFromItem(actor, item) {
   }
   description = description ? htmlToPlainText(description) : ""
 
-  let priceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath"))
-  if (priceValue === null) {
-    priceValue = getItemPrice(item) ?? 0
-  }
+  const universalServicePrice = readItemReferencePrice(item)
+  let priceValue, priceCurrency
 
-  const rawServiceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-  const priceCurrency = resolveItemCurrencyKey(
-    typeof rawServiceCurrency === "string" ? rawServiceCurrency.trim() : getItemCurrency(item),
-  )
+  if (universalServicePrice !== null) {
+    priceValue = universalServicePrice.value
+    priceCurrency = universalServicePrice.currency
+  } else {
+    priceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath"))
+    if (priceValue === null) {
+      priceValue = getItemPrice(item) ?? 0
+    }
+    const rawServiceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
+    priceCurrency = resolveItemCurrencyKey(
+      typeof rawServiceCurrency === "string" ? rawServiceCurrency.trim() : getItemCurrency(item),
+    )
+  }
 
   const automaticCategory = getAutomaticItemCategory(item)
 
@@ -619,8 +652,20 @@ export function getItemAvailableQuantity(item) {
 
 export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {}) {
   const availableQuantity = getItemAvailableQuantity(item)
-  const basePriceValue =
-    parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath")) ?? getItemPrice(item) ?? 0
+  const universalSellerPrice = readItemReferencePrice(item)
+  let basePriceValue, priceCurrency
+
+  if (universalSellerPrice !== null) {
+    basePriceValue = universalSellerPrice.value
+    priceCurrency = universalSellerPrice.currency
+  } else {
+    basePriceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath")) ?? getItemPrice(item) ?? 0
+    const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
+    priceCurrency = resolveItemCurrencyKey(
+      typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item),
+    )
+  }
+
   const effectiveBuyPercent =
     Number.isFinite(Number(buyPercent)) && Number(buyPercent) >= 0
       ? Number(buyPercent)
@@ -628,10 +673,6 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
       ? Number(actor.system.trade.buyPercent)
       : 50
   const unitPriceValue = Number(((basePriceValue * effectiveBuyPercent) / 100).toFixed(2))
-  const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-  const priceCurrency = resolveItemCurrencyKey(
-    typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item),
-  )
   const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
 
   return {

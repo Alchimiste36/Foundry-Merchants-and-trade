@@ -251,8 +251,19 @@
         <div class="mtt-config-currency-table-head">
           <span>{{localize "mtt.config.currencies.columns.name"}}</span>
           <span>{{localize "mtt.config.currencies.columns.abbreviation"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.actorPathHint'}}"
+          >{{localize "mtt.config.currencies.columns.actorPath"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.itemPricePathHint'}}"
+          >{{localize "mtt.config.currencies.columns.itemPricePath"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.itemCurrencyPathHint'}}"
+          >{{localize "mtt.config.currencies.columns.itemCurrencyPath"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.itemCurrencyValuesHint'}}"
+          >{{localize "mtt.config.currencies.columns.itemCurrencyValues"}}</span>
           <span>{{localize "mtt.config.currencies.columns.rate"}}</span>
-          <span>{{localize "mtt.config.currencies.columns.actorPath"}}</span>
           <span>{{localize "mtt.config.currencies.columns.actions"}}</span>
         </div>
 
@@ -268,26 +279,47 @@
               />
               <input
                 type="text"
-                class="mtt-config-currency-input mtt-config-currency-abbr"
+                class="mtt-config-currency-input"
                 data-mtt-currency-field="abbreviation"
                 value="{{currency.abbreviation}}"
                 placeholder="{{localize 'mtt.config.currencies.abbrPlaceholder'}}"
               />
               <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="actorPath"
+                value="{{currency.actorPath}}"
+                placeholder="{{localize 'mtt.config.currencies.actorPathPlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="itemPricePath"
+                value="{{currency.itemPricePath}}"
+                placeholder="{{localize 'mtt.config.currencies.itemPricePathPlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="itemCurrencyPath"
+                value="{{currency.itemCurrencyPath}}"
+                placeholder="{{localize 'mtt.config.currencies.itemCurrencyPathPlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="itemCurrencyValues"
+                value="{{currency.itemCurrencyValues}}"
+                placeholder="{{localize 'mtt.config.currencies.itemCurrencyValuesPlaceholder'}}"
+              />
+              <input
                 type="number"
-                class="mtt-config-currency-input mtt-config-currency-rate"
+                class="mtt-config-currency-input"
                 data-mtt-currency-field="rate"
                 value="{{currency.rate}}"
                 min="0.0001"
                 step="0.0001"
                 placeholder="{{localize 'mtt.config.currencies.ratePlaceholder'}}"
-              />
-              <input
-                type="text"
-                class="mtt-config-currency-input mtt-config-currency-path"
-                data-mtt-currency-field="actorPath"
-                value="{{currency.actorPath}}"
-                placeholder="{{localize 'mtt.config.currencies.pathPlaceholder'}}"
               />
               <button
                 type="button"

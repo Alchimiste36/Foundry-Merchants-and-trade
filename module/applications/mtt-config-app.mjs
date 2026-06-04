@@ -10,10 +10,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     classes: ["mtt-config-app"],
     window: {
       title: "mtt.config.title",
-      resizable: false,
+      resizable: true,
     },
     position: {
-      width: 560,
+      width: 900,
       height: "auto",
     },
     actions: {
@@ -59,16 +59,30 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   static async #onSave(event, target) {
+    let existingCurrencies;
+    try {
+      existingCurrencies = JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]");
+    } catch {
+      existingCurrencies = [];
+    }
+    const existingById = new Map(existingCurrencies.map((c) => [c.id, c]));
+
     const rows = this.element.querySelectorAll(".mtt-config-currency-row[data-currency-id]");
     const currencies = Array.from(rows)
       .map((row) => {
         const get = (field) => row.querySelector(`[data-mtt-currency-field="${field}"]`)?.value ?? "";
+        const id = row.dataset.currencyId;
+        const existing = existingById.get(id) ?? {};
         return {
-          id: row.dataset.currencyId,
+          id,
           name: get("name"),
           abbreviation: get("abbreviation"),
           actorPath: get("actorPath"),
+          itemPricePath: get("itemPricePath"),
+          itemCurrencyPath: get("itemCurrencyPath"),
+          itemCurrencyValues: get("itemCurrencyValues"),
           rate: Number(get("rate")) || 1,
+          isDefault: existing.isDefault ?? false,
         };
       })
       .filter((c) => c.name.trim() !== "");
@@ -107,6 +121,9 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       name: "",
       abbreviation: "",
       actorPath: "",
+      itemPricePath: "",
+      itemCurrencyPath: "",
+      itemCurrencyValues: "",
       rate: 1,
     });
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));

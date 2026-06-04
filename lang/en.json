@@ -149,6 +149,25 @@
         "title": "Configuration",
         "text": "General merchant options and the transaction log will be grouped here."
       }
+    },
+    "config": {
+      "currencies": {
+        "columns": {
+          "actorPath": "Actor path",
+          "actorPathHint": "Path to read and write this currency on an actor. Example: system.currency.sp",
+          "itemPricePath": "Item price path",
+          "itemPricePathHint": "Path to read the amount of this currency on an Item. Example: system.price.value",
+          "itemCurrencyPath": "Item currency path",
+          "itemCurrencyPathHint": "Path to read the Item currency when the system uses a single value + denomination field. Leave empty if each currency has its own price path. Example: system.price.currency",
+          "itemCurrencyValues": "Item currency values",
+          "itemCurrencyValuesHint": "Comma-separated aliases used to identify this currency in the Item currency field. Example: pa, PA, sp, SP",
+          "rate": "Conversion"
+        },
+        "actorPathPlaceholder": "system.currency.sp",
+        "itemPricePathPlaceholder": "system.price.value",
+        "itemCurrencyPathPlaceholder": "system.price.currency",
+        "itemCurrencyValuesPlaceholder": "pa, PA, sp, SP"
+      }
     }
   }
 }

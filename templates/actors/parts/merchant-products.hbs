@@ -97,6 +97,16 @@
                     {{#if @root.mtt.canEditMerchant}}draggable="true"{{/if}}
                   >
 
+                  <span class="mtt-merchant-product-subcategory-slot">
+                    {{#if item.hasSubcategory}}
+                      <i
+                        class="{{item.subcategoryIconClass}} mtt-merchant-product-subcategory-icon"
+                        data-tooltip="{{item.subcategoryLabel}}"
+                        aria-hidden="true"
+                      ></i>
+                    {{/if}}
+                  </span>
+
                   <div class="mtt-merchant-product-quantity">
                     {{#if @root.mtt.isLimited}}
                     {{else}}

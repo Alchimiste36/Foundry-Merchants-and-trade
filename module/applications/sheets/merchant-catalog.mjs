@@ -98,7 +98,7 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
 }
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
-  return actor.items.map((item) => {
+  const items = actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const quantity = product.quantity
     const displayName = product.displayName || item.name
@@ -176,6 +176,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       systemCategoryPath: product.systemCategoryPath ?? "",
       sourceUuid: product.sourceUuid ?? "",
       isCommerciallyModified: Boolean(product.isCommerciallyModified),
+      systemSubcategory: product.systemSubcategory ?? "",
       hasSystemCategory: Boolean(product.systemCategoryKey || product.systemCategoryLabel),
       hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
       isHidden,
@@ -204,6 +205,58 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
           : (product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency),
     }
   }).filter((item) => includeHidden || item.isVisible)
+
+  return assignSubcategoryIconClasses(items)
+}
+
+function assignSubcategoryIconClasses(products) {
+  const iconClasses = ["fa-solid fa-label", "fa-light fa-label"]
+
+  // Group products by main category to compute per-category icon assignment.
+  const productsByCategory = new Map()
+  for (const product of products) {
+    const categoryKey = String(product.category ?? "").trim() || "default"
+    if (!productsByCategory.has(categoryKey)) productsByCategory.set(categoryKey, [])
+    productsByCategory.get(categoryKey).push(product)
+  }
+
+  // For each category: collect subcategories, sort them, assign icon by sorted position.
+  // Icon depends on alphabetical rank, not drop order.
+  for (const categoryProducts of productsByCategory.values()) {
+    const seen = new Map() // normalized key → original label
+    for (const p of categoryProducts) {
+      const label = String(p.systemSubcategory ?? "").trim()
+      if (label) seen.set(label.toLocaleLowerCase(), label)
+    }
+
+    const sortedKeys = Array.from(seen.keys()).sort((a, b) => a.localeCompare(b))
+    const iconByKey = new Map(sortedKeys.map((k, i) => [k, iconClasses[i % iconClasses.length]]))
+
+    for (const product of categoryProducts) {
+      const label = String(product.systemSubcategory ?? "").trim()
+      product.hasSubcategory = Boolean(label)
+      product.subcategoryLabel = label
+      product.subcategoryIconClass = label
+        ? (iconByKey.get(label.toLocaleLowerCase()) ?? iconClasses[0])
+        : ""
+    }
+  }
+
+  // Sort the flat array by [subcategoryLabel, displayName].
+  // prepareProductCategories pushes items in array order into category groups,
+  // so this ensures intra-category subcategory ordering without cross-contamination.
+  if (products.some((p) => p.hasSubcategory)) {
+    products.sort((a, b) => {
+      const subA = String(a.subcategoryLabel ?? "").toLocaleLowerCase()
+      const subB = String(b.subcategoryLabel ?? "").toLocaleLowerCase()
+      if (subA && subB && subA !== subB) return subA.localeCompare(subB)
+      if (subA && !subB) return -1
+      if (!subA && subB) return 1
+      return String(a.displayName ?? a.name ?? "").localeCompare(String(b.displayName ?? b.name ?? ""))
+    })
+  }
+
+  return products
 }
 
 export function prepareServices(actor, serviceSellPercent, { includeHidden = false } = {}) {
@@ -401,6 +454,14 @@ export function createProductFlags(itemData, options = {}) {
   productFlags.sourceUuid = String(options.sourceUuid ?? productFlags.sourceUuid ?? "").trim()
   productFlags.isCommerciallyModified = false
   productFlags.ownershipLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+
+  const subcategoryPath = String(getModuleSetting("itemSubcategoryPath") ?? "").trim()
+  if (subcategoryPath) {
+    const rawSubcategory = foundry.utils.getProperty(itemData, subcategoryPath)
+    productFlags.systemSubcategory = String(rawSubcategory ?? "").trim()
+  } else {
+    productFlags.systemSubcategory = ""
+  }
 
   const universalPrice = readItemReferencePrice(itemData)
   if (universalPrice !== null) {

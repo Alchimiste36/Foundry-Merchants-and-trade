@@ -227,6 +227,26 @@
         >{{itemCategoryPaths}}</textarea>
       </div>
 
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-item-subcategory-path">
+            {{localize "mtt.config.categories.itemSubcategoryPath.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.itemSubcategoryPath.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-item-subcategory-path"
+          type="text"
+          name="itemSubcategoryPath"
+          value="{{itemSubcategoryPath}}"
+          placeholder="system.subtype"
+        />
+      </div>
+
       <label class="mtt-config-checkbox-field">
         <input
           type="checkbox"

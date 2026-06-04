@@ -1950,10 +1950,25 @@
 
 .mtt-merchant-product-row {
   display: grid;
-  grid-template-columns: 0.3fr 3fr 1.1fr auto;
+  grid-template-columns: 1.25rem 0.3fr 3fr 1.1fr auto;
   align-items: center;
   margin: 0;
   gap: 0.3rem;
+}
+
+.mtt-merchant-product-subcategory-slot {
+  width: 1.25rem;
+  min-width: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mtt-merchant-product-subcategory-icon {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  color: var(--mtt-accent, #c79a48);
+  cursor: default;
 }
 
 .mtt-merchant-product-row:hover {
@@ -3104,6 +3119,10 @@
       "secret secret";
   }
 
+  .mtt-merchant-product-subcategory-slot {
+    display: none;
+  }
+
   .mtt-merchant-product-details {
     justify-content: start;
   }
@@ -3150,6 +3169,10 @@
       "details"
       "actions"
       "secret";
+  }
+
+  .mtt-merchant-product-subcategory-slot {
+    display: none;
   }
 
   .mtt-merchant-product-details {

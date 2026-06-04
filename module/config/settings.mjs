@@ -149,6 +149,15 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemSubcategoryPath", {
+    name: "mtt.settings.itemSubcategoryPath.name",
+    hint: "mtt.settings.itemSubcategoryPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "actorCurrencyPath", {
     name: "mtt.settings.actorCurrencyPath.name",
     hint: "mtt.settings.actorCurrencyPath.hint",
@@ -204,6 +213,7 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "defaultCustomCategories",
   "actorCurrencyPath",
   "currencies",
+  "itemSubcategoryPath",
 ];
 
 export function buildModuleConfigurationExport() {

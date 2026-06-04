@@ -151,6 +151,10 @@
       }
     },
     "settings": {
+      "itemSubcategoryPath": {
+        "name": "Product subcategory path",
+        "hint": "Path read from the source Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
+      },
       "itemSecretDescriptionPath": {
         "name": "Secret description path for delivered Items",
         "hint": "Path where MTT writes secret information on delivered items. If identical to the visible description path, secrets are added in a Foundry secret block in the same field. If different, secret information is written to this separate field. If empty, secret information is not copied to the delivered item."

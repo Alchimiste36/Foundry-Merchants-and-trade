@@ -142,6 +142,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollNegotiation: MerchantSheet.#onRollNegotiation,
       selectTab: MerchantSheet.#onSelectTab,
       sortJournal: MerchantSheet.#onSortJournal,
+      saveReferenceState: MerchantSheet.#onSaveReferenceState,
+      restoreReferenceState: MerchantSheet.#onRestoreReferenceState,
     },
   };
 
@@ -202,6 +204,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.currencyOptions = prepareCurrencyOptions();
     context.mtt.access = this.#prepareAccessContext();
     context.mtt.session = this.#prepareSessionContext();
+    context.mtt.referenceState = this.#prepareReferenceStateContext();
     context.mtt.journal = prepareMerchantJournalContext(this.actor, {
       user: game.user,
       sort: this.#journalSort,
@@ -596,6 +599,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
   #canAcceptSessionQuantity(item, quantity) {
     return canAcceptSessionQuantity(this.actor, item, quantity);
+  }
+
+  #prepareReferenceStateContext() {
+    const referenceState = this.actor.system.referenceState ?? null;
+    const savedAt = new Date(referenceState?.savedAt ?? "");
+    const savedAtLabel = Number.isNaN(savedAt.getTime()) ? "" : savedAt.toLocaleString();
+
+    return {
+      hasReferenceState: Boolean(referenceState?.savedAt),
+      savedAtLabel,
+    };
   }
 
   #prepareAccessClients() {
@@ -1941,6 +1955,139 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return getEffectiveClientRates(this.actor, session?.actorUuid ?? "");
   }
 
+  #buildReferenceState() {
+    const hiddenCategories = this.actor.system.catalog?.hiddenCategories ?? {};
+
+    return {
+      savedAt: new Date().toISOString(),
+      products: this.actor.items.map((item) => {
+        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+        const ownershipLevel = Number(
+          product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+        );
+
+        return {
+          id: item.id,
+          quantity: product.quantity ?? null,
+          isHidden: Boolean(product.isHidden),
+          ownershipLevel: Number.isFinite(ownershipLevel) ? ownershipLevel : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          requiresApproval: Boolean(product.requiresApproval),
+        };
+      }),
+      services: (this.actor.system.services?.entries ?? []).map((service) => ({
+        id: service.id,
+        quantity: service.quantity ?? null,
+        isHidden: Boolean(service.isHidden),
+        requiresApproval: Boolean(service.requiresApproval),
+      })),
+      categories: (this.actor.system.catalog?.productCategories ?? []).map((category) => ({
+        id: category.id,
+        isHidden: Boolean(hiddenCategories[category.id]),
+      })),
+    };
+  }
+
+  async #saveReferenceState() {
+    if (!this.#canModifyMerchant()) return;
+
+    await this.#saveMerchantTextFieldsFromDom();
+    await this.actor.update({
+      "system.referenceState": this.#buildReferenceState(),
+    });
+    ui.notifications.info(game.i18n.localize("mtt.referenceState.saveSuccess"));
+    this.render();
+  }
+
+  async #restoreReferenceState() {
+    if (!this.#canModifyMerchant()) return;
+
+    const referenceState = this.actor.system.referenceState;
+    if (!referenceState?.savedAt) {
+      ui.notifications.warn(game.i18n.localize("mtt.referenceState.missing"));
+      return;
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: game.i18n.localize("mtt.referenceState.confirmTitle"),
+      },
+      content: `<p>${game.i18n.localize("mtt.referenceState.confirmContent")}</p>`,
+      yes: {
+        label: game.i18n.localize("mtt.referenceState.confirmRestore"),
+      },
+      no: {
+        label: game.i18n.localize("mtt.referenceState.cancel"),
+      },
+    });
+    if (!confirmed) return;
+
+    await this.#applyReferenceState(referenceState);
+    ui.notifications.info(game.i18n.localize("mtt.referenceState.restoreSuccess"));
+    this.render();
+  }
+
+  async #applyReferenceState(referenceState) {
+    const productSnapshots = new Map((referenceState.products ?? []).map((product) => [product.id, product]));
+    const itemUpdates = [];
+
+    for (const item of this.actor.items) {
+      const snapshot = productSnapshots.get(item.id);
+      if (!snapshot) continue;
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const ownershipLevel = this.#normalizeReferenceOwnership(snapshot.ownershipLevel);
+      itemUpdates.push({
+        _id: item.id,
+        [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: {
+          ...product,
+          quantity: snapshot.quantity,
+          isHidden: Boolean(snapshot.isHidden),
+          ownershipLevel,
+          requiresApproval: Boolean(snapshot.requiresApproval),
+        },
+        "ownership.default": ownershipLevel,
+      });
+    }
+
+    if (itemUpdates.length > 0) {
+      await this.actor.updateEmbeddedDocuments("Item", itemUpdates);
+    }
+
+    const serviceSnapshots = new Map((referenceState.services ?? []).map((service) => [service.id, service]));
+    const services = foundry.utils.deepClone(this.actor.system.services?.entries ?? []).map((service) => {
+      const snapshot = serviceSnapshots.get(service.id);
+      if (!snapshot) return service;
+
+      return {
+        ...service,
+        quantity: snapshot.quantity ?? null,
+        isHidden: Boolean(snapshot.isHidden),
+        requiresApproval: Boolean(snapshot.requiresApproval),
+      };
+    });
+
+    const categorySnapshots = new Map((referenceState.categories ?? []).map((category) => [category.id, category]));
+    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog?.hiddenCategories ?? {});
+    for (const category of this.actor.system.catalog?.productCategories ?? []) {
+      const snapshot = categorySnapshots.get(category.id);
+      if (!snapshot) continue;
+      hiddenCategories[category.id] = Boolean(snapshot.isHidden);
+    }
+
+    await this.actor.update({
+      "system.services.entries": services,
+      "system.catalog.hiddenCategories": hiddenCategories,
+    });
+  }
+
+  #normalizeReferenceOwnership(value) {
+    const ownershipLevel = Number(value);
+    if (ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED) return ownershipLevel;
+    if (ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) return ownershipLevel;
+
+    return CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+  }
+
   #getSessionBuyerQuantity({ type, sourceId, unitPriceValue, priceCurrency }) {
     const session = this.#getSelectedSession();
     if (!session) return 0;
@@ -2968,6 +3115,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.actor.update({
       "system.sheet.isLocked": !isLocked,
     });
+  }
+
+  static async #onSaveReferenceState(event) {
+    event.preventDefault();
+
+    await this.#saveReferenceState();
+  }
+
+  static async #onRestoreReferenceState(event) {
+    event.preventDefault();
+
+    await this.#restoreReferenceState();
   }
 
   static async #onToggleProductSecret(event, target) {

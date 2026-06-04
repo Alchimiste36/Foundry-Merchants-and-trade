@@ -528,6 +528,20 @@
         "note": "Note MJ : {note}"
       }
     },
+    "referenceState": {
+      "title": "État de référence",
+      "description": "Enregistre les quantités, visibilités, droits d’ouverture et demandes d’approbation actuels comme état de base du marchand.",
+      "savedAt": "Dernier état enregistré :",
+      "save": "Définir l’état actuel comme référence",
+      "restore": "Réinitialiser à l’état de référence",
+      "saveSuccess": "État de référence enregistré.",
+      "restoreSuccess": "Marchand réinitialisé à son état de référence.",
+      "missing": "Aucun état de référence enregistré.",
+      "confirmTitle": "Réinitialiser le marchand",
+      "confirmContent": "Réinitialiser le marchand à son état de référence ? Les produits, services et catégories ajoutés après l’enregistrement ne seront pas supprimés.",
+      "confirmRestore": "Réinitialiser",
+      "cancel": "Annuler"
+    },
     "sessions": {
       "title": "Session de transaction",
       "buyerFortune": "Fortune :",

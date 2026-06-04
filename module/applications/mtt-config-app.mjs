@@ -1,4 +1,5 @@
 import { MTT } from "../config/constants.mjs";
+import { MTT_EXPORTABLE_CONFIG_SETTINGS, buildModuleConfigurationExport } from "../config/settings.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -21,6 +22,8 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cancel: MttConfigApp.#onCancel,
       addCurrency: MttConfigApp.#onAddCurrency,
       deleteCurrency: MttConfigApp.#onDeleteCurrency,
+      exportConfiguration: MttConfigApp.#onExportConfiguration,
+      importConfiguration: MttConfigApp.#onImportConfiguration,
     },
   };
 
@@ -144,5 +147,90 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies.filter((c) => c.id !== id)));
     this.#currencies = null;
     this.render();
+  }
+
+  static async #onExportConfiguration(event, target) {
+    const data = buildModuleConfigurationExport();
+    const json = JSON.stringify(data, null, 2);
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `mtt-config-${game.system.id}-${date}.json`;
+    saveDataToFile(json, "application/json", filename);
+    ui.notifications.info(game.i18n.localize("mtt.config.importExport.exportSuccess"));
+  }
+
+  static async #onImportConfiguration(event, target) {
+    const self = this;
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      let data;
+      try {
+        data = JSON.parse(await file.text());
+      } catch {
+        ui.notifications.error(game.i18n.localize("mtt.config.importExport.invalidFile"));
+        return;
+      }
+
+      if (data.module !== MTT.ID || data.type !== "module-configuration") {
+        ui.notifications.error(game.i18n.localize("mtt.config.importExport.invalidFile"));
+        return;
+      }
+
+      if (!Number.isFinite(Number(data.schemaVersion)) || Number(data.schemaVersion) > 1) {
+        ui.notifications.error(game.i18n.localize("mtt.config.importExport.unsupportedVersion"));
+        return;
+      }
+
+      if (!data.settings || typeof data.settings !== "object") {
+        ui.notifications.error(game.i18n.localize("mtt.config.importExport.invalidFile"));
+        return;
+      }
+
+      const systemMismatch = data.systemId && data.systemId !== game.system.id;
+      const exportedAt = data.exportedAt ? new Date(data.exportedAt).toLocaleString() : "?";
+      const settingsCount = Object.keys(data.settings).length;
+
+      let content = `<p>${game.i18n.localize("mtt.config.importExport.importConfirmContent")}</p><ul>`;
+      if (data.systemTitle || data.systemId) {
+        content += `<li>${game.i18n.localize("mtt.config.importExport.infoSystem")} ${data.systemTitle || data.systemId}</li>`;
+      }
+      if (data.moduleVersion) {
+        content += `<li>${game.i18n.localize("mtt.config.importExport.infoModuleVersion")} ${data.moduleVersion}</li>`;
+      }
+      content += `<li>${game.i18n.localize("mtt.config.importExport.infoExportedAt")} ${exportedAt}</li>`;
+      content += `<li>${game.i18n.localize("mtt.config.importExport.infoSettingsCount")} ${settingsCount}</li>`;
+      content += `</ul>`;
+      if (systemMismatch) {
+        content += `<p class="notification warning">${game.i18n.format("mtt.config.importExport.systemMismatch", { systemId: data.systemId, currentSystem: game.system.id })}</p>`;
+      }
+
+      const confirmed = await foundry.applications.api.DialogV2.confirm({
+        window: { title: game.i18n.localize("mtt.config.importExport.importConfirmTitle") },
+        content,
+        rejectClose: false,
+        yes: { label: game.i18n.localize("mtt.config.importExport.importConfirm") },
+        no: { label: game.i18n.localize("mtt.config.importExport.cancel") },
+      });
+
+      if (!confirmed) return;
+
+      for (const key of MTT_EXPORTABLE_CONFIG_SETTINGS) {
+        if (!Object.prototype.hasOwnProperty.call(data.settings, key)) continue;
+        try {
+          await game.settings.set(MTT.ID, key, data.settings[key]);
+        } catch {
+          // ignore invalid values for individual settings
+        }
+      }
+
+      ui.notifications.info(game.i18n.localize("mtt.config.importExport.importSuccess"));
+      self.#currencies = null;
+      self.render();
+    });
+    input.click();
   }
 }

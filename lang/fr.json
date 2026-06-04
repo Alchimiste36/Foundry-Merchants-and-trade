@@ -833,6 +833,25 @@
           "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque marchand."
         }
       },
+      "importExport": {
+        "title": "Import / Export",
+        "hint": "Importez une configuration MTT prête pour votre système de jeu avant de renseigner les chemins manuellement, ou exportez votre configuration actuelle pour la partager.",
+        "import": "Importer une configuration",
+        "export": "Exporter la configuration actuelle",
+        "invalidFile": "Le fichier sélectionné n'est pas une configuration MTT valide.",
+        "unsupportedVersion": "Cette version de fichier de configuration MTT n'est pas supportée.",
+        "importConfirmTitle": "Importer une configuration MTT",
+        "importConfirmContent": "Importer cette configuration va remplacer les réglages actuels du module MTT.",
+        "importConfirm": "Importer",
+        "cancel": "Annuler",
+        "systemMismatch": "Attention : cette configuration a été exportée pour le système {systemId}. Le système actuel est {currentSystem}.",
+        "infoSystem": "Système :",
+        "infoModuleVersion": "Version du module :",
+        "infoExportedAt": "Date d'export :",
+        "infoSettingsCount": "Nombre de réglages :",
+        "importSuccess": "Configuration MTT importée avec succès.",
+        "exportSuccess": "Configuration MTT exportée avec succès."
+      },
       "currencies": {
         "explanation": "Définissez les devises utilisées dans votre système de jeu. Chaque devise a un nom, une abréviation, un chemin pour lire la valeur sur l'acteur, et une valeur de conversion relative. Exemple : si la pièce de base vaut 1, une pièce valant le double vaut 2, une pièce valant la moitié vaut 0.5.",
         "add": "Ajouter une devise",

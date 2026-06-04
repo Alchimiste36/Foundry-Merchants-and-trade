@@ -157,6 +157,25 @@
       }
     },
     "config": {
+      "importExport": {
+        "title": "Import / Export",
+        "hint": "Import a ready-made MTT configuration for your game system before filling in paths manually, or export your current configuration to share it.",
+        "import": "Import a configuration",
+        "export": "Export current configuration",
+        "invalidFile": "The selected file is not a valid MTT configuration.",
+        "unsupportedVersion": "This MTT configuration file version is not supported.",
+        "importConfirmTitle": "Import MTT configuration",
+        "importConfirmContent": "Importing this configuration will replace the current MTT module settings.",
+        "importConfirm": "Import",
+        "cancel": "Cancel",
+        "systemMismatch": "Warning: this configuration was exported for system {systemId}. The current system is {currentSystem}.",
+        "infoSystem": "System:",
+        "infoModuleVersion": "Module version:",
+        "infoExportedAt": "Export date:",
+        "infoSettingsCount": "Number of settings:",
+        "importSuccess": "MTT configuration imported successfully.",
+        "exportSuccess": "MTT configuration exported successfully."
+      },
       "currencies": {
         "columns": {
           "actorPath": "Actor path",

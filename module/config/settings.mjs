@@ -186,6 +186,48 @@ export function registerSettings() {
   });
 }
 
+export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
+  "itemPriceValuePath",
+  "itemPriceCurrencyPath",
+  "itemQuantityPath",
+  "deliveryItemQuantityPath",
+  "deliveryItemMaxQuantityPath",
+  "allowExtendedItemMerge",
+  "writeDeliveryDescriptionInfo",
+  "itemDescriptionPath",
+  "itemSecretDescriptionPath",
+  "allowedProductTypes",
+  "allowedServiceTypes",
+  "itemCategoryPaths",
+  "useItemTypeAsCategoryFallback",
+  "categoryLabelMap",
+  "defaultCustomCategories",
+  "actorCurrencyPath",
+  "currencies",
+];
+
+export function buildModuleConfigurationExport() {
+  const settings = {};
+  for (const key of MTT_EXPORTABLE_CONFIG_SETTINGS) {
+    try {
+      settings[key] = game.settings.get(MTT.ID, key);
+    } catch {
+      // skip unregistered settings
+    }
+  }
+  return {
+    module: MTT.ID,
+    type: "module-configuration",
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    foundryVersion: game.version,
+    moduleVersion: game.modules.get(MTT.ID)?.version ?? "",
+    systemId: game.system.id,
+    systemTitle: game.system.title,
+    settings,
+  };
+}
+
 export function getCurrencies() {
   try {
     return JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]");

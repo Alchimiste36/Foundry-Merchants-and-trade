@@ -1,5 +1,20 @@
 <section class="mtt-config">
   <form class="mtt-config-form">
+    <section class="mtt-config-section mtt-config-import-export">
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.importExport.title"}}</h2>
+      <p class="mtt-config-section-hint">{{localize "mtt.config.importExport.hint"}}</p>
+      <div class="mtt-config-import-export-actions">
+        <button type="button" class="mtt-config-btn" data-action="importConfiguration">
+          <i class="fas fa-file-import"></i>
+          {{localize "mtt.config.importExport.import"}}
+        </button>
+        <button type="button" class="mtt-config-btn" data-action="exportConfiguration">
+          <i class="fas fa-file-export"></i>
+          {{localize "mtt.config.importExport.export"}}
+        </button>
+      </div>
+    </section>
+
     <section class="mtt-config-section">
       <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.items"}}</h2>
 
@@ -225,6 +240,7 @@
         ></i>
       </label>
 
+      <div class="mtt-config-grid">
       <div class="mtt-config-field">
         <div class="mtt-config-field-header">
           <label class="mtt-config-field-label" for="mtt-config-category-map">
@@ -260,6 +276,7 @@
           class="mtt-config-textarea"
           rows="5"
         >{{defaultCustomCategories}}</textarea>
+      </div>
       </div>
     </section>
 

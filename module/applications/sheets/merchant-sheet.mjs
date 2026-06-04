@@ -23,10 +23,9 @@ import {
   openSessionExecutionErrorsDialog,
   openRefuseConfirmDialog,
   openCatalogItemSecretsDialog,
+  openClientRatesDialog,
 } from "./merchant-dialogs.mjs";
 import {
-  getSellPercent,
-  getServiceSellPercent,
   adjustPriceValue,
   prepareTrade,
   prepareWalletCurrencies,
@@ -60,6 +59,9 @@ import {
   prepareSessionContext,
   getStoredAccessClients,
   getBestSessionForClient,
+  getEffectiveClientRates,
+  getMerchantDefaultClientRates,
+  normalizeClientCustomRates,
   prepareAccessClients,
   checkSessionTransaction,
   isMerchantSellerDropBlocked,
@@ -140,6 +142,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       rollNegotiation: MerchantSheet.#onRollNegotiation,
       selectTab: MerchantSheet.#onSelectTab,
       sortJournal: MerchantSheet.#onSortJournal,
+      saveReferenceState: MerchantSheet.#onSaveReferenceState,
+      restoreReferenceState: MerchantSheet.#onRestoreReferenceState,
     },
   };
 
@@ -187,10 +191,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor;
     context.system = this.actor.system;
 
-    const sellPercent = this.#getSellPercent();
-    context.items = prepareItems(this.actor, sellPercent, { includeHidden: isEditable });
+    const activeSession = this.#getActiveSession();
+    const effectiveRates = this.#getEffectiveRatesForSession(activeSession);
+    context.items = prepareItems(this.actor, effectiveRates.productSellPercent, { includeHidden: isEditable });
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable });
-    context.services = prepareServices(this.actor, getServiceSellPercent(this.actor), { includeHidden: isEditable });
+    context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable });
     context.trade = prepareTrade(this.actor);
     context.wallet = this.actor.system.wallet ?? {};
     context.mtt.walletCurrencies = prepareWalletCurrencies(this.actor);
@@ -199,6 +204,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.currencyOptions = prepareCurrencyOptions();
     context.mtt.access = this.#prepareAccessContext();
     context.mtt.session = this.#prepareSessionContext();
+    context.mtt.referenceState = this.#prepareReferenceStateContext();
     context.mtt.journal = prepareMerchantJournalContext(this.actor, {
       user: game.user,
       sort: this.#journalSort,
@@ -501,6 +507,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       image.alt = client.actorName;
       button.append(image);
 
+      if (client.canShowCustomRates) {
+        const customRatesIcon = document.createElement("i");
+        customRatesIcon.classList.add("fa-solid", "fa-percent", "mtt-client-custom-rates-icon");
+        customRatesIcon.dataset.tooltip = client.customRatesTooltip;
+        customRatesIcon.setAttribute("aria-hidden", "true");
+        button.append(customRatesIcon);
+      }
+
       if (client.hasSession) {
         const badge = document.createElement("i");
         badge.classList.add(
@@ -559,10 +573,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
   // ─── Wrappers for imported catalog functions ──────────────────────────────
 
-  #getSellPercent() {
-    return getSellPercent(this.actor);
-  }
-
   async #moveProductToCategory(itemId, categoryValue) {
     await moveProductToCategory(this.actor, itemId, categoryValue);
     this.render();
@@ -589,6 +599,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
   #canAcceptSessionQuantity(item, quantity) {
     return canAcceptSessionQuantity(this.actor, item, quantity);
+  }
+
+  #prepareReferenceStateContext() {
+    const referenceState = this.actor.system.referenceState ?? null;
+    const savedAt = new Date(referenceState?.savedAt ?? "");
+    const savedAtLabel = Number.isNaN(savedAt.getTime()) ? "" : savedAt.toLocaleString();
+
+    return {
+      hasReferenceState: Boolean(referenceState?.savedAt),
+      savedAtLabel,
+    };
   }
 
   #prepareAccessClients() {
@@ -869,7 +890,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const sellerData = prepareSellerItemDropData(this.actor, item);
+    const rates = this.#getEffectiveRatesForSession(session);
+    const sellerData = prepareSellerItemDropData(this.actor, item, { buyPercent: rates.itemBuyPercent });
     const dialogData = await this.#openSellerItemDialog({
       ...sellerData,
       availableQuantity: sellerData.availableQuantity,
@@ -994,6 +1016,35 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeClientAuthorization(client);
     });
 
+    const customRates = document.createElement("button");
+    customRates.type = "button";
+    customRates.classList.add("mtt-merchant-access-context-menu-button");
+    const customRatesIcon = document.createElement("i");
+    customRatesIcon.classList.add("fas", "fa-percent");
+    const customRatesLabel = document.createElement("span");
+    customRatesLabel.textContent = game.i18n.localize("mtt.clientRates.menu");
+    customRates.append(customRatesIcon, customRatesLabel);
+    customRates.addEventListener("click", async () => {
+      this.#closeAccessContextMenu();
+      await this.#editClientCustomRates(client);
+    });
+
+    let resetCustomRates = null;
+    if (client.hasCustomRates) {
+      resetCustomRates = document.createElement("button");
+      resetCustomRates.type = "button";
+      resetCustomRates.classList.add("mtt-merchant-access-context-menu-button");
+      const resetCustomRatesIcon = document.createElement("i");
+      resetCustomRatesIcon.classList.add("fas", "fa-rotate-left");
+      const resetCustomRatesLabel = document.createElement("span");
+      resetCustomRatesLabel.textContent = game.i18n.localize("mtt.clientRates.reset");
+      resetCustomRates.append(resetCustomRatesIcon, resetCustomRatesLabel);
+      resetCustomRates.addEventListener("click", async () => {
+        this.#closeAccessContextMenu();
+        await this.#resetClientCustomRates(client);
+      });
+    }
+
     const removeActor = document.createElement("button");
     removeActor.type = "button";
     removeActor.classList.add("mtt-merchant-access-context-menu-button");
@@ -1007,6 +1058,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeAccessClient(client);
     });
 
+    menu.append(customRates);
+    if (resetCustomRates) menu.append(resetCustomRates);
     menu.append(removeAuthorization, removeActor);
     applicationElement.append(menu);
 
@@ -1582,6 +1635,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...clients[index],
         ...normalizedClient,
         isFromPlayerCharacter: clients[index].isFromPlayerCharacter || normalizedClient.isFromPlayerCharacter,
+        customRates: normalizedClient.customRates ?? clients[index].customRates ?? null,
       };
     }
 
@@ -1608,6 +1662,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       clients[clientIndex] = {
         ...clients[clientIndex],
         ...normalizedClient,
+        customRates: normalizedClient.customRates ?? clients[clientIndex].customRates ?? null,
       };
     }
 
@@ -1717,6 +1772,44 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   // ─── Session state management ─────────────────────────────────────────────
+
+  async #editClientCustomRates(client) {
+    const defaults = getMerchantDefaultClientRates(this.actor);
+    const existingRates = normalizeClientCustomRates(client.customRates, defaults) ?? defaults;
+    const result = await openClientRatesDialog({
+      clientName: client.actorName,
+      rates: existingRates,
+    });
+    if (!result) return false;
+
+    const customRates = normalizeClientCustomRates(result, defaults) ?? defaults;
+    await this.#setClientCustomRates(client, customRates);
+    return true;
+  }
+
+  async #resetClientCustomRates(client) {
+    await this.#setClientCustomRates(client, null);
+    return true;
+  }
+
+  async #setClientCustomRates(client, customRates) {
+    const normalizedActorUuid = String(client?.actorUuid ?? "").trim();
+    if (!normalizedActorUuid) return;
+
+    const clients = getStoredAccessClients(this.actor);
+    const clientIndex = clients.findIndex((entry) => entry.actorUuid === normalizedActorUuid);
+    if (clientIndex === -1) return;
+
+    clients[clientIndex] = normalizeAccessClient({
+      ...clients[clientIndex],
+      customRates,
+    });
+
+    await this.actor.update({
+      "system.access.clients": clients,
+    });
+    this.render();
+  }
 
   #getSelectedSession() {
     if (!this.#activeSessionId) return null;
@@ -1857,6 +1950,143 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   // ─── Session quantity helpers ─────────────────────────────────────────────
+
+  #getEffectiveRatesForSession(session = this.#getSessionForAddingItem()) {
+    return getEffectiveClientRates(this.actor, session?.actorUuid ?? "");
+  }
+
+  #buildReferenceState() {
+    const hiddenCategories = this.actor.system.catalog?.hiddenCategories ?? {};
+
+    return {
+      savedAt: new Date().toISOString(),
+      products: this.actor.items.map((item) => {
+        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+        const ownershipLevel = Number(
+          product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+        );
+
+        return {
+          id: item.id,
+          quantity: product.quantity ?? null,
+          isHidden: Boolean(product.isHidden),
+          ownershipLevel: Number.isFinite(ownershipLevel) ? ownershipLevel : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          requiresApproval: Boolean(product.requiresApproval),
+        };
+      }),
+      services: (this.actor.system.services?.entries ?? []).map((service) => ({
+        id: service.id,
+        quantity: service.quantity ?? null,
+        isHidden: Boolean(service.isHidden),
+        requiresApproval: Boolean(service.requiresApproval),
+      })),
+      categories: (this.actor.system.catalog?.productCategories ?? []).map((category) => ({
+        id: category.id,
+        isHidden: Boolean(hiddenCategories[category.id]),
+      })),
+    };
+  }
+
+  async #saveReferenceState() {
+    if (!this.#canModifyMerchant()) return;
+
+    await this.#saveMerchantTextFieldsFromDom();
+    await this.actor.update({
+      "system.referenceState": this.#buildReferenceState(),
+    });
+    ui.notifications.info(game.i18n.localize("mtt.referenceState.saveSuccess"));
+    this.render();
+  }
+
+  async #restoreReferenceState() {
+    if (!this.#canModifyMerchant()) return;
+
+    const referenceState = this.actor.system.referenceState;
+    if (!referenceState?.savedAt) {
+      ui.notifications.warn(game.i18n.localize("mtt.referenceState.missing"));
+      return;
+    }
+
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: game.i18n.localize("mtt.referenceState.confirmTitle"),
+      },
+      content: `<p>${game.i18n.localize("mtt.referenceState.confirmContent")}</p>`,
+      yes: {
+        label: game.i18n.localize("mtt.referenceState.confirmRestore"),
+      },
+      no: {
+        label: game.i18n.localize("mtt.referenceState.cancel"),
+      },
+    });
+    if (!confirmed) return;
+
+    await this.#applyReferenceState(referenceState);
+    ui.notifications.info(game.i18n.localize("mtt.referenceState.restoreSuccess"));
+    this.render();
+  }
+
+  async #applyReferenceState(referenceState) {
+    const productSnapshots = new Map((referenceState.products ?? []).map((product) => [product.id, product]));
+    const itemUpdates = [];
+
+    for (const item of this.actor.items) {
+      const snapshot = productSnapshots.get(item.id);
+      if (!snapshot) continue;
+
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const ownershipLevel = this.#normalizeReferenceOwnership(snapshot.ownershipLevel);
+      itemUpdates.push({
+        _id: item.id,
+        [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: {
+          ...product,
+          quantity: snapshot.quantity,
+          isHidden: Boolean(snapshot.isHidden),
+          ownershipLevel,
+          requiresApproval: Boolean(snapshot.requiresApproval),
+        },
+        "ownership.default": ownershipLevel,
+      });
+    }
+
+    if (itemUpdates.length > 0) {
+      await this.actor.updateEmbeddedDocuments("Item", itemUpdates);
+    }
+
+    const serviceSnapshots = new Map((referenceState.services ?? []).map((service) => [service.id, service]));
+    const services = foundry.utils.deepClone(this.actor.system.services?.entries ?? []).map((service) => {
+      const snapshot = serviceSnapshots.get(service.id);
+      if (!snapshot) return service;
+
+      return {
+        ...service,
+        quantity: snapshot.quantity ?? null,
+        isHidden: Boolean(snapshot.isHidden),
+        requiresApproval: Boolean(snapshot.requiresApproval),
+      };
+    });
+
+    const categorySnapshots = new Map((referenceState.categories ?? []).map((category) => [category.id, category]));
+    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog?.hiddenCategories ?? {});
+    for (const category of this.actor.system.catalog?.productCategories ?? []) {
+      const snapshot = categorySnapshots.get(category.id);
+      if (!snapshot) continue;
+      hiddenCategories[category.id] = Boolean(snapshot.isHidden);
+    }
+
+    await this.actor.update({
+      "system.services.entries": services,
+      "system.catalog.hiddenCategories": hiddenCategories,
+    });
+  }
+
+  #normalizeReferenceOwnership(value) {
+    const ownershipLevel = Number(value);
+    if (ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED) return ownershipLevel;
+    if (ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) return ownershipLevel;
+
+    return CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
+  }
 
   #getSessionBuyerQuantity({ type, sourceId, unitPriceValue, priceCurrency }) {
     const session = this.#getSelectedSession();
@@ -2309,7 +2539,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
         ? Number(product.priceValue)
         : MTT.PRODUCT_DEFAULTS.priceValue;
-    const displayPriceValue = adjustPriceValue(basePriceValue, getSellPercent(this.actor));
+    const rates = this.#getEffectiveRatesForSession();
+    const displayPriceValue = adjustPriceValue(basePriceValue, rates.productSellPercent);
     const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
     const quantity = product.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
@@ -2886,6 +3117,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
   }
 
+  static async #onSaveReferenceState(event) {
+    event.preventDefault();
+
+    await this.#saveReferenceState();
+  }
+
+  static async #onRestoreReferenceState(event) {
+    event.preventDefault();
+
+    await this.#restoreReferenceState();
+  }
+
   static async #onToggleProductSecret(event, target) {
     event.preventDefault();
 
@@ -3271,7 +3514,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const quantity = service.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = isFreePriceService(service);
-    const displayPriceValue = hasFreePrice ? 0 : adjustPriceValue(basePriceValue, getServiceSellPercent(this.actor));
+    const rates = this.#getEffectiveRatesForSession();
+    const displayPriceValue = hasFreePrice ? 0 : adjustPriceValue(basePriceValue, rates.serviceSellPercent);
     const minimumPriceValue =
       Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
         ? Number(service.minimumPriceValue)

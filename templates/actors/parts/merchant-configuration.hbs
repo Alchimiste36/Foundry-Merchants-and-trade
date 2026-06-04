@@ -25,22 +25,6 @@
     <h2 class="mtt-merchant-section-title">{{localize "mtt.configuration.tradeSection"}}</h2>
 
     <div class="mtt-merchant-configuration-grid">
-      <label class="mtt-merchant-configuration-field">
-        <span class="mtt-merchant-field-label">{{localize "mtt.configuration.buyPercent"}}</span>
-        {{#if mtt.canEditMerchant}}
-          <input
-            class="mtt-merchant-configuration-input"
-            type="number"
-            min="0"
-            step="1"
-            value="{{trade.buyPercent}}"
-            data-mtt-merchant-config-field="trade.buyPercent"
-          />
-        {{else}}
-          <div class="mtt-merchant-configuration-readonly">{{trade.buyPercent}}</div>
-        {{/if}}
-        <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.buyPercentHint"}}</span>
-      </label>
 
       <label class="mtt-merchant-configuration-field">
         <span class="mtt-merchant-field-label">{{localize "mtt.configuration.sellPercent"}}</span>
@@ -74,6 +58,23 @@
           <div class="mtt-merchant-configuration-readonly">{{trade.serviceSellPercent}}</div>
         {{/if}}
         <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.serviceSellPercentHint"}}</span>
+      </label>
+
+      <label class="mtt-merchant-configuration-field">
+        <span class="mtt-merchant-field-label">{{localize "mtt.configuration.buyPercent"}}</span>
+        {{#if mtt.canEditMerchant}}
+          <input
+            class="mtt-merchant-configuration-input"
+            type="number"
+            min="0"
+            step="1"
+            value="{{trade.buyPercent}}"
+            data-mtt-merchant-config-field="trade.buyPercent"
+          />
+        {{else}}
+          <div class="mtt-merchant-configuration-readonly">{{trade.buyPercent}}</div>
+        {{/if}}
+        <span class="mtt-merchant-configuration-hint">{{localize "mtt.configuration.buyPercentHint"}}</span>
       </label>
     </div>
 
@@ -132,5 +133,44 @@
     {{else}}
       <p class="mtt-merchant-configuration-empty">{{localize "mtt.configuration.walletNoCurrencies"}}</p>
     {{/if}}
+  </section>
+
+  <section class="mtt-merchant-configuration-section mtt-merchant-reference-state">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.referenceState.title"}}</h2>
+    <p class="mtt-merchant-configuration-hint">{{localize "mtt.referenceState.description"}}</p>
+
+    {{#if mtt.referenceState.savedAtLabel}}
+      <p class="mtt-merchant-reference-state-date">
+        <strong>{{localize "mtt.referenceState.savedAt"}}</strong>
+        <span>{{mtt.referenceState.savedAtLabel}}</span>
+      </p>
+    {{else}}
+      <p class="mtt-merchant-reference-state-date">
+        <span>{{localize "mtt.referenceState.missing"}}</span>
+      </p>
+    {{/if}}
+
+    <div class="mtt-merchant-reference-state-actions">
+      <button
+        class="mtt-merchant-configuration-action mtt-merchant-reference-state-action"
+        type="button"
+        data-action="saveReferenceState"
+        {{#unless mtt.canEditMerchant}}disabled{{/unless}}
+      >
+        <i class="fas fa-bookmark"></i>
+        <span>{{localize "mtt.referenceState.save"}}</span>
+      </button>
+
+      <button
+        class="mtt-merchant-configuration-action mtt-merchant-reference-state-action"
+        type="button"
+        data-action="restoreReferenceState"
+        {{#unless mtt.canEditMerchant}}disabled{{/unless}}
+        {{#unless mtt.referenceState.hasReferenceState}}disabled{{/unless}}
+      >
+        <i class="fas fa-rotate-left"></i>
+        <span>{{localize "mtt.referenceState.restore"}}</span>
+      </button>
+    </div>
   </section>
 </section>

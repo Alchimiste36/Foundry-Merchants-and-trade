@@ -150,6 +150,14 @@
       {{else}}
         <div class="mtt-merchant-manager-summary">
           <span class="mtt-merchant-manager-name">{{system.manager.displayName}}</span>
+          <button
+          class="mtt-merchant-header-action"
+          type="button"
+          data-action="rollNegotiation"
+          data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
+        >
+          <i class="fas fa-dice-d20"></i>
+        </button>
         </div>
       {{/if}}
     </div>

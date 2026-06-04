@@ -534,6 +534,12 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
         }),
       }),
 
+      referenceState: new fields.ObjectField({
+        required: false,
+        nullable: true,
+        initial: null,
+      }),
+
       journal: new fields.SchemaField({
         nextTransactionNumber: new fields.NumberField({
           required: true,
@@ -594,6 +600,11 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
             isFromPlayerCharacter: new fields.BooleanField({
               required: true,
               initial: false,
+            }),
+            customRates: new fields.ObjectField({
+              required: false,
+              nullable: true,
+              initial: null,
             }),
           }),
           {

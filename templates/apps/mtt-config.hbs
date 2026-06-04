@@ -172,7 +172,7 @@
     </section>
 
     <section class="mtt-config-section">
-      <h2 class="mtt-config-section-title">{{localize "mtt.configuration.automaticCategories"}}</h2>
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.categories.title"}}</h2>
 
       <div class="mtt-config-field">
         <div class="mtt-config-field-header">
@@ -221,6 +221,25 @@
           class="mtt-config-textarea"
           placeholder="{{localize 'mtt.configuration.categoryLabelMapPlaceholder'}}"
         >{{categoryLabelMap}}</textarea>
+      </div>
+
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-default-custom-categories">
+            {{localize "mtt.config.categories.defaultCustomCategories.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.defaultCustomCategories.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <textarea
+          id="mtt-default-custom-categories"
+          name="defaultCustomCategories"
+          class="mtt-config-textarea"
+          rows="5"
+        >{{defaultCustomCategories}}</textarea>
       </div>
     </section>
 
@@ -298,6 +317,7 @@
         </button>
       </div>
     </section>
+
 
     <footer class="mtt-config-footer">
       <button

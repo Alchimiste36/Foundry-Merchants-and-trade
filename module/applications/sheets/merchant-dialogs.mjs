@@ -223,6 +223,64 @@ export async function openCatalogItemSecretsDialog({
   }
 }
 
+export async function openClientRatesDialog({ clientName = "", rates = {} } = {}) {
+  const title = game.i18n.format("mtt.clientRates.titleWithName", { name: clientName })
+  const content = `<form class="mtt-client-rates-dialog">
+    <div class="mtt-client-rates-grid">
+      <label class="mtt-client-rates-field">
+        <span>${game.i18n.localize("mtt.clientRates.productSellPercent")}</span>
+        <input type="number" name="productSellPercent" min="0" step="1" value="${escapeHTML(String(rates.productSellPercent ?? 100))}" />
+      </label>
+      <label class="mtt-client-rates-field">
+        <span>${game.i18n.localize("mtt.clientRates.serviceSellPercent")}</span>
+        <input type="number" name="serviceSellPercent" min="0" step="1" value="${escapeHTML(String(rates.serviceSellPercent ?? 100))}" />
+      </label>
+      <label class="mtt-client-rates-field">
+        <span>${game.i18n.localize("mtt.clientRates.itemBuyPercent")}</span>
+        <input type="number" name="itemBuyPercent" min="0" step="1" value="${escapeHTML(String(rates.itemBuyPercent ?? 50))}" />
+      </label>
+    </div>
+    <label class="mtt-client-rates-field mtt-client-rates-note">
+      <span>${game.i18n.localize("mtt.clientRates.note")}</span>
+      <textarea name="note">${escapeHTML(rates.note ?? "")}</textarea>
+    </label>
+  </form>`
+
+  try {
+    return await foundry.applications.api.DialogV2.wait({
+      window: { title },
+      content,
+      rejectClose: false,
+      buttons: [
+        {
+          action: "cancel",
+          label: game.i18n.localize("mtt.clientRates.cancel"),
+          callback: () => null,
+        },
+        {
+          action: "save",
+          label: game.i18n.localize("mtt.clientRates.save"),
+          default: true,
+          callback: (event, button, dialog) => {
+            const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form")
+            if (!form) return null
+
+            const formData = new FormData(form)
+            return {
+              productSellPercent: formData.get("productSellPercent"),
+              serviceSellPercent: formData.get("serviceSellPercent"),
+              itemBuyPercent: formData.get("itemBuyPercent"),
+              note: String(formData.get("note") ?? "").trim(),
+            }
+          },
+        },
+      ],
+    })
+  } catch {
+    return null
+  }
+}
+
 export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency }) {
   const quantityMax =
     Number.isFinite(availableQuantity) && availableQuantity >= 0

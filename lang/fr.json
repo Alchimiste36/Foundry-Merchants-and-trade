@@ -540,8 +540,8 @@
       "title": "État de référence",
       "description": "Enregistre les quantités, visibilités, droits d’ouverture et demandes d’approbation actuels comme état de base du marchand.",
       "savedAt": "Dernier état enregistré :",
-      "save": "Définir l’état actuel comme référence",
-      "restore": "Réinitialiser à l’état de référence",
+      "save": "Définir l’état comme référence",
+      "restore": "Réinitialiser la référence",
       "saveSuccess": "État de référence enregistré.",
       "restoreSuccess": "Marchand réinitialisé à son état de référence.",
       "missing": "Aucun état de référence enregistré.",
@@ -832,9 +832,17 @@
       },
       "categories": {
         "title": "Catégories",
+        "itemCategoryI18nPrefix": {
+          "label": "Préfixe i18n de catégorie",
+          "hint": "Préfixe de traduction ajouté devant la valeur lue par le chemin de catégorie. Exemple : si la valeur lue est Armor et que le préfixe est CO.equipment.subtypes., MTT cherchera CO.equipment.subtypes.Armor. Laisser vide pour afficher la valeur brute."
+        },
         "itemSubcategoryPath": {
           "label": "Chemin de sous-catégorie produit",
           "hint": "Chemin lu sur l'Item source pour afficher une sous-catégorie discrète dans le catalogue. La sous-catégorie apparaît sous forme d'icône avec une info-bulle sur la ligne produit. Laisser vide pour désactiver cette fonction."
+        },
+        "itemSubcategoryI18nPrefix": {
+          "label": "Préfixe i18n de sous-catégorie",
+          "hint": "Préfixe de traduction ajouté devant la valeur lue par le chemin de sous-catégorie. Laisser vide pour afficher la valeur brute."
         },
         "defaultCustomCategories": {
           "label": "Catégories personnalisées par défaut",

@@ -450,6 +450,24 @@ export function normalizeAutomaticCategoryValue(value) {
   }
 }
 
+export function localizeConfiguredValue(rawValue, prefix = "") {
+  const value = String(rawValue ?? "").trim()
+  const i18nPrefix = String(prefix ?? "").trim()
+
+  if (!value) return ""
+
+  if (i18nPrefix) {
+    const key = `${i18nPrefix}${value}`
+    const localized = game.i18n.localize(key)
+    if (localized && localized !== key) return localized
+  }
+
+  const localizedRaw = game.i18n.localize(value)
+  if (localizedRaw && localizedRaw !== value) return localizedRaw
+
+  return value
+}
+
 export function createCheckMessage(level, id, text, icon = "") {
   return { id, level, text, icon }
 }

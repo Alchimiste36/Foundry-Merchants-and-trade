@@ -161,6 +161,16 @@
       }
     },
     "config": {
+      "categories": {
+        "itemCategoryI18nPrefix": {
+          "label": "Category i18n prefix",
+          "hint": "Translation prefix added before the value read by the category path. Example: if the value is Armor and the prefix is CO.equipment.subtypes., MTT will look up CO.equipment.subtypes.Armor. Leave empty to display the raw value."
+        },
+        "itemSubcategoryI18nPrefix": {
+          "label": "Subcategory i18n prefix",
+          "hint": "Translation prefix added before the value read by the subcategory path. Leave empty to display the raw value."
+        }
+      },
       "importExport": {
         "title": "Import / Export",
         "hint": "Import a ready-made MTT configuration for your game system before filling in paths manually, or export your current configuration to share it.",

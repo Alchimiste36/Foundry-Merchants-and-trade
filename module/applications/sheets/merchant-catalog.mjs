@@ -12,6 +12,7 @@ import {
   slugifyCategoryKey,
   getCategoryPaths,
   getCategoryLabelMap,
+  localizeConfiguredValue,
   getConfiguredItemValue,
   getModuleSetting,
   getItemDescription,
@@ -211,6 +212,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
 
 function assignSubcategoryIconClasses(products) {
   const iconClasses = ["fa-solid fa-label", "fa-light fa-label"]
+  const i18nPrefix = String(game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix") ?? "").trim()
 
   // Group products by main category to compute per-category icon assignment.
   const productsByCategory = new Map()
@@ -223,21 +225,27 @@ function assignSubcategoryIconClasses(products) {
   // For each category: collect subcategories, sort them, assign icon by sorted position.
   // Icon depends on alphabetical rank, not drop order.
   for (const categoryProducts of productsByCategory.values()) {
-    const seen = new Map() // normalized key → original label
+    const seen = new Map() // normalized key → localized label
     for (const p of categoryProducts) {
-      const label = String(p.systemSubcategory ?? "").trim()
-      if (label) seen.set(label.toLocaleLowerCase(), label)
+      const raw = String(p.systemSubcategory ?? "").trim()
+      if (raw) {
+        const localized = localizeConfiguredValue(raw, i18nPrefix)
+        seen.set(raw.toLocaleLowerCase(), localized)
+      }
     }
 
-    const sortedKeys = Array.from(seen.keys()).sort((a, b) => a.localeCompare(b))
+    const sortedKeys = Array.from(seen.keys()).sort((a, b) =>
+      seen.get(a).localeCompare(seen.get(b)),
+    )
     const iconByKey = new Map(sortedKeys.map((k, i) => [k, iconClasses[i % iconClasses.length]]))
 
     for (const product of categoryProducts) {
-      const label = String(product.systemSubcategory ?? "").trim()
-      product.hasSubcategory = Boolean(label)
-      product.subcategoryLabel = label
-      product.subcategoryIconClass = label
-        ? (iconByKey.get(label.toLocaleLowerCase()) ?? iconClasses[0])
+      const raw = String(product.systemSubcategory ?? "").trim()
+      const subcategoryLabel = raw ? localizeConfiguredValue(raw, i18nPrefix) : ""
+      product.hasSubcategory = Boolean(raw)
+      product.subcategoryLabel = subcategoryLabel
+      product.subcategoryIconClass = raw
+        ? (iconByKey.get(raw.toLocaleLowerCase()) ?? iconClasses[0])
         : ""
     }
   }
@@ -392,6 +400,13 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
 export function getAutomaticItemCategory(item) {
   const paths = getCategoryPaths()
   const labelMap = getCategoryLabelMap()
+  const i18nPrefix = String(game.settings.get(MTT.ID, "itemCategoryI18nPrefix") ?? "").trim()
+
+  const resolveLabel = (normalized) => {
+    if (labelMap.has(normalized.key)) return labelMap.get(normalized.key)
+    const localized = localizeConfiguredValue(normalized.raw, i18nPrefix)
+    return localized !== normalized.raw ? localized : normalized.label
+  }
 
   for (const path of paths) {
     const normalized = normalizeAutomaticCategoryValue(foundry.utils.getProperty(item, path))
@@ -399,7 +414,7 @@ export function getAutomaticItemCategory(item) {
 
     return {
       ...normalized,
-      label: labelMap.get(normalized.key) ?? normalized.label,
+      label: resolveLabel(normalized),
       path,
     }
   }
@@ -409,7 +424,7 @@ export function getAutomaticItemCategory(item) {
     if (normalized) {
       return {
         ...normalized,
-        label: labelMap.get(normalized.key) ?? normalized.label,
+        label: resolveLabel(normalized),
         path: "type",
       }
     }

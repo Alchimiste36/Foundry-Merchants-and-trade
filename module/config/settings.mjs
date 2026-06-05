@@ -158,6 +158,24 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemCategoryI18nPrefix", {
+    name: "mtt.settings.itemCategoryI18nPrefix.name",
+    hint: "mtt.settings.itemCategoryI18nPrefix.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "itemSubcategoryI18nPrefix", {
+    name: "mtt.settings.itemSubcategoryI18nPrefix.name",
+    hint: "mtt.settings.itemSubcategoryI18nPrefix.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "actorCurrencyPath", {
     name: "mtt.settings.actorCurrencyPath.name",
     hint: "mtt.settings.actorCurrencyPath.hint",
@@ -214,6 +232,8 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "actorCurrencyPath",
   "currencies",
   "itemSubcategoryPath",
+  "itemCategoryI18nPrefix",
+  "itemSubcategoryI18nPrefix",
 ];
 
 export function buildModuleConfigurationExport() {

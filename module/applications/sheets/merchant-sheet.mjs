@@ -92,8 +92,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET, "mtt-merchant-window"],
     position: {
-      width: 850,
-      height: 600,
+      width: 900,
+      height: 700,
     },
     form: {
       submitOnChange: true,
@@ -1194,7 +1194,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     button.classList.add("mtt-merchant-access-context-menu-button");
 
     const iconElement = document.createElement("i");
-    iconElement.classList.add("fas", ...String(icon ?? "").split(" ").filter(Boolean));
+    iconElement.classList.add(
+      "fas",
+      ...String(icon ?? "")
+        .split(" ")
+        .filter(Boolean),
+    );
     const labelElement = document.createElement("span");
     labelElement.textContent = label;
 

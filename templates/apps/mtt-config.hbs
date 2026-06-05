@@ -229,6 +229,26 @@
 
       <div class="mtt-config-field">
         <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-item-category-i18n-prefix">
+            {{localize "mtt.config.categories.itemCategoryI18nPrefix.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.itemCategoryI18nPrefix.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-item-category-i18n-prefix"
+          type="text"
+          name="itemCategoryI18nPrefix"
+          value="{{itemCategoryI18nPrefix}}"
+          placeholder="CO.equipment.subtypes."
+        />
+      </div>
+
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
           <label class="mtt-config-field-label" for="mtt-item-subcategory-path">
             {{localize "mtt.config.categories.itemSubcategoryPath.label"}}
           </label>
@@ -244,6 +264,26 @@
           name="itemSubcategoryPath"
           value="{{itemSubcategoryPath}}"
           placeholder="system.subtype"
+        />
+      </div>
+
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-item-subcategory-i18n-prefix">
+            {{localize "mtt.config.categories.itemSubcategoryI18nPrefix.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.itemSubcategoryI18nPrefix.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-item-subcategory-i18n-prefix"
+          type="text"
+          name="itemSubcategoryI18nPrefix"
+          value="{{itemSubcategoryI18nPrefix}}"
+          placeholder="DND5E.Item.Type."
         />
       </div>
 

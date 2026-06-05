@@ -59,6 +59,8 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       categoryLabelMap: game.settings.get(MTT.ID, "categoryLabelMap"),
       defaultCustomCategories: game.settings.get(MTT.ID, "defaultCustomCategories"),
       itemSubcategoryPath: game.settings.get(MTT.ID, "itemSubcategoryPath"),
+      itemCategoryI18nPrefix: game.settings.get(MTT.ID, "itemCategoryI18nPrefix"),
+      itemSubcategoryI18nPrefix: game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix"),
       currencies: this.#currencies,
     };
   }
@@ -108,6 +110,8 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "categoryLabelMap", fd.get("categoryLabelMap") ?? "");
     await game.settings.set(MTT.ID, "defaultCustomCategories", fd.get("defaultCustomCategories") ?? "");
     await game.settings.set(MTT.ID, "itemSubcategoryPath", fd.get("itemSubcategoryPath") ?? "");
+    await game.settings.set(MTT.ID, "itemCategoryI18nPrefix", fd.get("itemCategoryI18nPrefix") ?? "");
+    await game.settings.set(MTT.ID, "itemSubcategoryI18nPrefix", fd.get("itemSubcategoryI18nPrefix") ?? "");
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
     this.close();
   }

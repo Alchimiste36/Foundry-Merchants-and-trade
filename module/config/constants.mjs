@@ -23,6 +23,7 @@ export const MTT = {
     systemCategoryKey: "",
     systemCategoryLabel: "",
     systemCategoryPath: "",
+    systemSubcategory: "",
     sourceUuid: "",
     isCommerciallyModified: false,
     ownershipLevel: 2,

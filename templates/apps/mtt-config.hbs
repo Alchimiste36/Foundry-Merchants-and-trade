@@ -1,5 +1,20 @@
 <section class="mtt-config">
   <form class="mtt-config-form">
+    <section class="mtt-config-section mtt-config-import-export">
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.importExport.title"}}</h2>
+      <p class="mtt-config-section-hint">{{localize "mtt.config.importExport.hint"}}</p>
+      <div class="mtt-config-import-export-actions">
+        <button type="button" class="mtt-config-btn" data-action="importConfiguration">
+          <i class="fas fa-file-import"></i>
+          {{localize "mtt.config.importExport.import"}}
+        </button>
+        <button type="button" class="mtt-config-btn" data-action="exportConfiguration">
+          <i class="fas fa-file-export"></i>
+          {{localize "mtt.config.importExport.export"}}
+        </button>
+      </div>
+    </section>
+
     <section class="mtt-config-section">
       <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.items"}}</h2>
 
@@ -77,6 +92,26 @@
             name="itemDescriptionPath"
             value="{{itemDescriptionPath}}"
             placeholder="system.description.value"
+          />
+        </div>
+
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-secret-description">
+              {{localize "mtt.settings.itemSecretDescriptionPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemSecretDescriptionPath.hint'}}"
+              aria-hidden="true"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-secret-description"
+            type="text"
+            name="itemSecretDescriptionPath"
+            value="{{itemSecretDescriptionPath}}"
+            placeholder="system.description.unidentified"
           />
         </div>
       </div>
@@ -192,6 +227,66 @@
         >{{itemCategoryPaths}}</textarea>
       </div>
 
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-item-category-i18n-prefix">
+            {{localize "mtt.config.categories.itemCategoryI18nPrefix.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.itemCategoryI18nPrefix.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-item-category-i18n-prefix"
+          type="text"
+          name="itemCategoryI18nPrefix"
+          value="{{itemCategoryI18nPrefix}}"
+          placeholder="CO.equipment.subtypes."
+        />
+      </div>
+
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-item-subcategory-path">
+            {{localize "mtt.config.categories.itemSubcategoryPath.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.itemSubcategoryPath.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-item-subcategory-path"
+          type="text"
+          name="itemSubcategoryPath"
+          value="{{itemSubcategoryPath}}"
+          placeholder="system.subtype"
+        />
+      </div>
+
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-item-subcategory-i18n-prefix">
+            {{localize "mtt.config.categories.itemSubcategoryI18nPrefix.label"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.config.categories.itemSubcategoryI18nPrefix.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-item-subcategory-i18n-prefix"
+          type="text"
+          name="itemSubcategoryI18nPrefix"
+          value="{{itemSubcategoryI18nPrefix}}"
+          placeholder="DND5E.Item.Type."
+        />
+      </div>
+
       <label class="mtt-config-checkbox-field">
         <input
           type="checkbox"
@@ -205,6 +300,7 @@
         ></i>
       </label>
 
+      <div class="mtt-config-grid">
       <div class="mtt-config-field">
         <div class="mtt-config-field-header">
           <label class="mtt-config-field-label" for="mtt-config-category-map">
@@ -241,6 +337,7 @@
           rows="5"
         >{{defaultCustomCategories}}</textarea>
       </div>
+      </div>
     </section>
 
     <section class="mtt-config-section mtt-config-currencies">
@@ -251,8 +348,19 @@
         <div class="mtt-config-currency-table-head">
           <span>{{localize "mtt.config.currencies.columns.name"}}</span>
           <span>{{localize "mtt.config.currencies.columns.abbreviation"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.actorPathHint'}}"
+          >{{localize "mtt.config.currencies.columns.actorPath"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.itemPricePathHint'}}"
+          >{{localize "mtt.config.currencies.columns.itemPricePath"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.itemCurrencyPathHint'}}"
+          >{{localize "mtt.config.currencies.columns.itemCurrencyPath"}}</span>
+          <span
+            data-tooltip="{{localize 'mtt.config.currencies.columns.itemCurrencyValuesHint'}}"
+          >{{localize "mtt.config.currencies.columns.itemCurrencyValues"}}</span>
           <span>{{localize "mtt.config.currencies.columns.rate"}}</span>
-          <span>{{localize "mtt.config.currencies.columns.actorPath"}}</span>
           <span>{{localize "mtt.config.currencies.columns.actions"}}</span>
         </div>
 
@@ -268,26 +376,47 @@
               />
               <input
                 type="text"
-                class="mtt-config-currency-input mtt-config-currency-abbr"
+                class="mtt-config-currency-input"
                 data-mtt-currency-field="abbreviation"
                 value="{{currency.abbreviation}}"
                 placeholder="{{localize 'mtt.config.currencies.abbrPlaceholder'}}"
               />
               <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="actorPath"
+                value="{{currency.actorPath}}"
+                placeholder="{{localize 'mtt.config.currencies.actorPathPlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="itemPricePath"
+                value="{{currency.itemPricePath}}"
+                placeholder="{{localize 'mtt.config.currencies.itemPricePathPlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="itemCurrencyPath"
+                value="{{currency.itemCurrencyPath}}"
+                placeholder="{{localize 'mtt.config.currencies.itemCurrencyPathPlaceholder'}}"
+              />
+              <input
+                type="text"
+                class="mtt-config-currency-input"
+                data-mtt-currency-field="itemCurrencyValues"
+                value="{{currency.itemCurrencyValues}}"
+                placeholder="{{localize 'mtt.config.currencies.itemCurrencyValuesPlaceholder'}}"
+              />
+              <input
                 type="number"
-                class="mtt-config-currency-input mtt-config-currency-rate"
+                class="mtt-config-currency-input"
                 data-mtt-currency-field="rate"
                 value="{{currency.rate}}"
                 min="0.0001"
                 step="0.0001"
                 placeholder="{{localize 'mtt.config.currencies.ratePlaceholder'}}"
-              />
-              <input
-                type="text"
-                class="mtt-config-currency-input mtt-config-currency-path"
-                data-mtt-currency-field="actorPath"
-                value="{{currency.actorPath}}"
-                placeholder="{{localize 'mtt.config.currencies.pathPlaceholder'}}"
               />
               <button
                 type="button"

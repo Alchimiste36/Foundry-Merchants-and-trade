@@ -450,6 +450,24 @@ export function normalizeAutomaticCategoryValue(value) {
   }
 }
 
+export function localizeConfiguredValue(rawValue, prefix = "") {
+  const value = String(rawValue ?? "").trim()
+  const i18nPrefix = String(prefix ?? "").trim()
+
+  if (!value) return ""
+
+  if (i18nPrefix) {
+    const key = `${i18nPrefix}${value}`
+    const localized = game.i18n.localize(key)
+    if (localized && localized !== key) return localized
+  }
+
+  const localizedRaw = game.i18n.localize(value)
+  if (localizedRaw && localizedRaw !== value) return localizedRaw
+
+  return value
+}
+
 export function createCheckMessage(level, id, text, icon = "") {
   return { id, level, text, icon }
 }
@@ -578,6 +596,80 @@ export function getCategoryLabelMap() {
 
   return map
 }
+
+// ─── Universal currency reading (Étape B) ────────────────────────────────────
+
+export function parseCurrencyAliases(value) {
+  return String(value ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
+
+export function matchesCurrencyAlias(actual, aliases) {
+  const normalizedActual = String(actual ?? "").trim().toLocaleLowerCase()
+  return aliases.some((alias) => alias.toLocaleLowerCase() === normalizedActual)
+}
+
+export function readItemCurrencyAmount(item, currency) {
+  const itemPricePath = String(currency.itemPricePath ?? "").trim()
+  if (!itemPricePath) return 0
+
+  const amount = Number(foundry.utils.getProperty(item, itemPricePath))
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+
+  const itemCurrencyPath = String(currency.itemCurrencyPath ?? "").trim()
+  if (itemCurrencyPath) {
+    const actualCurrency = foundry.utils.getProperty(item, itemCurrencyPath)
+    const aliases = parseCurrencyAliases(currency.itemCurrencyValues)
+    if (!matchesCurrencyAlias(actualCurrency, aliases)) return 0
+  }
+
+  return amount
+}
+
+export function readItemCurrencyAmounts(item, currencies) {
+  return currencies.map((currency) => ({
+    currencyId: currency.id,
+    abbreviation: currency.abbreviation,
+    rate: Number(currency.rate) || 1,
+    amount: readItemCurrencyAmount(item, currency),
+  }))
+}
+
+export function convertCurrencyAmountsToReference(amounts, referenceCurrency) {
+  if (!referenceCurrency) return 0
+  const referenceRate = Number(referenceCurrency.rate)
+  const safeReferenceRate = Number.isFinite(referenceRate) && referenceRate > 0 ? referenceRate : 1
+
+  let total = 0
+  for (const entry of amounts) {
+    const safeRate = Number.isFinite(entry.rate) && entry.rate > 0 ? entry.rate : 1
+    total += entry.amount * safeRate
+  }
+
+  return Number((total / safeReferenceRate).toFixed(2))
+}
+
+export function readItemReferencePrice(item) {
+  const currencies = getCurrencies()
+  const referenceCurrency = getReferenceSessionCurrency()
+  const currenciesWithPaths = currencies.filter((c) => String(c.itemPricePath ?? "").trim())
+
+  if (currenciesWithPaths.length === 0 || !referenceCurrency) return null
+
+  const amounts = readItemCurrencyAmounts(item, currencies)
+  if (!amounts.some((a) => a.amount > 0)) return null
+
+  const refValue = convertCurrencyAmountsToReference(amounts, referenceCurrency)
+
+  return {
+    value: refValue,
+    currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim(),
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function prepareCurrencyOptions() {
   const currencies = getCurrencies()

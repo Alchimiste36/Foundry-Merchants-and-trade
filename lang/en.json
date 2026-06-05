@@ -149,6 +149,64 @@
         "title": "Configuration",
         "text": "General merchant options and the transaction log will be grouped here."
       }
+    },
+    "settings": {
+      "itemSubcategoryPath": {
+        "name": "Product subcategory path",
+        "hint": "Path read from the source Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
+      },
+      "itemSecretDescriptionPath": {
+        "name": "Secret description path for delivered Items",
+        "hint": "Path where MTT writes secret information on delivered items. If identical to the visible description path, secrets are added in a Foundry secret block in the same field. If different, secret information is written to this separate field. If empty, secret information is not copied to the delivered item."
+      }
+    },
+    "config": {
+      "categories": {
+        "itemCategoryI18nPrefix": {
+          "label": "Category i18n prefix",
+          "hint": "Translation prefix added before the value read by the category path. Example: if the value is Armor and the prefix is CO.equipment.subtypes., MTT will look up CO.equipment.subtypes.Armor. Leave empty to display the raw value."
+        },
+        "itemSubcategoryI18nPrefix": {
+          "label": "Subcategory i18n prefix",
+          "hint": "Translation prefix added before the value read by the subcategory path. Leave empty to display the raw value."
+        }
+      },
+      "importExport": {
+        "title": "Import / Export",
+        "hint": "Import a ready-made MTT configuration for your game system before filling in paths manually, or export your current configuration to share it.",
+        "import": "Import a configuration",
+        "export": "Export current configuration",
+        "invalidFile": "The selected file is not a valid MTT configuration.",
+        "unsupportedVersion": "This MTT configuration file version is not supported.",
+        "importConfirmTitle": "Import MTT configuration",
+        "importConfirmContent": "Importing this configuration will replace the current MTT module settings.",
+        "importConfirm": "Import",
+        "cancel": "Cancel",
+        "systemMismatch": "Warning: this configuration was exported for system {systemId}. The current system is {currentSystem}.",
+        "infoSystem": "System:",
+        "infoModuleVersion": "Module version:",
+        "infoExportedAt": "Export date:",
+        "infoSettingsCount": "Number of settings:",
+        "importSuccess": "MTT configuration imported successfully.",
+        "exportSuccess": "MTT configuration exported successfully."
+      },
+      "currencies": {
+        "columns": {
+          "actorPath": "Actor path",
+          "actorPathHint": "Path to read and write this currency on an actor. Example: system.currency.sp",
+          "itemPricePath": "Item price path",
+          "itemPricePathHint": "Path to read the amount of this currency on an Item. Example: system.price.value",
+          "itemCurrencyPath": "Item currency path",
+          "itemCurrencyPathHint": "Path to read the Item currency when the system uses a single value + denomination field. Leave empty if each currency has its own price path. Example: system.price.currency",
+          "itemCurrencyValues": "Item currency values",
+          "itemCurrencyValuesHint": "Comma-separated aliases used to identify this currency in the Item currency field. Example: pa, PA, sp, SP",
+          "rate": "Conversion"
+        },
+        "actorPathPlaceholder": "system.currency.sp",
+        "itemPricePathPlaceholder": "system.price.value",
+        "itemCurrencyPathPlaceholder": "system.price.currency",
+        "itemCurrencyValuesPlaceholder": "pa, PA, sp, SP"
+      }
     }
   }
 }

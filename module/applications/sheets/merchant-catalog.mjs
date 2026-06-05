@@ -12,6 +12,7 @@ import {
   slugifyCategoryKey,
   getCategoryPaths,
   getCategoryLabelMap,
+  localizeConfiguredValue,
   getConfiguredItemValue,
   getModuleSetting,
   getItemDescription,
@@ -21,6 +22,7 @@ import {
   getReferenceSessionCurrency,
   htmlToPlainText,
   productHasSecretInfo,
+  readItemReferencePrice,
 } from "./merchant-utils.mjs"
 
 export function getSellPercent(actor) {
@@ -97,16 +99,36 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
 }
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
-  return actor.items.map((item) => {
+  const items = actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const quantity = product.quantity
     const displayName = product.displayName || item.name
-    const basePriceValue =
-      Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
-        ? Number(product.priceValue)
-        : MTT.PRODUCT_DEFAULTS.priceValue
-    const displayPriceValue = adjustPriceValue(basePriceValue, sellPercent)
-    const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+    const hasFreePrice = product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice
+    const isCommerciallyModified = Boolean(product.isCommerciallyModified)
+
+    let basePriceValue, priceCurrency
+
+    if (hasFreePrice || isCommerciallyModified) {
+      basePriceValue =
+        Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
+          ? Number(product.priceValue)
+          : MTT.PRODUCT_DEFAULTS.priceValue
+      priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+    } else {
+      const universalPrice = readItemReferencePrice(item)
+      if (universalPrice !== null) {
+        basePriceValue = universalPrice.value
+        priceCurrency = universalPrice.currency
+      } else {
+        basePriceValue =
+          Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
+            ? Number(product.priceValue)
+            : MTT.PRODUCT_DEFAULTS.priceValue
+        priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency
+      }
+    }
+
+    const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, sellPercent)
     const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
     const isVisible = !isHidden
     const configuredOwnershipLevel = Number(
@@ -155,6 +177,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       systemCategoryPath: product.systemCategoryPath ?? "",
       sourceUuid: product.sourceUuid ?? "",
       isCommerciallyModified: Boolean(product.isCommerciallyModified),
+      systemSubcategory: product.systemSubcategory ?? "",
       hasSystemCategory: Boolean(product.systemCategoryKey || product.systemCategoryLabel),
       hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
       isHidden,
@@ -183,6 +206,65 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
           : (product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency),
     }
   }).filter((item) => includeHidden || item.isVisible)
+
+  return assignSubcategoryIconClasses(items)
+}
+
+function assignSubcategoryIconClasses(products) {
+  const iconClasses = ["fa-solid fa-label", "fa-light fa-label"]
+  const i18nPrefix = String(game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix") ?? "").trim()
+
+  // Group products by main category to compute per-category icon assignment.
+  const productsByCategory = new Map()
+  for (const product of products) {
+    const categoryKey = String(product.category ?? "").trim() || "default"
+    if (!productsByCategory.has(categoryKey)) productsByCategory.set(categoryKey, [])
+    productsByCategory.get(categoryKey).push(product)
+  }
+
+  // For each category: collect subcategories, sort them, assign icon by sorted position.
+  // Icon depends on alphabetical rank, not drop order.
+  for (const categoryProducts of productsByCategory.values()) {
+    const seen = new Map() // normalized key → localized label
+    for (const p of categoryProducts) {
+      const raw = String(p.systemSubcategory ?? "").trim()
+      if (raw) {
+        const localized = localizeConfiguredValue(raw, i18nPrefix)
+        seen.set(raw.toLocaleLowerCase(), localized)
+      }
+    }
+
+    const sortedKeys = Array.from(seen.keys()).sort((a, b) =>
+      seen.get(a).localeCompare(seen.get(b)),
+    )
+    const iconByKey = new Map(sortedKeys.map((k, i) => [k, iconClasses[i % iconClasses.length]]))
+
+    for (const product of categoryProducts) {
+      const raw = String(product.systemSubcategory ?? "").trim()
+      const subcategoryLabel = raw ? localizeConfiguredValue(raw, i18nPrefix) : ""
+      product.hasSubcategory = Boolean(raw)
+      product.subcategoryLabel = subcategoryLabel
+      product.subcategoryIconClass = raw
+        ? (iconByKey.get(raw.toLocaleLowerCase()) ?? iconClasses[0])
+        : ""
+    }
+  }
+
+  // Sort the flat array by [subcategoryLabel, displayName].
+  // prepareProductCategories pushes items in array order into category groups,
+  // so this ensures intra-category subcategory ordering without cross-contamination.
+  if (products.some((p) => p.hasSubcategory)) {
+    products.sort((a, b) => {
+      const subA = String(a.subcategoryLabel ?? "").toLocaleLowerCase()
+      const subB = String(b.subcategoryLabel ?? "").toLocaleLowerCase()
+      if (subA && subB && subA !== subB) return subA.localeCompare(subB)
+      if (subA && !subB) return -1
+      if (!subA && subB) return 1
+      return String(a.displayName ?? a.name ?? "").localeCompare(String(b.displayName ?? b.name ?? ""))
+    })
+  }
+
+  return products
 }
 
 export function prepareServices(actor, serviceSellPercent, { includeHidden = false } = {}) {
@@ -318,6 +400,13 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
 export function getAutomaticItemCategory(item) {
   const paths = getCategoryPaths()
   const labelMap = getCategoryLabelMap()
+  const i18nPrefix = String(game.settings.get(MTT.ID, "itemCategoryI18nPrefix") ?? "").trim()
+
+  const resolveLabel = (normalized) => {
+    if (labelMap.has(normalized.key)) return labelMap.get(normalized.key)
+    const localized = localizeConfiguredValue(normalized.raw, i18nPrefix)
+    return localized !== normalized.raw ? localized : normalized.label
+  }
 
   for (const path of paths) {
     const normalized = normalizeAutomaticCategoryValue(foundry.utils.getProperty(item, path))
@@ -325,7 +414,7 @@ export function getAutomaticItemCategory(item) {
 
     return {
       ...normalized,
-      label: labelMap.get(normalized.key) ?? normalized.label,
+      label: resolveLabel(normalized),
       path,
     }
   }
@@ -335,7 +424,7 @@ export function getAutomaticItemCategory(item) {
     if (normalized) {
       return {
         ...normalized,
-        label: labelMap.get(normalized.key) ?? normalized.label,
+        label: resolveLabel(normalized),
         path: "type",
       }
     }
@@ -381,15 +470,28 @@ export function createProductFlags(itemData, options = {}) {
   productFlags.isCommerciallyModified = false
   productFlags.ownershipLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
 
-  const configuredPrice = getConfiguredItemValue(itemData, "itemPriceValuePath")
-  const parsedPrice = parsePriceValue(configuredPrice) ?? getItemPrice(itemData)
-  if (parsedPrice !== null) {
-    productFlags.priceValue = parsedPrice
+  const subcategoryPath = String(getModuleSetting("itemSubcategoryPath") ?? "").trim()
+  if (subcategoryPath) {
+    const rawSubcategory = foundry.utils.getProperty(itemData, subcategoryPath)
+    productFlags.systemSubcategory = String(rawSubcategory ?? "").trim()
+  } else {
+    productFlags.systemSubcategory = ""
   }
 
-  const configuredCurrency = getConfiguredItemValue(itemData, "itemPriceCurrencyPath")
-  const rawCurrency = typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(itemData)
-  productFlags.priceCurrency = resolveItemCurrencyKey(rawCurrency)
+  const universalPrice = readItemReferencePrice(itemData)
+  if (universalPrice !== null) {
+    productFlags.priceValue = universalPrice.value
+    productFlags.priceCurrency = universalPrice.currency
+  } else {
+    const configuredPrice = getConfiguredItemValue(itemData, "itemPriceValuePath")
+    const parsedPrice = parsePriceValue(configuredPrice) ?? getItemPrice(itemData)
+    if (parsedPrice !== null) {
+      productFlags.priceValue = parsedPrice
+    }
+    const configuredCurrency = getConfiguredItemValue(itemData, "itemPriceCurrencyPath")
+    const rawCurrency = typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(itemData)
+    productFlags.priceCurrency = resolveItemCurrencyKey(rawCurrency)
+  }
 
   const configuredQuantity = getConfiguredItemValue(itemData, "itemQuantityPath")
   const parsedQuantity = parseQuantityValue(configuredQuantity)
@@ -558,15 +660,22 @@ export async function createServiceFromItem(actor, item) {
   }
   description = description ? htmlToPlainText(description) : ""
 
-  let priceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath"))
-  if (priceValue === null) {
-    priceValue = getItemPrice(item) ?? 0
-  }
+  const universalServicePrice = readItemReferencePrice(item)
+  let priceValue, priceCurrency
 
-  const rawServiceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-  const priceCurrency = resolveItemCurrencyKey(
-    typeof rawServiceCurrency === "string" ? rawServiceCurrency.trim() : getItemCurrency(item),
-  )
+  if (universalServicePrice !== null) {
+    priceValue = universalServicePrice.value
+    priceCurrency = universalServicePrice.currency
+  } else {
+    priceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath"))
+    if (priceValue === null) {
+      priceValue = getItemPrice(item) ?? 0
+    }
+    const rawServiceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
+    priceCurrency = resolveItemCurrencyKey(
+      typeof rawServiceCurrency === "string" ? rawServiceCurrency.trim() : getItemCurrency(item),
+    )
+  }
 
   const automaticCategory = getAutomaticItemCategory(item)
 
@@ -619,8 +728,20 @@ export function getItemAvailableQuantity(item) {
 
 export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {}) {
   const availableQuantity = getItemAvailableQuantity(item)
-  const basePriceValue =
-    parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath")) ?? getItemPrice(item) ?? 0
+  const universalSellerPrice = readItemReferencePrice(item)
+  let basePriceValue, priceCurrency
+
+  if (universalSellerPrice !== null) {
+    basePriceValue = universalSellerPrice.value
+    priceCurrency = universalSellerPrice.currency
+  } else {
+    basePriceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath")) ?? getItemPrice(item) ?? 0
+    const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
+    priceCurrency = resolveItemCurrencyKey(
+      typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item),
+    )
+  }
+
   const effectiveBuyPercent =
     Number.isFinite(Number(buyPercent)) && Number(buyPercent) >= 0
       ? Number(buyPercent)
@@ -628,10 +749,6 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
       ? Number(actor.system.trade.buyPercent)
       : 50
   const unitPriceValue = Number(((basePriceValue * effectiveBuyPercent) / 100).toFixed(2))
-  const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-  const priceCurrency = resolveItemCurrencyKey(
-    typeof configuredCurrency === "string" ? configuredCurrency.trim() : getItemCurrency(item),
-  )
   const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
 
   return {

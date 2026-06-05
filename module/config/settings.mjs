@@ -86,6 +86,15 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemSecretDescriptionPath", {
+    name: "mtt.settings.itemSecretDescriptionPath.name",
+    hint: "mtt.settings.itemSecretDescriptionPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "allowedProductTypes", {
     name: "mtt.settings.allowedProductTypes.name",
     hint: "mtt.settings.allowedProductTypes.hint",
@@ -140,6 +149,33 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemSubcategoryPath", {
+    name: "mtt.settings.itemSubcategoryPath.name",
+    hint: "mtt.settings.itemSubcategoryPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "itemCategoryI18nPrefix", {
+    name: "mtt.settings.itemCategoryI18nPrefix.name",
+    hint: "mtt.settings.itemCategoryI18nPrefix.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MTT.ID, "itemSubcategoryI18nPrefix", {
+    name: "mtt.settings.itemSubcategoryI18nPrefix.name",
+    hint: "mtt.settings.itemSubcategoryI18nPrefix.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   game.settings.register(MTT.ID, "actorCurrencyPath", {
     name: "mtt.settings.actorCurrencyPath.name",
     hint: "mtt.settings.actorCurrencyPath.hint",
@@ -175,6 +211,51 @@ export function registerSettings() {
     type: MttGlobalJournalApp,
     restricted: true,
   });
+}
+
+export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
+  "itemPriceValuePath",
+  "itemPriceCurrencyPath",
+  "itemQuantityPath",
+  "deliveryItemQuantityPath",
+  "deliveryItemMaxQuantityPath",
+  "allowExtendedItemMerge",
+  "writeDeliveryDescriptionInfo",
+  "itemDescriptionPath",
+  "itemSecretDescriptionPath",
+  "allowedProductTypes",
+  "allowedServiceTypes",
+  "itemCategoryPaths",
+  "useItemTypeAsCategoryFallback",
+  "categoryLabelMap",
+  "defaultCustomCategories",
+  "actorCurrencyPath",
+  "currencies",
+  "itemSubcategoryPath",
+  "itemCategoryI18nPrefix",
+  "itemSubcategoryI18nPrefix",
+];
+
+export function buildModuleConfigurationExport() {
+  const settings = {};
+  for (const key of MTT_EXPORTABLE_CONFIG_SETTINGS) {
+    try {
+      settings[key] = game.settings.get(MTT.ID, key);
+    } catch {
+      // skip unregistered settings
+    }
+  }
+  return {
+    module: MTT.ID,
+    type: "module-configuration",
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    foundryVersion: game.version,
+    moduleVersion: game.modules.get(MTT.ID)?.version ?? "",
+    systemId: game.system.id,
+    systemTitle: game.system.title,
+    settings,
+  };
 }
 
 export function getCurrencies() {

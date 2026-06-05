@@ -46,6 +46,10 @@
         "name": "Chemin de la description",
         "hint": "Chemin du système de l’item pour lire la description. Exemple : system.description.value"
       },
+      "itemSecretDescriptionPath": {
+        "name": "Chemin de la description secrète de l’Item livré",
+        "hint": "Chemin où MTT écrit les informations secrètes des objets livrés. Si identique au chemin de description visible, les informations sont ajoutées dans un bloc secret Foundry dans le même champ. Si différent, les informations secrètes sont écrites dans ce champ séparé. Si vide, les informations secrètes ne sont pas copiées dans l’objet livré."
+      },
       "allowedProductTypes": {
         "name": "Types d’items autorisés comme produits",
         "hint": "Liste de types séparés par des virgules. Laisser vide pour autoriser tous les types."
@@ -69,6 +73,10 @@
       "defaultCustomCategories": {
         "name": "Catégories personnalisées par défaut",
         "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne."
+      },
+      "itemSubcategoryPath": {
+        "name": "Chemin de sous-catégorie produit",
+        "hint": "Chemin lu sur l’Item source pour afficher une sous-catégorie discrète dans le catalogue. La sous-catégorie apparaît sous forme d’icône avec une info-bulle sur la ligne produit. Laisser vide pour désactiver cette fonction."
       },
       "actorCurrencyPath": {
         "name": "Chemin de la monnaie principale de l’acteur",
@@ -532,8 +540,8 @@
       "title": "État de référence",
       "description": "Enregistre les quantités, visibilités, droits d’ouverture et demandes d’approbation actuels comme état de base du marchand.",
       "savedAt": "Dernier état enregistré :",
-      "save": "Définir l’état actuel comme référence",
-      "restore": "Réinitialiser à l’état de référence",
+      "save": "Définir l’état comme référence",
+      "restore": "Réinitialiser la référence",
       "saveSuccess": "État de référence enregistré.",
       "restoreSuccess": "Marchand réinitialisé à son état de référence.",
       "missing": "Aucun état de référence enregistré.",
@@ -824,10 +832,41 @@
       },
       "categories": {
         "title": "Catégories",
+        "itemCategoryI18nPrefix": {
+          "label": "Préfixe i18n de catégorie",
+          "hint": "Préfixe de traduction ajouté devant la valeur lue par le chemin de catégorie. Exemple : si la valeur lue est Armor et que le préfixe est CO.equipment.subtypes., MTT cherchera CO.equipment.subtypes.Armor. Laisser vide pour afficher la valeur brute."
+        },
+        "itemSubcategoryPath": {
+          "label": "Chemin de sous-catégorie produit",
+          "hint": "Chemin lu sur l'Item source pour afficher une sous-catégorie discrète dans le catalogue. La sous-catégorie apparaît sous forme d'icône avec une info-bulle sur la ligne produit. Laisser vide pour désactiver cette fonction."
+        },
+        "itemSubcategoryI18nPrefix": {
+          "label": "Préfixe i18n de sous-catégorie",
+          "hint": "Préfixe de traduction ajouté devant la valeur lue par le chemin de sous-catégorie. Laisser vide pour afficher la valeur brute."
+        },
         "defaultCustomCategories": {
           "label": "Catégories personnalisées par défaut",
           "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque marchand."
         }
+      },
+      "importExport": {
+        "title": "Import / Export",
+        "hint": "Importez une configuration MTT prête pour votre système de jeu avant de renseigner les chemins manuellement, ou exportez votre configuration actuelle pour la partager.",
+        "import": "Importer une configuration",
+        "export": "Exporter la configuration actuelle",
+        "invalidFile": "Le fichier sélectionné n'est pas une configuration MTT valide.",
+        "unsupportedVersion": "Cette version de fichier de configuration MTT n'est pas supportée.",
+        "importConfirmTitle": "Importer une configuration MTT",
+        "importConfirmContent": "Importer cette configuration va remplacer les réglages actuels du module MTT.",
+        "importConfirm": "Importer",
+        "cancel": "Annuler",
+        "systemMismatch": "Attention : cette configuration a été exportée pour le système {systemId}. Le système actuel est {currentSystem}.",
+        "infoSystem": "Système :",
+        "infoModuleVersion": "Version du module :",
+        "infoExportedAt": "Date d'export :",
+        "infoSettingsCount": "Nombre de réglages :",
+        "importSuccess": "Configuration MTT importée avec succès.",
+        "exportSuccess": "Configuration MTT exportée avec succès."
       },
       "currencies": {
         "explanation": "Définissez les devises utilisées dans votre système de jeu. Chaque devise a un nom, une abréviation, un chemin pour lire la valeur sur l'acteur, et une valeur de conversion relative. Exemple : si la pièce de base vaut 1, une pièce valant le double vaut 2, une pièce valant la moitié vaut 0.5.",
@@ -842,9 +881,20 @@
           "name": "Nom",
           "abbreviation": "Abrév.",
           "actorPath": "Chemin acteur",
-          "rate": "Valeur",
+          "actorPathHint": "Chemin pour lire et écrire cette monnaie sur un acteur. Exemple : system.currency.sp",
+          "itemPricePath": "Chemin prix Item",
+          "itemPricePathHint": "Chemin où lire le montant de cette monnaie sur un Item. Exemple : system.price.value",
+          "itemCurrencyPath": "Chemin monnaie Item",
+          "itemCurrencyPathHint": "Chemin où lire la monnaie de l'Item si le système utilise une valeur + une devise. Laisser vide si chaque monnaie a son propre chemin de valeur. Exemple : system.price.currency",
+          "itemCurrencyValues": "Valeurs monnaie Item",
+          "itemCurrencyValuesHint": "Liste d'alias séparés par des virgules permettant de reconnaître cette monnaie dans le champ monnaie Item. Exemple : pa, PA, sp, SP",
+          "rate": "Conversion",
           "actions": "Action"
-        }
+        },
+        "actorPathPlaceholder": "system.currency.sp",
+        "itemPricePathPlaceholder": "system.price.value",
+        "itemCurrencyPathPlaceholder": "system.price.currency",
+        "itemCurrencyValuesPlaceholder": "pa, PA, sp, SP"
       }
     }
   }

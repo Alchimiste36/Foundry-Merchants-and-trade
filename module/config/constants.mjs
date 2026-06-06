@@ -124,10 +124,18 @@ export const MTT = {
       "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs",
     MERCHANT_SESSION:
       "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
+    MERCHANT_ACCESS_RAIL:
+      "modules/mtt-merchants/templates/actors/parts/merchant-access-rail.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",
     MTT_GLOBAL_JOURNAL:
       "modules/mtt-merchants/templates/apps/mtt-global-journal.hbs",
     MTT_DIALOG: "modules/mtt-merchants/templates/apps/mtt-dialog.hbs",
+    CONFIRM_DIALOG: "modules/mtt-merchants/templates/dialogs/confirm-dialog.hbs",
+    SECRET_INFO_DIALOG: "modules/mtt-merchants/templates/dialogs/secret-info-dialog.hbs",
+    CLIENT_RATES_DIALOG: "modules/mtt-merchants/templates/dialogs/client-rates-dialog.hbs",
+    TRANSACTION_SUMMARY_DIALOG: "modules/mtt-merchants/templates/dialogs/transaction-summary-dialog.hbs",
+    TRANSACTION_ERRORS_DIALOG: "modules/mtt-merchants/templates/dialogs/transaction-errors-dialog.hbs",
+    SELLER_ITEM_DIALOG: "modules/mtt-merchants/templates/dialogs/seller-item-dialog.hbs",
   },
 
   CSS: {

@@ -1,5 +1,5 @@
 import { MTT } from "../../config/constants.mjs"
-import { escapeHTML, buildCurrencySelectOptions } from "./merchant-utils.mjs"
+import { escapeHTML, prepareCurrencyOptions } from "./merchant-utils.mjs"
 
 export async function renderMttDialogContent({
   icon = "",
@@ -19,6 +19,15 @@ export async function renderMttDialogContent({
     entity,
     form,
     hasHeader: Boolean(icon || title),
+  })
+}
+
+export async function renderConfirmDialogContent({ message = "", details = "", warning = "", variant = "default" } = {}) {
+  return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.CONFIRM_DIALOG, {
+    message,
+    details,
+    warning,
+    variant,
   })
 }
 
@@ -169,25 +178,20 @@ export async function openCatalogItemSecretsDialog({
   secretDescription = "",
 }) {
   const title = game.i18n.format("mtt.secrets.titleWithName", { name })
-  const content = `<form class="mtt-secret-info-dialog">
-    <label class="mtt-secret-info-field">
-      <span>${game.i18n.localize("mtt.secrets.name")}</span>
-      <input type="text" name="secretName" value="${escapeHTML(secretName)}" />
-    </label>
-    <div class="mtt-secret-info-field">
-      <span>${game.i18n.localize("mtt.secrets.price")}</span>
-      <div class="mtt-secret-info-price-row">
-        <input type="text" name="secretPrice" value="${escapeHTML(secretPrice)}" />
-        <select name="secretCurrency" aria-label="${escapeHTML(game.i18n.localize("mtt.secrets.currency"))}">
-          ${buildCurrencySelectOptions(secretCurrency)}
-        </select>
-      </div>
-    </div>
-    <label class="mtt-secret-info-field">
-      <span>${game.i18n.localize("mtt.secrets.description")}</span>
-      <textarea name="secretDescription">${escapeHTML(secretDescription)}</textarea>
-    </label>
-  </form>`
+
+  const rawOptions = prepareCurrencyOptions().filter((c) => !c.isFreePrice)
+  const knownKeys = new Set(rawOptions.map((c) => c.key))
+  const currencyOptions = rawOptions.map((c) => ({ ...c, selected: c.key === secretCurrency }))
+  if (secretCurrency && !knownKeys.has(secretCurrency)) {
+    currencyOptions.push({ key: secretCurrency, abbreviation: secretCurrency, title: "", selected: true })
+  }
+
+  const content = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SECRET_INFO_DIALOG, {
+    secretName,
+    secretPrice,
+    secretDescription,
+    currencyOptions,
+  })
 
   try {
     return await foundry.applications.api.DialogV2.wait({
@@ -225,26 +229,12 @@ export async function openCatalogItemSecretsDialog({
 
 export async function openClientRatesDialog({ clientName = "", rates = {} } = {}) {
   const title = game.i18n.format("mtt.clientRates.titleWithName", { name: clientName })
-  const content = `<form class="mtt-client-rates-dialog">
-    <div class="mtt-client-rates-grid">
-      <label class="mtt-client-rates-field">
-        <span>${game.i18n.localize("mtt.clientRates.productSellPercent")}</span>
-        <input type="number" name="productSellPercent" min="0" step="1" value="${escapeHTML(String(rates.productSellPercent ?? 100))}" />
-      </label>
-      <label class="mtt-client-rates-field">
-        <span>${game.i18n.localize("mtt.clientRates.serviceSellPercent")}</span>
-        <input type="number" name="serviceSellPercent" min="0" step="1" value="${escapeHTML(String(rates.serviceSellPercent ?? 100))}" />
-      </label>
-      <label class="mtt-client-rates-field">
-        <span>${game.i18n.localize("mtt.clientRates.itemBuyPercent")}</span>
-        <input type="number" name="itemBuyPercent" min="0" step="1" value="${escapeHTML(String(rates.itemBuyPercent ?? 50))}" />
-      </label>
-    </div>
-    <label class="mtt-client-rates-field mtt-client-rates-note">
-      <span>${game.i18n.localize("mtt.clientRates.note")}</span>
-      <textarea name="note">${escapeHTML(rates.note ?? "")}</textarea>
-    </label>
-  </form>`
+  const content = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.CLIENT_RATES_DIALOG, {
+    productSellPercent: rates.productSellPercent ?? 100,
+    serviceSellPercent: rates.serviceSellPercent ?? 100,
+    itemBuyPercent: rates.itemBuyPercent ?? 50,
+    note: rates.note ?? "",
+  })
 
   try {
     return await foundry.applications.api.DialogV2.wait({
@@ -281,34 +271,6 @@ export async function openClientRatesDialog({ clientName = "", rates = {} } = {}
   }
 }
 
-export function renderSellerItemDialog({ availableQuantityLabel, availableQuantity, unitPriceValue, priceCurrency }) {
-  const quantityMax =
-    Number.isFinite(availableQuantity) && availableQuantity >= 0
-      ? ` max="${escapeHTML(String(availableQuantity))}"`
-      : ""
-
-  const priceFieldsHtml = `<label class="mtt-dialog-field">
-        <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemUnitValue")}</span>
-        <input type="number" name="unitPriceValue" min="0" step="1" value="${escapeHTML(String(unitPriceValue))}" />
-      </label>
-      <label class="mtt-dialog-field">
-        <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemCurrency")}</span>
-        <select name="priceCurrency">${buildCurrencySelectOptions(priceCurrency)}</select>
-      </label>`
-
-  const quantitySummaryHtml = `<label class="mtt-dialog-field">
-      <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemAvailableQuantity")}</span>
-      <span class="mtt-dialog-field-value">${escapeHTML(availableQuantityLabel)}</span>
-    </label>`
-
-  return `${quantitySummaryHtml}
-    <label class="mtt-dialog-field">
-      <span class="mtt-dialog-field-label">${game.i18n.localize("mtt.dialog.sellerItemQuantity")}</span>
-      <input type="number" name="quantity" min="1" step="1" value="1"${quantityMax} />
-    </label>
-    ${priceFieldsHtml}`
-}
-
 // ─── Preview dialog helpers ───────────────────────────────────────────────────
 
 function getPreviewItemTypeLabel(item) {
@@ -316,53 +278,6 @@ function getPreviewItemTypeLabel(item) {
   return game.i18n.localize("mtt.products.title")
 }
 
-function renderPreviewItemTable(items) {
-  const loc = (key) => escapeHTML(game.i18n.localize(key))
-
-  if (!items || items.length === 0) {
-    return `<p class="mtt-dialog-preview-empty">${loc("mtt.dialog.transaction.empty")}</p>`
-  }
-
-  return `<div class="mtt-dialog-preview-table-wrap">
-    <table class="mtt-dialog-preview-table">
-      <thead>
-        <tr>
-          <th class="mtt-dialog-preview-col-img">${loc("mtt.dialog.transaction.columns.image")}</th>
-          <th>${loc("mtt.dialog.transaction.columns.type")}</th>
-          <th>${loc("mtt.dialog.transaction.columns.quantity")}</th>
-          <th>${loc("mtt.dialog.transaction.columns.name")}</th>
-          <th>${loc("mtt.dialog.transaction.columns.unitPrice")}</th>
-          <th>${loc("mtt.dialog.transaction.columns.total")}</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items
-          .map(
-            (item) => `<tr class="${item.missing ? "mtt-dialog-preview-row-missing" : ""}">
-              <td class="mtt-dialog-preview-col-img">${
-                item.img
-                  ? `<img class="mtt-dialog-preview-img" src="${escapeHTML(item.img)}" alt="${escapeHTML(item.name)}" />`
-                  : ""
-              }</td>
-              <td>${escapeHTML(getPreviewItemTypeLabel(item))}</td>
-              <td class="mtt-dialog-preview-number">${escapeHTML(String(item.quantity ?? ""))}</td>
-              <td class="mtt-dialog-preview-name">${escapeHTML(item.name ?? "")}</td>
-              <td class="mtt-dialog-preview-price">${escapeHTML(item.unitPriceLabel ?? "")}</td>
-              <td class="mtt-dialog-preview-price">${escapeHTML(item.totalPriceLabel ?? "")}</td>
-            </tr>`,
-          )
-          .join("")}
-      </tbody>
-    </table>
-  </div>`
-}
-
-function renderPreviewItemSection(titleKey, items) {
-  return `<section class="mtt-dialog-preview-section">
-    <h4 class="mtt-dialog-preview-section-title">${escapeHTML(game.i18n.localize(titleKey))}</h4>
-    ${renderPreviewItemTable(items)}
-  </section>`
-}
 
 function getMoneyTransferGroups(transfers) {
   const groups = []
@@ -381,78 +296,46 @@ function getMoneyTransferGroups(transfers) {
   return groups
 }
 
-function renderMoneyTransfers(preview) {
-  const groups = getMoneyTransferGroups(preview.moneyTransfers)
 
-  let html = `<section class="mtt-dialog-preview-section">
-    <h4 class="mtt-dialog-preview-section-title">${escapeHTML(game.i18n.localize("mtt.dialog.transaction.moneyTransfer"))}</h4>`
-
-  if (groups.length === 0) {
-    html += `<p class="mtt-dialog-preview-empty">${escapeHTML(game.i18n.localize("mtt.dialog.transaction.noMoneyTransfer"))}</p>`
-  } else {
-    html += `<div class="mtt-dialog-preview-money">`
-    for (const group of groups) {
-      const sentence = game.i18n.format("mtt.dialog.transaction.moneyTransferSentence", {
-        payer: group.payer,
-        amount: group.amounts.join(", "),
-        receiver: group.receiver,
-      })
-      html += `<p class="mtt-dialog-preview-money-line${group.hasWarning ? " mtt-dialog-preview-money-warning" : ""}">
-        <i class="fas fa-coins"></i>
-        <span>${escapeHTML(sentence)}</span>
-        ${group.hasWarning ? `<i class="fas fa-triangle-exclamation mtt-dialog-preview-warning-icon"></i>` : ""}
-      </p>`
-    }
-    html += `</div>`
-  }
-
-  html += `</section>`
-  return html
-}
-
-function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}) {
-  const loc = (key) => escapeHTML(game.i18n.localize(key))
-
-  let html = `<div class="mtt-dialog-preview-header">
-    <p><strong>${loc("mtt.sessions.preview.client")}</strong> ${escapeHTML(preview.client?.actorName ?? "-")}</p>
-    <p><strong>${loc("mtt.sessions.preview.merchant")}</strong> ${escapeHTML(preview.merchant?.name ?? "-")}</p>
-  </div>`
-
+async function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}) {
   const buyerReceives = [
     ...(preview.buyerDeliveries ?? []),
     ...(preview.services ?? []).map((item) => ({ ...item, type: "service" })),
-  ]
+  ].map((item) => ({ ...item, typeLabel: getPreviewItemTypeLabel(item) }))
 
-  html += renderPreviewItemSection("mtt.dialog.transaction.buyerReceives", buyerReceives)
-  html += renderPreviewItemSection("mtt.dialog.transaction.buyerGives", preview.sellerDeliveries ?? [])
-  html += renderMoneyTransfers(preview)
+  const buyerGives = (preview.sellerDeliveries ?? []).map((item) => ({
+    ...item,
+    typeLabel: getPreviewItemTypeLabel(item),
+  }))
 
-  if ((preview.warnings ?? []).length > 0) {
-    html += `<ul class="mtt-dialog-preview-list mtt-dialog-preview-warnings">${preview.warnings
-      .map((w) => `<li class="mtt-dialog-preview-warning"><i class="fas fa-triangle-exclamation"></i> ${escapeHTML(w)}</li>`)
-      .join("")}</ul>`
-  }
+  const moneyTransferGroups = getMoneyTransferGroups(preview.moneyTransfers).map((group) => ({
+    ...group,
+    sentence: game.i18n.format("mtt.dialog.transaction.moneyTransferSentence", {
+      payer: group.payer,
+      amount: group.amounts.join(", "),
+      receiver: group.receiver,
+    }),
+  }))
 
-  if (isPreviewOnly) {
-    html += `<p class="mtt-dialog-preview-notice"><i class="fas fa-circle-info"></i> ${loc("mtt.dialog.transaction.previewOnly")}</p>`
-  }
-  return html
+  return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.TRANSACTION_SUMMARY_DIALOG, {
+    clientName: preview.client?.actorName ?? "-",
+    merchantName: preview.merchant?.name ?? "-",
+    buyerReceives,
+    buyerGives,
+    moneyTransferGroups,
+    warnings: preview.warnings ?? [],
+    isPreviewOnly,
+  })
 }
 
-function renderPreviewErrorContent(preview) {
-  let html = `<p class="mtt-dialog-message">${escapeHTML(game.i18n.localize("mtt.sessions.preview.cannotExecute"))}</p>`
-
-  if ((preview.errors ?? []).length > 0) {
-    html += `<ul class="mtt-dialog-preview-list mtt-dialog-preview-errors">${preview.errors
-      .map((e) => `<li class="mtt-dialog-preview-error"><i class="fas fa-circle-xmark"></i> ${escapeHTML(e)}</li>`)
-      .join("")}</ul>`
-  }
-
-  return html
+async function renderPreviewErrorContent(preview) {
+  return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.TRANSACTION_ERRORS_DIALOG, {
+    errors: preview.errors ?? [],
+  })
 }
 
 export async function openPreviewDialog(preview) {
-  const form = renderPreviewDialogContent(preview)
+  const form = await renderPreviewDialogContent(preview)
   const content = await renderMttDialogContent({
     icon: "fa-clipboard-list",
     title: game.i18n.localize("mtt.sessions.preview.title"),
@@ -480,7 +363,7 @@ export async function openPreviewDialog(preview) {
 }
 
 export async function openPreviewErrorDialog(preview) {
-  const form = renderPreviewErrorContent(preview)
+  const form = await renderPreviewErrorContent(preview)
   const content = await renderMttDialogContent({
     icon: "fa-triangle-exclamation",
     title: game.i18n.localize("mtt.sessions.preview.errorTitle"),
@@ -508,7 +391,7 @@ export async function openPreviewErrorDialog(preview) {
 }
 
 export async function openSessionValidationDialog(preview) {
-  const form = renderPreviewDialogContent(preview, { isPreviewOnly: false })
+  const form = await renderPreviewDialogContent(preview, { isPreviewOnly: false })
   const content = await renderMttDialogContent({
     icon: "fa-circle-check",
     title: game.i18n.localize("mtt.sessions.execution.validateTitle"),
@@ -544,7 +427,7 @@ export async function openSessionValidationDialog(preview) {
 }
 
 export async function openSessionExecutionErrorsDialog(preview) {
-  const form = renderPreviewErrorContent(preview)
+  const form = await renderPreviewErrorContent(preview)
   const content = await renderMttDialogContent({
     icon: "fa-triangle-exclamation",
     title: game.i18n.localize("mtt.sessions.execution.executionErrorTitle"),
@@ -613,23 +496,24 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
       ? String(availableQuantity)
       : game.i18n.localize("mtt.sessions.dialog.unlimitedQuantity")
 
-  const form = renderSellerItemDialog({
-    availableQuantity,
-    availableQuantityLabel,
-    unitPriceValue,
-    priceCurrency,
-  })
+  const rawOptions = prepareCurrencyOptions().filter((c) => !c.isFreePrice)
+  const knownKeys = new Set(rawOptions.map((c) => c.key))
+  const currencyOptions = rawOptions.map((c) => ({ ...c, selected: c.key === priceCurrency }))
+  if (priceCurrency && !knownKeys.has(priceCurrency)) {
+    currencyOptions.push({ key: priceCurrency, abbreviation: priceCurrency, title: "", selected: true })
+  }
 
-  const content = await renderMttDialogContent({
-    icon: "fa-handshake-angle",
-    title: game.i18n.localize("mtt.dialog.sellerItemTitle"),
-    variant: "default",
-    entity: {
-      name,
-      img,
-      meta: sourceActorName ? `${game.i18n.localize("mtt.sessions.sourceActor")} : ${sourceActorName}` : "",
-    },
-    form,
+  const content = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SELLER_ITEM_DIALOG, {
+    name,
+    img: img || "",
+    sourceActorMeta: sourceActorName
+      ? `${game.i18n.localize("mtt.sessions.sourceActor")} : ${sourceActorName}`
+      : "",
+    availableQuantityLabel,
+    availableQuantity,
+    hasQuantityMax: Number.isFinite(availableQuantity) && availableQuantity >= 0,
+    unitPriceValue,
+    currencyOptions,
   })
 
   let result = null

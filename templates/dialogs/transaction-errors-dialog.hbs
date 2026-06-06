@@ -1,0 +1,11 @@
+<p class="mtt-dialog-message">{{localize "mtt.sessions.preview.cannotExecute"}}</p>
+{{#if errors.length}}
+  <ul class="mtt-dialog-preview-list mtt-dialog-preview-errors">
+    {{#each errors as |error|}}
+      <li class="mtt-dialog-preview-error">
+        <i class="fas fa-circle-xmark"></i>
+        {{error}}
+      </li>
+    {{/each}}
+  </ul>
+{{/if}}

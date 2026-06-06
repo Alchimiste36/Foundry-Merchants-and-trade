@@ -653,7 +653,7 @@
       "moneyAdjustment": "Ajustement monétaire",
       "balanced": "Transaction équilibrée",
       "summary": "Résumé",
-      "undefinedCurrency": "monnaie non définie",
+      "undefinedCurrency": "NA",
       "requestValidation": "Demander validation",
       "validatedNoTransfer": "Transaction validée.",
       "refusedNotice": "Session refusée.",

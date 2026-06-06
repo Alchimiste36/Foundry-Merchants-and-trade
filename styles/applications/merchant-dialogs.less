@@ -1,0 +1,410 @@
+/* MTT — Dialogues */
+
+.mtt-dialog {
+  display: grid;
+  gap: 0.75rem;
+  min-width: min(420px, 100%);
+  color: var(--mtt-text, #e5e0d6);
+}
+
+.mtt-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--mtt-border-soft, #3a3f46);
+}
+
+.mtt-dialog-icon {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel-soft, #32363b);
+  color: var(--mtt-accent, #c79a48);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mtt-dialog-title {
+  margin: 0;
+  color: var(--mtt-text, #e5e0d6);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mtt-dialog-content {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.mtt-dialog-message,
+.mtt-dialog-details {
+  margin: 0;
+  color: var(--mtt-text-muted, #b6afa3);
+  line-height: 1.35;
+}
+
+.mtt-dialog-details {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.4rem;
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--mtt-text-soft, #948d82);
+  font-size: 0.85rem;
+}
+
+.mtt-dialog-warning .mtt-dialog-icon {
+  border-color: #d6a84f;
+  color: #d6a84f;
+}
+
+.mtt-dialog-danger .mtt-dialog-icon {
+  border-color: var(--mtt-danger, #d36b5f);
+  color: var(--mtt-danger, #d36b5f);
+}
+
+.mtt-dialog-entity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field, #1f2125);
+}
+
+.mtt-dialog-entity-image {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft, #32363b);
+}
+
+.mtt-dialog-entity-main {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.mtt-dialog-entity-name {
+  color: var(--mtt-text, #e5e0d6);
+  overflow-wrap: anywhere;
+}
+
+.mtt-dialog-entity-meta {
+  color: var(--mtt-text-soft, #948d82);
+  font-size: 0.82rem;
+}
+
+.mtt-dialog-form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.mtt-dialog-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 140px);
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.mtt-dialog-field-label {
+  color: var(--mtt-text-muted, #b6afa3);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mtt-dialog-field-value {
+  color: var(--mtt-text, #e5e0d6);
+  text-align: right;
+}
+
+.mtt-dialog-field input {
+  min-height: 1.85rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field, #1f2125);
+  color: var(--mtt-text, #e5e0d6);
+}
+
+.mtt-dialog-preview-header {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.mtt-dialog-preview-header p {
+  margin: 0;
+  min-width: 0;
+  color: var(--mtt-text-muted, #b6afa3);
+  overflow-wrap: anywhere;
+}
+
+.mtt-dialog-preview-section {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.mtt-dialog-preview-section-title {
+  margin: 0;
+  color: var(--mtt-accent, #c79a48);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mtt-dialog-preview-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  background: var(--mtt-bg-field, #1f2125);
+}
+
+.mtt-dialog-preview-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.mtt-dialog-preview-table th,
+.mtt-dialog-preview-table td {
+  padding: 0;
+  border-bottom: 1px solid var(--mtt-border-soft, #3a3f46);
+  color: var(--mtt-text-muted, #b6afa3);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.mtt-dialog-preview-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mtt-text-soft, #948d82);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mtt-dialog-preview-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.mtt-dialog-preview-col-img {
+  width: 2.4rem;
+  text-align: center;
+}
+
+.mtt-dialog-preview-img {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border, #4a4f57);
+  border-radius: 0.25rem;
+  background: var(--mtt-bg-panel-soft, #32363b);
+}
+
+.mtt-dialog-preview-name {
+  color: var(--mtt-text, #e5e0d6);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mtt-dialog-preview-number,
+.mtt-dialog-preview-price {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.mtt-dialog-preview-row-missing td {
+  color: var(--mtt-danger, #d36b5f);
+}
+
+.mtt-dialog-preview-empty {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-soft, #948d82);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.mtt-dialog-preview-money {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.mtt-dialog-preview-money-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-muted, #b6afa3);
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 1rem;
+}
+
+.mtt-dialog-preview-money-line .fa-coins {
+  color: var(--mtt-accent, #c79a48);
+}
+
+.mtt-dialog-preview-money-warning {
+  border-color: var(--mtt-warning, #d6a84f);
+}
+
+.mtt-dialog-preview-warning-icon {
+  color: var(--mtt-warning, #d6a84f);
+}
+
+.mtt-dialog-preview-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mtt-dialog-preview-warning,
+.mtt-dialog-preview-error,
+.mtt-dialog-preview-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.45rem;
+  line-height: 1.3;
+}
+
+.mtt-dialog-preview-warning {
+  border: 1px solid var(--mtt-warning, #d6a84f);
+  color: var(--mtt-warning, #d6a84f);
+  background: rgba(214, 168, 79, 0.12);
+}
+
+.mtt-dialog-preview-error {
+  border: 1px solid var(--mtt-danger, #d36b5f);
+  color: var(--mtt-danger, #d36b5f);
+  background: rgba(211, 107, 95, 0.12);
+}
+
+.mtt-dialog-preview-notice {
+  border: 1px solid var(--mtt-border-soft, #3a3f46);
+  color: var(--mtt-text-soft, #948d82);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.mtt-session-dialog-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mtt-session-dialog-summary {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.mtt-session-dialog-title {
+  margin: 0;
+  color: var(--mtt-text, #e5e0d6);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mtt-session-dialog-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--mtt-text-muted, #b6afa3);
+}
+
+.mtt-session-dialog-line strong {
+  color: var(--mtt-text, #e5e0d6);
+}
+
+.mtt-session-dialog-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.mtt-session-dialog-field span {
+  color: var(--mtt-text-muted, #b6afa3);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+
+.mtt-secret-info-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mtt-secret-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mtt-secret-info-price-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) 7rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mtt-secret-info-field textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.mtt-client-rates-dialog {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mtt-client-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.mtt-client-rates-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.mtt-client-rates-field span {
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mtt-client-rates-field input,
+.mtt-client-rates-field textarea {
+  min-width: 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+
+.mtt-client-rates-field textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}

@@ -1,0 +1,47 @@
+<aside class="mtt-merchant-access-rail" aria-label="{{railAriaLabel}}">
+  {{#each clients as |client|}}
+    <button
+      type="button"
+      class="{{client.cardClasses}}"
+      data-client-actor-uuid="{{client.actorUuid}}"
+      data-client-user-id="{{client.userId}}"
+      data-tooltip="{{client.tooltip}}"
+      data-tooltip-direction="UP"
+      {{#if client.canClickCard}}data-action="toggleClientAccess"{{/if}}
+      aria-label="{{client.actorName}}"
+    >
+      <img
+        class="mtt-merchant-access-card-image"
+        src="{{client.actorImg}}"
+        alt="{{client.actorName}}"
+      />
+
+      {{#if client.canShowCustomRates}}
+        <i
+          class="fa-solid fa-percent mtt-client-custom-rates-icon"
+          data-tooltip="{{client.customRatesTooltip}}"
+          data-tooltip-direction="UP"
+          aria-hidden="true"
+        ></i>
+      {{/if}}
+
+      {{#if client.hasSession}}
+        <i
+          class="{{client.sessionBadgeClasses}}"
+          aria-hidden="true"
+        ></i>
+      {{/if}}
+    </button>
+  {{/each}}
+
+  {{#if canSeeAccessDropZone}}
+    <div
+      class="mtt-merchant-access-drop-card"
+      data-mtt-client-drop=""
+      data-tooltip="{{dropZoneTooltip}}"
+      data-tooltip-direction="UP"
+    >
+      <i class="fas fa-user-plus" aria-hidden="true"></i>
+    </div>
+  {{/if}}
+</aside>

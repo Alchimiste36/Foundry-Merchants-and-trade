@@ -180,7 +180,7 @@
   position: absolute;
   z-index: 20;
   top: 5rem;
-  right: -2.65rem;
+  right: -3.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -199,7 +199,7 @@
   height: 3rem;
   padding: 0.25rem;
   border: 1px solid var(--mtt-border);
-  border-radius: 0.4rem 0 0 0.4rem;
+  border-radius: 0 0.4rem 0.4rem 0;
   background: var(--mtt-bg-panel-soft);
   color: var(--mtt-text-muted);
   cursor: pointer;
@@ -260,6 +260,8 @@
   border-color: var(--mtt-accent);
   box-shadow: 0 0 0 2px var(--mtt-accent-soft), 0 0.35rem 1rem rgba(199, 154, 72, 0.28);
   transform: translateX(-0.25rem);
+  width: 4rem;
+  height: 4rem;
 }
 .mtt-merchant-access-card-image {
   width: 100%;
@@ -327,7 +329,7 @@
 .mtt-merchant-access-drop-card {
   border: 1px dashed var(--mtt-border);
   color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.45);
 }
 .mtt-merchant-access-drop-card i {
   color: var(--mtt-accent);
@@ -669,6 +671,7 @@
   color: var(--mtt-text-muted);
   font-size: 0.78rem;
   margin: 0;
+  height: 28px;
 }
 .mtt-merchant-session-item-image {
   width: 25px;

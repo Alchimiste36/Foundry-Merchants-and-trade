@@ -1,0 +1,113 @@
+<div class="mtt-dialog-preview-header">
+  <p><strong>{{localize "mtt.sessions.preview.client"}}</strong> {{clientName}}</p>
+  <p><strong>{{localize "mtt.sessions.preview.merchant"}}</strong> {{merchantName}}</p>
+</div>
+
+<section class="mtt-dialog-preview-section">
+  <h4 class="mtt-dialog-preview-section-title">{{localize "mtt.dialog.transaction.buyerReceives"}}</h4>
+  {{#if buyerReceives.length}}
+    <div class="mtt-dialog-preview-table-wrap">
+      <table class="mtt-dialog-preview-table">
+        <thead>
+          <tr>
+            <th class="mtt-dialog-preview-col-img">{{localize "mtt.dialog.transaction.columns.image"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.type"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.quantity"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.name"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.unitPrice"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.total"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each buyerReceives as |item|}}
+            <tr class="{{#if item.missing}}mtt-dialog-preview-row-missing{{/if}}">
+              <td class="mtt-dialog-preview-col-img">
+                {{#if item.img}}<img class="mtt-dialog-preview-img" src="{{item.img}}" alt="{{item.name}}" />{{/if}}
+              </td>
+              <td>{{item.typeLabel}}</td>
+              <td class="mtt-dialog-preview-number">{{item.quantity}}</td>
+              <td class="mtt-dialog-preview-name">{{item.name}}</td>
+              <td class="mtt-dialog-preview-price">{{item.unitPriceLabel}}</td>
+              <td class="mtt-dialog-preview-price">{{item.totalPriceLabel}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  {{else}}
+    <p class="mtt-dialog-preview-empty">{{localize "mtt.dialog.transaction.empty"}}</p>
+  {{/if}}
+</section>
+
+<section class="mtt-dialog-preview-section">
+  <h4 class="mtt-dialog-preview-section-title">{{localize "mtt.dialog.transaction.buyerGives"}}</h4>
+  {{#if buyerGives.length}}
+    <div class="mtt-dialog-preview-table-wrap">
+      <table class="mtt-dialog-preview-table">
+        <thead>
+          <tr>
+            <th class="mtt-dialog-preview-col-img">{{localize "mtt.dialog.transaction.columns.image"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.type"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.quantity"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.name"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.unitPrice"}}</th>
+            <th>{{localize "mtt.dialog.transaction.columns.total"}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each buyerGives as |item|}}
+            <tr class="{{#if item.missing}}mtt-dialog-preview-row-missing{{/if}}">
+              <td class="mtt-dialog-preview-col-img">
+                {{#if item.img}}<img class="mtt-dialog-preview-img" src="{{item.img}}" alt="{{item.name}}" />{{/if}}
+              </td>
+              <td>{{item.typeLabel}}</td>
+              <td class="mtt-dialog-preview-number">{{item.quantity}}</td>
+              <td class="mtt-dialog-preview-name">{{item.name}}</td>
+              <td class="mtt-dialog-preview-price">{{item.unitPriceLabel}}</td>
+              <td class="mtt-dialog-preview-price">{{item.totalPriceLabel}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  {{else}}
+    <p class="mtt-dialog-preview-empty">{{localize "mtt.dialog.transaction.empty"}}</p>
+  {{/if}}
+</section>
+
+<section class="mtt-dialog-preview-section">
+  <h4 class="mtt-dialog-preview-section-title">{{localize "mtt.dialog.transaction.moneyTransfer"}}</h4>
+  {{#if moneyTransferGroups.length}}
+    <div class="mtt-dialog-preview-money">
+      {{#each moneyTransferGroups as |group|}}
+        <p class="mtt-dialog-preview-money-line{{#if group.hasWarning}} mtt-dialog-preview-money-warning{{/if}}">
+          <i class="fas fa-coins"></i>
+          <span>{{group.sentence}}</span>
+          {{#if group.hasWarning}}
+            <i class="fas fa-triangle-exclamation mtt-dialog-preview-warning-icon"></i>
+          {{/if}}
+        </p>
+      {{/each}}
+    </div>
+  {{else}}
+    <p class="mtt-dialog-preview-empty">{{localize "mtt.dialog.transaction.noMoneyTransfer"}}</p>
+  {{/if}}
+</section>
+
+{{#if warnings.length}}
+  <ul class="mtt-dialog-preview-list mtt-dialog-preview-warnings">
+    {{#each warnings as |warning|}}
+      <li class="mtt-dialog-preview-warning">
+        <i class="fas fa-triangle-exclamation"></i>
+        {{warning}}
+      </li>
+    {{/each}}
+  </ul>
+{{/if}}
+
+{{#if isPreviewOnly}}
+  <p class="mtt-dialog-preview-notice">
+    <i class="fas fa-circle-info"></i>
+    {{localize "mtt.dialog.transaction.previewOnly"}}
+  </p>
+{{/if}}

@@ -1,0 +1,50 @@
+<section class="mtt-dialog">
+  <section class="mtt-dialog-entity">
+    {{#if img}}
+      <img class="mtt-dialog-entity-image" src="{{img}}" alt="{{name}}" />
+    {{/if}}
+    <div class="mtt-dialog-entity-main">
+      <strong class="mtt-dialog-entity-name">{{name}}</strong>
+      {{#if sourceActorMeta}}
+        <span class="mtt-dialog-entity-meta">{{sourceActorMeta}}</span>
+      {{/if}}
+    </div>
+  </section>
+
+  <form class="mtt-dialog-form">
+    <label class="mtt-dialog-field">
+      <span class="mtt-dialog-field-label">{{localize "mtt.dialog.sellerItemAvailableQuantity"}}</span>
+      <span class="mtt-dialog-field-value">{{availableQuantityLabel}}</span>
+    </label>
+
+    <label class="mtt-dialog-field">
+      <span class="mtt-dialog-field-label">{{localize "mtt.dialog.sellerItemQuantity"}}</span>
+      <input
+        type="number"
+        name="quantity"
+        min="1"
+        step="1"
+        value="1"
+        {{#if hasQuantityMax}}max="{{availableQuantity}}"{{/if}}
+      />
+    </label>
+
+    <label class="mtt-dialog-field">
+      <span class="mtt-dialog-field-label">{{localize "mtt.dialog.sellerItemUnitValue"}}</span>
+      <input type="number" name="unitPriceValue" min="0" step="1" value="{{unitPriceValue}}" />
+    </label>
+
+    <label class="mtt-dialog-field">
+      <span class="mtt-dialog-field-label">{{localize "mtt.dialog.sellerItemCurrency"}}</span>
+      <select name="priceCurrency">
+        {{#each currencyOptions as |currency|}}
+          <option
+            value="{{currency.key}}"
+            {{#if currency.title}}title="{{currency.title}}"{{/if}}
+            {{#if currency.selected}}selected{{/if}}
+          >{{currency.abbreviation}}</option>
+        {{/each}}
+      </select>
+    </label>
+  </form>
+</section>

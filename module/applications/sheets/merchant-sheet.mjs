@@ -15,6 +15,7 @@ import {
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
+  renderConfirmDialogContent,
   openSessionPreparationDialog,
   openSellerItemDialog,
   openPreviewDialog,
@@ -458,7 +459,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ─── Access rail (DOM building, stays in sheet) ───────────────────────────
 
-  #renderAccessRail(context) {
+  async #renderAccessRail(context) {
     const applicationElement = this.#getApplicationElement();
     if (!applicationElement) return;
 
@@ -467,7 +468,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.element.querySelectorAll(".mtt-merchant-access-rail").forEach((rail) => rail.remove());
 
     const accessContext = context?.mtt?.access ?? this.#prepareAccessContext();
-    const rail = this.#buildAccessRail(accessContext);
+    const rail = await this.#buildAccessRail(accessContext);
+    if (!rail) return;
     applicationElement.append(rail);
     this.#activateAccessRail(rail);
   }
@@ -480,68 +482,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return applicationElement;
   }
 
-  #buildAccessRail(accessContext) {
-    const rail = document.createElement("aside");
-    rail.classList.add("mtt-merchant-access-rail");
-    rail.setAttribute("aria-label", game.i18n.localize("mtt.access.title"));
-    (accessContext.clients ?? []).forEach((client) => {
-      const button = document.createElement("button");
-      button.classList.add("mtt-merchant-access-card");
-      button.classList.add(
-        client.isAuthorized ? "mtt-merchant-access-card-authorized" : "mtt-merchant-access-card-unauthorized",
-      );
-      button.type = "button";
-      if (client.canClickCard) {
-        button.dataset.action = "toggleClientAccess";
-      } else {
-        button.classList.add("mtt-merchant-access-card-readonly");
-      }
-      button.dataset.clientActorUuid = client.actorUuid;
-      button.dataset.clientUserId = client.userId;
-      button.dataset.tooltip = client.tooltip;
-      if (client.isSelected) button.classList.add("mtt-merchant-access-card-selected");
-
-      const image = document.createElement("img");
-      image.classList.add("mtt-merchant-access-card-image");
-      image.src = client.actorImg;
-      image.alt = client.actorName;
-      button.append(image);
-
-      if (client.canShowCustomRates) {
-        const customRatesIcon = document.createElement("i");
-        customRatesIcon.classList.add("fa-solid", "fa-percent", "mtt-client-custom-rates-icon");
-        customRatesIcon.dataset.tooltip = client.customRatesTooltip;
-        customRatesIcon.setAttribute("aria-hidden", "true");
-        button.append(customRatesIcon);
-      }
-
-      if (client.hasSession) {
-        const badge = document.createElement("i");
-        badge.classList.add(
-          "fas",
-          client.sessionBadgeIcon,
-          "mtt-merchant-access-session-badge",
-          `mtt-merchant-access-session-${client.sessionStatus}`,
-        );
-        button.append(badge);
-      }
-
-      rail.append(button);
-    });
-
-    if (accessContext.canSeeAccessDropZone) {
-      const dropCard = document.createElement("div");
-      dropCard.classList.add("mtt-merchant-access-drop-card");
-      dropCard.dataset.mttClientDrop = "";
-      dropCard.dataset.tooltip = game.i18n.localize("mtt.access.dropTooltip");
-
-      const dropIcon = document.createElement("i");
-      dropIcon.classList.add("fas", "fa-user-plus");
-      dropCard.append(dropIcon);
-      rail.append(dropCard);
-    }
-
-    return rail;
+  async #buildAccessRail(accessContext) {
+    const html = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.MERCHANT_ACCESS_RAIL, accessContext);
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = html.trim();
+    return wrapper.firstElementChild ?? null;
   }
 
   #activateAccessRail(rail) {
@@ -560,6 +505,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #renderMttDialogContent(options) {
     return renderMttDialogContent(options);
+  }
+
+  async #renderConfirmDialogContent(options) {
+    return renderConfirmDialogContent(options);
   }
 
   async #openSellerItemDialog(options) {
@@ -1234,7 +1183,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window: {
         title: game.i18n.localize("mtt.secrets.deleteTitle"),
       },
-      content: `<p>${game.i18n.localize("mtt.secrets.deleteConfirm")}</p>`,
+      content: await this.#renderConfirmDialogContent({ message: game.i18n.localize("mtt.secrets.deleteConfirm") }),
       yes: {
         label: game.i18n.localize("mtt.actions.delete"),
       },
@@ -1498,7 +1447,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window: {
         title: game.i18n.localize("mtt.products.category.deleteTitle"),
       },
-      content: `<p>${game.i18n.localize("mtt.products.category.deleteContent")}</p>`,
+      content: await this.#renderConfirmDialogContent({ message: game.i18n.localize("mtt.products.category.deleteContent") }),
       yes: {
         label: game.i18n.localize("mtt.actions.delete"),
       },
@@ -1591,7 +1540,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const isOwnClientCard = this.#userControlsActor(client.actorUuid);
         const canSeeCard = canManageAccessRail || isObserver || (isLimited && isOwnClientCard);
         const canClickCard = canManageAccessRail || isOwnClientCard;
-        return { ...client, isOwnClientCard, canSeeCard, canClickCard };
+        const cardClasses = [
+          "mtt-merchant-access-card",
+          client.isAuthorized ? "mtt-merchant-access-card-authorized" : "mtt-merchant-access-card-unauthorized",
+          client.isSelected ? "mtt-merchant-access-card-selected" : null,
+          !canClickCard ? "mtt-merchant-access-card-readonly" : null,
+        ].filter(Boolean).join(" ");
+        const sessionBadgeClasses = client.hasSession
+          ? `fas ${client.sessionBadgeIcon} mtt-merchant-access-session-badge mtt-merchant-access-session-${client.sessionStatus}`
+          : "";
+        return { ...client, isOwnClientCard, canSeeCard, canClickCard, cardClasses, sessionBadgeClasses };
       })
       .filter((client) => client.canSeeCard);
 
@@ -1600,6 +1558,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       hasClients: clients.length > 0,
       canManage: canManageAccessRail,
       canSeeAccessDropZone,
+      railAriaLabel: game.i18n.localize("mtt.access.title"),
+      dropZoneTooltip: game.i18n.localize("mtt.access.dropTooltip"),
     };
   }
 
@@ -2016,7 +1976,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window: {
         title: game.i18n.localize("mtt.referenceState.confirmTitle"),
       },
-      content: `<p>${game.i18n.localize("mtt.referenceState.confirmContent")}</p>`,
+      content: await this.#renderConfirmDialogContent({ message: game.i18n.localize("mtt.referenceState.confirmContent") }),
       yes: {
         label: game.i18n.localize("mtt.referenceState.confirmRestore"),
       },
@@ -2515,7 +2475,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window: {
         title: game.i18n.localize("mtt.dialog.deleteItem.title"),
       },
-      content: `<p>${game.i18n.localize("mtt.dialog.deleteItem.content")}</p>`,
+      content: await this.#renderConfirmDialogContent({ message: game.i18n.localize("mtt.dialog.deleteItem.content") }),
       yes: {
         label: "mtt.actions.delete",
       },
@@ -3625,7 +3585,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       window: {
         title: game.i18n.localize("mtt.services.deleteTitle"),
       },
-      content: `<p>${game.i18n.localize("mtt.services.deleteContent")}</p>`,
+      content: await this.#renderConfirmDialogContent({ message: game.i18n.localize("mtt.services.deleteContent") }),
       yes: {
         label: game.i18n.localize("mtt.actions.delete"),
       },

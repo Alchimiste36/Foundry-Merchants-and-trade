@@ -1,0 +1,20 @@
+<form class="mtt-client-rates-dialog">
+  <div class="mtt-client-rates-grid">
+    <label class="mtt-client-rates-field">
+      <span>{{localize "mtt.clientRates.productSellPercent"}}</span>
+      <input type="number" name="productSellPercent" min="0" step="1" value="{{productSellPercent}}" />
+    </label>
+    <label class="mtt-client-rates-field">
+      <span>{{localize "mtt.clientRates.serviceSellPercent"}}</span>
+      <input type="number" name="serviceSellPercent" min="0" step="1" value="{{serviceSellPercent}}" />
+    </label>
+    <label class="mtt-client-rates-field">
+      <span>{{localize "mtt.clientRates.itemBuyPercent"}}</span>
+      <input type="number" name="itemBuyPercent" min="0" step="1" value="{{itemBuyPercent}}" />
+    </label>
+  </div>
+  <label class="mtt-client-rates-field mtt-client-rates-note">
+    <span>{{localize "mtt.clientRates.note"}}</span>
+    <textarea name="note">{{note}}</textarea>
+  </label>
+</form>

@@ -10,7 +10,24 @@
       "Bash(node -e \"const fs=require\\('fs'\\);const cat=fs.readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/sheets/merchant-catalog.mjs','utf8'\\);const checks=[['fa-solid fa-label',cat.includes\\('\\\\\"fa-solid fa-label\\\\\"'\\)],['fa-light fa-label',cat.includes\\('\\\\\"fa-light fa-label\\\\\"'\\)],['no fa-tag',!cat.includes\\('fa-tag'\\)],['per-category grouping',cat.includes\\('productsByCategory = new Map\\(\\)'\\)],['seen Map for dedup',cat.includes\\('seen = new Map\\(\\)'\\)],['sortedKeys alphabetical sort',cat.includes\\('Array.from\\(seen.keys\\(\\)\\).sort'\\)],['iconByKey from sorted position',cat.includes\\('iconByKey = new Map\\(sortedKeys.map\\('\\)],['icon assigned by sorted index \\(i %\\)',cat.includes\\('iconClasses[i % iconClasses.length]'\\)],['product.subcategoryIconClass set from iconByKey',cat.includes\\('iconByKey.get\\(label.toLocaleLowerCase\\(\\)\\)'\\)],['flat array sort for intra-category order',cat.includes\\('products.sort\\('\\)],['sort by displayName fallback',cat.includes\\('a.displayName ?? a.name'\\)],['no iconStateByCategory',!cat.includes\\('iconStateByCategory'\\)],['subcategoryIconClass not in createProductFlags',!cat.slice\\(cat.indexOf\\('createProductFlags'\\),cat.indexOf\\('createProductFlags'\\)+2000\\).includes\\('subcategoryIconClass'\\)]];let ok=true;checks.forEach\\(\\([l,r]\\)=>{if\\(!r\\){console.error\\('FAIL: '+l\\);ok=false;}else console.log\\('OK  : '+l\\);}\\);process.exit\\(ok?0:1\\);\")",
       "Bash(awk -F: '{print $1, $2}')",
       "Bash(cat)",
-      "Bash(sed -n '476,1317p' \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/styles/applications/merchant-sheet.less\")"
+      "Bash(sed -n '476,1317p' \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/styles/applications/merchant-sheet.less\")",
+      "Bash(Get-ChildItem -Path \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\" -Recurse -Filter \"*.mjs\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 5)",
+      "Bash(findstr /R \"function normalizeComparableText\\\\|function normalizeComparableNumber\\\\|function normalizeJournalNumber\" module\\\\applications\\\\sheets\\\\merchant-*.mjs)",
+      "Bash(findstr /R \"parsePriceValue\\\\|parseQuantityValue\" module\\\\applications\\\\sheets\\\\merchant-utils.mjs)",
+      "Bash(grep -o '\"[^\"]*\":' lang/fr.json | sort | uniq > /tmp/fr_keys.txt && grep -o '\"[^\"]*\":' lang/en.json | sort | uniq > /tmp/en_keys.txt && echo \"=== Clés en FR mais pas en EN ===\" && comm -23 /tmp/fr_keys.txt /tmp/en_keys.txt | head -30)",
+      "Bash(powershell -Command \"Select-String -Path 'f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-dialogs.mjs' -Pattern 'form = button\\\\?\\\\.form' -Context 0,3 | head -40\")",
+      "Bash(grep -n \"^@import\\\\|^--\" f:\\\\\\\\dataPath\\\\\\\\dataPath14dev\\\\\\\\Data\\\\\\\\modules\\\\\\\\mtt-merchants\\\\\\\\styles\\\\\\\\mtt.less f:\\\\\\\\dataPath\\\\\\\\dataPath14dev\\\\\\\\Data\\\\\\\\modules\\\\\\\\mtt-merchants\\\\\\\\styles\\\\\\\\applications\\\\\\\\_index.less f:\\\\\\\\dataPath\\\\\\\\dataPath14dev\\\\\\\\Data\\\\\\\\modules\\\\\\\\mtt-merchants\\\\\\\\styles\\\\\\\\applications\\\\\\\\merchant-variables.less)",
+      "Bash(cd f:\\\\\\\\dataPath\\\\\\\\dataPath14dev\\\\\\\\Data\\\\\\\\modules\\\\\\\\mtt-merchants)",
+      "Bash(powershell -Command ' *)",
+      "Bash(awk '$1 == 1 {print $2}')",
+      "Bash(grep -o \"^\\\\\\\\.[a-z0-9-]*\" styles/applications/mtt-config.less)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*.mjs\" -o Name)",
+      "Bash(Get-ChildItem -Recurse -Filter \"*.hbs\" -o Name)",
+      "Bash(Find f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\templates -name \"*.hbs\" -type f)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }

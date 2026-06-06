@@ -1,42 +1,28 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
 
-export function parsePriceValue(value) {
+function parsePositiveNumberValue(value) {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return value
   }
-
   if (typeof value === "string") {
     const match = value.match(/-?\d+(?:[\.,]\d+)?/)
     if (!match) return null
     const parsed = Number(match[0].replace(",", "."))
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
   }
-
   if (typeof value === "object" && value !== null) {
-    return parsePriceValue(value.value ?? null)
+    return parsePositiveNumberValue(value.value ?? null)
   }
-
   return null
 }
 
+export function parsePriceValue(value) {
+  return parsePositiveNumberValue(value)
+}
+
 export function parseQuantityValue(value) {
-  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-    return value
-  }
-
-  if (typeof value === "string") {
-    const match = value.match(/-?\d+(?:[\.,]\d+)?/)
-    if (!match) return null
-    const parsed = Number(match[0].replace(",", "."))
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
-  }
-
-  if (typeof value === "object" && value !== null) {
-    return parseQuantityValue(value.value ?? null)
-  }
-
-  return null
+  return parsePositiveNumberValue(value)
 }
 
 export function isUnlimitedQuantity(value) {
@@ -134,6 +120,8 @@ function getMttProductFlags(itemOrData) {
   )
 }
 
+// Uses toLocaleLowerCase for locale-aware comparison of item names and category labels.
+// normalizeCurrencyText (exported) uses toLowerCase for stable currency key matching.
 function normalizeComparableText(value) {
   return String(value ?? "").trim().toLocaleLowerCase()
 }

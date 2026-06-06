@@ -136,6 +136,7 @@ export const MTT = {
     TRANSACTION_SUMMARY_DIALOG: "modules/mtt-merchants/templates/dialogs/transaction-summary-dialog.hbs",
     TRANSACTION_ERRORS_DIALOG: "modules/mtt-merchants/templates/dialogs/transaction-errors-dialog.hbs",
     SELLER_ITEM_DIALOG: "modules/mtt-merchants/templates/dialogs/seller-item-dialog.hbs",
+    SESSION_PREPARATION_DIALOG: "modules/mtt-merchants/templates/dialogs/session-preparation-dialog.hbs",
   },
 
   CSS: {

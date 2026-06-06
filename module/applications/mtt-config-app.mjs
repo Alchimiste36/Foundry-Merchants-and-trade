@@ -61,6 +61,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemSubcategoryPath: game.settings.get(MTT.ID, "itemSubcategoryPath"),
       itemCategoryI18nPrefix: game.settings.get(MTT.ID, "itemCategoryI18nPrefix"),
       itemSubcategoryI18nPrefix: game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix"),
+      actorCurrencyPath: game.settings.get(MTT.ID, "actorCurrencyPath"),
       currencies: this.#currencies,
     };
   }
@@ -112,6 +113,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "itemSubcategoryPath", fd.get("itemSubcategoryPath") ?? "");
     await game.settings.set(MTT.ID, "itemCategoryI18nPrefix", fd.get("itemCategoryI18nPrefix") ?? "");
     await game.settings.set(MTT.ID, "itemSubcategoryI18nPrefix", fd.get("itemSubcategoryI18nPrefix") ?? "");
+    await game.settings.set(MTT.ID, "actorCurrencyPath", fd.get("actorCurrencyPath") ?? "");
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
     this.close();
   }
@@ -160,7 +162,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const json = JSON.stringify(data, null, 2);
     const date = new Date().toISOString().slice(0, 10);
     const filename = `mtt-config-${game.system.id}-${date}.json`;
-    saveDataToFile(json, "application/json", filename);
+    foundry.utils.saveDataToFile(json, "application/json", filename);
     ui.notifications.info(game.i18n.localize("mtt.config.importExport.exportSuccess"));
   }
 

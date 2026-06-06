@@ -6,19 +6,104 @@
       "ready": "Ready"
     },
     "sheets": {
-      "merchant": "Merchant Sheet"
+      "merchant": "Merchant Sheet",
+      "merchantTitle": "MTT - Merchant: {name}"
     },
     "settings": {
       "debug": {
         "name": "MTT debug mode",
         "hint": "Enables additional console information for the Merchants, Trades and Transactions module."
+      },
+      "itemPriceValuePath": {
+        "name": "Product / service price path",
+        "hint": "Path in the item system to read the numeric price value. Example: system.price.value"
+      },
+      "itemPriceCurrencyPath": {
+        "name": "Currency path",
+        "hint": "Path in the item system to read the currency code or symbol. Example: system.price.currency"
+      },
+      "itemQuantityPath": {
+        "name": "Quantity path",
+        "hint": "Path in the item system to read the available quantity. Example: system.quantity"
+      },
+      "deliveryItemQuantityPath": {
+        "name": "Delivery actor: quantity path",
+        "hint": "Path used only when delivering an item to a client actor. Leave empty to reuse the general quantity path. Example: system.quantity.value"
+      },
+      "deliveryItemMaxQuantityPath": {
+        "name": "Delivery actor: maximum stack size path",
+        "hint": "Path used only when delivering an item to a client actor. An empty or invalid value means the stack is unlimited. Example: system.quantity.max"
+      },
+      "allowExtendedItemMerge": {
+        "name": "Allow extended merge of delivered items",
+        "hint": "Allows MTT to merge a purchased item with one already on the actor when no reliable common MTT origin is found, by comparing name, type, subtype, base price and currency. Disabled by default."
+      },
+      "writeDeliveryDescriptionInfo": {
+        "name": "Write origin and secret info in delivered item descriptions",
+        "hint": "If enabled, MTT adds a visible line at the start of delivered item descriptions indicating the merchant and transaction, along with a Foundry secret block if the product had secret information. If disabled, the delivered item description is not modified."
+      },
+      "itemDescriptionPath": {
+        "name": "Description path",
+        "hint": "Path in the item system to read the description. Example: system.description.value"
+      },
+      "itemSecretDescriptionPath": {
+        "name": "Secret description path for delivered Items",
+        "hint": "Path where MTT writes secret information on delivered items. If identical to the visible description path, secrets are added in a Foundry secret block in the same field. If different, secret information is written to this separate field. If empty, secret information is not copied to the delivered item."
+      },
+      "allowedProductTypes": {
+        "name": "Allowed item types as products",
+        "hint": "Comma-separated list of types. Leave empty to allow all types."
+      },
+      "allowedServiceTypes": {
+        "name": "Allowed item types as services",
+        "hint": "Comma-separated list of types. Leave empty to allow all types."
+      },
+      "itemCategoryPaths": {
+        "name": "Automatic category paths",
+        "hint": "Paths tested to automatically determine an item or service category. One path per line. The first non-empty result is used."
+      },
+      "useItemTypeAsCategoryFallback": {
+        "name": "Use item type as category fallback",
+        "hint": "If no category path yields a result, uses the Foundry item type as the automatic category."
+      },
+      "categoryLabelMap": {
+        "name": "Automatic category labels",
+        "hint": "Mapping between technical values and displayed labels. Format: value=Label, one per line."
+      },
+      "defaultCustomCategories": {
+        "name": "Default custom categories",
+        "hint": "List of custom categories automatically added to new merchants. One category per line."
+      },
+      "itemSubcategoryPath": {
+        "name": "Product subcategory path",
+        "hint": "Path read from the source Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
+      },
+      "actorCurrencyPath": {
+        "name": "Main actor currency path",
+        "hint": "Path to read the main currency on an actor. Example: system.currency.gp. Leave empty if currency is managed by separate denominations."
+      },
+      "openConfigWindow": {
+        "name": "MTT Configuration",
+        "label": "Open configuration",
+        "hint": "Opens the MTT module advanced configuration window."
+      },
+      "openGlobalJournal": {
+        "name": "Global transaction journal",
+        "label": "Open global journal",
+        "hint": "Opens the MTT global transaction journal for all merchants."
+      },
+      "currencies": {
+        "name": "Configured currencies",
+        "hint": "List of MTT module currencies. Managed through the MTT configuration window."
       }
     },
     "sheet": {
       "lock": "Lock",
       "unlock": "Unlock",
       "locked": "Locked",
-      "unlocked": "Unlocked"
+      "unlocked": "Unlocked",
+      "openMerchant": "Open merchant",
+      "closeMerchant": "Close merchant"
     },
     "merchant": {
       "name": {
@@ -31,6 +116,9 @@
       "description": {
         "title": "Merchant description",
         "empty": "No description provided"
+      },
+      "image": {
+        "edit": "Change merchant image"
       }
     },
     "manager": {
@@ -53,17 +141,186 @@
       "cancel": "Cancel"
     },
     "dialog": {
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "removeAuthorizationTitle": "Remove authorization",
+      "removeAuthorizationMessage": "Removing this client's authorization will cancel their active session without performing any transaction.",
+      "removeAuthorizationConfirm": "Remove authorization",
+      "removeActorTitle": "Remove actor from merchant",
+      "removeActorMessage": "The Foundry actor will not be deleted. Only their entry on this merchant will be removed.",
+      "removeActorConfirm": "Remove from merchant",
+      "sellerItemTitle": "Add an item sold or given",
+      "sellerItemQuantity": "Proposed quantity",
+      "sellerItemAvailableQuantity": "Available quantity",
+      "sellerItemUnitValue": "Proposed unit value",
+      "sellerItemCurrency": "Currency",
+      "sellerItemAdd": "Add to session",
+      "clearSessionTitle": "Clear session",
+      "clearSessionMessage": "The session will be reset. No transaction will be performed.",
+      "clearSessionConfirm": "Clear session",
+      "noTransactionNoJournal": "No transaction will be performed and no journal entry will be created.",
+      "transaction": {
+        "buyerReceives": "Buyer buys / receives",
+        "buyerGives": "Buyer sells / gives",
+        "moneyTransfer": "Money transfer",
+        "moneyTransferSentence": "{payer} pays {amount} to {receiver}.",
+        "noMoneyTransfer": "No money transfer.",
+        "empty": "No item.",
+        "previewOnly": "Preview only: no changes have been made yet.",
+        "columns": {
+          "image": "Image",
+          "type": "Type",
+          "quantity": "Qty",
+          "name": "Name",
+          "unitPrice": "UP",
+          "total": "Total"
+        }
+      },
       "deleteItem": {
         "title": "Delete item",
         "content": "Do you really want to delete this item from the merchant?"
       }
     },
+    "globalJournal": {
+      "title": "Global transaction journal",
+      "empty": "No recorded transaction.",
+      "filters": {
+        "merchant": "Merchant",
+        "buyer": "Buyer",
+        "allMerchants": "All merchants",
+        "allBuyers": "All buyers",
+        "clear": "Reset"
+      },
+      "columns": {
+        "transactionNumber": "No.",
+        "merchant": "Merchant",
+        "buyer": "Buyer",
+        "status": "Status",
+        "paid": "Paid",
+        "received": "Received",
+        "adjustment": "Adjustment"
+      }
+    },
     "notifications": {
       "sheetLocked": "The merchant sheet is locked.",
-      "onlyItemsCanBeDropped": "Only items can be added to the merchant."
+      "onlyItemsCanBeDropped": "Only items can be added to the merchant.",
+      "productQuantityIncreased": "The quantity of the existing product has been increased.",
+      "invalidQuantity": "The quantity must be a positive number or zero.",
+      "invalidPrice": "The price must be a positive number or zero.",
+      "invalidServicePrice": "The service price must be a positive number or zero.",
+      "invalidServiceQuantity": "The service quantity must be a positive number or zero.",
+      "onlyItemsCanCreateServices": "Only items can be used to create a service.",
+      "productTypeNotAllowed": "This item type is not allowed as a product.",
+      "serviceTypeNotAllowed": "This item type is not allowed as a service.",
+      "invalidTradePercent": "The percentage must be a positive number or zero.",
+      "invalidWalletAmount": "The currency amount must be a positive number or zero.",
+      "invalidNegotiationFormula": "The negotiation formula is invalid.",
+      "invalidNegotiationOffer": "The negotiation proposal is invalid.",
+      "emptyNegotiationFormula": "No negotiation formula is defined.",
+      "invalidSessionQuantity": "The requested quantity must be a positive number.",
+      "notEnoughQuantity": "The requested quantity exceeds the available quantity.",
+      "productAddedToSession": "Product added to session.",
+      "serviceAddedToSession": "Service added to session.",
+      "sessionItemRemoved": "Item removed from session.",
+      "sessionCleared": "Session cleared.",
+      "sessionQuantityUpdated": "Session quantity updated.",
+      "sessionCreated": "Session created.",
+      "sessionDeleted": "Session deleted.",
+      "sessionStatusUpdated": "Session status updated.",
+      "sessionLabelUpdated": "Session name updated.",
+      "emptySessionLabel": "The session name cannot be empty.",
+      "onlyItemsCanBeSold": "Only items can be added to what the player sells or gives.",
+      "sellerItemAddedToSession": "Item added to what the player sells or gives.",
+      "sellerItemQuantityUpdated": "Sold item quantity updated.",
+      "sellerItemRemoved": "Item removed from what the player sells or gives.",
+      "invalidSellerItemQuantity": "The sold or given quantity must be a positive number.",
+      "notEnoughSellerItemQuantity": "The requested quantity exceeds the available quantity on the source item.",
+      "invalidSellerItemPrice": "The proposed value must be a positive number or zero.",
+      "sessionPending": "Session set to pending decision.",
+      "sessionRefused": "Session refused.",
+      "sessionCheckSuccess": "Check complete: no blocking issues detected.",
+      "sessionCheckFailed": "Check complete: blocking issues were detected.",
+      "onlyActorsCanBeClients": "Only actors can be added as clients.",
+      "clientAdded": "Client added to merchant.",
+      "clientAuthorized": "Client authorized to trade.",
+      "clientUnauthorized": "Client authorization removed.",
+      "clientAlreadyExists": "This client is already present on the merchant.",
+      "clientAccessSessionRemoved": "The client's active session has been deleted.",
+      "clientSessionCreated": "Session created for this client.",
+      "clientSessionSelected": "Session selected.",
+      "clientAlreadyTrading": "This client already has an active session with another merchant.",
+      "actorRemovedFromMerchant": "Actor removed from merchant.",
+      "actorRemoveCancelled": "Removal cancelled.",
+      "selectClientBeforeAdding": "Select a client before adding an item.",
+      "selectClientFirst": "Select an authorized client first.",
+      "createSessionBeforeAdding": "Create a session for this client before adding an item.",
+      "selectSessionBeforeAdding": "Select a session before adding an item.",
+      "clientHasNoSession": "This client does not have a session yet.",
+      "sessionCreatedForClient": "Session created for this client.",
+      "sessionSelectedForClient": "Session selected for this client.",
+      "clientAuthorizedSessionCreated": "Client authorized and session opened.",
+      "clientSessionOpened": "Client session opened.",
+      "authorizationRemovedSessionDeleted": "Authorization removed and session deleted.",
+      "invalidProductDrop": "Invalid product drag.",
+      "merchantProductNotSellable": "You cannot add a merchant product to what the player sells or gives.",
+      "cannotGiveMerchantProduct": "You cannot add a merchant product to what the player gives.",
+      "transactionPreviewFailed": "The transaction cannot be previewed.",
+      "missingProposedPrice": "You must propose a price for this item.",
+      "selectSessionBeforeAction": "Select a session before performing this action.",
+      "sessionSocketNoResponse": "The session change request received no response.",
+      "sessionSocketNoHandler": "No connected GM or owner can handle this request.",
+      "sessionSocketRequestDenied": "The session change request was denied."
+    },
+    "price": {
+      "freePrice": "Free price",
+      "freePriceTooltip": "Propose a price to the seller",
+      "freePriceIconTooltip": "Propose a price to the seller",
+      "minimumPrice": "GM minimum price",
+      "minimumPriceHint": "Internal GM reference. Not displayed to buyers.",
+      "proposedPrice": "Proposed price",
+      "proposedPriceHint": "Price proposed to the seller in the reference currency.",
+      "referenceCurrency": "Reference currency"
     },
     "navigation": {
       "label": "Merchant sheet navigation"
+    },
+    "access": {
+      "title": "Authorized clients",
+      "dropHelp": "Drop a character or NPC here to add them to the merchant's clients.",
+      "dropTooltip": "Drop an actor to add them to the merchant's clients",
+      "authorized": "Authorized to trade",
+      "unauthorized": "Not authorized",
+      "toggleAuthorize": "Authorize or revoke access",
+      "client": "Client",
+      "noClient": "No client defined",
+      "playerCharacter": "Player character",
+      "manualActor": "Manually added actor",
+      "openSession": "Open session",
+      "createSession": "Create session",
+      "selectedSession": "Selected session",
+      "contextTitle": "Client actions",
+      "removeAuthorization": "Remove authorization",
+      "removeActor": "Remove actor from merchant",
+      "removeActorTitle": "Remove actor from merchant",
+      "removeActorContent": "Do you really want to remove this actor from the merchant?",
+      "removeActorWithSessionContent": "An active session exists for this actor. Do you want to remove the actor from the merchant and delete the active session?",
+      "removeAuthorizationTitle": "Remove authorization",
+      "removeAuthorizationContent": "A transaction session is active for this client. Do you want to remove the authorization and delete the active session?",
+      "cancelRemoveAuthorization": "Cancel",
+      "confirmRemoveAuthorization": "Remove authorization and delete session",
+      "notAuthorizedForTrade": "This client is not authorized to trade with this merchant.",
+      "noAuthorizedClient": "No client is authorized to trade with this merchant.",
+      "multipleAuthorizedClients": "Multiple clients are authorized. Select a client or a session before adding items.",
+      "clientNotAuthorizedWarning": "Unauthorized client",
+      "sessionSubmitted": "Session: submitted by buyer",
+      "sessionActive": "Session: active",
+      "sessionPending": "Session: pending decision",
+      "sessionValidated": "Session: validated",
+      "sessionRefused": "Session: refused",
+      "noSession": "No session",
+      "leftClickAuthorize": "Left click: authorize",
+      "leftClickOpenSession": "Left click: open session",
+      "rightClickManage": "Right click: manage"
     },
     "tabs": {
       "products": "Products",
@@ -83,13 +340,19 @@
         "type": "Type",
         "name": "Name",
         "side": "Side",
+        "number": "No.",
         "buyer": "Buyer",
         "date": "Date",
         "status": "Status",
+        "paid": "Paid",
+        "received": "Received",
+        "adjustment": "Adj.",
         "quantity": "Qty",
         "unitPrice": "Unit price",
+        "unitPriceShort": "UP",
         "total": "Total",
-        "negotiation": "Negotiation"
+        "negotiation": "Negotiation",
+        "negotiationShort": "Nego."
       },
       "type": {
         "product": "Product",
@@ -100,7 +363,20 @@
       "side": {
         "buyer": "Received / bought",
         "seller": "Given / sold"
-      }
+      },
+      "negotiation": {
+        "accepted": "Negotiation accepted",
+        "refused": "Negotiation refused"
+      },
+      "secretIndicator": "Secret information was present during the transaction."
+    },
+    "delivery": {
+      "origin": "Item purchased from {merchantName}.",
+      "originWithTransaction": "Item purchased from {merchantName} - transaction #{transactionNumber}.",
+      "secretTitle": "MTT secret information",
+      "secretName": "Secret name: {value}",
+      "secretPrice": "Secret price: {value}",
+      "secretDescription": "Secret description: {value}"
     },
     "items": {
       "newItem": "New item",
@@ -117,58 +393,459 @@
       "title": "Products",
       "subtitle": "Items currently offered or stored by this merchant.",
       "dropHelp": "Drop items here from the sidebar or a compendium.",
-      "category": {
-        "label": "Category",
-        "placeholder": "Category",
-        "undefined": "Uncategorized",
-        "toggleShow": "Expand category",
-        "toggleHide": "Collapse category"
+      "sourceName": "Source item:",
+      "hide": "Hide product",
+      "show": "Show product",
+      "requireApproval": "Require GM approval",
+      "disableApproval": "Remove GM approval",
+      "ownership": {
+        "limited": "Right: Limited",
+        "observer": "Right: Observer"
       },
       "quantity": {
         "short": "Qty",
-        "undefined": "Quantity undefined"
+        "undefined": "Quantity undefined",
+        "unlimited": "Unlimited"
+      },
+      "tags": {
+        "hidden": "Hidden",
+        "requiresApproval": "GM approval"
       },
       "empty": {
         "title": "No products",
         "text": "This merchant does not contain any item yet.",
         "help": "Unlock the sheet to create or add items."
+      },
+      "secret": {
+        "title": "Secret information",
+        "name": "Secret name:",
+        "price": "Real / secret price:",
+        "description": "Secret description:",
+        "toggleShow": "Show secret information",
+        "toggleHide": "Hide secret information",
+        "hasSecret": "Secret filled in",
+        "empty": "No secret information"
+      },
+      "price": {
+        "label": "Price",
+        "base": "Base price",
+        "adjusted": "Adjusted price",
+        "valuePlaceholder": "Amount",
+        "currencyPlaceholder": "Currency",
+        "undefined": "Price undefined"
+      },
+      "systemCategory": "System category",
+      "merchantCategory": "Merchant category",
+      "automaticCategory": "Automatic category",
+      "category": {
+        "label": "Category",
+        "placeholder": "Category",
+        "undefined": "Uncategorized",
+        "add": "Add a category",
+        "new": "New category",
+        "delete": "Delete category",
+        "deleteTitle": "Delete category",
+        "deleteContent": "Do you really want to delete this category?",
+        "notEmpty": "The category must be empty before it can be deleted.",
+        "rename": "Rename category",
+        "hide": "Hide category",
+        "show": "Show category",
+        "toggleShow": "Expand category",
+        "toggleHide": "Collapse category",
+        "dropTooltip": "Drop into this category",
+        "countLabel": "product(s)"
       }
     },
     "services": {
+      "title": "Services",
+      "subtitle": "Services offered by this merchant.",
+      "new": "New service",
+      "add": "Add a service",
+      "delete": "Delete service",
+      "deleteTitle": "Delete service",
+      "deleteContent": "Do you really want to delete this service?",
+      "name": "Service name",
+      "description": "Description",
+      "price": {
+        "base": "Base price",
+        "adjusted": "Adjusted price"
+      },
+      "currency": "Currency",
+      "quantity": "Quantity",
+      "unlimited": "Unlimited",
+      "dropHelp": "Drop an item here to create a service linked to an item.",
+      "linkedItem": "Service linked to an item",
+      "sourceType": "Source type",
+      "sourceName": "Source",
+      "toggleShow": "Show service details",
+      "toggleHide": "Hide service details",
+      "hide": "Hide service",
+      "show": "Show service",
+      "requireApproval": "Require GM approval",
+      "disableApproval": "Remove GM approval",
+      "hidden": "Hidden",
+      "requiresApproval": "GM approval",
       "empty": {
         "title": "No services",
-        "text": "This merchant does not offer any services yet."
+        "text": "This merchant does not offer any services yet.",
+        "help": "Unlock the sheet to add a service."
       }
     },
+    "catalog": {
+      "context": {
+        "title": "Catalog actions",
+        "secretInfo": "Secret information",
+        "deleteSecretInfo": "Delete secret information",
+        "requestApproval": "Request GM approval",
+        "removeApproval": "Remove GM approval",
+        "switchToLimitedOwnership": "Switch to Limited ownership",
+        "switchToObserverOwnership": "Switch to Observer ownership"
+      }
+    },
+    "secrets": {
+      "title": "Secret information",
+      "titleWithName": "Secret information - {name}",
+      "name": "Secret name",
+      "price": "Secret price",
+      "currency": "Secret currency",
+      "description": "Secret description",
+      "save": "Save",
+      "cancel": "Cancel",
+      "deleteTitle": "Delete secret information",
+      "deleteConfirm": "Delete secret information for this item?",
+      "tooltip": {
+        "name": "Secret name:",
+        "price": "Secret price:",
+        "description": "Secret description:"
+      }
+    },
+    "clientRates": {
+      "menu": "Custom percentages",
+      "reset": "Reset custom percentages",
+      "titleWithName": "Custom percentages - {name}",
+      "productSellPercent": "Product purchase (%)",
+      "serviceSellPercent": "Service purchase (%)",
+      "itemBuyPercent": "Item buy-back (%)",
+      "note": "GM note",
+      "save": "Save",
+      "cancel": "Cancel",
+      "tooltip": {
+        "product": "Products: {value}%",
+        "service": "Services: {value}%",
+        "itemBuy": "Buy-back: {value}%",
+        "note": "GM note: {note}"
+      }
+    },
+    "referenceState": {
+      "title": "Reference state",
+      "description": "Saves the current quantities, visibilities, ownership levels and approval requests as the merchant's base state.",
+      "savedAt": "Last saved state:",
+      "save": "Set state as reference",
+      "restore": "Reset to reference",
+      "saveSuccess": "Reference state saved.",
+      "restoreSuccess": "Merchant reset to reference state.",
+      "missing": "No reference state saved.",
+      "confirmTitle": "Reset merchant",
+      "confirmContent": "Reset the merchant to its reference state? Products, services and categories added after the save will not be deleted.",
+      "confirmRestore": "Reset",
+      "cancel": "Cancel"
+    },
     "sessions": {
+      "title": "Transaction session",
       "buyerFortune": "Wealth:",
-      "submittedNotice": "The transaction is waiting for the merchant’s decision."
+      "status": {
+        "label": "Status",
+        "active": "Active",
+        "pending": "Pending decision",
+        "validated": "Validated",
+        "refused": "Refused",
+        "submitted": "Session submitted"
+      },
+      "buyerSide": {
+        "title": "The player buys / receives"
+      },
+      "sellerSide": {
+        "title": "The player sells / gives"
+      },
+      "negotiations": {
+        "buyerTitle": "Purchase negotiations",
+        "sellerTitle": "Sale / barter negotiations",
+        "refusedTitle": "Refused negotiations",
+        "referencePrice": "Reference price",
+        "freePrice": "Free price",
+        "freePriceMinimum": "Minimum price indicated: {price}.",
+        "freePriceNoMinimum": "No minimum price indicated.",
+        "quantity": "Quantity",
+        "unitPrice": "Unit price",
+        "totalPrice": "Total price",
+        "percent": "Percentage of reference price",
+        "sideShort": "Side",
+        "quantityShort": "Qty",
+        "unitPriceShort": "UP",
+        "totalShort": "Total",
+        "percentShort": "%",
+        "waitingBuyer": "Waiting for the buyer's response.",
+        "waitingMerchant": "Waiting for the merchant's response.",
+        "refusedMessage": "This negotiation has been refused.",
+        "actions": {
+          "submit": "Propose",
+          "accept": "Accept",
+          "refuse": "Refuse"
+        },
+        "side": {
+          "buyer": "Buyer",
+          "merchant": "Merchant"
+        }
+      },
+      "emptyBuyer": "No item received yet.",
+      "emptySeller": "No item given yet.",
+      "noSession": "No active session.",
+      "selectClient": "Select an authorized client to open a session.",
+      "noSelectedClient": "Select an authorized client to open a session.",
+      "noSessionForClient": "No session for this client.",
+      "create": "Create session",
+      "createSessionForClient": "Create a session for this client",
+      "newLabel": "New session",
+      "sessionForActor": "Session — {name}",
+      "clientAlreadyTrading": "This client already has an active session with another merchant.",
+      "selectClientBeforeAdding": "Select a client before adding an item.",
+      "selectClientFirst": "Select an authorized client first.",
+      "createSessionBeforeAdding": "Create a session for this client before adding an item.",
+      "selectSessionBeforeAdding": "Select a session before adding an item.",
+      "selectedClient": "Selected client",
+      "noAuthorizedClient": "No client is authorized to trade with this merchant.",
+      "multipleClientsSelectRequired": "Multiple clients available. Select a session before adding an item.",
+      "label": "Session name",
+      "delete": "Delete session",
+      "deleteTitle": "Delete session",
+      "deleteContent": "Do you really want to delete this session?",
+      "alreadyActive": "A session is already active.",
+      "placeholder": "The active transaction will be displayed here.",
+      "moneyAdjustmentHint": "The monetary adjustment automatically balances both sides of the transaction.",
+      "item": {
+        "product": "Product",
+        "service": "Service",
+        "quantity": "Qty",
+        "unitPrice": "Unit",
+        "totalPrice": "Total",
+        "available": "Available",
+        "object": "Item"
+      },
+      "total": "Total",
+      "increaseQuantity": "Increase quantity",
+      "decreaseQuantity": "Decrease quantity",
+      "editQuantity": "Edit quantity",
+      "removeItem": "Remove from session",
+      "clear": "Clear session",
+      "clearOnly": "Clear session",
+      "clearTitle": "Clear session",
+      "clearContent": "Do you really want to clear the active session?",
+      "draftNotice": "Transaction draft: no actual purchase has been made yet.",
+      "persistentDraftNotice": "Persistent draft: no actual purchase has been made yet.",
+      "sellerDropPlaceholder": "Drop a player item here to add it to what they sell or give.",
+      "sellerDropTitle": "Drop an item to sell or barter",
+      "sellerDialogTitle": "Add an item sold or given",
+      "sellerUnitValue": "Proposed unit value",
+      "sellerTotal": "Total sold",
+      "buyerTotal": "Total paid",
+      "addSellerItem": "Add to session",
+      "sourceActor": "Source",
+      "moneyAdjustment": "Monetary adjustment",
+      "balanced": "Balanced transaction",
+      "summary": "Summary",
+      "undefinedCurrency": "N/A",
+      "requestValidation": "Request validation",
+      "validatedNoTransfer": "Transaction validated.",
+      "refusedNotice": "Session refused.",
+      "pendingNotice": "Pending a decision.",
+      "submittedNotice": "The transaction is waiting for the merchant's decision.",
+      "activeNotice": "Active transaction draft.",
+      "authorizationCreatesSession": "Authorizing a client automatically opens a session.",
+      "noVisibleSession": "No transaction session available.",
+      "removeAuthorizationDeletesSession": "Removing authorization will delete this client's active session.",
+      "sessionResetAfterDecision": "After a final decision, the session will be reset.",
+      "wholeSessionDecision": "Final session decision",
+      "lineNegotiationDecision": "Line negotiation decision",
+      "check": {
+        "title": "Verification",
+        "run": "Check transaction",
+        "none": "No check performed.",
+        "success": "Transaction is verifiable.",
+        "failed": "Issues detected.",
+        "stockOk": "Merchant stocks appear sufficient.",
+        "sellerItemsOk": "Items given or sold appear available.",
+        "merchantChangeOk": "The merchant can make the necessary change.",
+        "playerMustPay": "The player must pay an additional {amount} {currency}.",
+        "merchantMustReturn": "The merchant must return {amount} {currency}.",
+        "productStockInsufficient": "Insufficient stock for {name}.",
+        "serviceQuantityInsufficient": "Insufficient service quantity for {name}.",
+        "sellerQuantityInsufficient": "Insufficient quantity on source item {name}.",
+        "sellerSourceMissing": "The source of {name} could not be verified.",
+        "merchantCurrencyInsufficient": "The merchant does not have enough {currency} to make change.",
+        "unknownCurrency": "Unknown currency: {currency}.",
+        "undefinedCurrency": "Currency not defined.",
+        "alreadyValidated": "The session is already marked as validated.",
+        "alreadyRefused": "The session is refused."
+      },
+      "setStatusActive": "Mark as active",
+      "setStatusPending": "Mark as pending decision",
+      "setStatusValidated": "Mark as validated",
+      "setStatusRefused": "Mark as refused",
+      "submitSession": "Session submitted",
+      "unlockSubmittedSession": "Unlock session",
+      "submittedMessage": "This session is submitted and awaiting the merchant's decision.",
+      "actions": {
+        "propose": "Propose",
+        "validate": "Validate",
+        "refuse": "Refuse",
+        "addProduct": "Add product to session",
+        "addService": "Add service to session",
+        "add": "Add",
+        "cancel": "Cancel",
+        "preview": "Preview",
+        "previewTooltip": "Preview execution",
+        "validateSession": "Validate session",
+        "validateTooltip": "Check then validate session",
+        "refuseSession": "Refuse transaction",
+        "refuseTooltip": "Refuse this transaction"
+      },
+      "dialog": {
+        "productTitle": "Add a product to session",
+        "serviceTitle": "Add a service to session",
+        "quantity": "Quantity",
+        "proposedPrice": "Proposed price",
+        "availableQuantity": "Available quantity",
+        "unlimitedQuantity": "Unlimited"
+      },
+      "preview": {
+        "action": "Preview execution",
+        "title": "Transaction preview",
+        "errorTitle": "Transaction impossible",
+        "close": "Close",
+        "client": "Client:",
+        "merchant": "Merchant:",
+        "buyerReceives": "The player will receive",
+        "merchantReceives": "The merchant will receive",
+        "stockUpdates": "Stocks that will be modified",
+        "moneyTransfers": "Planned money transfers",
+        "services": "Services",
+        "previewOnly": "Preview only: no changes have been made yet.",
+        "cannotExecute": "The transaction cannot be executed as is.",
+        "emptySession": "The session contains no item.",
+        "clientMissing": "The session's client actor cannot be found.",
+        "clientNotAuthorized": "The client is no longer authorized to trade with this merchant.",
+        "merchantProductMissing": "Merchant product not found: {name}.",
+        "merchantStockInsufficient": "Insufficient stock for {name}.",
+        "sellerItemMissing": "Given or sold item not found: {name}.",
+        "sellerQuantityInsufficient": "Insufficient quantity for {name}.",
+        "currencyUnreadable": "Cannot read currency: {currency}.",
+        "currencyInsufficient": "Insufficient currency: {currency}."
+      },
+      "confirm": {
+        "validateTitle": "Validate session",
+        "validateContent": "Do you want to validate this transaction session?",
+        "validateConfirm": "Validate",
+        "refuseTitle": "Refuse transaction",
+        "refuseContent": "Do you want to refuse this transaction? No transaction will be performed and the session will be reset.",
+        "refuseConfirm": "Refuse",
+        "cancel": "Cancel"
+      },
+      "execution": {
+        "validateTitle": "Validate session",
+        "validateConfirm": "Validate transaction",
+        "validateCancel": "Cancel",
+        "clientReceives": "The player will receive",
+        "merchantReceives": "The merchant will receive",
+        "quantitiesUpdated": "Quantities that will be decreased",
+        "executionErrorTitle": "Transaction impossible"
+      },
+      "errors": {
+        "clientMissing": "The session's client actor cannot be found.",
+        "clientNotAuthorized": "The client is no longer authorized to trade with this merchant.",
+        "merchantProductMissing": "Merchant product not found: {name}.",
+        "merchantServiceMissing": "Merchant service not found: {name}.",
+        "merchantStockInsufficient": "Insufficient stock for {name}.",
+        "serviceQuantityInsufficient": "Insufficient service quantity for {name}.",
+        "serviceFreePriceInvalid": "The proposed price for service {name} must be a strictly positive number.",
+        "sellerItemMissing": "Given or sold item not found: {name}.",
+        "sellerQuantityInsufficient": "Insufficient quantity for {name}.",
+        "emptySession": "The session contains no executable item.",
+        "deliveryActorMissing": "Cannot deliver item: recipient actor not found.",
+        "deliveryItemDataMissing": "Cannot deliver item: delivery data not found.",
+        "deliveryQuantityInvalid": "Cannot deliver item: delivery quantity is invalid.",
+        "deliveryQuantityPathMissing": "Cannot deliver item: quantity path not configured or not found.",
+        "deliveryIncomplete": "Cannot fully deliver the item.",
+        "deliveryCreationFailed": "Cannot create an item stack on the recipient actor.",
+        "deliveryFailed": "Cannot deliver the item to the recipient actor.",
+        "deliveryQuantityMismatch": "Cannot finalize transaction: delivered quantity does not match purchased quantity.",
+        "activeNegotiation": "Cannot validate transaction: a negotiation is still active.",
+        "currencyConfigurationMissing": "No currency is configured in the module.",
+        "referenceCurrencyMissing": "No reference currency could be determined.",
+        "currencyPathUnreadable": "Cannot read currency {currency} on {actor}.",
+        "payerInsufficientFunds": "{actor} does not have enough money to pay.",
+        "receiverCannotMakeChange": "{actor} does not have enough money to make change."
+      },
+      "money": {
+        "noMoneyTransfer": "No money transfer",
+        "clientPays": "The player pays",
+        "merchantPays": "The merchant pays",
+        "clientReceivesChange": "The player receives as change",
+        "merchantReceivesChange": "The merchant receives as change"
+      }
     },
     "configuration": {
+      "merchantSection": "Merchant and manager",
+      "tradeSection": "Trade rules",
+      "walletSection": "Merchant wallet",
+      "merchantDescription": "Merchant description",
+      "buyPercent": "Buy-back percentage",
+      "buyPercentHint": "Percentage of the base price at which the merchant buys items back from players.",
+      "sellPercent": "Product sell percentage",
+      "sellPercentHint": "Percentage applied to the base price when the merchant sells to buyers.",
+      "serviceSellPercent": "Service sell percentage",
+      "serviceSellPercentHint": "Percentage applied to the base price when the merchant sells a service to buyers.",
+      "negotiationFormula": "Negotiation roll",
+      "negotiationFormulaHint": "Formula rolled in chat for the manager, for example /roll 1d20 + 5.",
+      "rollNegotiation": "Roll negotiation",
+      "noCurrencies": "No currency is configured in the module settings.",
+      "sellPercentApplied": "Prices adjusted according to the merchant's sell percentage.",
+      "walletNoCurrencies": "No currency configured.",
+      "walletSummaryEmpty": "No currency",
+      "currencyAmount": "Amount",
+      "automaticCategories": "Automatic categories",
+      "categoryPathsPlaceholder": "system.subtype\nsystem.category\nsystem.type",
+      "categoryLabelMapPlaceholder": "weapon=Weapons\narmor=Armors\nconsumable=Consumables",
       "empty": {
         "title": "Configuration",
         "text": "General merchant options and the transaction log will be grouped here."
       }
     },
-    "settings": {
-      "itemSubcategoryPath": {
-        "name": "Product subcategory path",
-        "hint": "Path read from the source Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
-      },
-      "itemSecretDescriptionPath": {
-        "name": "Secret description path for delivered Items",
-        "hint": "Path where MTT writes secret information on delivered items. If identical to the visible description path, secrets are added in a Foundry secret block in the same field. If different, secret information is written to this separate field. If empty, secret information is not copied to the delivered item."
-      }
-    },
     "config": {
+      "title": "Configuration — Merchants, Trades and Transactions",
+      "save": "Save",
+      "cancel": "Cancel",
+      "sections": {
+        "items": "Item paths",
+        "delivery": "Delivery paths",
+        "types": "Allowed types",
+        "currencies": "Currencies and conversion"
+      },
       "categories": {
         "itemCategoryI18nPrefix": {
           "label": "Category i18n prefix",
           "hint": "Translation prefix added before the value read by the category path. Example: if the value is Armor and the prefix is CO.equipment.subtypes., MTT will look up CO.equipment.subtypes.Armor. Leave empty to display the raw value."
         },
+        "itemSubcategoryPath": {
+          "label": "Product subcategory path",
+          "hint": "Path read from the source Item to display a discrete subcategory in the catalog. The subcategory appears as an icon with a tooltip on the product row. Leave empty to disable this feature."
+        },
         "itemSubcategoryI18nPrefix": {
           "label": "Subcategory i18n prefix",
           "hint": "Translation prefix added before the value read by the subcategory path. Leave empty to display the raw value."
+        },
+        "defaultCustomCategories": {
+          "label": "Default custom categories",
+          "hint": "List of custom categories automatically added to new merchants. One category per line. These categories remain editable and deletable on each merchant."
         }
       },
       "importExport": {
@@ -191,7 +868,17 @@
         "exportSuccess": "MTT configuration exported successfully."
       },
       "currencies": {
+        "explanation": "Define the currencies used in your game system. Each currency has a name, an abbreviation, a path to read the value on the actor, and a relative conversion value. Example: if the base coin is worth 1, a coin worth twice as much is worth 2, a coin worth half is worth 0.5.",
+        "add": "Add a currency",
+        "delete": "Delete this currency",
+        "empty": "No currency configured.",
+        "namePlaceholder": "Name (e.g. Gold piece)",
+        "abbrPlaceholder": "Abbr. (e.g. GP)",
+        "pathPlaceholder": "Path (e.g. system.wealth.gp.value)",
+        "ratePlaceholder": "Value (e.g. 10)",
         "columns": {
+          "name": "Name",
+          "abbreviation": "Abbr.",
           "actorPath": "Actor path",
           "actorPathHint": "Path to read and write this currency on an actor. Example: system.currency.sp",
           "itemPricePath": "Item price path",
@@ -200,7 +887,8 @@
           "itemCurrencyPathHint": "Path to read the Item currency when the system uses a single value + denomination field. Leave empty if each currency has its own price path. Example: system.price.currency",
           "itemCurrencyValues": "Item currency values",
           "itemCurrencyValuesHint": "Comma-separated aliases used to identify this currency in the Item currency field. Example: pa, PA, sp, SP",
-          "rate": "Conversion"
+          "rate": "Conversion",
+          "actions": "Actions"
         },
         "actorPathPlaceholder": "system.currency.sp",
         "itemPricePathPlaceholder": "system.price.value",

@@ -1,0 +1,39 @@
+<form class="mtt-session-dialog-form">
+  <section class="mtt-session-dialog-summary">
+    <h3 class="mtt-session-dialog-title">{{name}}</h3>
+    {{#if hasFreePrice}}
+      <p class="mtt-session-dialog-line">
+        <i class="fas fa-scale-balanced"></i>
+        <strong>{{localize "mtt.price.freePrice"}}</strong>
+      </p>
+    {{else}}
+      <p class="mtt-session-dialog-line">
+        <strong>{{localize "mtt.products.price.adjusted"}}</strong>
+        <span>{{priceLabel}}</span>
+      </p>
+    {{/if}}
+    <p class="mtt-session-dialog-line">
+      <strong>{{localize "mtt.sessions.dialog.availableQuantity"}}</strong>
+      <span>{{availableQuantityLabel}}</span>
+    </p>
+  </section>
+  <label class="mtt-session-dialog-field">
+    <span>{{localize "mtt.sessions.dialog.quantity"}}</span>
+    {{#if hasQuantityMax}}
+      <input type="number" name="quantity" min="1" step="1" value="1" max="{{availableQuantity}}" />
+    {{else}}
+      <input type="number" name="quantity" min="1" step="1" value="1" />
+    {{/if}}
+  </label>
+  {{#if hasFreePrice}}
+    <label class="mtt-session-dialog-field">
+      <span>{{localize "mtt.price.proposedPrice"}}{{#if referenceCurrencyLabel}} ({{referenceCurrencyLabel}}){{/if}}</span>
+      <input type="number" name="proposedPrice" min="0.01" step="0.01" value="" required />
+    </label>
+  {{else if includeProposedPrice}}
+    <label class="mtt-session-dialog-field">
+      <span>{{localize "mtt.sessions.dialog.proposedPrice"}}</span>
+      <input type="number" name="proposedPrice" min="0" step="1" placeholder="{{priceLabel}}" />
+    </label>
+  {{/if}}
+</form>

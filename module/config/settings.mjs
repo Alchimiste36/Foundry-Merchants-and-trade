@@ -219,7 +219,6 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemQuantityPath",
   "deliveryItemQuantityPath",
   "deliveryItemMaxQuantityPath",
-  "allowExtendedItemMerge",
   "writeDeliveryDescriptionInfo",
   "itemDescriptionPath",
   "itemSecretDescriptionPath",

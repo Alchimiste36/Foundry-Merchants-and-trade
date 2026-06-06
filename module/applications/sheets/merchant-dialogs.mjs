@@ -1,5 +1,21 @@
 import { MTT } from "../../config/constants.mjs"
-import { escapeHTML, prepareCurrencyOptions } from "./merchant-utils.mjs"
+import { prepareCurrencyOptions } from "./merchant-utils.mjs"
+
+// ─── Private helpers ──────────────────────────────────────────────────────────
+
+function getDialogForm(button, dialog, event) {
+  return button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form") ?? null
+}
+
+function buildFilteredCurrencyOptions(selectedKey) {
+  const rawOptions = prepareCurrencyOptions().filter((c) => !c.isFreePrice)
+  const knownKeys = new Set(rawOptions.map((c) => c.key))
+  const options = rawOptions.map((c) => ({ ...c, selected: c.key === selectedKey }))
+  if (selectedKey && !knownKeys.has(selectedKey)) {
+    options.push({ key: selectedKey, abbreviation: selectedKey, title: "", selected: true })
+  }
+  return options
+}
 
 export async function renderMttDialogContent({
   icon = "",
@@ -31,7 +47,7 @@ export async function renderConfirmDialogContent({ message = "", details = "", w
   })
 }
 
-export function renderSessionPreparationDialog({
+export async function renderSessionPreparationDialog({
   name,
   priceLabel,
   availableQuantityLabel,
@@ -40,48 +56,16 @@ export function renderSessionPreparationDialog({
   hasFreePrice = false,
   referenceCurrencyLabel = "",
 }) {
-  const quantityMax = Number.isFinite(availableQuantity) && availableQuantity >= 0 ? ` max="${availableQuantity}"` : ""
-
-  const priceSummaryHtml = hasFreePrice
-    ? `<p class="mtt-session-dialog-line">
-          <i class="fas fa-scale-balanced"></i>
-          <strong>${game.i18n.localize("mtt.price.freePrice")}</strong>
-        </p>`
-    : `<p class="mtt-session-dialog-line">
-          <strong>${game.i18n.localize("mtt.products.price.adjusted")}</strong>
-          <span>${escapeHTML(priceLabel)}</span>
-        </p>`
-
-  const currencySuffix = referenceCurrencyLabel ? ` (${escapeHTML(referenceCurrencyLabel)})` : ""
-  const proposedPriceField = hasFreePrice
-    ? `<label class="mtt-session-dialog-field">
-          <span>${game.i18n.localize("mtt.price.proposedPrice")}${currencySuffix}</span>
-          <input type="number" name="proposedPrice" min="0.01" step="0.01" value="" required />
-        </label>`
-    : includeProposedPrice
-      ? `<label class="mtt-session-dialog-field">
-            <span>${game.i18n.localize("mtt.sessions.dialog.proposedPrice")}</span>
-            <input type="number" name="proposedPrice" min="0" step="1" placeholder="${escapeHTML(priceLabel)}" />
-          </label>`
-      : ""
-
-  const quantitySummaryHtml = `<p class="mtt-session-dialog-line">
-        <strong>${game.i18n.localize("mtt.sessions.dialog.availableQuantity")}</strong>
-        <span>${escapeHTML(availableQuantityLabel)}</span>
-      </p>`
-
-  return `<form class="mtt-session-dialog-form">
-    <section class="mtt-session-dialog-summary">
-      <h3 class="mtt-session-dialog-title">${escapeHTML(name)}</h3>
-      ${priceSummaryHtml}
-      ${quantitySummaryHtml}
-    </section>
-    <label class="mtt-session-dialog-field">
-      <span>${game.i18n.localize("mtt.sessions.dialog.quantity")}</span>
-      <input type="number" name="quantity" min="1" step="1" value="1"${quantityMax} />
-    </label>
-    ${proposedPriceField}
-  </form>`
+  return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SESSION_PREPARATION_DIALOG, {
+    name,
+    priceLabel,
+    availableQuantityLabel,
+    availableQuantity,
+    hasQuantityMax: Number.isFinite(availableQuantity) && availableQuantity >= 0,
+    includeProposedPrice,
+    hasFreePrice,
+    referenceCurrencyLabel,
+  })
 }
 
 export async function openSessionPreparationDialog({
@@ -97,7 +81,7 @@ export async function openSessionPreparationDialog({
     Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? String(availableQuantity)
       : game.i18n.localize("mtt.sessions.dialog.unlimitedQuantity")
-  const content = renderSessionPreparationDialog({
+  const content = await renderSessionPreparationDialog({
     name,
     priceLabel,
     availableQuantityLabel,
@@ -125,7 +109,7 @@ export async function openSessionPreparationDialog({
           label: game.i18n.localize("mtt.sessions.actions.add"),
           default: true,
           callback: (event, button, dialog) => {
-            const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form")
+            const form = getDialogForm(button, dialog, event)
             if (!form) return null
             return Object.fromEntries(new FormData(form).entries())
           },
@@ -179,12 +163,7 @@ export async function openCatalogItemSecretsDialog({
 }) {
   const title = game.i18n.format("mtt.secrets.titleWithName", { name })
 
-  const rawOptions = prepareCurrencyOptions().filter((c) => !c.isFreePrice)
-  const knownKeys = new Set(rawOptions.map((c) => c.key))
-  const currencyOptions = rawOptions.map((c) => ({ ...c, selected: c.key === secretCurrency }))
-  if (secretCurrency && !knownKeys.has(secretCurrency)) {
-    currencyOptions.push({ key: secretCurrency, abbreviation: secretCurrency, title: "", selected: true })
-  }
+  const currencyOptions = buildFilteredCurrencyOptions(secretCurrency)
 
   const content = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SECRET_INFO_DIALOG, {
     secretName,
@@ -209,7 +188,7 @@ export async function openCatalogItemSecretsDialog({
           label: game.i18n.localize("mtt.secrets.save"),
           default: true,
           callback: (event, button, dialog) => {
-            const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form")
+            const form = getDialogForm(button, dialog, event)
             if (!form) return null
             const formData = new FormData(form)
             return {
@@ -252,7 +231,7 @@ export async function openClientRatesDialog({ clientName = "", rates = {} } = {}
           label: game.i18n.localize("mtt.clientRates.save"),
           default: true,
           callback: (event, button, dialog) => {
-            const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form")
+            const form = getDialogForm(button, dialog, event)
             if (!form) return null
 
             const formData = new FormData(form)
@@ -496,12 +475,7 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
       ? String(availableQuantity)
       : game.i18n.localize("mtt.sessions.dialog.unlimitedQuantity")
 
-  const rawOptions = prepareCurrencyOptions().filter((c) => !c.isFreePrice)
-  const knownKeys = new Set(rawOptions.map((c) => c.key))
-  const currencyOptions = rawOptions.map((c) => ({ ...c, selected: c.key === priceCurrency }))
-  if (priceCurrency && !knownKeys.has(priceCurrency)) {
-    currencyOptions.push({ key: priceCurrency, abbreviation: priceCurrency, title: "", selected: true })
-  }
+  const currencyOptions = buildFilteredCurrencyOptions(priceCurrency)
 
   const content = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SELLER_ITEM_DIALOG, {
     name,
@@ -534,7 +508,7 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
           label: game.i18n.localize("mtt.dialog.sellerItemAdd"),
           default: true,
           callback: (event, button, dialog) => {
-            const form = button?.form ?? dialog?.element?.querySelector("form") ?? event.target?.closest?.("form")
+            const form = getDialogForm(button, dialog, event)
             if (!form) return null
             return Object.fromEntries(new FormData(form).entries())
           },

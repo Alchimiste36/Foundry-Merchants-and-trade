@@ -139,6 +139,7 @@
                       data-tooltip="{{localize 'mtt.services.delete'}}"
                       title="{{localize 'mtt.services.delete'}}"
                     >
+                      <i class="fas fa-trash"></i>
                     </button>
                   {{/if}}
                 {{/if}}
@@ -198,22 +199,6 @@
                     />
                   </div>
                 {{/if}}
-
-
-                {{#if @root.mtt.canEditMerchant}}
-                  <div class="mtt-merchant-service-delete-bloc">
-                    <button
-                      class="mtt-merchant-service-delete"
-                      type="button"
-                      data-action="deleteService"
-                      data-tooltip="{{localize 'mtt.services.delete'}}"
-                      title="{{localize 'mtt.services.delete'}}"
-                    >
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  </div>
-                {{/if}}
-
 
                 {{#if @root.mtt.canEditMerchant}}
                   <textarea

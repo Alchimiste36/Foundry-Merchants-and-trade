@@ -344,6 +344,26 @@
       <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.currencies"}}</h2>
       <p class="mtt-config-explanation">{{localize "mtt.config.currencies.explanation"}}</p>
 
+      <div class="mtt-config-field">
+        <div class="mtt-config-field-header">
+          <label class="mtt-config-field-label" for="mtt-config-actor-currency-path">
+            {{localize "mtt.settings.actorCurrencyPath.name"}}
+          </label>
+          <i
+            class="fas fa-circle-info mtt-config-info-icon"
+            data-tooltip="{{localize 'mtt.settings.actorCurrencyPath.hint'}}"
+            aria-hidden="true"
+          ></i>
+        </div>
+        <input
+          id="mtt-config-actor-currency-path"
+          type="text"
+          name="actorCurrencyPath"
+          value="{{actorCurrencyPath}}"
+          placeholder="system.currency.gp"
+        />
+      </div>
+
       <div class="mtt-config-currency-table">
         <div class="mtt-config-currency-table-head">
           <span>{{localize "mtt.config.currencies.columns.name"}}</span>

@@ -12,6 +12,8 @@ import {
   getMerchantSheetLockedState,
   getMerchantLimitedState,
   productHasSecretInfo,
+  readItemReferencePrice,
+  readItemLegacyPriceData,
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
@@ -1048,7 +1050,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       return {
         kind,
-        name: product.displayName || item.name,
+        name: item.name,
         hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
         isObserverOwnership:
@@ -1221,7 +1223,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await catalogItem.productItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...catalogItem.data,
         ...secrets,
-        isCommerciallyModified: true,
       });
       this.render();
       return;
@@ -2499,14 +2500,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (product.isHidden) return;
     if (!this.#requireSelectedSessionForItemAddition()) return;
 
-    const displayName = product.displayName || item.name;
-    const basePriceValue =
-      Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
-        ? Number(product.priceValue)
-        : MTT.PRODUCT_DEFAULTS.priceValue;
+    const name = item.name;
+    const universalPrice = readItemReferencePrice(item);
+    const legacyPriceData = universalPrice === null ? readItemLegacyPriceData(item) : null;
+    const basePriceValue = universalPrice !== null ? universalPrice.value : legacyPriceData.value;
     const rates = this.#getEffectiveRatesForSession();
     const displayPriceValue = adjustPriceValue(basePriceValue, rates.productSellPercent);
-    const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
+    const priceCurrency = universalPrice !== null
+      ? universalPrice.currency
+      : (legacyPriceData.currency || product.priceCurrency?.trim() || "");
     const quantity = product.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = Boolean(product.hasFreePrice);
@@ -2524,7 +2526,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const dialogData = await openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.productTitle"),
-      name: displayName,
+      name,
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
@@ -2563,7 +2565,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           type: "product",
           sourceId: item.id,
           sourceUuid: item.uuid,
-          name: displayName,
+          name,
           img: item.img,
           quantity: dialogData.quantity,
           unitPriceValue,
@@ -2583,7 +2585,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sessionItem = await this.#addSessionBuyerItem({
       type: "product",
       sourceId: item.id,
-      name: displayName,
+      name,
       img: item.img,
       quantity: dialogData.quantity,
       availableQuantity,
@@ -3119,7 +3121,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const picker = new FilePicker({
+    const FilePickerApp = foundry.applications.apps.FilePicker.implementation;
+    const picker = new FilePickerApp({
       type: "image",
       current: this.actor.img,
       callback: async (path) => {
@@ -3237,7 +3240,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       if (!Number.isFinite(rawValue) || rawValue < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
-        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.priceValue ?? MTT.PRODUCT_DEFAULTS.priceValue;
+        const _universalPrice = readItemReferencePrice(item);
+        target.value = _universalPrice !== null ? _universalPrice.value : readItemLegacyPriceData(item).value;
         return;
       }
 
@@ -3288,7 +3292,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         minimumPriceValue: rawValue,
-        isCommerciallyModified: true,
       });
     }
   }
@@ -3412,7 +3415,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
       ...product,
       hasFreePrice: !product.hasFreePrice,
-      isCommerciallyModified: true,
     });
 
     this.render();

@@ -1874,13 +1874,11 @@ function buildVisibleProductItemData(sourceItem, product, quantity) {
   delete itemData._id;
   delete itemData.uuid;
 
-  if (product.displayName) itemData.name = product.displayName;
   if (product.img) itemData.img = product.img;
 
   if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID];
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
     sourceUuid: getMttSourceUuid(sourceItem, product),
-    isCommerciallyModified: Boolean(product.isCommerciallyModified) || productHasSecretInfo(product),
   });
   setItemDataQuantity(itemData, quantity, sourceItem);
 
@@ -2015,7 +2013,6 @@ export async function deliverPurchasedItemToActor(actor, productData, deliveredI
         sourceUuid:
           getMttSourceUuid(stack.item) ||
           getMttSourceUuid(deliveredItemData, productData),
-        isCommerciallyModified: false,
       };
       await stack.item.update(updateData);
       result.updated.push(stack);

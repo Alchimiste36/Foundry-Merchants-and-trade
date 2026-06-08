@@ -201,14 +201,6 @@
   width: min(100%, 260px);
   font-weight: 700;
 }
-.mtt-merchant-product-source-name,
-.mtt-merchant-product-type {
-  color: var(--mtt-text-soft);
-  font-size: 0.78rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .mtt-merchant-product-details {
   display: grid;
   grid-template-columns: auto auto;

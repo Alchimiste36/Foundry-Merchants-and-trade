@@ -269,7 +269,8 @@
       "selectSessionBeforeAction": "Select a session before performing this action.",
       "sessionSocketNoResponse": "The session change request received no response.",
       "sessionSocketNoHandler": "No connected GM or owner can handle this request.",
-      "sessionSocketRequestDenied": "The session change request was denied."
+      "sessionSocketRequestDenied": "The session change request was denied.",
+      "noItemPricePath": "No item price path configured. Check the module compatibility settings."
     },
     "price": {
       "freePrice": "Free price",
@@ -828,7 +829,9 @@
         "items": "Item paths",
         "delivery": "Delivery paths",
         "types": "Allowed types",
-        "currencies": "Currencies and conversion"
+        "currencies": "Currencies and conversion",
+        "legacy": "Compatibility — legacy price paths",
+        "legacyHint": "These settings are used as a fallback when no currency is configured with an item path. They correspond to the legacy price reading mode, before the universal currency system was introduced."
       },
       "categories": {
         "title": "Categories",

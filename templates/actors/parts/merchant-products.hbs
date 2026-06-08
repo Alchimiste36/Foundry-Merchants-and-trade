@@ -163,7 +163,7 @@
                           <input
                             class="mtt-merchant-product-name-input"
                             type="text"
-                            value="{{item.displayName}}"
+                            value="{{item.name}}"
                             data-mtt-product-field="displayName"
                           />
                           </div>
@@ -187,20 +187,12 @@
                             <span
                               class="mtt-merchant-product-name"
                             >
-                              {{item.displayName}}
+                              {{item.name}}
                             </span>
                             </span>
                           {{else}}
                             <span class="mtt-merchant-catalog-name-row">
-                              <span class="mtt-merchant-product-name">{{item.displayName}}</span>
-                            </span>
-                          {{/if}}
-                        {{/if}}
-                        {{#if @root.mtt.isEditable}}
-                          {{#if (ne item.displayName item.name)}}
-                            <span class="mtt-merchant-product-source-name">
-                              {{localize "mtt.products.sourceName"}}
-                              {{item.name}}
+                              <span class="mtt-merchant-product-name">{{item.name}}</span>
                             </span>
                           {{/if}}
                         {{/if}}

@@ -98,10 +98,6 @@ export function productHasSecretInfo(productData = {}) {
   )
 }
 
-export function isProductCommerciallyModified(productData = {}) {
-  return Boolean(productData?.isCommerciallyModified || productHasSecretInfo(productData))
-}
-
 // ─── Fusion de livraison ─────────────────────────────────────────────────────
 
 export function getMttSourceUuid(itemOrData, productData = null) {
@@ -210,12 +206,13 @@ export function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, p
 export function getDeliveredItemMergeMode(existingItem, deliveredItemData, productData = {}) {
   const deliveredProduct = getMttProductFlags(deliveredItemData)
   const existingProduct = getMttProductFlags(existingItem)
-  const isCommerciallyModified =
-    isProductCommerciallyModified(productData) ||
-    isProductCommerciallyModified(deliveredProduct) ||
-    isProductCommerciallyModified(existingProduct)
 
-  if (isCommerciallyModified) return null
+  if (
+    productHasSecretInfo(productData) ||
+    productHasSecretInfo(deliveredProduct) ||
+    productHasSecretInfo(existingProduct)
+  ) return null
+
   if (canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "strict"
   if (!getModuleSetting("allowExtendedItemMerge")) return null
   if (canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "extended"
@@ -673,6 +670,55 @@ export function readItemReferencePrice(item) {
     value: refValue,
     currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim(),
   }
+}
+
+export function readItemLegacyPriceData(item) {
+  const configuredPrice = getConfiguredItemValue(item, "itemPriceValuePath")
+  const rawPrice = parsePriceValue(configuredPrice) ?? getItemPrice(item)
+  const value = rawPrice !== null ? rawPrice : 0
+
+  const configuredCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
+  const rawCurrency =
+    typeof configuredCurrency === "string" && configuredCurrency.trim()
+      ? configuredCurrency.trim()
+      : getItemCurrency(item)
+  const currency = resolveItemCurrencyKey(rawCurrency)
+
+  return { value, currency }
+}
+
+export function buildItemPriceWriteData(value, currency) {
+  const currencies = getCurrencies()
+  const currenciesWithPaths = currencies.filter((c) => String(c.itemPricePath ?? "").trim())
+
+  if (currenciesWithPaths.length === 0) {
+    const pricePath = String(getModuleSetting("itemPriceValuePath") ?? "").trim()
+    const currencyPath = String(getModuleSetting("itemPriceCurrencyPath") ?? "").trim()
+    if (!pricePath) return { ok: false, paths: {} }
+    const paths = { [pricePath]: value }
+    if (currencyPath && currency) paths[currencyPath] = currency
+    return { ok: true, paths }
+  }
+
+  const targetCurrency = resolveConfiguredCurrency(currency)
+  const targetPath = String(targetCurrency?.itemPricePath ?? "").trim()
+  if (!targetCurrency || !targetPath) return { ok: false, paths: {} }
+
+  const paths = {}
+  for (const c of currenciesWithPaths) {
+    const path = String(c.itemPricePath ?? "").trim()
+    if (path && c !== targetCurrency) paths[path] = 0
+  }
+  paths[targetPath] = value
+
+  const currencyIdPath = String(targetCurrency.itemCurrencyPath ?? "").trim()
+  if (currencyIdPath) {
+    const aliases = parseCurrencyAliases(targetCurrency.itemCurrencyValues)
+    const writeValue = aliases[0] ?? String(targetCurrency.abbreviation ?? "").trim()
+    if (writeValue) paths[currencyIdPath] = writeValue
+  }
+
+  return { ok: true, paths }
 }
 
 // ─── Options de monnaies ─────────────────────────────────────────────────────

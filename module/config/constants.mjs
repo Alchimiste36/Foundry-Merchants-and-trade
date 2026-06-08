@@ -11,13 +11,11 @@ export const MTT = {
   },
 
   PRODUCT_DEFAULTS: {
-    displayName: "",
     quantity: 1,
     secretName: "",
     secretPrice: "",
     secretCurrency: "",
     secretDescription: "",
-    priceValue: 0,
     priceCurrency: "",
     category: "",
     systemCategoryKey: "",
@@ -25,7 +23,6 @@ export const MTT = {
     systemCategoryPath: "",
     systemSubcategory: "",
     sourceUuid: "",
-    isCommerciallyModified: false,
     ownershipLevel: 2,
     isSecretExpanded: false,
     isHidden: false,

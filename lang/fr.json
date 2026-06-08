@@ -269,7 +269,8 @@
       "selectSessionBeforeAction": "Sélectionnez une session avant d'effectuer cette action.",
       "sessionSocketNoResponse": "La demande de modification de session n’a pas reçu de réponse.",
       "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
-      "sessionSocketRequestDenied": "La demande de modification de session a été refusée."
+      "sessionSocketRequestDenied": "La demande de modification de session a été refusée.",
+      "noItemPricePath": "Aucun chemin de prix d'item configuré. Vérifiez les paramètres de compatibilité du module."
     },
     "price": {
       "freePrice": "Prix libre",
@@ -828,7 +829,9 @@
         "items": "Chemins des objets",
         "delivery": "Chemins de livraison",
         "types": "Types autorisés",
-        "currencies": "Devises et conversion"
+        "currencies": "Devises et conversion",
+        "legacy": "Compatibilité — anciens chemins de prix",
+        "legacyHint": "Ces paramètres sont utilisés en repli lorsqu'aucune devise n'est configurée avec un chemin d'item. Ils correspondent à l'ancien mode de lecture des prix, avant l'introduction du système de devises universelles."
       },
       "categories": {
         "title": "Catégories",

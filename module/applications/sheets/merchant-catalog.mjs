@@ -23,19 +23,8 @@ import {
   htmlToPlainText,
   productHasSecretInfo,
   readItemReferencePrice,
-  readItemLegacyPriceData,
   buildItemPriceWriteData,
 } from "./merchant-utils.mjs"
-
-export function getSellPercent(actor) {
-  const sellPercent = Number(actor.system.trade?.sellPercent)
-  return Number.isFinite(sellPercent) && sellPercent >= 0 ? sellPercent : 100
-}
-
-export function getServiceSellPercent(actor) {
-  const serviceSellPercent = Number(actor.system.trade?.serviceSellPercent)
-  return Number.isFinite(serviceSellPercent) && serviceSellPercent >= 0 ? serviceSellPercent : 100
-}
 
 export function adjustPriceValue(basePriceValue, sellPercent) {
   const priceValue = Number(basePriceValue)
@@ -113,16 +102,15 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       basePriceValue = universalPrice.value
       priceCurrency = universalPrice.currency
     } else {
-      const legacyData = readItemLegacyPriceData(item)
-      basePriceValue = legacyData.value
-      priceCurrency = legacyData.currency || (product.priceCurrency?.trim() ?? "")
+      basePriceValue = getItemPrice(item) ?? 0
+      priceCurrency = resolveItemCurrencyKey(getItemCurrency(item)) || (product.priceCurrency?.trim() ?? "")
     }
 
     const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, sellPercent)
     const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
     const isVisible = !isHidden
     const configuredOwnershipLevel = Number(
-      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
     )
     const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
       ? configuredOwnershipLevel
@@ -464,8 +452,7 @@ export function createProductFlags(itemData, options = {}) {
   if (universalPrice !== null) {
     productFlags.priceCurrency = universalPrice.currency
   } else {
-    const legacyData = readItemLegacyPriceData(itemData)
-    productFlags.priceCurrency = legacyData.currency
+    productFlags.priceCurrency = resolveItemCurrencyKey(getItemCurrency(itemData))
   }
 
   const configuredQuantity = getConfiguredItemValue(itemData, "itemQuantityPath")
@@ -643,14 +630,8 @@ export async function createServiceFromItem(actor, item) {
     priceValue = universalServicePrice.value
     priceCurrency = universalServicePrice.currency
   } else {
-    priceValue = parsePriceValue(getConfiguredItemValue(item, "itemPriceValuePath"))
-    if (priceValue === null) {
-      priceValue = getItemPrice(item) ?? 0
-    }
-    const rawServiceCurrency = getConfiguredItemValue(item, "itemPriceCurrencyPath")
-    priceCurrency = resolveItemCurrencyKey(
-      typeof rawServiceCurrency === "string" ? rawServiceCurrency.trim() : getItemCurrency(item),
-    )
+    priceValue = getItemPrice(item) ?? 0
+    priceCurrency = resolveItemCurrencyKey(getItemCurrency(item))
   }
 
   const automaticCategory = getAutomaticItemCategory(item)
@@ -711,9 +692,8 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
     basePriceValue = universalSellerPrice.value
     priceCurrency = universalSellerPrice.currency
   } else {
-    const legacyData = readItemLegacyPriceData(item)
-    basePriceValue = legacyData.value
-    priceCurrency = legacyData.currency
+    basePriceValue = getItemPrice(item) ?? 0
+    priceCurrency = resolveItemCurrencyKey(getItemCurrency(item))
   }
 
   const effectiveBuyPercent =

@@ -1,5 +1,5 @@
 import { MTT } from "../config/constants.mjs";
-import { MTT_EXPORTABLE_CONFIG_SETTINGS, buildModuleConfigurationExport } from "../config/settings.mjs";
+import { MTT_EXPORTABLE_CONFIG_SETTINGS, buildModuleConfigurationExport } from "../config/config-export.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -44,8 +44,6 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     return {
       ...context,
-      itemPriceValuePath: game.settings.get(MTT.ID, "itemPriceValuePath"),
-      itemPriceCurrencyPath: game.settings.get(MTT.ID, "itemPriceCurrencyPath"),
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
       deliveryItemQuantityPath: game.settings.get(MTT.ID, "deliveryItemQuantityPath"),
       deliveryItemMaxQuantityPath: game.settings.get(MTT.ID, "deliveryItemMaxQuantityPath"),
@@ -61,7 +59,6 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemSubcategoryPath: game.settings.get(MTT.ID, "itemSubcategoryPath"),
       itemCategoryI18nPrefix: game.settings.get(MTT.ID, "itemCategoryI18nPrefix"),
       itemSubcategoryI18nPrefix: game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix"),
-      actorCurrencyPath: game.settings.get(MTT.ID, "actorCurrencyPath"),
       currencies: this.#currencies,
     };
   }
@@ -96,8 +93,6 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .filter((c) => c.name.trim() !== "");
     const form = this.element.querySelector("form.mtt-config-form");
     const fd = new FormData(form);
-    await game.settings.set(MTT.ID, "itemPriceValuePath", fd.get("itemPriceValuePath") ?? "");
-    await game.settings.set(MTT.ID, "itemPriceCurrencyPath", fd.get("itemPriceCurrencyPath") ?? "");
     await game.settings.set(MTT.ID, "itemQuantityPath", fd.get("itemQuantityPath") ?? "");
     await game.settings.set(MTT.ID, "deliveryItemQuantityPath", fd.get("deliveryItemQuantityPath") ?? "");
     await game.settings.set(MTT.ID, "deliveryItemMaxQuantityPath", fd.get("deliveryItemMaxQuantityPath") ?? "");
@@ -113,7 +108,6 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "itemSubcategoryPath", fd.get("itemSubcategoryPath") ?? "");
     await game.settings.set(MTT.ID, "itemCategoryI18nPrefix", fd.get("itemCategoryI18nPrefix") ?? "");
     await game.settings.set(MTT.ID, "itemSubcategoryI18nPrefix", fd.get("itemSubcategoryI18nPrefix") ?? "");
-    await game.settings.set(MTT.ID, "actorCurrencyPath", fd.get("actorCurrencyPath") ?? "");
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
     this.close();
   }

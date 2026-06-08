@@ -13,7 +13,9 @@ import {
   getMerchantLimitedState,
   productHasSecretInfo,
   readItemReferencePrice,
-  readItemLegacyPriceData,
+  getItemPrice,
+  getItemCurrency,
+  resolveItemCurrencyKey,
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
@@ -1054,7 +1056,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
         isObserverOwnership:
-          Number(product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
+          Number(product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
           CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
         productItem: item,
         data: product,
@@ -1280,7 +1282,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
     const currentLevel = Number(
-      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
     );
     const nextLevel =
       currentLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
@@ -1832,7 +1834,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #isMerchantActor(actor) {
-    return actor?.type === "merchant" || actor?.type === MTT.ACTOR_TYPES.MERCHANT;
+    return actor?.type === MTT.ACTOR_TYPES.MERCHANT;
   }
 
   #getActiveSession() {
@@ -1929,7 +1931,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       products: this.actor.items.map((item) => {
         const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
         const ownershipLevel = Number(
-          product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
         );
 
         return {
@@ -2450,7 +2452,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
     const configuredOwnershipLevel = Number(
-      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
     );
     const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
       ? configuredOwnershipLevel
@@ -2502,13 +2504,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const name = item.name;
     const universalPrice = readItemReferencePrice(item);
-    const legacyPriceData = universalPrice === null ? readItemLegacyPriceData(item) : null;
-    const basePriceValue = universalPrice !== null ? universalPrice.value : legacyPriceData.value;
+    const basePriceValue = universalPrice !== null ? universalPrice.value : (getItemPrice(item) ?? 0);
     const rates = this.#getEffectiveRatesForSession();
     const displayPriceValue = adjustPriceValue(basePriceValue, rates.productSellPercent);
     const priceCurrency = universalPrice !== null
       ? universalPrice.currency
-      : (legacyPriceData.currency || product.priceCurrency?.trim() || "");
+      : (resolveItemCurrencyKey(getItemCurrency(item)) || product.priceCurrency?.trim() || "");
     const quantity = product.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = Boolean(product.hasFreePrice);
@@ -3241,7 +3242,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!Number.isFinite(rawValue) || rawValue < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
         const _universalPrice = readItemReferencePrice(item);
-        target.value = _universalPrice !== null ? _universalPrice.value : readItemLegacyPriceData(item).value;
+        target.value = _universalPrice !== null ? _universalPrice.value : (getItemPrice(item) ?? 0);
         return;
       }
 

@@ -14,14 +14,6 @@
         "name": "MTT debug mode",
         "hint": "Enables additional console information for the Merchants, Trades and Transactions module."
       },
-      "itemPriceValuePath": {
-        "name": "Product / service price path",
-        "hint": "Path in the item system to read the numeric price value. Example: system.price.value"
-      },
-      "itemPriceCurrencyPath": {
-        "name": "Currency path",
-        "hint": "Path in the item system to read the currency code or symbol. Example: system.price.currency"
-      },
       "itemQuantityPath": {
         "name": "Quantity path",
         "hint": "Path in the item system to read the available quantity. Example: system.quantity"
@@ -77,10 +69,6 @@
       "itemSubcategoryPath": {
         "name": "Product subcategory path",
         "hint": "Path read from the source Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
-      },
-      "actorCurrencyPath": {
-        "name": "Main actor currency path",
-        "hint": "Path to read the main currency on an actor. Example: system.currency.gp. Leave empty if currency is managed by separate denominations."
       },
       "openConfigWindow": {
         "name": "MTT Configuration",
@@ -270,7 +258,7 @@
       "sessionSocketNoResponse": "The session change request received no response.",
       "sessionSocketNoHandler": "No connected GM or owner can handle this request.",
       "sessionSocketRequestDenied": "The session change request was denied.",
-      "noItemPricePath": "No item price path configured. Check the module compatibility settings."
+      "noItemPricePath": "No item price path configured. Check the module currencies table."
     },
     "price": {
       "freePrice": "Free price",
@@ -278,9 +266,7 @@
       "freePriceIconTooltip": "Propose a price to the seller",
       "minimumPrice": "GM minimum price",
       "minimumPriceHint": "Internal GM reference. Not displayed to buyers.",
-      "proposedPrice": "Proposed price",
-      "proposedPriceHint": "Price proposed to the seller in the reference currency.",
-      "referenceCurrency": "Reference currency"
+      "proposedPrice": "Proposed price"
     },
     "navigation": {
       "label": "Merchant sheet navigation"
@@ -340,19 +326,15 @@
       "columns": {
         "type": "Type",
         "name": "Name",
-        "side": "Side",
         "number": "No.",
         "buyer": "Buyer",
-        "date": "Date",
         "status": "Status",
         "paid": "Paid",
         "received": "Received",
         "adjustment": "Adj.",
         "quantity": "Qty",
-        "unitPrice": "Unit price",
         "unitPriceShort": "UP",
         "total": "Total",
-        "negotiation": "Negotiation",
         "negotiationShort": "Nego."
       },
       "type": {
@@ -380,21 +362,12 @@
       "secretDescription": "Secret description: {value}"
     },
     "items": {
-      "newItem": "New item",
-      "title": "Merchant items",
-      "subtitle": "Items currently stored in this merchant.",
-      "empty": "No item in this merchant.",
-      "emptyHelp": "Unlock the sheet to create or add items.",
-      "quantity": {
-        "short": "Qty",
-        "none": "No quantity defined"
-      }
+      "newItem": "New item"
     },
     "products": {
       "title": "Products",
       "subtitle": "Items currently offered or stored by this merchant.",
       "dropHelp": "Drop items here from the sidebar or a compendium.",
-      "sourceName": "Source item:",
       "hide": "Hide product",
       "show": "Show product",
       "requireApproval": "Require GM approval",
@@ -829,9 +802,7 @@
         "items": "Item paths",
         "delivery": "Delivery paths",
         "types": "Allowed types",
-        "currencies": "Currencies and conversion",
-        "legacy": "Compatibility — legacy price paths",
-        "legacyHint": "These settings are used as a fallback when no currency is configured with an item path. They correspond to the legacy price reading mode, before the universal currency system was introduced."
+        "currencies": "Currencies and conversion"
       },
       "categories": {
         "title": "Categories",

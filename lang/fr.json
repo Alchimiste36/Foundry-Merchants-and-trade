@@ -14,14 +14,6 @@
         "name": "Mode debug MTT",
         "hint": "Active des informations supplémentaires dans la console pour le module Merchants, Trades and Transactions."
       },
-      "itemPriceValuePath": {
-        "name": "Chemin du prix du produit / service",
-        "hint": "Chemin du système de l’item pour lire la valeur numérique du prix. Exemple : system.price.value"
-      },
-      "itemPriceCurrencyPath": {
-        "name": "Chemin de la monnaie",
-        "hint": "Chemin du système de l’item pour lire le code ou le sigle de la monnaie. Exemple : system.price.currency"
-      },
       "itemQuantityPath": {
         "name": "Chemin de la quantité",
         "hint": "Chemin du système de l’item pour lire la quantité disponible. Exemple : system.quantity"
@@ -77,10 +69,6 @@
       "itemSubcategoryPath": {
         "name": "Chemin de sous-catégorie produit",
         "hint": "Chemin lu sur l’Item source pour afficher une sous-catégorie discrète dans le catalogue. La sous-catégorie apparaît sous forme d’icône avec une info-bulle sur la ligne produit. Laisser vide pour désactiver cette fonction."
-      },
-      "actorCurrencyPath": {
-        "name": "Chemin de la monnaie principale de l’acteur",
-        "hint": "Chemin pour lire la monnaie principale sur un acteur. Exemple : system.currency.gp. Laisser vide si la monnaie est gérée par devises séparées."
       },
       "openConfigWindow": {
         "name": "Configuration MTT",
@@ -270,7 +258,7 @@
       "sessionSocketNoResponse": "La demande de modification de session n’a pas reçu de réponse.",
       "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
       "sessionSocketRequestDenied": "La demande de modification de session a été refusée.",
-      "noItemPricePath": "Aucun chemin de prix d'item configuré. Vérifiez les paramètres de compatibilité du module."
+      "noItemPricePath": "Aucun chemin de prix d'item configuré. Vérifiez le tableau des devises du module."
     },
     "price": {
       "freePrice": "Prix libre",
@@ -278,9 +266,7 @@
       "freePriceIconTooltip": "Proposer un prix au vendeur",
       "minimumPrice": "Prix minimum MJ",
       "minimumPriceHint": "Référence interne réservée au MJ. Elle n’est pas affichée aux acheteurs.",
-      "proposedPrice": "Prix proposé",
-      "proposedPriceHint": "Prix proposé au vendeur dans la monnaie de référence.",
-      "referenceCurrency": "Monnaie de référence"
+      "proposedPrice": "Prix proposé"
     },
     "navigation": {
       "label": "Navigation de la feuille marchand"
@@ -331,28 +317,24 @@
     },
     "journal": {
       "title": "Journal",
-      "empty": "Aucune transaction enregistr\u00e9e.",
-      "noDetail": "Aucun d\u00e9tail disponible.",
+      "empty": "Aucune transaction enregistrée.",
+      "noDetail": "Aucun détail disponible.",
       "status": {
-        "validated": "Valid\u00e9e",
-        "refused": "Refus\u00e9e"
+        "validated": "Validée",
+        "refused": "Refusée"
       },
       "columns": {
         "type": "Type",
         "name": "Nom",
-        "side": "Sens",
         "number": "N°",
         "buyer": "Acheteur",
-        "date": "Date",
         "status": "Statut",
         "paid": "Payé",
         "received": "Reçu",
         "adjustment": "Ajust.",
-        "quantity": "Qt\u00e9",
-        "unitPrice": "Prix unitaire",
+        "quantity": "Qté",
         "unitPriceShort": "PU",
         "total": "Total",
-        "negotiation": "N\u00e9gociation",
         "negotiationShort": "Négo."
       },
       "type": {
@@ -362,8 +344,8 @@
         "money": "Monnaie"
       },
       "side": {
-        "buyer": "Re\u00e7u / achet\u00e9",
-        "seller": "Donn\u00e9 / vendu"
+        "buyer": "Reçu / acheté",
+        "seller": "Donné / vendu"
       },
       "negotiation": {
         "accepted": "Négociation acceptée",
@@ -380,21 +362,12 @@
       "secretDescription": "Description secrète : {value}"
     },
     "items": {
-      "newItem": "Nouvel objet",
-      "title": "Objets du marchand",
-      "subtitle": "Objets actuellement contenus dans ce marchand.",
-      "empty": "Aucun objet dans ce marchand.",
-      "emptyHelp": "Déverrouillez la feuille pour créer ou ajouter des objets.",
-      "quantity": {
-        "short": "Qté",
-        "none": "Quantité non définie"
-      }
+      "newItem": "Nouvel objet"
     },
     "products": {
       "title": "Produits",
       "subtitle": "Objets actuellement proposés ou stockés par ce marchand.",
       "dropHelp": "Déposez ici des objets depuis la sidebar ou un compendium.",
-      "sourceName": "Objet source :",
       "hide": "Masquer le produit",
       "show": "Afficher le produit",
       "requireApproval": "Demander une validation MJ",
@@ -829,9 +802,7 @@
         "items": "Chemins des objets",
         "delivery": "Chemins de livraison",
         "types": "Types autorisés",
-        "currencies": "Devises et conversion",
-        "legacy": "Compatibilité — anciens chemins de prix",
-        "legacyHint": "Ces paramètres sont utilisés en repli lorsqu'aucune devise n'est configurée avec un chemin d'item. Ils correspondent à l'ancien mode de lecture des prix, avant l'introduction du système de devises universelles."
+        "currencies": "Devises et conversion"
       },
       "categories": {
         "title": "Catégories",

@@ -221,7 +221,7 @@ export function removeSessionItemById(session, itemId, side = "") {
   return initialBuyerCount !== session.buyerItems.length || initialSellerCount !== session.sellerItems.length;
 }
 
-export function syncSessionItemAvailability(actor, item) {
+function syncSessionItemAvailability(actor, item) {
   if (!item) return;
 
   if (item.type === "product") {
@@ -266,7 +266,7 @@ export function canAcceptSessionQuantity(actor, item, quantity) {
 
 // ─── Session totals and adjustments ──────────────────────────────────────────
 
-export function prepareSessionTotals(items) {
+function prepareSessionTotals(items) {
   const totals = new Map();
 
   items.forEach((item) => {
@@ -289,7 +289,7 @@ export function prepareSessionTotals(items) {
   });
 }
 
-export function prepareMoneyAdjustments(buyerTotals, sellerTotals) {
+function prepareMoneyAdjustments(buyerTotals, sellerTotals) {
   const totalsByCurrency = new Map();
 
   buyerTotals.forEach((total) => {
@@ -333,7 +333,7 @@ export function prepareMoneyAdjustments(buyerTotals, sellerTotals) {
     .filter(Boolean);
 }
 
-export function getSessionStatusNotice(status) {
+function getSessionStatusNotice(status) {
   if (status === "submitted") return game.i18n.localize("mtt.sessions.submittedNotice");
   if (status === "pending") return game.i18n.localize("mtt.sessions.pendingNotice");
   if (status === "validated") return game.i18n.localize("mtt.sessions.validatedNoTransfer");
@@ -343,7 +343,7 @@ export function getSessionStatusNotice(status) {
 
 // ─── Session context preparation ─────────────────────────────────────────────
 
-export function prepareSessionCheckContext(sessionCheckResult) {
+function prepareSessionCheckContext(sessionCheckResult) {
   if (!sessionCheckResult?.checked) {
     return {
       checked: false,
@@ -373,7 +373,7 @@ export function prepareSessionCheckContext(sessionCheckResult) {
   };
 }
 
-export function prepareSessionClientContext(session, accessClients) {
+function prepareSessionClientContext(session, accessClients) {
   const actorUuid = String(session?.actorUuid ?? "").trim();
   if (!actorUuid) {
     return {
@@ -648,7 +648,7 @@ export function normalizeAccessClient(client) {
   };
 }
 
-export function normalizeClientRateValue(value, fallback) {
+function normalizeClientRateValue(value, fallback) {
   const number = Number(value);
   if (Number.isFinite(number) && number >= 0) return Number(number.toFixed(2));
 
@@ -694,7 +694,7 @@ export function getEffectiveClientRates(actor, actorUuid) {
   };
 }
 
-export function formatClientCustomRatesTooltip(customRates) {
+function formatClientCustomRatesTooltip(customRates) {
   if (!customRates) return "";
 
   const parts = [
@@ -737,7 +737,7 @@ export function getStoredAccessClients(actor) {
   return Array.from(clientsByUuid.values());
 }
 
-export function getAccessSessionBadgeIcon(status) {
+function getAccessSessionBadgeIcon(status) {
   if (status === "active") return "fa-hourglass-half";
   if (status === "pending") return "fa-triangle-exclamation";
   if (status === "validated") return "fa-check";
@@ -746,7 +746,7 @@ export function getAccessSessionBadgeIcon(status) {
   return "";
 }
 
-export function getAccessSessionTooltipLabel(status) {
+function getAccessSessionTooltipLabel(status) {
   if (status === "submitted") return game.i18n.localize("mtt.access.sessionSubmitted");
   if (status === "active") return game.i18n.localize("mtt.access.sessionActive");
   if (status === "pending") return game.i18n.localize("mtt.access.sessionPending");
@@ -755,7 +755,7 @@ export function getAccessSessionTooltipLabel(status) {
   return game.i18n.localize("mtt.access.noSession");
 }
 
-export function formatAccessClientTooltip(client, { isEditable }) {
+function formatAccessClientTooltip(client, { isEditable }) {
   const parts = [client.actorName, client.userName || client.sourceLabel, client.statusLabel].filter(Boolean);
   if (client.hasSession) parts.push(getAccessSessionTooltipLabel(client.sessionStatus));
   parts.push(
@@ -844,7 +844,7 @@ export function prepareAccessClients(actor, { selectedSession, selectedClientAct
 
 // ─── Check logic ──────────────────────────────────────────────────────────────
 
-export function getConfiguredCurrency(currency) {
+function getConfiguredCurrency(currency) {
   const normalizedCurrency = normalizeCurrencyText(currency);
   if (!normalizedCurrency) return null;
 
@@ -859,7 +859,7 @@ export function getConfiguredCurrency(currency) {
   );
 }
 
-export function getMerchantWalletAmount(actor, currency) {
+function getMerchantWalletAmount(actor, currency) {
   const configuredCurrency = getConfiguredCurrency(currency);
   const walletKey = String(configuredCurrency?.id ?? currency ?? "").trim();
   if (!walletKey) return 0;
@@ -868,7 +868,7 @@ export function getMerchantWalletAmount(actor, currency) {
   return Number.isFinite(amount) && amount >= 0 ? amount : 0;
 }
 
-export function getActorCurrencyAmount(actor, currency) {
+function getActorCurrencyAmount(actor, currency) {
   if (!currency?.actorPath) return null;
   try {
     const raw = foundry.utils.getProperty(actor, currency.actorPath);
@@ -879,7 +879,7 @@ export function getActorCurrencyAmount(actor, currency) {
   }
 }
 
-export function prepareBuyerFortune(actor) {
+function prepareBuyerFortune(actor) {
   if (!actor) return [];
 
   return getCurrencies()
@@ -895,7 +895,7 @@ export function prepareBuyerFortune(actor) {
     .filter(Boolean);
 }
 
-export function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies) {
+function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies) {
   const result = {
     canExecute: false,
     errors: [],
@@ -1146,7 +1146,7 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
   if (Object.keys(merchantUpdate).length > 0) await merchantActor.update(merchantUpdate);
 }
 
-export function getProductCheckAvailableQuantity(actor, item) {
+function getProductCheckAvailableQuantity(actor, item) {
   const source = actor.items.get(item.sourceId);
   const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
   if (isUnlimitedQuantity(product.quantity)) return null;
@@ -1158,7 +1158,7 @@ export function getProductCheckAvailableQuantity(actor, item) {
   return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
 }
 
-export function getServiceCheckAvailableQuantity(actor, item) {
+function getServiceCheckAvailableQuantity(actor, item) {
   const service = actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
   if (isUnlimitedQuantity(service?.quantity)) return null;
 
@@ -1169,7 +1169,7 @@ export function getServiceCheckAvailableQuantity(actor, item) {
   return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
 }
 
-export function checkLimitedSessionQuantity({ item, availableQuantity, result, messageId, messageKey, icon }) {
+function checkLimitedSessionQuantity({ item, availableQuantity, result, messageId, messageKey, icon }) {
   if (availableQuantity === null || availableQuantity === undefined || availableQuantity === "") return;
 
   const requestedQuantity = Number(item.quantity);
@@ -1181,7 +1181,7 @@ export function checkLimitedSessionQuantity({ item, availableQuantity, result, m
   result.errors.push(createCheckMessage("error", messageId, game.i18n.format(messageKey, { name: item.name }), icon));
 }
 
-export function checkSessionStatus(session, result) {
+function checkSessionStatus(session, result) {
   if (session.status === "validated") {
     result.warnings.push(
       createCheckMessage(
@@ -1205,7 +1205,7 @@ export function checkSessionStatus(session, result) {
   }
 }
 
-export function checkSessionBuyerItems(actor, session, result) {
+function checkSessionBuyerItems(actor, session, result) {
   const buyerItems = session.buyerItems ?? [];
   if (buyerItems.length === 0) return;
 
@@ -1244,7 +1244,7 @@ export function checkSessionBuyerItems(actor, session, result) {
   }
 }
 
-export async function checkSessionSellerItems(actor, session, result) {
+async function checkSessionSellerItems(actor, session, result) {
   const sellerItems = session.sellerItems ?? [];
   if (sellerItems.length === 0) return;
 
@@ -1298,7 +1298,7 @@ export async function checkSessionSellerItems(actor, session, result) {
   }
 }
 
-export function checkSessionMoneyAdjustments(actor, moneyAdjustments, result) {
+function checkSessionMoneyAdjustments(actor, moneyAdjustments, result) {
   moneyAdjustments.forEach((adjustment) => {
     const currencyLabel = formatCurrencyLabel(adjustment.currency === "__none" ? "" : adjustment.currency);
 
@@ -1362,7 +1362,7 @@ export function checkSessionMoneyAdjustments(actor, moneyAdjustments, result) {
   });
 }
 
-export function checkSessionCurrencies(actor, preparedSession, result) {
+function checkSessionCurrencies(actor, preparedSession, result) {
   const seen = new Set();
   const currencyKeys = [
     ...(preparedSession.buyerTotalByCurrency ?? []).map((total) => total.currency),
@@ -1906,7 +1906,7 @@ function createDeliveryResult({ actor = null, productData = {}, quantityToDelive
   };
 }
 
-export function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver) {
+function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver) {
   const result = createDeliveryResult({ actor, productData, quantityToDeliver });
   const requestedQuantity = Number(quantityToDeliver);
 
@@ -1988,7 +1988,7 @@ export function simulatePurchasedItemDeliveryToActor(actor, productData, deliver
   return result;
 }
 
-export async function deliverPurchasedItemToActor(actor, productData, deliveredItemData, quantityToDeliver) {
+async function deliverPurchasedItemToActor(actor, productData, deliveredItemData, quantityToDeliver) {
   const simulation = simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver);
   if (!simulation.ok) return simulation;
 

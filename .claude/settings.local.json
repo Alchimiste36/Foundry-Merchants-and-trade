@@ -31,7 +31,8 @@
       "Bash(powershell -Command '[System.IO.File]::ReadAllBytes\\('\\\\''styles/applications/merchant-session.less'\\\\''\\) | Select-Object -Skip 20300 -First 50 | ForEach-Object { '\\\\''{0:X2}'\\\\'' -f $_ }')",
       "Bash(grep -n \"Â\\\\|\\\\\\\\\\\\\\\\00B7\\\\|middle\" styles/applications/merchant-session.less)",
       "Bash(wc -l module/applications/sheets/merchant-sheet.mjs module/applications/sheets/merchant-catalog.mjs module/applications/sheets/merchant-utils.mjs)",
-      "Bash(powershell -Command 'Get-ChildItem module/applications/sheets/merchant-sheet.mjs,module/applications/sheets/merchant-catalog.mjs,module/applications/sheets/merchant-utils.mjs | ForEach-Object { $_.Name + '\\\\'' : '\\\\'' + \\(Get-Content $_.FullName\\).Count + '\\\\'' lignes'\\\\'' }')"
+      "Bash(powershell -Command 'Get-ChildItem module/applications/sheets/merchant-sheet.mjs,module/applications/sheets/merchant-catalog.mjs,module/applications/sheets/merchant-utils.mjs | ForEach-Object { $_.Name + '\\\\'' : '\\\\'' + \\(Get-Content $_.FullName\\).Count + '\\\\'' lignes'\\\\'' }')",
+      "Bash(grep -v \"node_modules\\\\|//\\\\s*\")"
     ],
     "additionalDirectories": [
       "\\tmp"

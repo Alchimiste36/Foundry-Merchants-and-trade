@@ -12,24 +12,6 @@ export function registerSettings() {
     default: false,
   });
 
-  game.settings.register(MTT.ID, "itemPriceValuePath", {
-    name: "mtt.settings.itemPriceValuePath.name",
-    hint: "mtt.settings.itemPriceValuePath.hint",
-    scope: "world",
-    config: false,
-    type: String,
-    default: "",
-  });
-
-  game.settings.register(MTT.ID, "itemPriceCurrencyPath", {
-    name: "mtt.settings.itemPriceCurrencyPath.name",
-    hint: "mtt.settings.itemPriceCurrencyPath.hint",
-    scope: "world",
-    config: false,
-    type: String,
-    default: "",
-  });
-
   game.settings.register(MTT.ID, "itemQuantityPath", {
     name: "mtt.settings.itemQuantityPath.name",
     hint: "mtt.settings.itemQuantityPath.hint",
@@ -176,15 +158,6 @@ export function registerSettings() {
     default: "",
   });
 
-  game.settings.register(MTT.ID, "actorCurrencyPath", {
-    name: "mtt.settings.actorCurrencyPath.name",
-    hint: "mtt.settings.actorCurrencyPath.hint",
-    scope: "world",
-    config: false,
-    type: String,
-    default: "",
-  });
-
   game.settings.register(MTT.ID, "currencies", {
     name: "mtt.settings.currencies.name",
     hint: "mtt.settings.currencies.hint",
@@ -213,61 +186,12 @@ export function registerSettings() {
   });
 }
 
-export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
-  "itemPriceValuePath",
-  "itemPriceCurrencyPath",
-  "itemQuantityPath",
-  "deliveryItemQuantityPath",
-  "deliveryItemMaxQuantityPath",
-  "allowExtendedItemMerge",
-  "writeDeliveryDescriptionInfo",
-  "itemDescriptionPath",
-  "itemSecretDescriptionPath",
-  "allowedProductTypes",
-  "allowedServiceTypes",
-  "itemCategoryPaths",
-  "useItemTypeAsCategoryFallback",
-  "categoryLabelMap",
-  "defaultCustomCategories",
-  "actorCurrencyPath",
-  "currencies",
-  "itemSubcategoryPath",
-  "itemCategoryI18nPrefix",
-  "itemSubcategoryI18nPrefix",
-];
-
-export function buildModuleConfigurationExport() {
-  const settings = {};
-  for (const key of MTT_EXPORTABLE_CONFIG_SETTINGS) {
-    try {
-      settings[key] = game.settings.get(MTT.ID, key);
-    } catch {
-      // skip unregistered settings
-    }
-  }
-  return {
-    module: MTT.ID,
-    type: "module-configuration",
-    schemaVersion: 1,
-    exportedAt: new Date().toISOString(),
-    foundryVersion: game.version,
-    moduleVersion: game.modules.get(MTT.ID)?.version ?? "",
-    systemId: game.system.id,
-    systemTitle: game.system.title,
-    settings,
-  };
-}
-
 export function getCurrencies() {
   try {
     return JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]");
   } catch {
     return [];
   }
-}
-
-export function setCurrencies(currencies) {
-  return game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
 }
 
 export function parseDefaultCustomCategories(value) {

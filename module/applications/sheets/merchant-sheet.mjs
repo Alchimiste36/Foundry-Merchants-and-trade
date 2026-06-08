@@ -12,6 +12,10 @@ import {
   getMerchantSheetLockedState,
   getMerchantLimitedState,
   productHasSecretInfo,
+  readItemReferencePrice,
+  getItemPrice,
+  getItemCurrency,
+  resolveItemCurrencyKey,
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
@@ -1048,11 +1052,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       return {
         kind,
-        name: product.displayName || item.name,
+        name: item.name,
         hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
         isObserverOwnership:
-          Number(product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
+          Number(product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
           CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
         productItem: item,
         data: product,
@@ -1221,7 +1225,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await catalogItem.productItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...catalogItem.data,
         ...secrets,
-        isCommerciallyModified: true,
       });
       this.render();
       return;
@@ -1279,7 +1282,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
     const currentLevel = Number(
-      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
     );
     const nextLevel =
       currentLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
@@ -1831,7 +1834,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #isMerchantActor(actor) {
-    return actor?.type === "merchant" || actor?.type === MTT.ACTOR_TYPES.MERCHANT;
+    return actor?.type === MTT.ACTOR_TYPES.MERCHANT;
   }
 
   #getActiveSession() {
@@ -1928,7 +1931,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       products: this.actor.items.map((item) => {
         const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
         const ownershipLevel = Number(
-          product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
         );
 
         return {
@@ -2449,7 +2452,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
     const configuredOwnershipLevel = Number(
-      product.ownershipLevel ?? product.visibilityLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
     );
     const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
       ? configuredOwnershipLevel
@@ -2499,14 +2502,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (product.isHidden) return;
     if (!this.#requireSelectedSessionForItemAddition()) return;
 
-    const displayName = product.displayName || item.name;
-    const basePriceValue =
-      Number.isFinite(Number(product.priceValue)) && Number(product.priceValue) >= 0
-        ? Number(product.priceValue)
-        : MTT.PRODUCT_DEFAULTS.priceValue;
+    const name = item.name;
+    const universalPrice = readItemReferencePrice(item);
+    const basePriceValue = universalPrice !== null ? universalPrice.value : (getItemPrice(item) ?? 0);
     const rates = this.#getEffectiveRatesForSession();
     const displayPriceValue = adjustPriceValue(basePriceValue, rates.productSellPercent);
-    const priceCurrency = product.priceCurrency?.trim() ?? MTT.PRODUCT_DEFAULTS.priceCurrency;
+    const priceCurrency = universalPrice !== null
+      ? universalPrice.currency
+      : (resolveItemCurrencyKey(getItemCurrency(item)) || product.priceCurrency?.trim() || "");
     const quantity = product.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = Boolean(product.hasFreePrice);
@@ -2524,7 +2527,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const dialogData = await openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.productTitle"),
-      name: displayName,
+      name,
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
@@ -2563,7 +2566,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           type: "product",
           sourceId: item.id,
           sourceUuid: item.uuid,
-          name: displayName,
+          name,
           img: item.img,
           quantity: dialogData.quantity,
           unitPriceValue,
@@ -2583,7 +2586,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sessionItem = await this.#addSessionBuyerItem({
       type: "product",
       sourceId: item.id,
-      name: displayName,
+      name,
       img: item.img,
       quantity: dialogData.quantity,
       availableQuantity,
@@ -3077,9 +3080,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#saveMerchantTextFieldsFromDom();
     }
 
-    await this.actor.update({
-      "system.sheet.isLocked": !isLocked,
-    });
+    // Use updateSource to avoid triggering the full actor data-preparation cycle (CO2 getRollData crash on merchant actors).
+    this.actor.updateSource({ "system.sheet.isLocked": !isLocked });
+    await this.render({ force: true });
   }
 
   static async #onSaveReferenceState(event) {
@@ -3119,7 +3122,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const picker = new FilePicker({
+    const FilePickerApp = foundry.applications.apps.FilePicker.implementation;
+    const picker = new FilePickerApp({
       type: "image",
       current: this.actor.img,
       callback: async (path) => {
@@ -3237,7 +3241,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       if (!Number.isFinite(rawValue) || rawValue < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
-        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.priceValue ?? MTT.PRODUCT_DEFAULTS.priceValue;
+        const _universalPrice = readItemReferencePrice(item);
+        target.value = _universalPrice !== null ? _universalPrice.value : (getItemPrice(item) ?? 0);
         return;
       }
 
@@ -3288,7 +3293,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
         ...product,
         minimumPriceValue: rawValue,
-        isCommerciallyModified: true,
       });
     }
   }
@@ -3412,7 +3416,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
       ...product,
       hasFreePrice: !product.hasFreePrice,
-      isCommerciallyModified: true,
     });
 
     this.render();

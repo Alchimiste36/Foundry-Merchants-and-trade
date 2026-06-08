@@ -10,7 +10,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 const GLOBAL_JOURNAL_SORT_KEYS = ["date", "merchant", "buyer", "status", "total", "paid", "received", "adjustment"]
 
 function isMerchantActor(actor) {
-  return actor?.type === MTT.ACTOR_TYPES.MERCHANT || actor?.type === "merchant"
+  return actor?.type === MTT.ACTOR_TYPES.MERCHANT
 }
 
 function normalizeGlobalJournalSort(sort = {}) {
@@ -128,8 +128,6 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
           ...entry,
           merchantActorUuid: entry.merchantActorUuid || merchant.uuid,
           merchantName: entry.merchantName || merchant.name,
-          merchantImg: merchant.img,
-          merchantId: merchant.id,
         }),
       ),
     )

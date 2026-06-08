@@ -1,42 +1,30 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
 
-export function parsePriceValue(value) {
+// ─── Parsing / quantités ─────────────────────────────────────────────────────
+
+function parsePositiveNumberValue(value) {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return value
   }
-
   if (typeof value === "string") {
     const match = value.match(/-?\d+(?:[\.,]\d+)?/)
     if (!match) return null
     const parsed = Number(match[0].replace(",", "."))
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
   }
-
   if (typeof value === "object" && value !== null) {
-    return parsePriceValue(value.value ?? null)
+    return parsePositiveNumberValue(value.value ?? null)
   }
-
   return null
 }
 
+export function parsePriceValue(value) {
+  return parsePositiveNumberValue(value)
+}
+
 export function parseQuantityValue(value) {
-  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-    return value
-  }
-
-  if (typeof value === "string") {
-    const match = value.match(/-?\d+(?:[\.,]\d+)?/)
-    if (!match) return null
-    const parsed = Number(match[0].replace(",", "."))
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
-  }
-
-  if (typeof value === "object" && value !== null) {
-    return parseQuantityValue(value.value ?? null)
-  }
-
-  return null
+  return parsePositiveNumberValue(value)
 }
 
 export function isUnlimitedQuantity(value) {
@@ -60,7 +48,7 @@ export function getConfiguredItemMaxQuantity(itemOrData, maxQuantityPath) {
   return foundry.utils.getProperty(itemOrData, maxQuantityPath)
 }
 
-export function isUnlimitedMaxQuantity(value) {
+function isUnlimitedMaxQuantity(value) {
   return value === "" || value === null || value === undefined
 }
 
@@ -95,6 +83,8 @@ export function getDeliveryStackingConfig() {
   }
 }
 
+// ─── Secrets / informations cachées ──────────────────────────────────────────
+
 export function hasSecretValue(value) {
   return value !== null && value !== undefined && String(value).trim() !== ""
 }
@@ -108,9 +98,7 @@ export function productHasSecretInfo(productData = {}) {
   )
 }
 
-export function isProductCommerciallyModified(productData = {}) {
-  return Boolean(productData?.isCommerciallyModified || productHasSecretInfo(productData))
-}
+// ─── Fusion de livraison ─────────────────────────────────────────────────────
 
 export function getMttSourceUuid(itemOrData, productData = null) {
   const directSourceUuid = String(productData?.sourceUuid ?? "").trim()
@@ -134,6 +122,8 @@ function getMttProductFlags(itemOrData) {
   )
 }
 
+// Uses toLocaleLowerCase for locale-aware comparison of item names and category labels.
+// normalizeCurrencyText (exported) uses toLowerCase for stable currency key matching.
 function normalizeComparableText(value) {
   return String(value ?? "").trim().toLocaleLowerCase()
 }
@@ -157,17 +147,11 @@ function getComparableSubtypePath(existingItem, deliveredItemData, productData) 
 }
 
 function getComparableInitialPrice(itemOrData) {
-  return normalizeComparableNumber(
-    getConfiguredItemValue(itemOrData, "itemPriceValuePath") ?? getItemPrice(itemOrData),
-  )
+  return normalizeComparableNumber(getItemPrice(itemOrData))
 }
 
 function getComparableCurrency(itemOrData) {
-  const configuredCurrency = getConfiguredItemValue(itemOrData, "itemPriceCurrencyPath")
-  const rawCurrency =
-    typeof configuredCurrency === "string" && configuredCurrency.trim()
-      ? configuredCurrency
-      : getItemCurrency(itemOrData)
+  const rawCurrency = getItemCurrency(itemOrData)
   const normalizedCurrency = normalizeComparableText(rawCurrency)
   if (!normalizedCurrency) return ""
 
@@ -181,7 +165,7 @@ function getComparableCurrency(itemOrData) {
   return currency ? normalizeComparableText(currency.id ?? currency.abbreviation) : normalizedCurrency
 }
 
-export function canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
+function canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
   if (productHasSecretInfo(productData)) return false
 
   const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
@@ -190,7 +174,7 @@ export function canStrictMergeDeliveredItem(existingItem, deliveredItemData, pro
   return Boolean(sourceUuid && existingSourceUuid && sourceUuid === existingSourceUuid)
 }
 
-export function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
+function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
   if (productHasSecretInfo(productData)) return false
 
   const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
@@ -216,18 +200,21 @@ export function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, p
 export function getDeliveredItemMergeMode(existingItem, deliveredItemData, productData = {}) {
   const deliveredProduct = getMttProductFlags(deliveredItemData)
   const existingProduct = getMttProductFlags(existingItem)
-  const isCommerciallyModified =
-    isProductCommerciallyModified(productData) ||
-    isProductCommerciallyModified(deliveredProduct) ||
-    isProductCommerciallyModified(existingProduct)
 
-  if (isCommerciallyModified) return null
+  if (
+    productHasSecretInfo(productData) ||
+    productHasSecretInfo(deliveredProduct) ||
+    productHasSecretInfo(existingProduct)
+  ) return null
+
   if (canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "strict"
   if (!getModuleSetting("allowExtendedItemMerge")) return null
   if (canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "extended"
 
   return null
 }
+
+// ─── Monnaies ────────────────────────────────────────────────────────────────
 
 export function normalizeCurrencyKey(priceCurrency) {
   const currency = String(priceCurrency ?? "").trim()
@@ -248,7 +235,7 @@ export function normalizeCurrencyText(value) {
   return String(value ?? "").trim().toLowerCase()
 }
 
-export function resolveConfiguredCurrency(currencyText) {
+function resolveConfiguredCurrency(currencyText) {
   const currencies = getCurrencies()
   if (!currencies.length) return null
 
@@ -320,11 +307,11 @@ export function convertPriceToReferenceCurrency(value, priceCurrency) {
 
 const MONEY_EPSILON = 1e-8
 
-export function cleanMoneyNumber(value) {
+function cleanMoneyNumber(value) {
   return Math.round(Number(value) * 1e8) / 1e8
 }
 
-export function getSmallestCurrencyRate(currencies) {
+function getSmallestCurrencyRate(currencies) {
   let smallest = null
   for (const c of currencies) {
     const rate = Number(c.rate)
@@ -360,6 +347,8 @@ export function formatPriceLabel(priceValue, priceCurrency) {
 
   return `${formattedPrice} ${formatCurrencyLabel(currency)}`
 }
+
+// ─── HTML / texte ────────────────────────────────────────────────────────────
 
 export function escapeHTML(value) {
   const text = String(value ?? "")
@@ -401,6 +390,8 @@ export function htmlToPlainText(value) {
     .trim()
 }
 
+// ─── Droits / état feuille ───────────────────────────────────────────────────
+
 export function getMerchantSheetLockedState(actor) {
   return Boolean(foundry.utils.getProperty(actor, "system.sheet.isLocked"))
 }
@@ -412,6 +403,8 @@ export function getMerchantLimitedState(actor, user = game.user) {
   return permissionLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
 }
 
+// ─── Catégories ──────────────────────────────────────────────────────────────
+
 export function slugifyCategoryKey(value) {
   return String(value ?? "")
     .trim()
@@ -422,7 +415,7 @@ export function slugifyCategoryKey(value) {
     .replace(/^-+|-+$/g, "")
 }
 
-export function formatAutomaticCategoryLabel(value) {
+function formatAutomaticCategoryLabel(value) {
   const label = String(value ?? "")
     .trim()
     .replace(/[_-]+/g, " ")
@@ -471,6 +464,8 @@ export function localizeConfiguredValue(rawValue, prefix = "") {
 export function createCheckMessage(level, id, text, icon = "") {
   return { id, level, text, icon }
 }
+
+// ─── Lecture d'items ─────────────────────────────────────────────────────────
 
 export function getItemDescription(item) {
   try {
@@ -539,6 +534,8 @@ export function getItemCurrency(item) {
   return ""
 }
 
+// ─── Settings / lecture de chemins ───────────────────────────────────────────
+
 export function getModuleSetting(key) {
   return game.settings.get(MTT.ID, key) ?? ""
 }
@@ -550,7 +547,7 @@ export function getConfiguredItemValue(item, settingKey) {
   return foundry.utils.getProperty(item, path)
 }
 
-export function getAllowedTypes(settingKey) {
+function getAllowedTypes(settingKey) {
   const raw = String(getModuleSetting(settingKey) ?? "").trim()
   if (!raw) return null
 
@@ -599,19 +596,19 @@ export function getCategoryLabelMap() {
 
 // ─── Universal currency reading (Étape B) ────────────────────────────────────
 
-export function parseCurrencyAliases(value) {
+function parseCurrencyAliases(value) {
   return String(value ?? "")
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean)
 }
 
-export function matchesCurrencyAlias(actual, aliases) {
+function matchesCurrencyAlias(actual, aliases) {
   const normalizedActual = String(actual ?? "").trim().toLocaleLowerCase()
   return aliases.some((alias) => alias.toLocaleLowerCase() === normalizedActual)
 }
 
-export function readItemCurrencyAmount(item, currency) {
+function readItemCurrencyAmount(item, currency) {
   const itemPricePath = String(currency.itemPricePath ?? "").trim()
   if (!itemPricePath) return 0
 
@@ -628,7 +625,7 @@ export function readItemCurrencyAmount(item, currency) {
   return amount
 }
 
-export function readItemCurrencyAmounts(item, currencies) {
+function readItemCurrencyAmounts(item, currencies) {
   return currencies.map((currency) => ({
     currencyId: currency.id,
     abbreviation: currency.abbreviation,
@@ -637,7 +634,7 @@ export function readItemCurrencyAmounts(item, currencies) {
   }))
 }
 
-export function convertCurrencyAmountsToReference(amounts, referenceCurrency) {
+function convertCurrencyAmountsToReference(amounts, referenceCurrency) {
   if (!referenceCurrency) return 0
   const referenceRate = Number(referenceCurrency.rate)
   const safeReferenceRate = Number.isFinite(referenceRate) && referenceRate > 0 ? referenceRate : 1
@@ -669,7 +666,34 @@ export function readItemReferencePrice(item) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+export function buildItemPriceWriteData(value, currency) {
+  const currencies = getCurrencies()
+  const currenciesWithPaths = currencies.filter((c) => String(c.itemPricePath ?? "").trim())
+
+  if (currenciesWithPaths.length === 0) return { ok: false, paths: {} }
+
+  const targetCurrency = resolveConfiguredCurrency(currency)
+  const targetPath = String(targetCurrency?.itemPricePath ?? "").trim()
+  if (!targetCurrency || !targetPath) return { ok: false, paths: {} }
+
+  const paths = {}
+  for (const c of currenciesWithPaths) {
+    const path = String(c.itemPricePath ?? "").trim()
+    if (path && c !== targetCurrency) paths[path] = 0
+  }
+  paths[targetPath] = value
+
+  const currencyIdPath = String(targetCurrency.itemCurrencyPath ?? "").trim()
+  if (currencyIdPath) {
+    const aliases = parseCurrencyAliases(targetCurrency.itemCurrencyValues)
+    const writeValue = aliases[0] ?? String(targetCurrency.abbreviation ?? "").trim()
+    if (writeValue) paths[currencyIdPath] = writeValue
+  }
+
+  return { ok: true, paths }
+}
+
+// ─── Options de monnaies ─────────────────────────────────────────────────────
 
 export function prepareCurrencyOptions() {
   const currencies = getCurrencies()
@@ -701,33 +725,3 @@ export function prepareCurrencyOptions() {
   return options
 }
 
-export function buildCurrencySelectOptions(selectedKey) {
-  const currencies = getCurrencies()
-  const options = []
-  const usedKeys = new Set()
-
-  for (const c of currencies) {
-    const abbr = String(c.abbreviation ?? "").trim()
-    const fallbackAbbr = String(c.abbr ?? c.code ?? "").trim()
-    const name = String(c.name ?? "").trim()
-    const id = String(c.id ?? "").trim()
-    const key = abbr || id
-    const label = name || abbr || id
-    const abbreviation = abbr || fallbackAbbr || key || label
-    if (!key) continue
-    usedKeys.add(key)
-    options.push({ key, label, abbreviation })
-  }
-
-  if (selectedKey && !usedKeys.has(selectedKey)) {
-    options.push({ key: selectedKey, label: selectedKey, abbreviation: selectedKey })
-  }
-
-  return options
-    .map(({ key, label, abbreviation }) => {
-      const sel = key === selectedKey ? " selected" : ""
-      const title = label && label !== abbreviation ? ` title="${escapeHTML(label)}"` : ""
-      return `<option value="${escapeHTML(key)}"${title}${sel}>${escapeHTML(abbreviation)}</option>`
-    })
-    .join("")
-}

@@ -56,7 +56,7 @@ function normalizeJournalTransactionEntry(entry = {}) {
     isNegotiated: Boolean(entry.isNegotiated ?? defaults.isNegotiated),
     negotiationStatus: String(entry.negotiationStatus ?? defaults.negotiationStatus),
     isFreePrice: Boolean(entry.isFreePrice ?? defaults.isFreePrice),
-    hadSecrets: Boolean(entry.hadSecrets ?? entry.hasSecrets ?? defaults.hadSecrets),
+    hadSecrets: Boolean(entry.hadSecrets ?? defaults.hadSecrets),
   }
 }
 

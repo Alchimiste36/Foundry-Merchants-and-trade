@@ -1,6 +1,6 @@
 /* MTT — Fiche marchand : styles généraux et imports */
 /* MTT — Variables partagées */
-.mtt-sheet {
+:root {
   --mtt-bg-main: #202225;
   --mtt-bg-panel: #2a2d31;
   --mtt-bg-panel-soft: #32363b;
@@ -14,8 +14,11 @@
   --mtt-accent: #c79a48;
   --mtt-accent-soft: rgba(199, 154, 72, 0.18);
   --mtt-danger: #d36b5f;
+  --mtt-warning: #d6a84f;
   --mtt-secret: #8f75c9;
   --mtt-secret-soft: rgba(143, 117, 201, 0.18);
+}
+.mtt-sheet {
   font-family: var(--font-family);
   color: var(--mtt-text);
 }
@@ -1360,7 +1363,7 @@
   text-align: right;
 }
 .mtt-merchant-session-summary-row strong span + span::before {
-  content: "Â·";
+  content: "·";
   margin: 0 0.25rem;
   color: var(--mtt-text-soft);
 }
@@ -1833,7 +1836,7 @@
   padding: 0.25rem 0.45rem;
   border: 1px solid var(--mtt-border, #4a4f57);
   border-radius: 0.35rem;
-  background: var(--mtt-bg-panel-soft, #2a2d33);
+  background: var(--mtt-bg-panel-soft, #32363b);
   color: var(--mtt-text-muted, #b6afa3);
   font-weight: 700;
   cursor: pointer;
@@ -1841,7 +1844,7 @@
 .mtt-global-journal-filters button:hover,
 .mtt-global-journal-sortbar button:hover {
   border-color: var(--mtt-accent, #c79a48);
-  background: var(--mtt-bg-hover, #2a2d33);
+  background: var(--mtt-bg-hover, #383d44);
   color: var(--mtt-text, #e5e0d6);
 }
 .mtt-global-journal-sortbar {

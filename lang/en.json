@@ -831,6 +831,7 @@
         "currencies": "Currencies and conversion"
       },
       "categories": {
+        "title": "Categories",
         "itemCategoryI18nPrefix": {
           "label": "Category i18n prefix",
           "hint": "Translation prefix added before the value read by the category path. Example: if the value is Armor and the prefix is CO.equipment.subtypes., MTT will look up CO.equipment.subtypes.Armor. Leave empty to display the raw value."

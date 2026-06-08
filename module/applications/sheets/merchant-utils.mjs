@@ -1,6 +1,8 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
 
+// ─── Parsing / quantités ─────────────────────────────────────────────────────
+
 function parsePositiveNumberValue(value) {
   if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
     return value
@@ -81,6 +83,8 @@ export function getDeliveryStackingConfig() {
   }
 }
 
+// ─── Secrets / informations cachées ──────────────────────────────────────────
+
 export function hasSecretValue(value) {
   return value !== null && value !== undefined && String(value).trim() !== ""
 }
@@ -97,6 +101,8 @@ export function productHasSecretInfo(productData = {}) {
 export function isProductCommerciallyModified(productData = {}) {
   return Boolean(productData?.isCommerciallyModified || productHasSecretInfo(productData))
 }
+
+// ─── Fusion de livraison ─────────────────────────────────────────────────────
 
 export function getMttSourceUuid(itemOrData, productData = null) {
   const directSourceUuid = String(productData?.sourceUuid ?? "").trim()
@@ -216,6 +222,8 @@ export function getDeliveredItemMergeMode(existingItem, deliveredItemData, produ
 
   return null
 }
+
+// ─── Monnaies ────────────────────────────────────────────────────────────────
 
 export function normalizeCurrencyKey(priceCurrency) {
   const currency = String(priceCurrency ?? "").trim()
@@ -349,6 +357,8 @@ export function formatPriceLabel(priceValue, priceCurrency) {
   return `${formattedPrice} ${formatCurrencyLabel(currency)}`
 }
 
+// ─── HTML / texte ────────────────────────────────────────────────────────────
+
 export function escapeHTML(value) {
   const text = String(value ?? "")
   return foundry.utils.escapeHTML
@@ -389,6 +399,8 @@ export function htmlToPlainText(value) {
     .trim()
 }
 
+// ─── Droits / état feuille ───────────────────────────────────────────────────
+
 export function getMerchantSheetLockedState(actor) {
   return Boolean(foundry.utils.getProperty(actor, "system.sheet.isLocked"))
 }
@@ -399,6 +411,8 @@ export function getMerchantLimitedState(actor, user = game.user) {
   const permissionLevel = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
   return permissionLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
 }
+
+// ─── Catégories ──────────────────────────────────────────────────────────────
 
 export function slugifyCategoryKey(value) {
   return String(value ?? "")
@@ -459,6 +473,8 @@ export function localizeConfiguredValue(rawValue, prefix = "") {
 export function createCheckMessage(level, id, text, icon = "") {
   return { id, level, text, icon }
 }
+
+// ─── Lecture d'items ─────────────────────────────────────────────────────────
 
 export function getItemDescription(item) {
   try {
@@ -526,6 +542,8 @@ export function getItemCurrency(item) {
 
   return ""
 }
+
+// ─── Settings / lecture de chemins ───────────────────────────────────────────
 
 export function getModuleSetting(key) {
   return game.settings.get(MTT.ID, key) ?? ""
@@ -657,7 +675,7 @@ export function readItemReferencePrice(item) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Options de monnaies ─────────────────────────────────────────────────────
 
 export function prepareCurrencyOptions() {
   const currencies = getCurrencies()

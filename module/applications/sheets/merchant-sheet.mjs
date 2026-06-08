@@ -3077,9 +3077,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#saveMerchantTextFieldsFromDom();
     }
 
-    await this.actor.update({
-      "system.sheet.isLocked": !isLocked,
-    });
+    // Use updateSource to avoid triggering the full actor data-preparation cycle (CO2 getRollData crash on merchant actors).
+    this.actor.updateSource({ "system.sheet.isLocked": !isLocked });
+    await this.render({ force: true });
   }
 
   static async #onSaveReferenceState(event) {

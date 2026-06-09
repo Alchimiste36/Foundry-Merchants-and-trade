@@ -9,6 +9,9 @@
       "merchant": "Merchant Sheet",
       "merchantTitle": "MTT - Merchant: {name}"
     },
+    "actorTypes": {
+      "merchant": "MTT Merchant"
+    },
     "settings": {
       "debug": {
         "name": "MTT debug mode",

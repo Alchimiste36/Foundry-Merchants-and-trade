@@ -41,7 +41,7 @@ import {
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
   createProductFlags,
-  updateMerchantProductCommercialData,
+  updateMerchantProductItemData,
   addOrMergeProduct,
   moveProductToCategory,
   createServiceFromItem,
@@ -2504,9 +2504,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const name = item.name;
     const universalPrice = readItemReferencePrice(item);
-    const basePriceValue = universalPrice !== null ? universalPrice.value : (getItemPrice(item) ?? 0);
+    const itemPriceValue = universalPrice !== null ? universalPrice.value : (getItemPrice(item) ?? 0);
     const rates = this.#getEffectiveRatesForSession();
-    const displayPriceValue = adjustPriceValue(basePriceValue, rates.productSellPercent);
+    const displayPriceValue = adjustPriceValue(itemPriceValue, rates.productSellPercent);
     const priceCurrency = universalPrice !== null
       ? universalPrice.currency
       : (resolveItemCurrencyKey(getItemCurrency(item)) || product.priceCurrency?.trim() || "");
@@ -3198,11 +3198,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const field = target.dataset.mttProductField;
 
-    if (field === "displayName") {
-      const displayName = target.value?.trim();
+    if (field === "name") {
+      const name = target.value?.trim();
 
-      await updateMerchantProductCommercialData(item, {
-        displayName,
+      await updateMerchantProductItemData(item, {
+        name,
       });
 
       return;
@@ -3246,7 +3246,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
 
-      await updateMerchantProductCommercialData(item, {
+      await updateMerchantProductItemData(item, {
         priceValue: rawValue,
       });
       return;
@@ -3254,7 +3254,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "priceCurrency") {
       const selectedValue = target.value?.trim() ?? "";
-      await updateMerchantProductCommercialData(item, {
+      await updateMerchantProductItemData(item, {
         priceCurrency: selectedValue,
       });
       return;

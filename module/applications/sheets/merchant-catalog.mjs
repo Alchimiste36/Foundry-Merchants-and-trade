@@ -26,11 +26,11 @@ import {
   buildItemPriceWriteData,
 } from "./merchant-utils.mjs"
 
-export function adjustPriceValue(basePriceValue, sellPercent) {
-  const priceValue = Number(basePriceValue)
-  if (!Number.isFinite(priceValue) || priceValue < 0) return 0
+export function adjustPriceValue(priceValue, sellPercent) {
+  const numericPrice = Number(priceValue)
+  if (!Number.isFinite(numericPrice) || numericPrice < 0) return 0
 
-  return Number(((priceValue * sellPercent) / 100).toFixed(2))
+  return Number(((numericPrice * sellPercent) / 100).toFixed(2))
 }
 
 export function prepareTrade(actor) {
@@ -95,18 +95,18 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
     const quantity = product.quantity
     const hasFreePrice = product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice
 
-    let basePriceValue, priceCurrency
+    let itemPriceValue, priceCurrency
 
     const universalPrice = readItemReferencePrice(item)
     if (universalPrice !== null) {
-      basePriceValue = universalPrice.value
+      itemPriceValue = universalPrice.value
       priceCurrency = universalPrice.currency
     } else {
-      basePriceValue = getItemPrice(item) ?? 0
+      itemPriceValue = getItemPrice(item) ?? 0
       priceCurrency = resolveItemCurrencyKey(getItemCurrency(item)) || (product.priceCurrency?.trim() ?? "")
     }
 
-    const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, sellPercent)
+    const displayPriceValue = hasFreePrice ? itemPriceValue : adjustPriceValue(itemPriceValue, sellPercent)
     const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
     const isVisible = !isHidden
     const configuredOwnershipLevel = Number(
@@ -142,8 +142,8 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       secretPrice,
       secretCurrency,
       secretDescription,
-      priceValue: basePriceValue,
-      basePriceValue,
+      priceValue: itemPriceValue,
+      itemPriceValue,
       displayPriceValue,
       priceCurrency,
       category: (product.category ?? "").trim(),
@@ -165,7 +165,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       requiresApproval: product.requiresApproval ?? MTT.PRODUCT_DEFAULTS.requiresApproval,
       priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
       displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
-      basePriceLabel: formatPriceLabel(basePriceValue, priceCurrency),
+      itemPriceLabel: formatPriceLabel(itemPriceValue, priceCurrency),
       hasSecrets,
       hasSecretInfos: hasSecrets,
       secretTooltip: hasSecrets ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription }) : "",
@@ -466,14 +466,14 @@ export function createProductFlags(itemData, options = {}) {
   return itemData
 }
 
-export async function updateMerchantProductCommercialData(item, changes = {}) {
+export async function updateMerchantProductItemData(item, changes = {}) {
   const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
   const updatedProduct = { ...product }
   const updateData = {}
   let flagsChanged = false
 
-  if (Object.hasOwn(changes, "displayName")) {
-    const name = String(changes.displayName ?? "").trim() || item.name
+  if (Object.hasOwn(changes, "name")) {
+    const name = String(changes.name ?? "").trim() || item.name
     updateData.name = name
   }
 
@@ -586,7 +586,7 @@ export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", a
   productData.ownership = {
     default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
   }
-  // Catalogue drop: this creates merchant commercial stock, not a purchased Item on a client actor.
+  // Catalogue drop: this creates merchant catalogue stock, not a purchased Item on a client actor.
   const [createdItem] = await actor.createEmbeddedDocuments("Item", [productData])
 
   if (createdItem) {

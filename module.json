@@ -32,7 +32,8 @@
   ],
   "documentTypes": {
     "Actor": {
-      "merchant": {
+      "mtt-merchants.merchant": {
+        "label": "mtt.actorTypes.merchant",
         "htmlFields": ["merchant.description"]
       }
     }

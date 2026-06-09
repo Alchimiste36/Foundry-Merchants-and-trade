@@ -50,6 +50,7 @@ Hooks.once("init", async function () {
   )
 
   CONFIG.Actor.dataModels[MTT.ACTOR_TYPES.MERCHANT] = models.MerchantData
+  CONFIG.Actor.typeLabels[MTT.ACTOR_TYPES.MERCHANT] = "mtt.actorTypes.merchant"
 
   foundry.documents.collections.Actors.registerSheet(
     MTT.ID,

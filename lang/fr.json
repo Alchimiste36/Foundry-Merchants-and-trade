@@ -9,6 +9,9 @@
       "merchant": "Feuille de marchand",
       "merchantTitle": "MTT - Marchand : {name}"
     },
+    "actorTypes": {
+      "merchant": "MTT Marchand"
+    },
     "settings": {
       "debug": {
         "name": "Mode debug MTT",

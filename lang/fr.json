@@ -92,17 +92,11 @@
       "lock": "Verrouiller",
       "unlock": "Déverrouiller",
       "locked": "Verrouillé",
-      "unlocked": "Déverrouillé",
-      "openMerchant": "Ouvrir le marchand",
-      "closeMerchant": "Fermer le marchand"
+      "unlocked": "Déverrouillé"
     },
     "merchant": {
       "name": {
         "placeholder": "Nom du marchand"
-      },
-      "status": {
-        "open": "Ouvert",
-        "closed": "Fermé"
       },
       "description": {
         "title": "Description du marchand",

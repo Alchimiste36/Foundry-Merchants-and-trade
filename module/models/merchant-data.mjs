@@ -489,13 +489,6 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
         }),
       }),
 
-      status: new fields.SchemaField({
-        isOpen: new fields.BooleanField({
-          required: true,
-          initial: true,
-        }),
-      }),
-
       sheet: new fields.SchemaField({
         isLocked: new fields.BooleanField({
           required: true,

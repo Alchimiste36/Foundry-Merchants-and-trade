@@ -92,17 +92,11 @@
       "lock": "Lock",
       "unlock": "Unlock",
       "locked": "Locked",
-      "unlocked": "Unlocked",
-      "openMerchant": "Open merchant",
-      "closeMerchant": "Close merchant"
+      "unlocked": "Unlocked"
     },
     "merchant": {
       "name": {
         "placeholder": "Merchant name"
-      },
-      "status": {
-        "open": "Open",
-        "closed": "Closed"
       },
       "description": {
         "title": "Merchant description",

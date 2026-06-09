@@ -120,7 +120,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleCatalogItemVisibility: MerchantSheet.#onToggleCatalogItemVisibility,
       toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
-      toggleOpen: MerchantSheet.#onToggleOpen,
       toggleLock: MerchantSheet.#onToggleLock,
       toggleProductSecret: MerchantSheet.#onToggleProductSecret,
       toggleProductCategory: MerchantSheet.#onToggleProductCategory,
@@ -185,8 +184,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLimited,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
-        open: "mtt.merchant.status.open",
-        closed: "mtt.merchant.status.closed",
         lock: "mtt.sheet.lock",
         unlock: "mtt.sheet.unlock",
         createItem: "mtt.actions.createItem",
@@ -3088,16 +3085,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!Number.isFinite(nextTransactionNumber) || nextTransactionNumber <= 0) return 1;
 
     return Math.floor(nextTransactionNumber);
-  }
-
-  static async #onToggleOpen(event) {
-    event.preventDefault();
-
-    if (!this.#canModifyMerchant()) return;
-
-    await this.actor.update({
-      "system.status.isOpen": !this.actor.system.status.isOpen,
-    });
   }
 
   static async #onToggleLock(event) {

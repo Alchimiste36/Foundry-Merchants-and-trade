@@ -47,7 +47,7 @@ export const MTT = {
     sourceUuid: null,
     sourceName: "",
     sourceType: "",
-    sourceImg: "",
+    sourceImg: "icons/svg/coins.svg",
     category: "",
     systemCategoryKey: "",
     systemCategoryLabel: "",

@@ -71,6 +71,11 @@
   min-width: 0;
   height: 25px;
 }
+.mtt-merchant-product-category-header-actions {
+  display: flex;
+  align-items: end;
+  gap: 0.35rem;
+}
 .mtt-merchant-product-category-title-block {
   min-width: 0;
   margin-left: -5px;
@@ -2437,7 +2442,6 @@
 }
 /* ─── Boutons et navigation partagés ─────────────────────────────────────── */
 .mtt-merchant-lock-button,
-.mtt-merchant-open-button,
 .mtt-merchant-product-create-button,
 .mtt-merchant-product-action,
 .mtt-merchant-secret-toggle {
@@ -2450,7 +2454,6 @@
   cursor: pointer;
 }
 .mtt-merchant-lock-button,
-.mtt-merchant-open-button,
 .mtt-merchant-product-action,
 .mtt-merchant-secret-toggle {
   width: 2.25rem;
@@ -2459,15 +2462,13 @@
   border-radius: 0.45rem;
 }
 .mtt-merchant-lock-button:hover,
-.mtt-merchant-open-button:hover,
 .mtt-merchant-product-create-button:hover,
 .mtt-merchant-product-action:hover,
 .mtt-merchant-secret-toggle:hover {
   background: var(--mtt-bg-hover);
   border-color: var(--mtt-accent);
 }
-.mtt-merchant-lock-button span,
-.mtt-merchant-open-button span {
+.mtt-merchant-lock-button span {
   display: none;
 }
 .mtt-is-locked .mtt-merchant-lock-button {
@@ -2559,15 +2560,24 @@
   color: var(--mtt-text);
 }
 .mtt-merchant-field-input,
-.mtt-merchant-product-name-input,
-.mtt-merchant-product-quantity-input,
-.mtt-merchant-product-price-value-input,
-.mtt-merchant-product-price-currency-input,
 .mtt-merchant-product-category-input,
 .mtt-merchant-product-secret-input {
   min-height: 1.85rem;
   padding: 0.25rem 0.45rem;
   border-radius: 0.35rem;
+}
+.mtt-merchant-product-name-input,
+.mtt-merchant-product-price-value,
+.mtt-merchant-product-quantity-input {
+  padding: 0rem 0.45rem;
+  height: 1.6rem;
+}
+.mtt-merchant-product-price-value {
+  text-align: right;
+}
+.mtt-merchant-product-price-currency {
+  padding: 0;
+  height: 1.6rem;
 }
 .mtt-merchant-product-secret-textarea {
   min-height: 4.5rem;

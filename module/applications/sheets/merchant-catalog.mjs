@@ -657,7 +657,7 @@ export async function createServiceFromItem(actor, item) {
     sourceUuid: item.uuid ?? null,
     sourceName: item.name ?? "",
     sourceType: item.type ?? "",
-    sourceImg: item.img ?? "",
+    sourceImg: item.img || MTT.SERVICE_DEFAULTS.sourceImg,
     category: automaticCategory?.key ?? "",
     systemCategoryKey: automaticCategory?.key ?? "",
     systemCategoryLabel: automaticCategory?.label ?? "",

@@ -956,6 +956,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     menu.style.top = `${event.clientY}px`;
     menu.setAttribute("aria-label", game.i18n.localize("mtt.access.contextTitle"));
 
+    const openActor = document.createElement("button");
+    openActor.type = "button";
+    openActor.classList.add("mtt-merchant-access-context-menu-button");
+    const openActorIcon = document.createElement("i");
+    openActorIcon.classList.add("fa-solid", "fa-user");
+    const openActorLabel = document.createElement("span");
+    openActorLabel.textContent = game.i18n.localize("mtt.access.openActor");
+    openActor.append(openActorIcon, openActorLabel);
+    openActor.addEventListener("click", async () => {
+      this.#closeAccessContextMenu()
+      await this.#openAccessClientActor(client)
+    });
+
     const removeAuthorization = document.createElement("button");
     removeAuthorization.type = "button";
     removeAuthorization.classList.add("mtt-merchant-access-context-menu-button");
@@ -1011,7 +1024,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeAccessClient(client);
     });
 
-    menu.append(customRates);
+    menu.append(openActor, customRates);
     if (resetCustomRates) menu.append(resetCustomRates);
     menu.append(removeAuthorization, removeActor);
     applicationElement.append(menu);
@@ -1692,6 +1705,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.#setClientAuthorization(client, false, { removeOpenSessions });
     this.render();
     return true;
+  }
+
+  async #openAccessClientActor(client) {
+    const actorUuid = String(client?.actorUuid ?? "").trim()
+    if (!actorUuid) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.actorNotFound"))
+      return null
+    }
+
+    const actor = await fromUuid(actorUuid)
+    if (actor?.documentName !== "Actor") {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.actorNotFound"))
+      return null
+    }
+
+    actor.sheet?.render(true)
+    return actor
   }
 
   async #removeAccessClient(client) {

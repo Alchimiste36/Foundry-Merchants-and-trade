@@ -81,12 +81,19 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
   const description = String(secretDescription ?? "").trim()
   const shortDescription = description.length > 180 ? `${description.slice(0, 177)}...` : description
   const priceLabel = [secretPrice, secretCurrency].map((value) => String(value ?? "").trim()).filter(Boolean).join(" ")
+  const lines = []
 
-  return [
-    `${game.i18n.localize("mtt.secrets.tooltip.name")} ${secretName || "-"}`,
-    `${game.i18n.localize("mtt.secrets.tooltip.price")} ${priceLabel || "-"}`,
-    `${game.i18n.localize("mtt.secrets.tooltip.description")} ${shortDescription || "-"}`,
-  ].join("\n")
+  if (String(secretName ?? "").trim()) {
+    lines.push(`${game.i18n.localize("mtt.secrets.tooltip.name")} ${String(secretName ?? "").trim()}`)
+  }
+  if (priceLabel) {
+    lines.push(`${game.i18n.localize("mtt.secrets.tooltip.price")} ${priceLabel}`)
+  }
+  if (shortDescription) {
+    lines.push(`${game.i18n.localize("mtt.secrets.tooltip.description")} ${shortDescription}`)
+  }
+
+  return lines.join("\n")
 }
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {

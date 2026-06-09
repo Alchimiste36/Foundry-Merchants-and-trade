@@ -494,7 +494,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #activateAccessRail(rail) {
-    rail.querySelectorAll('[data-action="toggleClientAccess"]').forEach((button) => {
+    rail.querySelectorAll('[data-mtt-client-access-action="toggle"]').forEach((button) => {
       button.addEventListener("click", (event) => MerchantSheet.#onToggleClientAccess.call(this, event, button));
       button.addEventListener("contextmenu", (event) => this.#onClientContextMenu(event, button));
     });
@@ -1911,10 +1911,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #requireSelectedSessionForItemAddition() {
-    if (this.#getSessionForAddingItem()) return true;
-
-    ui.notifications.warn(game.i18n.localize("mtt.notifications.selectClientBeforeAdding"));
-    return false;
+    return Boolean(this.#getSessionForAddingItem())
   }
 
   // ─── Session quantity helpers ─────────────────────────────────────────────
@@ -2330,7 +2327,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return sessionItem;
   }
 
-  async #createSessionForClient(client) {
+  async #createSessionForClient(client, { skipExternalSessionCheck = false } = {}) {
     if (!client?.actorUuid || !client.isAuthorized) {
       ui.notifications.warn(game.i18n.localize("mtt.access.notAuthorizedForTrade"));
       return null;
@@ -2342,10 +2339,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return existingSession;
     }
 
-    const externalMerchant = this.#findExternalOpenSessionForClient(client.actorUuid);
-    if (externalMerchant) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.clientAlreadyTrading"));
-      return null;
+    if (!skipExternalSessionCheck) {
+      const externalMerchant = this.#findExternalOpenSessionForClient(client.actorUuid)
+      if (externalMerchant) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.clientAlreadyTrading"))
+        return null
+      }
     }
 
     const sessions = this.#getSessions().map((session) => normalizeSession(session));
@@ -2822,6 +2821,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const session = await this.#createSessionForClient({
         ...client,
         isAuthorized: true,
+      }, {
+        skipExternalSessionCheck: true,
       });
       if (!session) return;
 

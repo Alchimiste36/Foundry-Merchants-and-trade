@@ -974,7 +974,7 @@ Lors d’un achat validé, MTT doit :
 
 La logique de quantité maximale par pile ne s’applique pas au stock du marchand.
 
-Un marchand peut avoir une pile commerciale de 35 armures même si le système actif limite l’Item acteur à 1 par pile.
+Un marchand peut avoir un stock catalogue de 35 armures même si le système actif limite l’Item acteur à 1 par pile.
 
 La quantité max sert uniquement au moment de livrer/fusionner/créer les Items sur l’acteur acheteur.
 

@@ -22,7 +22,7 @@ export function registerSettings() {
   });
 
   // Actor delivery only: these paths distribute purchased Items into receiving actor stacks.
-  // They must never limit or split the merchant's independent commercial catalogue stock.
+  // They must never limit or split the merchant's independent catalogue stock.
   game.settings.register(MTT.ID, "deliveryItemQuantityPath", {
     name: "mtt.settings.deliveryItemQuantityPath.name",
     hint: "mtt.settings.deliveryItemQuantityPath.hint",

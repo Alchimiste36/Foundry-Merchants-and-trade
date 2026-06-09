@@ -71,7 +71,7 @@
       },
       "itemSubcategoryPath": {
         "name": "Product subcategory path",
-        "hint": "Path read from the source Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
+        "hint": "Path read from the Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
       },
       "openConfigWindow": {
         "name": "MTT Configuration",
@@ -815,7 +815,7 @@
         },
         "itemSubcategoryPath": {
           "label": "Product subcategory path",
-          "hint": "Path read from the source Item to display a discrete subcategory in the catalog. The subcategory appears as an icon with a tooltip on the product row. Leave empty to disable this feature."
+          "hint": "Path read from the Item to display a discrete subcategory in the catalog. The subcategory appears as an icon with a tooltip on the product row. Leave empty to disable this feature."
         },
         "itemSubcategoryI18nPrefix": {
           "label": "Subcategory i18n prefix",

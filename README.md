@@ -1,57 +1,192 @@
-# Foundry-Merchants-and-trade
+# Merchants, Trades and Transactions
 
-Module pour foundry VTT pour la gestion de magasin, marchands et transactions
+**Merchants, Trades and Transactions** (**MTT**) est un module pour **Foundry VTT** qui ajoute une gestion de marchands, boutiques, services et transactions.
 
-## Livraison des achats sur acteur
+Le module permet de créer des acteurs marchands, d’y organiser un catalogue de produits et de services, puis de gérer les échanges avec les personnages joueurs à travers des sessions de transaction.
 
-Les quantités du catalogue marchand restent indépendantes des piles d'Items possédées par les acteurs.
+MTT est pensé comme un module générique : il peut être configuré pour différents systèmes de jeu grâce à des chemins de données personnalisables et une configuration des monnaies.
 
-La configuration MTT permet de définir :
+---
 
-- `deliveryItemQuantityPath` : chemin de la quantité portée par une pile d'Item livrée à un acteur ;
-- `deliveryItemMaxQuantityPath` : chemin de la quantité maximale autorisée par pile sur l'acteur.
+## Fonctionnalités principales
 
-Si le chemin de quantité de livraison est vide, MTT utilise le chemin général `itemQuantityPath`. Si le maximum est vide, invalide ou inférieur à `1`, la pile livrée est considérée comme illimitée.
+- Création d’acteurs marchands dédiés.
+- Catalogue de produits basé sur des Items Foundry.
+- Gestion de services dans la boutique.
+- Catégories et sous-catégories de catalogue.
+- Produits ou services visibles, masqués ou soumis à validation MJ.
+- Clients autorisés avec rail de portraits compact.
+- Sessions de transaction par client.
+- Achat de produits ou services.
+- Vente d’objets du PJ au marchand.
+- Ajustement monétaire automatique entre ce que le PJ reçoit et ce qu’il donne.
+- Prise en charge de plusieurs monnaies configurables.
+- Prix libres et propositions de prix.
+- Négociation manuelle par le MJ.
+- Validation ou refus d’une transaction complète.
+- Livraison des objets achetés sur l’acteur client.
+- Gestion des quantités, stocks et piles d’Items à la livraison.
+- Informations secrètes réservées au MJ.
+- Journal marchand et journal global des transactions.
+- Import/export de la configuration du module.
 
-MTT fusionne une livraison uniquement avec une pile acteur qui possède explicitement la même origine MTT et qui ne contient aucune modification locale incompatible. Une origine absente ou ambiguë crée une nouvelle pile.
+---
 
-L'option `allowExtendedItemMerge`, désactivée par défaut, autorise un fallback contrôlé lorsque cette origine commune est absente. MTT compare alors uniquement le nom, le type, le sous-type configuré, le prix initial et la monnaie. En cas de correspondance, l'Item acteur existant est conservé : seuls sa quantité et ses flags MTT sont mis à jour.
+## Compatibilité
 
-## Checklist manuelle Foundry
+MTT cible actuellement :
 
-- [ ] Acheter un produit avec un stock marchand limité et vérifier sa diminution.
-- [ ] Acheter un produit avec un stock marchand illimité et vérifier qu'il reste illimité.
-- [ ] Livrer une quantité inférieure au maximum par pile.
-- [ ] Livrer une quantité supérieure au maximum et vérifier la création de plusieurs piles acteur.
-- [ ] Compléter une pile compatible existante, puis créer une nouvelle pile avec le reliquat.
-- [ ] Vérifier qu'une pile sans origine MTT explicite ne fusionne pas.
-- [ ] Vérifier qu'une pile modifiée localement de façon incompatible ne fusionne pas.
-- [ ] Vérifier qu'un chemin de quantité de livraison absent bloque proprement la validation.
-- [ ] Vérifier qu'un stock marchand insuffisant bloque la validation avant tout transfert.
-- [ ] Vérifier qu'une erreur de livraison bloque les transferts monétaires.
-- [ ] Vérifier qu'une vente du PJ au marchand fonctionne toujours.
-- [ ] Acheter un service illimité avec une quantité vide et vérifier qu'aucun Item n'est créé sur l'acteur acheteur.
-- [ ] Acheter un service limité avec un stock de `3`, puis vérifier que son stock passe à `2`.
-- [ ] Tenter d'acheter `2` unités d'un service limité à `1` et vérifier que la validation est bloquée sans paiement.
-- [ ] Acheter `5` unités d'un service illimité et vérifier que sa quantité reste vide.
-- [ ] Configurer le taux produit à `120 %` et le taux service à `100 %`, puis vérifier qu'un produit à `10` vaut `12` et qu'un service à `10` vaut `10`.
-- [ ] Configurer le taux service à `150 %`, puis vérifier qu'un service à `10` vaut `15`.
-- [ ] Valider un service négocié ou soumis à validation MJ et vérifier que son stock limité diminue sans livrer d'Item.
-- [ ] Sélectionner `Prix libre` comme monnaie d'un service et vérifier que la liste n'affiche aucun prix fixe calculé.
-- [ ] Ajouter un service à prix libre avec une proposition positive et vérifier que la négociation utilise la monnaie de référence.
-- [ ] Configurer le taux service à `150 %`, proposer `20` pour un service à prix libre et vérifier que la session conserve `20`, pas `30`.
-- [ ] Refuser successivement une proposition vide, `0`, `-5` ou invalide pour un service à prix libre.
-- [ ] Contre-proposer un nouveau prix pour un service à prix libre, l'accepter, puis vérifier que le stock diminue sans livrer d'Item.
-- [ ] Vérifier que le MJ ou propriétaire voit le prix minimum indiqué dans une négociation à prix libre.
-- [ ] Vérifier qu'un acheteur classique ne voit ni le prix minimum ni une ligne de prix de référence pour une négociation à prix libre.
-- [ ] Vérifier qu'une négociation à prix libre sans minimum affiche l'absence de minimum uniquement au MJ ou propriétaire.
-- [ ] Vérifier qu'une proposition inférieure au minimum reste négociable et n'est pas refusée automatiquement.
-- [ ] Dans une négociation à prix libre, modifier la quantité et vérifier que le total est recalculé sans afficher de pourcentage.
-- [ ] Dans une négociation à prix libre, modifier le prix unitaire et vérifier que le total est recalculé.
-- [ ] Dans une négociation à prix libre, modifier le total et vérifier que le prix unitaire est recalculé.
-- [ ] Proposer puis accepter une offre à prix libre après recalcul et vérifier qu'aucune erreur liée au pourcentage absent ne survient.
-- [ ] Vérifier qu'une négociation classique recalcule toujours le pourcentage, le prix unitaire et le total.
-- [ ] Désactiver la fusion étendue et vérifier qu'un Item acteur sans flags MTT reçoit une nouvelle ligne.
-- [ ] Activer la fusion étendue et vérifier qu'un Item acteur compatible sans flags MTT reçoit la quantité et les flags MTT sans perdre sa description locale.
-- [ ] Vérifier qu'un nom, un type, un sous-type, un prix initial ou une monnaie différente bloque la fusion étendue.
-- [ ] Vérifier qu'une fusion étendue complète une pile jusqu'à son maximum puis crée une nouvelle pile pour le reliquat.
+```text
+Foundry VTT V14
+```
+
+Le module est développé pour rester indépendant d’un système de jeu précis.
+
+Le premier environnement de test utilisé est **Chroniques Oubliées 2**, mais le cœur du module ne dépend pas directement de CO2.
+
+---
+
+## Installation
+
+### Installation manuelle par URL de manifeste
+
+Dans Foundry VTT :
+
+1. Ouvrir **Configuration and Setup**.
+2. Aller dans **Add-on Modules**.
+3. Cliquer sur **Install Module**.
+4. Coller l’URL du manifeste :
+
+```text
+https://raw.githubusercontent.com/Alchimiste36/Foundry-Merchants-and-trade/main/module.json
+```
+
+5. Installer puis activer le module dans le monde souhaité.
+
+### Installation manuelle par archive
+
+1. Télécharger l’archive du dépôt.
+2. Extraire le dossier du module dans le dossier `Data/modules` de Foundry.
+3. Vérifier que le dossier du module contient bien `module.json`.
+4. Redémarrer Foundry.
+5. Activer le module dans le monde souhaité.
+
+---
+
+## Premiers pas
+
+1. Activer le module dans votre monde.
+2. Créer un acteur de type **MTT Marchand**.
+3. Ouvrir la fiche du marchand.
+4. Configurer les monnaies et les chemins utiles pour votre système.
+5. Ajouter des produits ou services au catalogue.
+6. Autoriser un personnage joueur à commercer avec le marchand.
+7. Gérer la session de transaction depuis la fiche marchand.
+
+---
+
+## Configuration
+
+MTT repose sur une configuration adaptable.
+
+La configuration permet notamment de définir :
+
+- les types d’Items autorisés comme produits ;
+- les types d’Items autorisés comme services ;
+- les chemins de quantité ;
+- les chemins de description ;
+- les chemins de catégories et sous-catégories ;
+- les monnaies, abréviations et taux de conversion ;
+- les chemins de prix et de monnaie des Items ;
+- les chemins de monnaie des acteurs ;
+- les options de livraison et de fusion des Items.
+
+Cette configuration permet d’adapter le module à plusieurs systèmes de jeu sans coder de logique système directement dans le cœur de MTT.
+
+---
+
+## Produits et services
+
+Les **produits** sont basés sur des Items Foundry placés dans le catalogue du marchand.
+
+Les **services** sont des entrées de boutique qui peuvent représenter une prestation, une faveur, une réparation, une location, une information, un accès ou tout autre élément non forcément livré sous forme d’Item.
+
+Un service acheté ne crée pas automatiquement un Item chez l’acheteur. Il est surtout suivi par la session et le journal de transaction.
+
+---
+
+## Sessions de transaction
+
+Chaque client autorisé dispose de sa propre session chez un marchand.
+
+Une session contient deux parties :
+
+```text
+Le PJ achète / reçoit
+Le PJ vend / donne
+```
+
+La monnaie sert d’ajustement automatique entre les deux côtés de l’échange.
+
+Le MJ peut prévisualiser, valider ou refuser une transaction.
+
+---
+
+## Journaux
+
+MTT conserve un historique des transactions :
+
+- dans le journal du marchand ;
+- dans un journal global du module.
+
+Les transactions validées et refusées peuvent être consultées selon les droits de l’utilisateur.
+
+Un MJ ou propriétaire du marchand peut voir l’ensemble des transactions du marchand. Un acheteur ne voit que ses propres transactions avec ce marchand.
+
+---
+
+## Informations secrètes
+
+Un produit ou un service peut contenir des informations secrètes réservées au MJ :
+
+- nom secret ;
+- prix secret ;
+- monnaie secrète ;
+- description secrète.
+
+Ces informations peuvent être utilisées pour préparer des objets trompeurs, des défauts cachés, des prix réels ou des détails réservés au MJ.
+
+---
+
+## Développement
+
+Le module utilise JavaScript moderne pour Foundry VTT V14.
+
+Quelques conventions du projet :
+
+- fichiers et dossiers en minuscules ;
+- classes CSS préfixées par `mtt-` ;
+- localisation via le namespace `mtt` ;
+- code JavaScript sans point-virgule superflu ;
+- pas de dépendance directe à un système de jeu particulier ;
+- pas de dépendance npm ajoutée sans nécessité claire.
+
+---
+
+## Statut
+
+MTT est encore en développement actif.
+
+Certaines fonctionnalités peuvent évoluer, être renommées ou être simplifiées avant une version stable.
+
+---
+
+## Auteur
+
+Module développé par **Alchimiste36**.
+
+Dépôt GitHub :
+
+```text
+https://github.com/Alchimiste36/Foundry-Merchants-and-trade
+```

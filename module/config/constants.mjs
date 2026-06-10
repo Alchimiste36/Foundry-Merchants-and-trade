@@ -12,6 +12,7 @@ export const MTT = {
 
   PRODUCT_DEFAULTS: {
     quantity: 1,
+    deliveryQuantityPerLot: null,
     secretName: "",
     secretPrice: "",
     secretCurrency: "",
@@ -87,6 +88,7 @@ export const MTT = {
     name: "",
     img: "",
     quantity: 1,
+    deliveryQuantityPerLot: null,
     unitPriceValue: 0,
     totalPriceValue: 0,
     priceCurrency: "",

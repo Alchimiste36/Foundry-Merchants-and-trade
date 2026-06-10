@@ -213,6 +213,10 @@
   width: min(100%, 260px);
   font-weight: 700;
 }
+.mtt-merchant-product-lot-quantity-input {
+  width: 2rem;
+  text-align: center;
+}
 .mtt-merchant-product-details {
   display: grid;
   grid-template-columns: auto auto;
@@ -2568,9 +2572,13 @@
 }
 .mtt-merchant-product-name-input,
 .mtt-merchant-product-price-value,
-.mtt-merchant-product-quantity-input {
+.mtt-merchant-product-quantity-input,
+.mtt-merchant-product-lot-quantity-input {
   padding: 0rem 0.45rem;
   height: 1.6rem;
+}
+.mtt-merchant-product-lot-quantity-input {
+  padding: 0;
 }
 .mtt-merchant-product-price-value {
   text-align: right;

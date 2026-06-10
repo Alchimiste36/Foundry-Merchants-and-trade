@@ -23,6 +23,8 @@ import {
   getModuleSetting,
   hasSecretValue,
   productHasSecretInfo,
+  normalizeEffectiveDeliveryQuantityPerLot,
+  formatProductNameWithLotQuantity,
 } from "./merchant-utils.mjs";
 import {
   prepareMerchantCatalogItemData,
@@ -42,6 +44,7 @@ export function normalizeSessionItem(item) {
     Boolean(item.hasLimitedQuantity) && Number.isFinite(availableQuantity) && availableQuantity >= 0;
   const normalizedQuantity = Number.isFinite(quantity) && quantity >= 0 ? quantity : 1;
   const normalizedUnitPrice = Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0;
+  const normalizedDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(item.deliveryQuantityPerLot);
 
   return {
     id: item.id || foundry.utils.randomID(),
@@ -52,6 +55,8 @@ export function normalizeSessionItem(item) {
     name: item.name ?? "",
     img: item.img ?? "",
     quantity: normalizedQuantity,
+    deliveryQuantityPerLot:
+      item.type === "product" && normalizedDeliveryQuantityPerLot > 1 ? normalizedDeliveryQuantityPerLot : null,
     availableQuantity: hasLimitedQuantity ? availableQuantity : null,
     hasLimitedQuantity,
     unitPriceValue: normalizedUnitPrice,
@@ -1524,13 +1529,18 @@ export async function buildExecutionPreview(actor, session) {
       }
 
       const product = merchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
+        item.deliveryQuantityPerLot ?? product.deliveryQuantityPerLot,
+      );
+      const quantityToDeliver = Math.floor(item.quantity * deliveryQuantityPerLot);
+      const displayName = formatProductNameWithLotQuantity(merchantItem.name ?? item.name, deliveryQuantityPerLot);
       const deliveryProductData = { ...product, id: merchantItem.id };
-      const deliveredItemData = buildVisibleProductItemData(merchantItem, product, item.quantity);
+      const deliveredItemData = buildVisibleProductItemData(merchantItem, product, quantityToDeliver);
       const deliverySimulation = simulatePurchasedItemDeliveryToActor(
         clientActor,
         deliveryProductData,
         deliveredItemData,
-        item.quantity,
+        quantityToDeliver,
       );
       preview.actorDeliverySimulations.push(deliverySimulation);
       for (const error of deliverySimulation.errors) {
@@ -1543,7 +1553,7 @@ export async function buildExecutionPreview(actor, session) {
       preview.buyerDeliveries.push({
         type: "product",
         id: item.id,
-        name: item.name,
+        name: displayName,
         img: item.img,
         quantity: item.quantity,
         unitPriceLabel,
@@ -1554,7 +1564,7 @@ export async function buildExecutionPreview(actor, session) {
       });
       if (Number.isFinite(available) && available >= 0) {
         preview.merchantStockUpdates.push({
-          name: item.name,
+          name: displayName,
           img: item.img,
           quantityToReduce: item.quantity,
           availableQuantity: available,
@@ -2125,6 +2135,10 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     const availableQuantity = normalizeFiniteQuantity(product.quantity);
     const hasLimitedQuantity = !isUnlimitedQuantity(product.quantity);
     const requestedQuantity = Number(item.quantity);
+    const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
+      item.deliveryQuantityPerLot ?? product.deliveryQuantityPerLot,
+    );
+    const quantityToDeliver = Math.floor(requestedQuantity * deliveryQuantityPerLot);
     const reservedQuantity = reservedMerchantQuantities.get(merchantItem.id) ?? 0;
     const totalRequestedQuantity = reservedQuantity + requestedQuantity;
 
@@ -2145,13 +2159,14 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       id: merchantItem.id,
       merchantName: actor?.name ?? "",
       transactionNumber: options.transactionNumber,
+      deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
     };
-    const deliveredItemData = buildVisibleProductItemData(merchantItem, product, requestedQuantity);
+    const deliveredItemData = buildVisibleProductItemData(merchantItem, product, quantityToDeliver);
     const deliveryPlan = simulatePurchasedItemDeliveryToActor(
       clientActor,
       deliveryProductData,
       deliveredItemData,
-      requestedQuantity,
+      quantityToDeliver,
     );
     deliveryPlans.push(deliveryPlan);
     if (!deliveryPlan.ok) {
@@ -2167,6 +2182,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       deliveredItemData,
       deliveryPlan,
       quantity: requestedQuantity,
+      quantityToDeliver,
       nextQuantity: hasLimitedQuantity ? Number((availableQuantity - totalRequestedQuantity).toFixed(2)) : null,
       hasLimitedQuantity,
     });
@@ -2294,7 +2310,7 @@ export async function executeSessionItemTransfers(actor, plan) {
       clientActor,
       transfer.deliveryProductData,
       transfer.deliveredItemData,
-      transfer.quantity,
+      transfer.quantityToDeliver,
     ),
   );
   const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors);
@@ -2308,10 +2324,10 @@ export async function executeSessionItemTransfers(actor, plan) {
       clientActor,
       transfer.deliveryProductData,
       transfer.deliveredItemData,
-      transfer.quantity,
+      transfer.quantityToDeliver,
     );
     if (!delivery.ok) throw new Error(delivery.errors.join(" "));
-    if (delivery.deliveredQuantity !== transfer.quantity) {
+    if (delivery.deliveredQuantity !== transfer.quantityToDeliver) {
       throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryQuantityMismatch"));
     }
 

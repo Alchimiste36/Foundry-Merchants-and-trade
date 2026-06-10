@@ -21,6 +21,15 @@ export function registerSettings() {
     default: "",
   });
 
+  game.settings.register(MTT.ID, "itemDeliveryQuantityPerLotPath", {
+    name: "mtt.settings.itemDeliveryQuantityPerLotPath.name",
+    hint: "mtt.settings.itemDeliveryQuantityPerLotPath.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
   // Actor delivery only: these paths distribute purchased Items into receiving actor stacks.
   // They must never limit or split the merchant's independent catalogue stock.
   game.settings.register(MTT.ID, "deliveryItemQuantityPath", {

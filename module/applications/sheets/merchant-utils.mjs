@@ -68,6 +68,21 @@ export function normalizeItemQuantity(value, fallback = 0) {
   return Math.max(0, Math.floor(quantity))
 }
 
+export function normalizeEffectiveDeliveryQuantityPerLot(value) {
+  const quantity = Number(value)
+  if (!Number.isFinite(quantity) || quantity < 1) return 1
+
+  return Math.floor(quantity)
+}
+
+export function formatProductNameWithLotQuantity(name, deliveryQuantityPerLot) {
+  const productName = String(name ?? "").trim()
+  const quantity = normalizeEffectiveDeliveryQuantityPerLot(deliveryQuantityPerLot)
+  if (quantity <= 1) return productName
+
+  return `${productName} (${quantity})`
+}
+
 export function getAvailableStackSpace(currentQuantity, maxQuantity) {
   if (maxQuantity === Infinity) return Infinity
 

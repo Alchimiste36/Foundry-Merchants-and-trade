@@ -24,6 +24,8 @@ import {
   productHasSecretInfo,
   readItemReferencePrice,
   buildItemPriceWriteData,
+  normalizeEffectiveDeliveryQuantityPerLot,
+  formatProductNameWithLotQuantity,
 } from "./merchant-utils.mjs"
 
 export function adjustPriceValue(priceValue, sellPercent) {
@@ -100,6 +102,9 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
   const items = actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const quantity = product.quantity
+    const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot)
+    const hasDeliveryQuantityPerLot = effectiveDeliveryQuantityPerLot > 1
+    const displayName = formatProductNameWithLotQuantity(item.name, product.deliveryQuantityPerLot)
     const hasFreePrice = product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice
 
     let itemPriceValue, priceCurrency
@@ -140,9 +145,12 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       id: item.id,
       uuid: item.uuid,
       name: item.name,
+      displayName,
       type: item.type,
       img: item.img,
       quantity,
+      deliveryQuantityPerLot: hasDeliveryQuantityPerLot ? effectiveDeliveryQuantityPerLot : "",
+      effectiveDeliveryQuantityPerLot,
       hasQuantity: !isUnlimitedQuantity(quantity),
       document: item,
       secretName,
@@ -466,6 +474,12 @@ export function createProductFlags(itemData, options = {}) {
   const parsedQuantity = parseQuantityValue(configuredQuantity)
   if (parsedQuantity !== null) {
     productFlags.quantity = parsedQuantity
+  }
+
+  const configuredDeliveryQuantityPerLot = getConfiguredItemValue(itemData, "itemDeliveryQuantityPerLotPath")
+  const parsedDeliveryQuantityPerLot = parseQuantityValue(configuredDeliveryQuantityPerLot)
+  if (parsedDeliveryQuantityPerLot !== null && parsedDeliveryQuantityPerLot > 1) {
+    productFlags.deliveryQuantityPerLot = Math.floor(parsedDeliveryQuantityPerLot)
   }
 
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags)

@@ -168,6 +168,15 @@
                             value="{{item.name}}"
                             data-mtt-product-field="name"
                           />
+                          <input
+                            class="mtt-merchant-product-lot-quantity-input"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value="{{item.deliveryQuantityPerLot}}"
+                            data-mtt-product-field="deliveryQuantityPerLot"
+                            data-tooltip="{{localize 'mtt.products.tooltips.quantityPerLot'}}"
+                          />
                           </div>
                         {{else}}
                           {{#if @root.mtt.isEditable}}
@@ -190,12 +199,12 @@
                             <span
                               class="mtt-merchant-product-name"
                             >
-                              {{item.name}}
+                              {{item.displayName}}
                             </span>
                             </span>
                           {{else}}
                             <span class="mtt-merchant-catalog-name-row">
-                              <span class="mtt-merchant-product-name">{{item.name}}</span>
+                              <span class="mtt-merchant-product-name">{{item.displayName}}</span>
                             </span>
                           {{/if}}
                         {{/if}}

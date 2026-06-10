@@ -21,6 +21,10 @@
         "name": "Chemin de la quantité",
         "hint": "Chemin du système de l’item pour lire la quantité disponible. Exemple : system.quantity"
       },
+      "itemDeliveryQuantityPerLotPath": {
+        "name": "Chemin quantité livrée par lot de l’Item",
+        "hint": "Chemin système optionnel permettant de lire le nombre d’unités livrées pour un lot vendu. Si vide, le MJ peut renseigner cette quantité sur la ligne produit."
+      },
       "deliveryItemQuantityPath": {
         "name": "Livraison acteur : chemin de la quantité",
         "hint": "Chemin utilisé uniquement lors de la livraison d’un item sur un acteur client. Laisser vide pour réutiliser le chemin général de quantité. Exemple : system.quantity.value"
@@ -379,6 +383,9 @@
         "short": "Qté",
         "undefined": "Quantité non définie",
         "unlimited": "Illimité"
+      },
+      "tooltips": {
+        "quantityPerLot": "Quantité par lot"
       },
       "tags": {
         "hidden": "Masqué",

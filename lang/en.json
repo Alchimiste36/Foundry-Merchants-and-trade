@@ -21,6 +21,10 @@
         "name": "Quantity path",
         "hint": "Path in the item system to read the available quantity. Example: system.quantity"
       },
+      "itemDeliveryQuantityPerLotPath": {
+        "name": "Item delivered quantity per lot path",
+        "hint": "Optional system path used to read how many units are delivered for one sold lot. If empty, the GM can enter this quantity on the product row."
+      },
       "deliveryItemQuantityPath": {
         "name": "Delivery actor: quantity path",
         "hint": "Path used only when delivering an item to a client actor. Leave empty to reuse the general quantity path. Example: system.quantity.value"
@@ -379,6 +383,9 @@
         "short": "Qty",
         "undefined": "Quantity undefined",
         "unlimited": "Unlimited"
+      },
+      "tooltips": {
+        "quantityPerLot": "Quantity per lot"
       },
       "tags": {
         "hidden": "Hidden",

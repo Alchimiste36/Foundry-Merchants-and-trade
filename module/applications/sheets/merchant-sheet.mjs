@@ -16,6 +16,8 @@ import {
   getItemPrice,
   getItemCurrency,
   resolveItemCurrencyKey,
+  normalizeEffectiveDeliveryQuantityPerLot,
+  formatProductNameWithLotQuantity,
 } from "./merchant-utils.mjs";
 import {
   renderMttDialogContent,
@@ -434,6 +436,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       proposedUnitPriceValue: negotiation.proposedUnitPriceValue ?? unitPriceValue,
       isFreePrice: Boolean(negotiation.isFreePrice),
       minimumPriceValue: negotiation.minimumPriceValue,
+      deliveryQuantityPerLot: negotiation.deliveryQuantityPerLot,
       isFromActor: negotiation.side === "seller",
     });
   }
@@ -2130,6 +2133,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     proposedUnitPriceValue = "",
     isFreePrice = false,
     minimumPriceValue = null,
+    deliveryQuantityPerLot = null,
   }) {
     const session = await this.#getOrCreateActiveSession();
     if (!session) return null;
@@ -2138,6 +2142,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const convertedPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency);
     const normalizedUnitPrice = Number(convertedPrice.value);
     const normalizedCurrency = convertedPrice.currency;
+    const normalizedDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(deliveryQuantityPerLot);
     const normalizedAvailableQuantity = Number(availableQuantity);
     const hasLimitedStock =
       Boolean(hasLimitedQuantity) && Number.isFinite(normalizedAvailableQuantity) && normalizedAvailableQuantity >= 0;
@@ -2156,7 +2161,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         item.type === type &&
         item.sourceId === sourceId &&
         item.unitPriceValue === normalizedUnitPrice &&
-        item.priceCurrency === normalizedCurrency,
+        item.priceCurrency === normalizedCurrency &&
+        normalizeEffectiveDeliveryQuantityPerLot(item.deliveryQuantityPerLot) === normalizedDeliveryQuantityPerLot,
     );
 
     if (existingItem) {
@@ -2177,6 +2183,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       name,
       img: img ?? "",
       quantity: normalizedQuantity,
+      deliveryQuantityPerLot: normalizedDeliveryQuantityPerLot > 1 ? normalizedDeliveryQuantityPerLot : null,
       availableQuantity: hasLimitedStock ? normalizedAvailableQuantity : null,
       hasLimitedQuantity: hasLimitedStock,
       unitPriceValue: normalizedUnitPrice,
@@ -2214,6 +2221,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     referencePriceCurrency = priceCurrency,
     isFreePrice = false,
     minimumPriceValue = null,
+    deliveryQuantityPerLot = null,
   }) {
     const normalizedQuantity = Number(quantity);
     const convertedUnitPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency);
@@ -2223,6 +2231,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const safeQuantity = Number.isFinite(normalizedQuantity) && normalizedQuantity > 0 ? normalizedQuantity : 1;
     const safeUnitPrice = Number.isFinite(normalizedUnitPrice) && normalizedUnitPrice >= 0 ? normalizedUnitPrice : 0;
     const safeReference = Number.isFinite(normalizedReference) && normalizedReference >= 0 ? normalizedReference : 0;
+    const safeDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(deliveryQuantityPerLot);
     const totalPriceValue = Number((safeQuantity * safeUnitPrice).toFixed(2));
     const percentOfReference = safeReference > 0 ? Number(((safeUnitPrice / safeReference) * 100).toFixed(2)) : 100;
     const now = new Date().toISOString();
@@ -2244,6 +2253,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         minimumPriceValue !== null && Number.isFinite(Number(minimumPriceValue)) && Number(minimumPriceValue) >= 0
           ? Number(minimumPriceValue)
           : null,
+      deliveryQuantityPerLot: safeDeliveryQuantityPerLot > 1 ? safeDeliveryQuantityPerLot : null,
       status: "active",
       currentTurn: "merchant",
       offers: [
@@ -2529,6 +2539,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.#requireSelectedSessionForItemAddition()) return;
 
     const name = item.name;
+    const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot);
+    const displayName = formatProductNameWithLotQuantity(name, product.deliveryQuantityPerLot);
     const universalPrice = readItemReferencePrice(item);
     const itemPriceValue = universalPrice !== null ? universalPrice.value : (getItemPrice(item) ?? 0);
     const rates = this.#getEffectiveRatesForSession();
@@ -2553,7 +2565,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const dialogData = await openSessionPreparationDialog({
       title: game.i18n.localize("mtt.sessions.dialog.productTitle"),
-      name,
+      name: displayName,
       priceLabel: hasFreePrice
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
@@ -2592,7 +2604,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           type: "product",
           sourceId: item.id,
           sourceUuid: item.uuid,
-          name,
+          name: displayName,
           img: item.img,
           quantity: dialogData.quantity,
           unitPriceValue,
@@ -2601,6 +2613,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           referencePriceCurrency: priceCurrency,
           isFreePrice: hasFreePrice,
           minimumPriceValue: hasFreePrice ? minimumPriceValue : null,
+          deliveryQuantityPerLot: effectiveDeliveryQuantityPerLot,
         }),
       );
       if (!negotiation) return;
@@ -2612,7 +2625,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sessionItem = await this.#addSessionBuyerItem({
       type: "product",
       sourceId: item.id,
-      name,
+      name: displayName,
       img: item.img,
       quantity: dialogData.quantity,
       availableQuantity,
@@ -2623,6 +2636,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       proposedUnitPriceValue: hasFreePrice ? unitPriceValue : (dialogData.proposedPrice ?? ""),
       isFreePrice: hasFreePrice,
       minimumPriceValue: hasFreePrice ? minimumPriceValue : null,
+      deliveryQuantityPerLot: effectiveDeliveryQuantityPerLot,
     });
     if (!sessionItem) return;
 
@@ -3252,6 +3266,33 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ...product,
         quantity: quantityNum,
       });
+    }
+
+    if (field === "deliveryQuantityPerLot") {
+      const quantity = target.value?.trim();
+      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+
+      if (quantity === "") {
+        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+          ...product,
+          deliveryQuantityPerLot: null,
+        });
+        return;
+      }
+
+      const quantityNum = Number(quantity);
+
+      if (!Number.isFinite(quantityNum) || quantityNum < 1) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
+        target.value = product.deliveryQuantityPerLot ?? "";
+        return;
+      }
+
+      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
+        ...product,
+        deliveryQuantityPerLot: Math.floor(quantityNum),
+      });
+      return;
     }
 
     if (field === "priceValue") {

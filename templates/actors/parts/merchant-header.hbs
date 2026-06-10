@@ -50,20 +50,6 @@
             {{/if}}
           </button>
         {{/if}}
-
-        <button
-          class="mtt-merchant-open-button"
-          type="button"
-          data-action="toggleOpen"
-          {{#unless mtt.canEditMerchant}}disabled{{/unless}}
-          data-tooltip="{{#if system.status.isOpen}}{{localize 'mtt.sheet.closeMerchant'}}{{else}}{{localize 'mtt.sheet.openMerchant'}}{{/if}}"
-        >
-          {{#if system.status.isOpen}}
-            <i class="fas fa-door-open"></i>
-          {{else}}
-            <i class="fas fa-door-closed"></i>
-          {{/if}}
-        </button>
       </div>
 
       <div class="mtt-merchant-nav-row">

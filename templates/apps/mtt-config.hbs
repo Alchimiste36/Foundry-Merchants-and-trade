@@ -40,6 +40,25 @@
 
         <div class="mtt-config-field">
           <div class="mtt-config-field-header">
+            <label class="mtt-config-field-label" for="mtt-config-item-delivery-quantity-per-lot">
+              {{localize "mtt.settings.itemDeliveryQuantityPerLotPath.name"}}
+            </label>
+            <i
+              class="fas fa-circle-info mtt-config-info-icon"
+              data-tooltip="{{localize 'mtt.settings.itemDeliveryQuantityPerLotPath.hint'}}"
+            ></i>
+          </div>
+          <input
+            id="mtt-config-item-delivery-quantity-per-lot"
+            type="text"
+            name="itemDeliveryQuantityPerLotPath"
+            value="{{itemDeliveryQuantityPerLotPath}}"
+            placeholder="system.quantity.perLot"
+          />
+        </div>
+
+        <div class="mtt-config-field">
+          <div class="mtt-config-field-header">
             <label class="mtt-config-field-label" for="mtt-config-item-description">
               {{localize "mtt.settings.itemDescriptionPath.name"}}
             </label>

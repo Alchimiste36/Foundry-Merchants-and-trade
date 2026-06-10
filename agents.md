@@ -605,7 +605,6 @@ Exemples de blocs :
 system.merchant.description
 system.manager.displayName
 system.manager.actorUuid
-system.status.isOpen
 system.sheet.isLocked
 system.catalog
 system.services

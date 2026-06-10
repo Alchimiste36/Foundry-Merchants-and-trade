@@ -24,6 +24,8 @@ import {
   productHasSecretInfo,
   readItemReferencePrice,
   buildItemPriceWriteData,
+  normalizeEffectiveDeliveryQuantityPerLot,
+  formatProductNameWithLotQuantity,
 } from "./merchant-utils.mjs"
 
 export function adjustPriceValue(priceValue, sellPercent) {
@@ -81,18 +83,28 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
   const description = String(secretDescription ?? "").trim()
   const shortDescription = description.length > 180 ? `${description.slice(0, 177)}...` : description
   const priceLabel = [secretPrice, secretCurrency].map((value) => String(value ?? "").trim()).filter(Boolean).join(" ")
+  const lines = []
 
-  return [
-    `${game.i18n.localize("mtt.secrets.tooltip.name")} ${secretName || "-"}`,
-    `${game.i18n.localize("mtt.secrets.tooltip.price")} ${priceLabel || "-"}`,
-    `${game.i18n.localize("mtt.secrets.tooltip.description")} ${shortDescription || "-"}`,
-  ].join("\n")
+  if (String(secretName ?? "").trim()) {
+    lines.push(`${game.i18n.localize("mtt.secrets.tooltip.name")} ${String(secretName ?? "").trim()}`)
+  }
+  if (priceLabel) {
+    lines.push(`${game.i18n.localize("mtt.secrets.tooltip.price")} ${priceLabel}`)
+  }
+  if (shortDescription) {
+    lines.push(`${game.i18n.localize("mtt.secrets.tooltip.description")} ${shortDescription}`)
+  }
+
+  return lines.join("\n")
 }
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
   const items = actor.items.map((item) => {
     const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const quantity = product.quantity
+    const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot)
+    const hasDeliveryQuantityPerLot = effectiveDeliveryQuantityPerLot > 1
+    const displayName = formatProductNameWithLotQuantity(item.name, product.deliveryQuantityPerLot)
     const hasFreePrice = product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice
 
     let itemPriceValue, priceCurrency
@@ -133,9 +145,12 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       id: item.id,
       uuid: item.uuid,
       name: item.name,
+      displayName,
       type: item.type,
       img: item.img,
       quantity,
+      deliveryQuantityPerLot: hasDeliveryQuantityPerLot ? effectiveDeliveryQuantityPerLot : "",
+      effectiveDeliveryQuantityPerLot,
       hasQuantity: !isUnlimitedQuantity(quantity),
       document: item,
       secretName,
@@ -461,6 +476,12 @@ export function createProductFlags(itemData, options = {}) {
     productFlags.quantity = parsedQuantity
   }
 
+  const configuredDeliveryQuantityPerLot = getConfiguredItemValue(itemData, "itemDeliveryQuantityPerLotPath")
+  const parsedDeliveryQuantityPerLot = parseQuantityValue(configuredDeliveryQuantityPerLot)
+  if (parsedDeliveryQuantityPerLot !== null && parsedDeliveryQuantityPerLot > 1) {
+    productFlags.deliveryQuantityPerLot = Math.floor(parsedDeliveryQuantityPerLot)
+  }
+
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags)
 
   return itemData
@@ -650,7 +671,7 @@ export async function createServiceFromItem(actor, item) {
     sourceUuid: item.uuid ?? null,
     sourceName: item.name ?? "",
     sourceType: item.type ?? "",
-    sourceImg: item.img ?? "",
+    sourceImg: item.img || MTT.SERVICE_DEFAULTS.sourceImg,
     category: automaticCategory?.key ?? "",
     systemCategoryKey: automaticCategory?.key ?? "",
     systemCategoryLabel: automaticCategory?.label ?? "",

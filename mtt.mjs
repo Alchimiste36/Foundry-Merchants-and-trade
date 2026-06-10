@@ -4,6 +4,8 @@ import * as models from "./module/models/_module.mjs"
 import * as applications from "./module/applications/_module.mjs"
 import { registerMerchantSessionSocket } from "./module/applications/sheets/merchant-session-socket.mjs"
 
+const DEFAULT_MERCHANT_IMAGE = "icons/svg/hanging-sign.svg"
+
 function buildDefaultCustomProductCategories() {
   return parseDefaultCustomCategories(game.settings.get(MTT.ID, "defaultCustomCategories")).map((name) => ({
     id: `category-${foundry.utils.randomID(6)}`,
@@ -34,6 +36,13 @@ function applyDefaultCustomCategoriesToNewMerchant(actor) {
   actor.updateSource({
     "system.catalog.productCategories": [...existingCategories, ...categoriesToAdd],
   })
+}
+
+function applyDefaultImageToNewMerchant(actor) {
+  if (actor.type !== MTT.ACTOR_TYPES.MERCHANT) return
+  if (String(actor.img ?? "").trim() && actor.img !== "icons/svg/mystery-man.svg") return
+
+  actor.updateSource({ img: DEFAULT_MERCHANT_IMAGE })
 }
 
 Hooks.once("init", async function () {
@@ -74,5 +83,6 @@ Hooks.once("ready", async function () {
 
 Hooks.on("preCreateActor", function (actor, data, options, userId) {
   if (userId !== game.user.id) return
+  applyDefaultImageToNewMerchant(actor)
   applyDefaultCustomCategoriesToNewMerchant(actor)
 })

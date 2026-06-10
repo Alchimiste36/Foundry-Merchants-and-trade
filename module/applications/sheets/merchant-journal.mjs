@@ -48,6 +48,7 @@ function normalizeJournalTransactionEntry(entry = {}) {
     name: String(entry.name ?? defaults.name),
     img: String(entry.img ?? defaults.img),
     quantity: normalizeJournalNumber(entry.quantity, defaults.quantity),
+    deliveryQuantityPerLot: normalizeJournalNullableNumber(entry.deliveryQuantityPerLot),
     unitPriceValue: normalizeJournalNumber(entry.unitPriceValue, defaults.unitPriceValue),
     totalPriceValue: normalizeJournalNumber(entry.totalPriceValue, defaults.totalPriceValue),
     priceCurrency: String(entry.priceCurrency ?? defaults.priceCurrency),
@@ -131,6 +132,7 @@ function buildJournalLineFromSessionItem(actor, item, side, negotiationsByLineKe
     name: item.name ?? "",
     img: item.img ?? "",
     quantity: normalizeJournalNumber(item.quantity, 1),
+    deliveryQuantityPerLot: normalizeJournalNullableNumber(item.deliveryQuantityPerLot),
     unitPriceValue: normalizeJournalNumber(item.unitPriceValue, 0),
     totalPriceValue: normalizeJournalNumber(item.totalPriceValue, 0),
     priceCurrency: item.priceCurrency ?? "",
@@ -169,6 +171,7 @@ function buildJournalLineFromNegotiation(actor, negotiation, status) {
     name: negotiation.name ?? "",
     img: negotiation.img ?? "",
     quantity,
+    deliveryQuantityPerLot: normalizeJournalNullableNumber(negotiation.deliveryQuantityPerLot),
     unitPriceValue,
     totalPriceValue: normalizeJournalNumber(lastOffer?.totalPriceValue, Number((quantity * unitPriceValue).toFixed(2))),
     priceCurrency: negotiation.priceCurrency ?? "",
@@ -229,6 +232,18 @@ function prepareJournalMoneyAdjustments(entries) {
     .filter(Boolean)
 }
 
+function isExecutableJournalLine(line, transactionStatus = "validated") {
+  if (transactionStatus !== "validated") return false
+
+  const negotiationStatus = String(line?.negotiationStatus ?? "")
+  if (["refused", "rejected"].includes(negotiationStatus)) return false
+
+  const lineStatus = String(line?.status ?? "")
+  if (["refused", "rejected"].includes(lineStatus)) return false
+
+  return true
+}
+
 function getJournalBuyerImg(session) {
   const buyerUuid = String(session?.actorUuid ?? "").trim()
   if (!buyerUuid) return ""
@@ -253,14 +268,15 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
     ...sellerItems.map((item) => buildJournalLineFromSessionItem(actor, item, "seller", acceptedByLineKey)),
     ...extraLines,
   ]
-  const buyerTotal = entries
+  const executableEntries = entries.filter((entry) => isExecutableJournalLine(entry, status))
+  const buyerTotal = executableEntries
     .filter((entry) => entry.side === "buyer")
     .reduce((total, entry) => total + normalizeJournalNumber(entry.totalPriceValue, 0), 0)
-  const sellerTotal = entries
+  const sellerTotal = executableEntries
     .filter((entry) => entry.side === "seller")
     .reduce((total, entry) => total + normalizeJournalNumber(entry.totalPriceValue, 0), 0)
   const totalReferenceValue = Number((buyerTotal - sellerTotal).toFixed(2))
-  const referenceCurrency = getJournalReferenceCurrency(entries)
+  const referenceCurrency = getJournalReferenceCurrency(executableEntries) || getJournalReferenceCurrency(entries)
 
   return normalizeJournalEntry({
     id: foundry.utils.randomID(),
@@ -278,7 +294,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
         ? `${buyerName} - transaction refusée`
         : `${buyerName} - ${totalReferenceValue}${referenceCurrency ? ` ${referenceCurrency}` : ""}`,
     entries,
-    moneyAdjustments: options.moneyAdjustments ?? prepareJournalMoneyAdjustments(entries),
+    moneyAdjustments: options.moneyAdjustments ?? prepareJournalMoneyAdjustments(executableEntries),
     secrets: [],
     transactionNumber: options.transactionNumber,
   })
@@ -421,10 +437,11 @@ export function prepareJournalEntryDisplay(entry) {
         minute: "2-digit",
       })
   const entries = normalized.entries.map((line) => prepareJournalLineDisplay(line))
-  const paidTotal = entries
+  const executableEntries = entries.filter((line) => isExecutableJournalLine(line, normalized.status))
+  const paidTotal = executableEntries
     .filter((line) => line.side === "buyer")
     .reduce((total, line) => total + normalizeJournalNumber(line.totalPriceValue, 0), 0)
-  const receivedTotal = entries
+  const receivedTotal = executableEntries
     .filter((line) => line.side === "seller")
     .reduce((total, line) => total + normalizeJournalNumber(line.totalPriceValue, 0), 0)
   const moneyAdjustment = normalized.moneyAdjustments.reduce((total, adjustment) => {

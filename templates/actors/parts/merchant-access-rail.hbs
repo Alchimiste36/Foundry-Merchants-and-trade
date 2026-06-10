@@ -6,7 +6,7 @@
       data-client-actor-uuid="{{client.actorUuid}}"
       data-tooltip="{{client.tooltip}}"
       data-tooltip-direction="UP"
-      {{#if client.canClickCard}}data-action="toggleClientAccess"{{/if}}
+      {{#if client.canClickCard}}data-mtt-client-access-action="toggle"{{/if}}
       aria-label="{{client.actorName}}"
     >
       <img

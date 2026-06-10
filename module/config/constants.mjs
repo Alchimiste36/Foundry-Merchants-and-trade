@@ -12,6 +12,7 @@ export const MTT = {
 
   PRODUCT_DEFAULTS: {
     quantity: 1,
+    deliveryQuantityPerLot: null,
     secretName: "",
     secretPrice: "",
     secretCurrency: "",
@@ -47,7 +48,7 @@ export const MTT = {
     sourceUuid: null,
     sourceName: "",
     sourceType: "",
-    sourceImg: "",
+    sourceImg: "icons/svg/coins.svg",
     category: "",
     systemCategoryKey: "",
     systemCategoryLabel: "",
@@ -87,6 +88,7 @@ export const MTT = {
     name: "",
     img: "",
     quantity: 1,
+    deliveryQuantityPerLot: null,
     unitPriceValue: 0,
     totalPriceValue: 0,
     priceCurrency: "",

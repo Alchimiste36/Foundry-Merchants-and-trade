@@ -2,6 +2,7 @@ import { MTT } from "./constants.mjs"
 
 export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemQuantityPath",
+  "itemDeliveryQuantityPerLotPath",
   "deliveryItemQuantityPath",
   "deliveryItemMaxQuantityPath",
   "writeDeliveryDescriptionInfo",

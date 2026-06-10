@@ -45,6 +45,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       ...context,
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
+      itemDeliveryQuantityPerLotPath: game.settings.get(MTT.ID, "itemDeliveryQuantityPerLotPath"),
       deliveryItemQuantityPath: game.settings.get(MTT.ID, "deliveryItemQuantityPath"),
       deliveryItemMaxQuantityPath: game.settings.get(MTT.ID, "deliveryItemMaxQuantityPath"),
       writeDeliveryDescriptionInfo: game.settings.get(MTT.ID, "writeDeliveryDescriptionInfo"),
@@ -94,6 +95,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const form = this.element.querySelector("form.mtt-config-form");
     const fd = new FormData(form);
     await game.settings.set(MTT.ID, "itemQuantityPath", fd.get("itemQuantityPath") ?? "");
+    await game.settings.set(MTT.ID, "itemDeliveryQuantityPerLotPath", fd.get("itemDeliveryQuantityPerLotPath") ?? "");
     await game.settings.set(MTT.ID, "deliveryItemQuantityPath", fd.get("deliveryItemQuantityPath") ?? "");
     await game.settings.set(MTT.ID, "deliveryItemMaxQuantityPath", fd.get("deliveryItemMaxQuantityPath") ?? "");
     await game.settings.set(MTT.ID, "writeDeliveryDescriptionInfo", fd.get("writeDeliveryDescriptionInfo") === "on");

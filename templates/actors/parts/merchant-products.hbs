@@ -50,37 +50,38 @@
                   {{/if}}
                 </div>
               </div>
-
-              {{#if @root.mtt.isEditable}}
-                <button
-                  class="mtt-merchant-product-action mtt-merchant-product-category-visibility"
-                  type="button"
-                  data-action="toggleProductCategoryVisibility"
-                  data-category-id="{{category.categoryValue}}"
-                  data-system-category="{{category.isSystemCategory}}"
-                  data-tooltip="{{#if category.isVisible}}{{localize 'mtt.products.category.hide'}}{{else}}{{localize 'mtt.products.category.show'}}{{/if}}"
-                >
-                  {{#if category.isVisible}}
-                    <i class="fas fa-eye"></i>
-                  {{else}}
-                    <i class="fas fa-eye-slash"></i>
-                  {{/if}}
-                </button>
-              {{/if}}
-
-              {{#if @root.mtt.canEditMerchant}}
-                {{#unless category.isSystemCategory}}
+              <div class="mtt-merchant-product-category-header-actions">
+                {{#if @root.mtt.isEditable}}
                   <button
-                    class="mtt-merchant-product-action mtt-merchant-product-category-delete"
+                    class="mtt-merchant-product-action mtt-merchant-product-category-visibility"
                     type="button"
-                    data-action="deleteProductCategory"
+                    data-action="toggleProductCategoryVisibility"
                     data-category-id="{{category.categoryValue}}"
-                    data-tooltip="{{localize 'mtt.products.category.delete'}}"
+                    data-system-category="{{category.isSystemCategory}}"
+                    data-tooltip="{{#if category.isVisible}}{{localize 'mtt.products.category.hide'}}{{else}}{{localize 'mtt.products.category.show'}}{{/if}}"
                   >
-                    <i class="fas fa-trash"></i>
+                    {{#if category.isVisible}}
+                      <i class="fas fa-eye"></i>
+                    {{else}}
+                      <i class="fas fa-eye-slash"></i>
+                    {{/if}}
                   </button>
-                {{/unless}}
-              {{/if}}
+                {{/if}}
+
+                {{#if @root.mtt.canEditMerchant}}
+                  {{#unless category.isSystemCategory}}
+                    <button
+                      class="mtt-merchant-product-action mtt-merchant-product-category-delete"
+                      type="button"
+                      data-action="deleteProductCategory"
+                      data-category-id="{{category.categoryValue}}"
+                      data-tooltip="{{localize 'mtt.products.category.delete'}}"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  {{/unless}}
+                {{/if}}
+              </div>
             </header>
 
             {{#unless category.isCollapsed}}
@@ -150,6 +151,7 @@
                               <i
                                 class="fa-solid fa-mask mtt-merchant-secret-indicator"
                                 data-tooltip="{{item.secretTooltip}}"
+                                data-tooltip-class="mtt-secret-tooltip"
                                 aria-hidden="true"
                               ></i>
                             {{/if}}
@@ -166,6 +168,15 @@
                             value="{{item.name}}"
                             data-mtt-product-field="name"
                           />
+                          <input
+                            class="mtt-merchant-product-lot-quantity-input"
+                            type="number"
+                            min="1"
+                            step="1"
+                            value="{{item.deliveryQuantityPerLot}}"
+                            data-mtt-product-field="deliveryQuantityPerLot"
+                            data-tooltip="{{localize 'mtt.products.tooltips.quantityPerLot'}}"
+                          />
                           </div>
                         {{else}}
                           {{#if @root.mtt.isEditable}}
@@ -174,6 +185,7 @@
                                 <i
                                   class="fa-solid fa-mask mtt-merchant-secret-indicator"
                                   data-tooltip="{{item.secretTooltip}}"
+                                  data-tooltip-class="mtt-secret-tooltip"
                                   aria-hidden="true"
                                 ></i>
                               {{/if}}
@@ -187,12 +199,12 @@
                             <span
                               class="mtt-merchant-product-name"
                             >
-                              {{item.name}}
+                              {{item.displayName}}
                             </span>
                             </span>
                           {{else}}
                             <span class="mtt-merchant-catalog-name-row">
-                              <span class="mtt-merchant-product-name">{{item.name}}</span>
+                              <span class="mtt-merchant-product-name">{{item.displayName}}</span>
                             </span>
                           {{/if}}
                         {{/if}}

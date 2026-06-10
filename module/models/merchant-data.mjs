@@ -45,6 +45,12 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           initial: 1,
           min: 0,
         }),
+        deliveryQuantityPerLot: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 1,
+        }),
         availableQuantity: new fields.NumberField({
           required: false,
           nullable: true,
@@ -187,6 +193,12 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           blank: true,
           initial: "",
         }),
+        deliveryQuantityPerLot: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 1,
+        }),
         priceCurrency: new fields.StringField({
           required: false,
           blank: true,
@@ -292,6 +304,12 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           required: true,
           initial: 1,
           min: 0,
+        }),
+        deliveryQuantityPerLot: new fields.NumberField({
+          required: false,
+          nullable: true,
+          initial: null,
+          min: 1,
         }),
         unitPriceValue: new fields.NumberField({
           required: true,
@@ -486,13 +504,6 @@ export class MerchantData extends foundry.abstract.TypeDataModel {
           blank: true,
           nullable: true,
           initial: null,
-        }),
-      }),
-
-      status: new fields.SchemaField({
-        isOpen: new fields.BooleanField({
-          required: true,
-          initial: true,
         }),
       }),
 

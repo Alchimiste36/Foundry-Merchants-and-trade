@@ -3009,6 +3009,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!isLocked) {
       await this.#saveMerchantTextFieldsFromDom();
+      await this.#saveMerchantConfigFieldsFromDom();
     }
 
     // Use updateSource to avoid triggering the full actor data-preparation cycle (CO2 getRollData crash on merchant actors).
@@ -3266,6 +3267,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
+  async #saveMerchantConfigFieldsFromDom() {
+    if (!this.isEditable || getMerchantSheetLockedState(this.actor)) return;
+
+    const NUMERIC_FIELDS = ["trade.buyPercent", "trade.sellPercent", "trade.serviceSellPercent"];
+    const changes = {};
+
+    this.element.querySelectorAll("[data-mtt-merchant-config-field]").forEach((input) => {
+      const field = input.dataset.mttMerchantConfigField;
+      if (!field) return;
+
+      if (NUMERIC_FIELDS.includes(field)) {
+        const value = Number(input.value);
+        if (Number.isFinite(value) && value >= 0) {
+          foundry.utils.setProperty(changes, field, value);
+        }
+      } else {
+        foundry.utils.setProperty(changes, field, String(input.value ?? "").trim());
+      }
+    });
+
+    if (Object.keys(changes).length > 0) {
+      await updateMerchantData(this.actor, changes);
+    }
+  }
+
   async #onMerchantConfigFieldChange(event) {
     const target = event.currentTarget;
 
@@ -3283,11 +3309,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         return;
       }
 
-      await updateMerchantData(this.actor, foundry.utils.setProperty({}, field, value));
+      const changes = {};
+      foundry.utils.setProperty(changes, field, value);
+      await updateMerchantData(this.actor, changes);
       return;
     }
 
-    await updateMerchantData(this.actor, foundry.utils.setProperty({}, field, target.value?.trim() ?? ""));
+    const changes = {};
+    foundry.utils.setProperty(changes, field, target.value?.trim() ?? "");
+    await updateMerchantData(this.actor, changes);
   }
 
   async #onWalletCurrencyChange(event) {

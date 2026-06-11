@@ -179,8 +179,12 @@ export async function setMerchantData(actor, data) {
  */
 export async function updateMerchantData(actor, changes = {}) {
   if (!actor) return null
+  if (!changes || typeof changes !== "object" || Array.isArray(changes)) {
+    console.error(`${MTT.NAME} | updateMerchantData : changes doit être un objet, reçu :`, typeof changes, changes)
+    return getMerchantData(actor)
+  }
   const current = getMerchantDataForUpdate(actor)
-  const merged = foundry.utils.mergeObject(current, foundry.utils.deepClone(changes ?? {}), {
+  const merged = foundry.utils.mergeObject(current, foundry.utils.deepClone(changes), {
     inplace: false,
     insertKeys: true,
     insertValues: true,

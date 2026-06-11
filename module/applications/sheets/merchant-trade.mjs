@@ -27,12 +27,14 @@ import {
   formatProductNameWithLotQuantity,
 } from "./merchant-utils.mjs";
 import {
-  prepareMerchantCatalogItemData,
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
   getItemAvailableQuantity,
   findMergeableMerchantItemBySourceUuid,
+  prepareMerchantCatalogItemData,
 } from "./merchant-catalog.mjs";
+import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs";
+import { getCatalogProduct, updateCatalogProduct } from "../../documents/merchant-products.mjs";
 
 // ─── Session normalization ────────────────────────────────────────────────────
 
@@ -188,7 +190,7 @@ export function buildSessionData(client = null) {
 }
 
 export function getSessions(actor) {
-  return foundry.utils.deepClone(actor.system.sessions?.entries ?? []);
+  return foundry.utils.deepClone(getMerchantData(actor)?.sessions?.entries ?? [])
 }
 
 // ─── Session item helpers ─────────────────────────────────────────────────────
@@ -230,10 +232,10 @@ function syncSessionItemAvailability(actor, item) {
   if (!item) return;
 
   if (item.type === "product") {
-    const source = actor.items.get(item.sourceId);
-    const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const availableQuantity = normalizeFiniteQuantity(product.quantity);
-    const hasLimitedQuantity = !isUnlimitedQuantity(product.quantity) && availableQuantity !== null;
+    const product = getCatalogProduct(actor, item.sourceId);
+    const quantity = product?.quantity;
+    const availableQuantity = normalizeFiniteQuantity(quantity);
+    const hasLimitedQuantity = !isUnlimitedQuantity(quantity) && availableQuantity !== null;
 
     item.availableQuantity = hasLimitedQuantity ? availableQuantity : null;
     item.hasLimitedQuantity = hasLimitedQuantity;
@@ -241,7 +243,7 @@ function syncSessionItemAvailability(actor, item) {
   }
 
   if (item.type === "service") {
-    const service = actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
+    const service = getMerchantData(actor)?.catalog?.services?.find((entry) => entry.id === item.sourceId)
     const quantity = service?.quantity;
     const availableQuantity = Number(quantity);
     const hasLimitedQuantity =
@@ -730,7 +732,7 @@ export function buildAccessClientFromActor(
 }
 
 export function getStoredAccessClients(actor) {
-  const clients = actor.system.access?.clients ?? [];
+  const clients = getMerchantData(actor)?.access?.clients ?? []
   const clientsByUuid = new Map();
 
   clients.forEach((client) => {
@@ -869,7 +871,7 @@ function getMerchantWalletAmount(actor, currency) {
   const walletKey = String(configuredCurrency?.id ?? currency ?? "").trim();
   if (!walletKey) return 0;
 
-  const amount = Number(actor.system.wallet?.currencies?.[walletKey] ?? 0);
+  const amount = Number(getMerchantData(actor)?.wallet?.currencies?.[walletKey] ?? 0)
   return Number.isFinite(amount) && amount >= 0 ? amount : 0;
 }
 
@@ -1144,7 +1146,7 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
   for (const [currId, delta] of merchantDeltas) {
     if (delta === 0) continue;
     const current = getMerchantWalletAmount(merchantActor, currId);
-    merchantUpdate[`system.wallet.currencies.${currId}`] = Math.max(0, Number((current + delta).toFixed(2)));
+    merchantUpdate[getMerchantFlagPath(`wallet.currencies.${currId}`)] = Math.max(0, Number((current + delta).toFixed(2)))
   }
 
   if (Object.keys(clientUpdate).length > 0) await clientActor.update(clientUpdate);
@@ -1152,8 +1154,11 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
 }
 
 function getProductCheckAvailableQuantity(actor, item) {
-  const source = actor.items.get(item.sourceId);
-  const product = source?.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+  const product = getCatalogProduct(actor, item.sourceId);
+  if (!product) {
+    const sessionQuantity = Number(item.availableQuantity);
+    return Number.isFinite(sessionQuantity) && sessionQuantity >= 0 ? sessionQuantity : null;
+  }
   if (isUnlimitedQuantity(product.quantity)) return null;
 
   const productQuantity = normalizeFiniteQuantity(product.quantity);
@@ -1164,7 +1169,7 @@ function getProductCheckAvailableQuantity(actor, item) {
 }
 
 function getServiceCheckAvailableQuantity(actor, item) {
-  const service = actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
+  const service = getMerchantData(actor)?.catalog?.services?.find((entry) => entry.id === item.sourceId)
   if (isUnlimitedQuantity(service?.quantity)) return null;
 
   const serviceQuantity = normalizeFiniteQuantity(service?.quantity);
@@ -1506,8 +1511,8 @@ export async function buildExecutionPreview(actor, session) {
     const unitPriceLabel = formatPriceLabel(item.unitPriceValue, item.priceCurrency);
 
     if (item.type === "product") {
-      const merchantItem = actor.items.get(item.sourceId);
-      if (!merchantItem) {
+      const catalogProduct = getCatalogProduct(actor, item.sourceId);
+      if (!catalogProduct) {
         preview.errors.push(game.i18n.format("mtt.sessions.preview.merchantProductMissing", { name: item.name }));
         preview.buyerDeliveries.push({
           type: "product",
@@ -1528,14 +1533,17 @@ export async function buildExecutionPreview(actor, session) {
         preview.errors.push(game.i18n.format("mtt.sessions.preview.merchantStockInsufficient", { name: item.name }));
       }
 
-      const product = merchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
-        item.deliveryQuantityPerLot ?? product.deliveryQuantityPerLot,
+        item.deliveryQuantityPerLot ?? catalogProduct.deliveryQuantityPerLot,
       );
       const quantityToDeliver = Math.floor(item.quantity * deliveryQuantityPerLot);
-      const displayName = formatProductNameWithLotQuantity(merchantItem.name ?? item.name, deliveryQuantityPerLot);
-      const deliveryProductData = { ...product, id: merchantItem.id };
-      const deliveredItemData = buildVisibleProductItemData(merchantItem, product, quantityToDeliver);
+      const displayName = formatProductNameWithLotQuantity(catalogProduct.name ?? item.name, deliveryQuantityPerLot);
+      const deliveryProductData = {
+        id: catalogProduct.id,
+        sourceUuid: catalogProduct.sourceUuid,
+        deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
+      };
+      const deliveredItemData = buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantityToDeliver);
       const deliverySimulation = simulatePurchasedItemDeliveryToActor(
         clientActor,
         deliveryProductData,
@@ -1895,6 +1903,22 @@ function buildVisibleProductItemData(sourceItem, product, quantity) {
   return itemData;
 }
 
+function buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantity) {
+  const itemData = foundry.utils.deepClone(catalogProduct.itemData ?? {});
+  delete itemData._id;
+  delete itemData.uuid;
+
+  if (catalogProduct.img) itemData.img = catalogProduct.img;
+
+  if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID];
+  foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
+    sourceUuid: catalogProduct.sourceUuid ?? "",
+  });
+  setItemDataQuantity(itemData, quantity, null);
+
+  return itemData;
+}
+
 function getDeliveryQuantityPath(itemData, config) {
   return config.quantityPath || getQuantityPathForItem(itemData);
 }
@@ -2125,21 +2149,20 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   for (const item of session?.buyerItems ?? []) {
     if (item.type !== "product") continue;
 
-    const merchantItem = actor.items.get(item.sourceId);
-    if (!merchantItem) {
+    const catalogProduct = getCatalogProduct(actor, item.sourceId);
+    if (!catalogProduct) {
       errors.push(game.i18n.format("mtt.sessions.errors.merchantProductMissing", { name: item.name }));
       continue;
     }
 
-    const product = merchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const availableQuantity = normalizeFiniteQuantity(product.quantity);
-    const hasLimitedQuantity = !isUnlimitedQuantity(product.quantity);
+    const availableQuantity = normalizeFiniteQuantity(catalogProduct.quantity);
+    const hasLimitedQuantity = !isUnlimitedQuantity(catalogProduct.quantity);
     const requestedQuantity = Number(item.quantity);
     const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
-      item.deliveryQuantityPerLot ?? product.deliveryQuantityPerLot,
+      item.deliveryQuantityPerLot ?? catalogProduct.deliveryQuantityPerLot,
     );
     const quantityToDeliver = Math.floor(requestedQuantity * deliveryQuantityPerLot);
-    const reservedQuantity = reservedMerchantQuantities.get(merchantItem.id) ?? 0;
+    const reservedQuantity = reservedMerchantQuantities.get(catalogProduct.id) ?? 0;
     const totalRequestedQuantity = reservedQuantity + requestedQuantity;
 
     if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
@@ -2152,16 +2175,16 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       continue;
     }
 
-    reservedMerchantQuantities.set(merchantItem.id, totalRequestedQuantity);
+    reservedMerchantQuantities.set(catalogProduct.id, totalRequestedQuantity);
 
     const deliveryProductData = {
-      ...product,
-      id: merchantItem.id,
+      id: catalogProduct.id,
+      sourceUuid: catalogProduct.sourceUuid,
       merchantName: actor?.name ?? "",
       transactionNumber: options.transactionNumber,
       deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
     };
-    const deliveredItemData = buildVisibleProductItemData(merchantItem, product, quantityToDeliver);
+    const deliveredItemData = buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantityToDeliver);
     const deliveryPlan = simulatePurchasedItemDeliveryToActor(
       clientActor,
       deliveryProductData,
@@ -2176,8 +2199,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
 
     operations.productTransfers.push({
       sessionItem: item,
-      merchantItem,
-      product,
+      catalogProduct,
       deliveryProductData,
       deliveredItemData,
       deliveryPlan,
@@ -2191,7 +2213,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   for (const item of session?.buyerItems ?? []) {
     if (item.type !== "service") continue;
 
-    const service = actor.system.services?.entries?.find((entry) => entry.id === item.sourceId);
+    const service = getMerchantData(actor)?.catalog?.services?.find((entry) => entry.id === item.sourceId)
     if (!service) {
       errors.push(game.i18n.format("mtt.sessions.errors.merchantServiceMissing", { name: item.name }));
       continue;
@@ -2334,15 +2356,12 @@ export async function executeSessionItemTransfers(actor, plan) {
     executionResult.deliveries.push(delivery);
 
     if (transfer.hasLimitedQuantity) {
-      await transfer.merchantItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...transfer.product,
-        quantity: transfer.nextQuantity,
-      });
+      await updateCatalogProduct(actor, transfer.catalogProduct.id, { quantity: transfer.nextQuantity });
     }
 
     executionResult.merchantStockUpdates.push({
-      itemId: transfer.merchantItem.id,
-      name: transfer.merchantItem.name,
+      itemId: transfer.catalogProduct.id,
+      name: transfer.catalogProduct.name,
       purchasedQuantity: transfer.quantity,
       remainingQuantity: transfer.nextQuantity,
       hasLimitedQuantity: transfer.hasLimitedQuantity,
@@ -2350,7 +2369,7 @@ export async function executeSessionItemTransfers(actor, plan) {
   }
 
   if (plan.operations.serviceTransfers.length > 0) {
-    const services = foundry.utils.deepClone(actor.system.services?.entries ?? []);
+    const services = foundry.utils.deepClone(getMerchantData(actor)?.catalog?.services ?? [])
 
     for (const transfer of plan.operations.serviceTransfers) {
       const service = services.find((entry) => entry.id === transfer.service.id);
@@ -2381,9 +2400,7 @@ export async function executeSessionItemTransfers(actor, plan) {
       });
     }
 
-    await actor.update({
-      "system.services.entries": services,
-    });
+    await updateMerchantData(actor, { catalog: { services } })
   }
 
   for (const transfer of plan.operations.sellerTransfers) {
@@ -2392,7 +2409,8 @@ export async function executeSessionItemTransfers(actor, plan) {
     const sourceUuid = String(transfer.sourceItem.uuid ?? "").trim();
     const existingMerchantItem = findMergeableMerchantItemBySourceUuid(actor, sourceUuid);
 
-    if (existingMerchantItem) {
+    // TODO étape 9 : remplacer par updateCatalogProduct quand l'exécution sera adaptée au catalogue flags.
+    if (existingMerchantItem && typeof existingMerchantItem.getFlag === "function") {
       const product = existingMerchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       const currentQuantity = Number.isFinite(Number(product.quantity))
         ? Number(product.quantity)

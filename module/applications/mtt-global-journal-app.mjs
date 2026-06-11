@@ -1,6 +1,6 @@
 import { MTT } from "../config/constants.mjs"
+import { isMTTMerchant, getMerchantData } from "../documents/merchant-flags.mjs"
 import {
-  getMerchantJournalTransactions,
   normalizeJournalEntry,
   prepareJournalEntryDisplay,
 } from "./sheets/merchant-journal.mjs"
@@ -8,10 +8,6 @@ import {
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
 const GLOBAL_JOURNAL_SORT_KEYS = ["date", "merchant", "buyer", "status", "total", "paid", "received", "adjustment"]
-
-function isMerchantActor(actor) {
-  return actor?.type === MTT.ACTOR_TYPES.MERCHANT
-}
 
 function normalizeGlobalJournalSort(sort = {}) {
   const key = GLOBAL_JOURNAL_SORT_KEYS.includes(sort.key) ? sort.key : "date"
@@ -121,9 +117,9 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
       buyerUuid: String(this.#filters.buyerUuid ?? ""),
     }
     const sort = normalizeGlobalJournalSort(this.#sort)
-    const merchants = game.actors.filter((actor) => isMerchantActor(actor))
+    const merchants = game.actors.filter((actor) => isMTTMerchant(actor))
     const collectedTransactions = merchants.flatMap((merchant) =>
-      getMerchantJournalTransactions(merchant).map((entry) =>
+      (getMerchantData(merchant)?.journal?.transactions ?? []).map((entry) =>
         normalizeJournalEntry({
           ...entry,
           merchantActorUuid: entry.merchantActorUuid || merchant.uuid,

@@ -1,4 +1,3 @@
-/* MTT — Fiche marchand : styles généraux et imports */
 /* MTT — Variables partagées */
 :root {
   --mtt-bg-main: #202225;
@@ -25,6 +24,7 @@
 .mtt-sheet .window-content {
   padding: 0;
 }
+/* MTT — Fiche marchand : styles généraux et imports */
 /* MTT — Catalogue : produits, services, catégories, configuration */
 .mtt-merchant-products {
   padding: 0;

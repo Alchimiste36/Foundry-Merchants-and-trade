@@ -1,5 +1,6 @@
 import { MTT } from "../config/constants.mjs";
 import { MTT_EXPORTABLE_CONFIG_SETTINGS, buildModuleConfigurationExport } from "../config/config-export.mjs";
+import { getAvailableActorTypes, getAllowedMerchantActorTypes, setAllowedMerchantActorTypes } from "../config/actor-types.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -42,8 +43,12 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this.#currencies = [];
       }
     }
+    const availableTypes = getAvailableActorTypes();
+    const allowedTypes = getAllowedMerchantActorTypes();
     return {
       ...context,
+      availableActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedTypes.includes(t.value) })),
+      hasAllowedActorTypes: allowedTypes.length > 0,
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
       itemDeliveryQuantityPerLotPath: game.settings.get(MTT.ID, "itemDeliveryQuantityPerLotPath"),
       deliveryItemQuantityPath: game.settings.get(MTT.ID, "deliveryItemQuantityPath"),
@@ -111,6 +116,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "itemCategoryI18nPrefix", fd.get("itemCategoryI18nPrefix") ?? "");
     await game.settings.set(MTT.ID, "itemSubcategoryI18nPrefix", fd.get("itemSubcategoryI18nPrefix") ?? "");
     await game.settings.set(MTT.ID, "currencies", JSON.stringify(currencies));
+    const allowedActorTypes = Array.from(
+      this.element.querySelectorAll("input[name='allowedMerchantActorTypes']:checked"),
+    ).map((cb) => cb.value);
+    await setAllowedMerchantActorTypes(allowedActorTypes);
     this.close();
   }
 

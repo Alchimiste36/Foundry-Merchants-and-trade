@@ -18,6 +18,7 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemSubcategoryPath",
   "itemCategoryI18nPrefix",
   "itemSubcategoryI18nPrefix",
+  "allowedMerchantActorTypes",
 ]
 
 export function buildModuleConfigurationExport() {

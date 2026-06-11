@@ -7,12 +7,12 @@
       {{#if mtt.canEditMerchant}}
         <textarea
           class="mtt-merchant-configuration-textarea"
-          data-mtt-merchant-config-field="merchant.description"
-        >{{system.merchant.description}}</textarea>
+          data-mtt-merchant-config-field="shop.description"
+        >{{merchant.shop.description}}</textarea>
       {{else}}
         <div class="mtt-merchant-configuration-readonly">
-          {{#if system.merchant.description}}
-            {{{system.merchant.description}}}
+          {{#if merchant.shop.description}}
+            {{{merchant.shop.description}}}
           {{else}}
             <span class="mtt-merchant-configuration-empty">{{localize "mtt.merchant.description.empty"}}</span>
           {{/if}}

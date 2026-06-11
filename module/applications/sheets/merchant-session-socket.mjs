@@ -1,5 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { normalizeSession } from "./merchant-trade.mjs"
+import { getMerchantData, getMerchantFlagPath } from "../../documents/merchant-flags.mjs"
 
 const SOCKET_NAME = `module.${MTT.ID}`
 const REQUEST_TIMEOUT = 10000
@@ -56,10 +57,10 @@ function sendSessionUpdateResponse({ requestId, recipientUserId, ok, updateData 
 }
 
 function buildSafeSessionUpdate(merchantActor, updateData) {
-  const requestedSessions = updateData?.["system.sessions.entries"]
+  const requestedSessions = updateData?.[getMerchantFlagPath("sessions.entries")]
   if (!Array.isArray(requestedSessions)) return null
 
-  const existingSessions = (merchantActor.system.sessions?.entries ?? []).map((session) => normalizeSession(session))
+  const existingSessions = (getMerchantData(merchantActor)?.sessions?.entries ?? []).map((session) => normalizeSession(session))
   const requestedById = new Map(
     requestedSessions
       .map((session) => normalizeSession(session))
@@ -81,7 +82,7 @@ function buildSafeSessionUpdate(merchantActor, updateData) {
   }
 
   return {
-    "system.sessions.entries": mergedSessions,
+    [getMerchantFlagPath("sessions.entries")]: mergedSessions,
   }
 }
 
@@ -237,7 +238,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
   const processorUserIds = processorUsers.map((user) => user.id)
   const sessionActorUuids = Array.from(
     new Set(
-      (updateData?.["system.sessions.entries"] ?? [])
+      (updateData?.[getMerchantFlagPath("sessions.entries")] ?? [])
         .map((session) => String(session.actorUuid ?? "").trim())
         .filter(Boolean),
     ),
@@ -269,7 +270,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
     debugSessionSocket("request sent", {
       ...payload,
       updateData: {
-        sessionCount: updateData?.["system.sessions.entries"]?.length ?? 0,
+        sessionCount: updateData?.[getMerchantFlagPath("sessions.entries")]?.length ?? 0,
       },
     })
     game.socket.emit(SOCKET_NAME, payload)

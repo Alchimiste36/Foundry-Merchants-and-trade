@@ -1,5 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
@@ -301,7 +302,8 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
 }
 
 export function getMerchantJournalTransactions(actor) {
-  return Array.isArray(actor?.system?.journal?.transactions) ? actor.system.journal.transactions : []
+  const transactions = getMerchantData(actor)?.journal?.transactions
+  return Array.isArray(transactions) ? transactions : []
 }
 
 export function normalizeJournalEntry(entry = {}) {
@@ -333,7 +335,7 @@ export async function appendMerchantJournalEntry(actor, entry) {
   if (!actor) return null
 
   const transactions = foundry.utils.deepClone(getMerchantJournalTransactions(actor))
-  const nextTransactionNumber = normalizeJournalTransactionNumber(actor.system?.journal?.nextTransactionNumber, 1)
+  const nextTransactionNumber = normalizeJournalTransactionNumber(getMerchantData(actor)?.journal?.nextTransactionNumber, 1)
   const entryTransactionNumber = normalizeJournalTransactionNumber(entry?.transactionNumber)
   const transactionNumber = entryTransactionNumber ?? nextTransactionNumber
   const nextValue = entryTransactionNumber
@@ -348,9 +350,11 @@ export async function appendMerchantJournalEntry(actor, entry) {
 
   transactions.unshift(normalizedEntry)
 
-  await actor.update({
-    "system.journal.transactions": transactions,
-    "system.journal.nextTransactionNumber": nextValue,
+  await updateMerchantData(actor, {
+    journal: {
+      transactions,
+      nextTransactionNumber: nextValue,
+    },
   })
 
   return normalizedEntry

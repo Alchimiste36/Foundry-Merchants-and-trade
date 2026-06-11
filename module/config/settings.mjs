@@ -176,6 +176,15 @@ export function registerSettings() {
     default: "[]",
   });
 
+  game.settings.register(MTT.ID, "allowedMerchantActorTypes", {
+    name: "mtt.settings.allowedMerchantActorTypes.name",
+    hint: "mtt.settings.allowedMerchantActorTypes.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "[]",
+  });
+
   game.settings.registerMenu(MTT.ID, "openConfigWindow", {
     name: "mtt.settings.openConfigWindow.name",
     label: "mtt.settings.openConfigWindow.label",

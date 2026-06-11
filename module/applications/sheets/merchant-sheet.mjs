@@ -1,4 +1,5 @@
 import { MTT } from "../../config/constants.mjs";
+import { isMTTMerchant, getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs";
 import {
   isUnlimitedQuantity,
   isFreePriceCurrency,
@@ -42,13 +43,20 @@ import {
   prepareProductCategories,
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
-  createProductFlags,
-  updateMerchantProductItemData,
   addOrMergeProduct,
   moveProductToCategory,
   createServiceFromItem,
   prepareSellerItemDropData,
 } from "./merchant-catalog.mjs";
+import {
+  getCatalogProducts,
+  getCatalogProduct,
+  buildCatalogProductFromItem,
+  addCatalogProduct,
+  updateCatalogProduct,
+  removeCatalogProduct,
+  replaceCatalogProducts,
+} from "../../documents/merchant-products.mjs";
 import {
   normalizeSession,
   normalizeSessionItem,
@@ -193,7 +201,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     };
 
     context.actor = this.actor;
-    context.system = this.actor.system;
+    context.merchant = getMerchantData(this.actor);
 
     const activeSession = this.#getActiveSession();
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession);
@@ -201,7 +209,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable });
     context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable });
     context.trade = prepareTrade(this.actor);
-    context.wallet = this.actor.system.wallet ?? {};
+    context.wallet = context.merchant?.wallet ?? {};
     context.mtt.walletCurrencies = prepareWalletCurrencies(this.actor);
     context.mtt.headerCurrencies = context.mtt.walletCurrencies;
     context.mtt.hasHeaderCurrencies = context.mtt.headerCurrencies.length > 0;
@@ -234,7 +242,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       .forEach((input) => input.addEventListener("change", (event) => this.#onCategoryNameChange(event)));
 
     this.element
-      .querySelectorAll("[data-mtt-product-id]")
+      .querySelectorAll("[data-product-id]")
       .forEach((row) => row.addEventListener("dragstart", (event) => this.#onProductDragStart(event)));
 
     this.element.querySelectorAll("[data-mtt-category-drop]").forEach((dropZone) => {
@@ -555,7 +563,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareReferenceStateContext() {
-    const referenceState = this.actor.system.referenceState ?? null;
+    const referenceState = getMerchantData(this.actor)?.referenceState ?? null;
     const savedAt = new Date(referenceState?.savedAt ?? "");
     const savedAtLabel = Number.isNaN(savedAt.getTime()) ? "" : savedAt.toLocaleString();
 
@@ -688,33 +696,34 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ─── Item/service helpers ─────────────────────────────────────────────────
 
-  #getItemFromEvent(target) {
-    const itemId = target.closest("[data-item-id]")?.dataset.itemId;
-    if (!itemId) return null;
-
-    return this.actor.items.get(itemId) ?? null;
+  #getProductFromEvent(target) {
+    const productId =
+      target.closest("[data-product-id]")?.dataset.productId ??
+      target.closest("[data-item-id]")?.dataset.itemId;
+    if (!productId) return null;
+    return getCatalogProduct(this.actor, productId) ?? null;
   }
 
   #getServiceFromEvent(target) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return null;
 
-    return this.actor.system.services?.entries?.find((service) => service.id === serviceId) ?? null;
+    return getMerchantData(this.actor)?.catalog?.services?.find((service) => service.id === serviceId) ?? null;
   }
 
   // ─── Product drag/drop handlers ───────────────────────────────────────────
 
   #onProductDragStart(event) {
     const target = event.currentTarget;
-    const itemId = target.dataset.mttProductId;
-    if (!itemId || !this.isEditable) return;
+    const productId = target.dataset.mttProductId;
+    if (!productId || !this.isEditable) return;
 
-    const item = this.actor.items.get(itemId);
-    const sourceCategory = item ? (item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.category ?? "") : "";
+    const product = getCatalogProduct(this.actor, productId);
+    const sourceCategory = product?.category ?? "";
 
     event.dataTransfer.setData(
       "application/json",
-      JSON.stringify({ type: "mtt.product", itemId, actorUuid: this.actor.uuid, sourceCategory }),
+      JSON.stringify({ type: "mtt.product", itemId: productId, actorUuid: this.actor.uuid, sourceCategory }),
     );
     event.dataTransfer.effectAllowed = "move";
   }
@@ -1059,19 +1068,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const kind = target.dataset.catalogKind ?? "";
 
     if (kind === "product") {
-      const item = this.#getItemFromEvent(target);
-      if (!item) return null;
+      const product = this.#getProductFromEvent(target);
+      if (!product) return null;
 
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       return {
         kind,
-        name: item.name,
+        name: product.name,
         hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
-        isObserverOwnership:
-          Number(product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) ===
-          CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-        productItem: item,
+        isObserverOwnership: product.ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+        productId: product.id,
         data: product,
       };
     }
@@ -1235,15 +1241,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#saveScrollPositions();
 
     if (catalogItem.kind === "product") {
-      await catalogItem.productItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...catalogItem.data,
-        ...secrets,
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, catalogItem.productId, secrets);
       this.render();
       return;
     }
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const index = entries.findIndex((service) => service.id === catalogItem.serviceId);
     if (index === -1) return;
 
@@ -1253,9 +1257,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isCommerciallyModified: true,
     };
 
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
 
     this.render();
   }
@@ -1266,23 +1268,21 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#saveScrollPositions();
 
     if (catalogItem.kind === "product") {
-      await catalogItem.productItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...catalogItem.data,
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, catalogItem.productId, {
         requiresApproval: !catalogItem.requiresApproval,
       });
       this.render();
       return;
     }
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const index = entries.findIndex((service) => service.id === catalogItem.serviceId);
     if (index === -1) return;
 
     entries[index].requiresApproval = !catalogItem.requiresApproval;
 
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
 
     this.render();
   }
@@ -1290,27 +1290,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async #toggleCatalogProductOwnership(catalogItem) {
     if (!this.isEditable || catalogItem.kind !== "product") return;
 
-    const item = catalogItem.productItem;
-    if (!item) return;
-
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const currentLevel = Number(
-      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-    );
+    const currentLevel = Number(catalogItem.data.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER);
     const nextLevel =
       currentLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
         ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
         : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
 
     this.#saveScrollPositions();
-    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      ownershipLevel: nextLevel,
-    });
-    await item.update({
-      "ownership.default": nextLevel,
-    });
-
+    await updateCatalogProduct(this.actor, catalogItem.productId, { ownershipLevel: nextLevel });
     this.render();
   }
 
@@ -1381,7 +1368,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!categoryId) return;
 
-    const categories = foundry.utils.deepClone(this.actor.system.catalog?.productCategories ?? []);
+    const categories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.productCategories ?? []);
     const index = categories.findIndex((category) => category.id === categoryId);
     if (index === -1) return;
 
@@ -1395,9 +1382,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       name: categoryName,
     };
 
-    await this.actor.update({
-      "system.catalog.productCategories": categories,
-    });
+    await updateMerchantData(this.actor, { catalog: { productCategories: categories } });
   }
 
   static async #onToggleProductCategory(event, target) {
@@ -1406,13 +1391,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return;
 
     const categoryValue = target.dataset.category ?? "";
-    const collapsedCategories = foundry.utils.deepClone(this.actor.system.catalog.collapsedCategories ?? {});
+    const collapsedCategories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.collapsedCategories ?? {});
     collapsedCategories[categoryValue] = !Boolean(collapsedCategories[categoryValue]);
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.catalog.collapsedCategories": collapsedCategories,
-    });
+    await updateMerchantData(this.actor, { catalog: { collapsedCategories } });
 
     this.render();
   }
@@ -1422,7 +1405,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const categories = foundry.utils.deepClone(this.actor.system.catalog?.productCategories ?? []);
+    const categories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.productCategories ?? []);
     const categoryId = `category-${foundry.utils.randomID(6)}`;
     categories.push({
       id: categoryId,
@@ -1430,9 +1413,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.catalog.productCategories": categories,
-    });
+    await updateMerchantData(this.actor, { catalog: { productCategories: categories } });
 
     this.render();
   }
@@ -1445,14 +1426,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const categoryId = target.dataset.categoryId;
     if (!categoryId) return;
 
-    const categories = foundry.utils.deepClone(this.actor.system.catalog?.productCategories ?? []);
+    const categories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.productCategories ?? []);
     const category = categories.find((item) => item.id === categoryId);
     if (!category) return;
 
-    const itemsInCategory = this.actor.items.filter((item) => {
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-      return (product.category ?? "") === categoryId;
-    });
+    const itemsInCategory = getCatalogProducts(this.actor).filter((product) => product.category === categoryId);
 
     if (itemsInCategory.length > 0) {
       ui.notifications.warn(game.i18n.localize("mtt.products.category.notEmpty"));
@@ -1475,16 +1453,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!confirmed) return;
 
     const updatedCategories = categories.filter((item) => item.id !== categoryId);
-    const collapsedCategories = foundry.utils.deepClone(this.actor.system.catalog.collapsedCategories ?? {});
-    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog.hiddenCategories ?? {});
+    const merchantCatalog = getMerchantData(this.actor)?.catalog;
+    const collapsedCategories = foundry.utils.deepClone(merchantCatalog?.collapsedCategories ?? {});
+    const hiddenCategories = foundry.utils.deepClone(merchantCatalog?.hiddenCategories ?? {});
     delete collapsedCategories[categoryId];
     delete hiddenCategories[categoryId];
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.catalog.productCategories": updatedCategories,
-      "system.catalog.collapsedCategories": collapsedCategories,
-      "system.catalog.hiddenCategories": hiddenCategories,
+    await updateMerchantData(this.actor, {
+      catalog: { productCategories: updatedCategories, collapsedCategories, hiddenCategories },
     });
 
     this.render();
@@ -1497,17 +1474,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const categoryValue = target.dataset.categoryId ?? "";
     const isSystemCategory = target.dataset.systemCategory === "true";
-    const categories = this.actor.system.catalog?.productCategories ?? [];
+    const merchantCatalog = getMerchantData(this.actor)?.catalog;
+    const categories = merchantCatalog?.productCategories ?? [];
     const categoryExists = isSystemCategory || categories.some((category) => category.id === categoryValue);
     if (!categoryExists) return;
 
-    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog?.hiddenCategories ?? {});
+    const hiddenCategories = foundry.utils.deepClone(merchantCatalog?.hiddenCategories ?? {});
     hiddenCategories[categoryValue] = !Boolean(hiddenCategories[categoryValue]);
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.catalog.hiddenCategories": hiddenCategories,
-    });
+    await updateMerchantData(this.actor, { catalog: { hiddenCategories } });
 
     this.render();
   }
@@ -1620,9 +1596,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     }
 
-    await this.actor.update({
-      "system.access.clients": clients,
-    });
+    await updateMerchantData(this.actor, { access: { clients } });
 
     return normalizedClient;
   }
@@ -1647,9 +1621,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       };
     }
 
-    const updateData = {
-      "system.access.clients": clients,
-    };
+    const changes = { access: { clients } };
 
     if (removeOpenSessions) {
       const removedSessionIds = new Set(
@@ -1657,15 +1629,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           .filter((session) => session.actorUuid === normalizedClient.actorUuid)
           .map((session) => session.id),
       );
-      updateData["system.sessions.entries"] = this.#getSessions().filter(
-        (session) => !removedSessionIds.has(session.id),
-      );
+      changes.sessions = { entries: this.#getSessions().filter((session) => !removedSessionIds.has(session.id)) };
       if (removedSessionIds.has(this.#activeSessionId)) this.#activeSessionId = null;
       if (this.#selectedClientActorUuid === normalizedClient.actorUuid) this.#selectedClientActorUuid = "";
       this.#sessionCheckResult = null;
     }
 
-    await this.actor.update(updateData);
+    await updateMerchantData(this.actor, changes);
   }
 
   async #removeClientAuthorization(client) {
@@ -1760,9 +1730,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (this.#selectedClientActorUuid === client.actorUuid) this.#selectedClientActorUuid = "";
     this.#sessionCheckResult = null;
 
-    await this.actor.update({
-      "system.access.clients": clients,
-      "system.sessions.entries": sessions,
+    await updateMerchantData(this.actor, {
+      access: { clients },
+      sessions: { entries: sessions },
     });
 
     this.render();
@@ -1803,9 +1773,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       customRates,
     });
 
-    await this.actor.update({
-      "system.access.clients": clients,
-    });
+    await updateMerchantData(this.actor, { access: { clients } });
     this.render();
   }
 
@@ -1855,7 +1823,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (actor.id === this.actor.id) return false;
         if (!this.#isMerchantActor(actor)) return false;
 
-        return (actor.system.sessions?.entries ?? []).some(
+        return (getMerchantData(actor)?.sessions?.entries ?? []).some(
           (session) =>
             session.actorUuid === normalizedActorUuid && ["active", "pending", "submitted"].includes(session.status),
         );
@@ -1864,7 +1832,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #isMerchantActor(actor) {
-    return actor?.type === MTT.ACTOR_TYPES.MERCHANT;
+    return isMTTMerchant(actor);
   }
 
   #getActiveSession() {
@@ -1951,31 +1919,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #buildReferenceState() {
-    const hiddenCategories = this.actor.system.catalog?.hiddenCategories ?? {};
+    const merchantData = getMerchantData(this.actor);
+    const hiddenCategories = merchantData?.catalog?.hiddenCategories ?? {};
 
     return {
       savedAt: new Date().toISOString(),
-      products: this.actor.items.map((item) => {
-        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-        const ownershipLevel = Number(
-          product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-        );
-
-        return {
-          id: item.id,
-          quantity: product.quantity ?? null,
-          isHidden: Boolean(product.isHidden),
-          ownershipLevel: Number.isFinite(ownershipLevel) ? ownershipLevel : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-          requiresApproval: Boolean(product.requiresApproval),
-        };
-      }),
-      services: (this.actor.system.services?.entries ?? []).map((service) => ({
+      products: getCatalogProducts(this.actor).map((product) => ({
+        id: product.id,
+        quantity: product.quantity ?? null,
+        isHidden: Boolean(product.isHidden),
+        ownershipLevel: product.ownershipLevel,
+        requiresApproval: Boolean(product.requiresApproval),
+      })),
+      services: (merchantData?.catalog?.services ?? []).map((service) => ({
         id: service.id,
         quantity: service.quantity ?? null,
         isHidden: Boolean(service.isHidden),
         requiresApproval: Boolean(service.requiresApproval),
       })),
-      categories: (this.actor.system.catalog?.productCategories ?? []).map((category) => ({
+      categories: (merchantData?.catalog?.productCategories ?? []).map((category) => ({
         id: category.id,
         isHidden: Boolean(hiddenCategories[category.id]),
       })),
@@ -1986,9 +1948,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.#canModifyMerchant()) return;
 
     await this.#saveMerchantTextFieldsFromDom();
-    await this.actor.update({
-      "system.referenceState": this.#buildReferenceState(),
-    });
+    await updateMerchantData(this.actor, { referenceState: this.#buildReferenceState() });
     ui.notifications.info(game.i18n.localize("mtt.referenceState.saveSuccess"));
     this.render();
   }
@@ -1996,7 +1956,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async #restoreReferenceState() {
     if (!this.#canModifyMerchant()) return;
 
-    const referenceState = this.actor.system.referenceState;
+    const referenceState = getMerchantData(this.actor)?.referenceState;
     if (!referenceState?.savedAt) {
       ui.notifications.warn(game.i18n.localize("mtt.referenceState.missing"));
       return;
@@ -2022,34 +1982,26 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #applyReferenceState(referenceState) {
-    const productSnapshots = new Map((referenceState.products ?? []).map((product) => [product.id, product]));
-    const itemUpdates = [];
-
-    for (const item of this.actor.items) {
-      const snapshot = productSnapshots.get(item.id);
-      if (!snapshot) continue;
-
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const productSnapshots = new Map((referenceState.products ?? []).map((p) => [p.id, p]));
+    const currentProducts = getCatalogProducts(this.actor);
+    const updatedProducts = currentProducts.map((product) => {
+      const snapshot = productSnapshots.get(product.id);
+      if (!snapshot) return product;
       const ownershipLevel = this.#normalizeReferenceOwnership(snapshot.ownershipLevel);
-      itemUpdates.push({
-        _id: item.id,
-        [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: {
-          ...product,
-          quantity: snapshot.quantity,
-          isHidden: Boolean(snapshot.isHidden),
-          ownershipLevel,
-          requiresApproval: Boolean(snapshot.requiresApproval),
-        },
-        "ownership.default": ownershipLevel,
-      });
-    }
+      return {
+        ...product,
+        quantity: snapshot.quantity ?? null,
+        isHidden: Boolean(snapshot.isHidden),
+        ownershipLevel,
+        requiresApproval: Boolean(snapshot.requiresApproval),
+      };
+    });
 
-    if (itemUpdates.length > 0) {
-      await this.actor.updateEmbeddedDocuments("Item", itemUpdates);
-    }
+    await replaceCatalogProducts(this.actor, updatedProducts);
 
     const serviceSnapshots = new Map((referenceState.services ?? []).map((service) => [service.id, service]));
-    const services = foundry.utils.deepClone(this.actor.system.services?.entries ?? []).map((service) => {
+    const merchantData = getMerchantData(this.actor);
+    const services = foundry.utils.deepClone(merchantData?.catalog?.services ?? []).map((service) => {
       const snapshot = serviceSnapshots.get(service.id);
       if (!snapshot) return service;
 
@@ -2062,16 +2014,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     });
 
     const categorySnapshots = new Map((referenceState.categories ?? []).map((category) => [category.id, category]));
-    const hiddenCategories = foundry.utils.deepClone(this.actor.system.catalog?.hiddenCategories ?? {});
-    for (const category of this.actor.system.catalog?.productCategories ?? []) {
+    const hiddenCategories = foundry.utils.deepClone(merchantData?.catalog?.hiddenCategories ?? {});
+    for (const category of merchantData?.catalog?.productCategories ?? []) {
       const snapshot = categorySnapshots.get(category.id);
       if (!snapshot) continue;
       hiddenCategories[category.id] = Boolean(snapshot.isHidden);
     }
 
-    await this.actor.update({
-      "system.services.entries": services,
-      "system.catalog.hiddenCategories": hiddenCategories,
+    await updateMerchantData(this.actor, {
+      catalog: { services, hiddenCategories },
     });
   }
 
@@ -2422,7 +2373,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #updateSessionEntries(sessions) {
     const updateData = {
-      "system.sessions.entries": sessions,
+      [getMerchantFlagPath("sessions.entries")]: sessions,
     };
 
     const permissionLevel = this.actor.getUserLevel(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
@@ -2461,45 +2412,47 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.#canModifyMerchant()) return;
 
     const type = target.dataset.type || "loot";
+    const name = game.i18n.localize("mtt.items.newItem");
 
-    const itemData = createProductFlags({
-      name: game.i18n.localize("mtt.items.newItem"),
+    const product = {
+      id: foundry.utils.randomID(),
+      name,
       type,
-    });
+      img: "",
+      itemData: { name, type, img: "" },
+      quantity: null,
+      priceValue: 0,
+      priceCurrency: "",
+      isHidden: false,
+    };
 
-    // Manual catalogue creation: this is independent from client actor delivery.
-    await this.actor.createEmbeddedDocuments("Item", [itemData]);
+    this.#saveScrollPositions();
+    await addCatalogProduct(this.actor, product);
   }
 
   static async #onEditItem(event, target) {
     event.preventDefault();
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
-    if (this.isEditable) {
-      item.sheet?.render(true);
+    const rawItemData = foundry.utils.deepClone(product.itemData ?? {});
+    if (!rawItemData.type) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.productPreviewUnavailable"));
       return;
     }
 
-    const itemData = item.toObject();
-    delete itemData._id;
-    delete itemData.uuid;
+    rawItemData.name = rawItemData.name || product.name;
+    rawItemData.img = rawItemData.img || product.img;
+    rawItemData.ownership = { default: product.ownershipLevel };
 
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const configuredOwnershipLevel = Number(
-      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-    );
-    const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
-      ? configuredOwnershipLevel
-      : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
-
-    itemData.ownership = {
-      default: ownershipLevel,
-    };
-
-    const previewItem = new item.constructor(itemData);
-    previewItem.sheet?.render(true);
+    try {
+      const ItemClass = getDocumentClass("Item");
+      const tempItem = new ItemClass(rawItemData);
+      tempItem.sheet?.render(true);
+    } catch {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.productPreviewUnavailable"));
+    }
   }
 
   static async #onDeleteItem(event, target) {
@@ -2507,8 +2460,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: {
@@ -2525,36 +2478,29 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return;
 
-    await this.actor.deleteEmbeddedDocuments("Item", [item.id]);
+    this.#saveScrollPositions();
+    await removeCatalogProduct(this.actor, product.id);
   }
 
   static async #onAddProductToSession(event, target) {
     event.preventDefault();
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
     if (product.isHidden) return;
     if (!this.#requireSelectedSessionForItemAddition()) return;
 
-    const name = item.name;
     const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot);
-    const displayName = formatProductNameWithLotQuantity(name, product.deliveryQuantityPerLot);
-    const universalPrice = readItemReferencePrice(item);
-    const itemPriceValue = universalPrice !== null ? universalPrice.value : (getItemPrice(item) ?? 0);
+    const displayName = formatProductNameWithLotQuantity(product.name, product.deliveryQuantityPerLot);
+    const itemPriceValue = product.priceValue;
     const rates = this.#getEffectiveRatesForSession();
     const displayPriceValue = adjustPriceValue(itemPriceValue, rates.productSellPercent);
-    const priceCurrency = universalPrice !== null
-      ? universalPrice.currency
-      : (resolveItemCurrencyKey(getItemCurrency(item)) || product.priceCurrency?.trim() || "");
+    const priceCurrency = product.priceCurrency;
     const quantity = product.quantity;
     const availableQuantity = normalizeFiniteQuantity(quantity);
     const hasFreePrice = Boolean(product.hasFreePrice);
-    const minimumPriceValue =
-      Number.isFinite(Number(product.minimumPriceValue)) && Number(product.minimumPriceValue) >= 0
-        ? Number(product.minimumPriceValue)
-        : 0;
+    const minimumPriceValue = product.minimumPriceValue;
 
     const referenceCurrency = getReferenceCurrency();
     const referenceCurrencyLabel = referenceCurrency
@@ -2583,7 +2529,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       dialogData.quantity +
       this.#getSessionBuyerQuantity({
         type: "product",
-        sourceId: item.id,
+        sourceId: product.id,
         unitPriceValue,
         priceCurrency: sessionCurrency,
       });
@@ -2602,10 +2548,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         this.#createNegotiation({
           side: "buyer",
           type: "product",
-          sourceId: item.id,
-          sourceUuid: item.uuid,
+          sourceId: product.id,
+          sourceUuid: product.sourceUuid,
           name: displayName,
-          img: item.img,
+          img: product.img,
           quantity: dialogData.quantity,
           unitPriceValue,
           priceCurrency: sessionCurrency,
@@ -2624,9 +2570,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const sessionItem = await this.#addSessionBuyerItem({
       type: "product",
-      sourceId: item.id,
+      sourceId: product.id,
       name: displayName,
-      img: item.img,
+      img: product.img,
       quantity: dialogData.quantity,
       availableQuantity,
       hasLimitedQuantity: !isUnlimitedQuantity(quantity) && availableQuantity !== null,
@@ -3095,7 +3041,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #getNextJournalTransactionNumber() {
-    const nextTransactionNumber = Number(this.actor.system?.journal?.nextTransactionNumber);
+    const nextTransactionNumber = Number(getMerchantData(this.actor)?.journal?.nextTransactionNumber);
     if (!Number.isFinite(nextTransactionNumber) || nextTransactionNumber <= 0) return 1;
 
     return Math.floor(nextTransactionNumber);
@@ -3113,7 +3059,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     // Use updateSource to avoid triggering the full actor data-preparation cycle (CO2 getRollData crash on merchant actors).
-    this.actor.updateSource({ "system.sheet.isLocked": !isLocked });
+    this.actor.updateSource({ [getMerchantFlagPath("sheet.isLocked")]: !isLocked });
     await this.render({ force: true });
   }
 
@@ -3134,18 +3080,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.isEditable) return;
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
-
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-    const isSecretExpanded = Boolean(product.isSecretExpanded);
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
     this.#saveScrollPositions();
-    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      isSecretExpanded: !isSecretExpanded,
-    });
-
+    await updateCatalogProduct(this.actor, product.id, { isSecretExpanded: !product.isSecretExpanded });
     this.render();
   }
 
@@ -3170,7 +3109,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRollNegotiation(event) {
     event.preventDefault();
 
-    const formula = String(this.actor.system.trade?.negotiationFormula ?? "").trim();
+    const formula = String(getMerchantData(this.actor)?.trade?.negotiationFormula ?? "").trim();
 
     if (!formula) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.emptyNegotiationFormula"));
@@ -3225,134 +3164,99 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
     const field = target.dataset.mttProductField;
 
     if (field === "name") {
-      const name = target.value?.trim();
-
-      await updateMerchantProductItemData(item, {
-        name,
-      });
-
+      const name = String(target.value ?? "").trim() || product.name;
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { name, isCommerciallyModified: true });
       return;
     }
 
     if (field === "quantity") {
-      const quantity = target.value?.trim();
-
-      if (quantity === "") {
-        const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-          ...product,
-          quantity: "",
-        });
+      const raw = target.value?.trim();
+      if (raw === "") {
+        this.#saveScrollPositions();
+        await updateCatalogProduct(this.actor, product.id, { quantity: null });
         return;
       }
-
-      const quantityNum = Number(quantity);
-
-      if (!Number.isFinite(quantityNum) || quantityNum < 0) {
+      const qty = Number(raw);
+      if (!Number.isFinite(qty) || qty < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
-        target.value = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity ?? MTT.PRODUCT_DEFAULTS.quantity;
+        target.value = product.quantity ?? "";
         return;
       }
-
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        quantity: quantityNum,
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { quantity: qty });
+      return;
     }
 
     if (field === "deliveryQuantityPerLot") {
-      const quantity = target.value?.trim();
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      if (quantity === "") {
-        await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-          ...product,
-          deliveryQuantityPerLot: null,
-        });
+      const raw = target.value?.trim();
+      if (raw === "") {
+        this.#saveScrollPositions();
+        await updateCatalogProduct(this.actor, product.id, { deliveryQuantityPerLot: null });
         return;
       }
-
-      const quantityNum = Number(quantity);
-
-      if (!Number.isFinite(quantityNum) || quantityNum < 1) {
+      const qty = Number(raw);
+      if (!Number.isFinite(qty) || qty < 1) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidQuantity"));
         target.value = product.deliveryQuantityPerLot ?? "";
         return;
       }
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        deliveryQuantityPerLot: Math.floor(quantityNum),
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { deliveryQuantityPerLot: Math.floor(qty) });
       return;
     }
 
     if (field === "priceValue") {
       const rawValue = Number(target.value);
-
       if (!Number.isFinite(rawValue) || rawValue < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
-        const _universalPrice = readItemReferencePrice(item);
-        target.value = _universalPrice !== null ? _universalPrice.value : (getItemPrice(item) ?? 0);
+        target.value = product.priceValue ?? 0;
         return;
       }
-
-      await updateMerchantProductItemData(item, {
-        priceValue: rawValue,
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { priceValue: rawValue, isCommerciallyModified: true });
       return;
     }
 
     if (field === "priceCurrency") {
       const selectedValue = target.value?.trim() ?? "";
-      await updateMerchantProductItemData(item, {
-        priceCurrency: selectedValue,
+      const isFreePriceCurrencyValue = isFreePriceCurrency(selectedValue);
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, {
+        priceCurrency: isFreePriceCurrencyValue ? "" : selectedValue,
+        hasFreePrice: isFreePriceCurrencyValue,
+        isCommerciallyModified: true,
       });
       return;
     }
 
     if (field === "category") {
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        category: target.value?.trim() ?? "",
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { category: target.value?.trim() ?? "" });
       return;
     }
 
     if (["secretName", "secretPrice", "secretDescription"].includes(field)) {
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        [field]: target.value?.trim() ?? "",
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { [field]: target.value?.trim() ?? "" });
+      return;
     }
 
     if (field === "minimumPriceValue") {
       const rawValue = Number(target.value);
-
       if (!Number.isFinite(rawValue) || rawValue < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidPrice"));
-        target.value =
-          item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)?.minimumPriceValue ?? MTT.PRODUCT_DEFAULTS.minimumPriceValue;
+        target.value = product.minimumPriceValue ?? 0;
         return;
       }
-
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        minimumPriceValue: rawValue,
-      });
+      this.#saveScrollPositions();
+      await updateCatalogProduct(this.actor, product.id, { minimumPriceValue: rawValue });
     }
   }
 
@@ -3380,12 +3284,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "manager.displayName") {
       const displayName = target.value?.trim() ?? "";
-      const currentDisplayName = this.actor.system.manager?.displayName ?? "";
+      const currentDisplayName = getMerchantData(this.actor)?.manager?.displayName ?? "";
       if (displayName === currentDisplayName) return null;
 
       return {
-        "system.manager.mode": "text",
-        "system.manager.displayName": displayName,
+        [getMerchantFlagPath("manager.mode")]: "text",
+        [getMerchantFlagPath("manager.displayName")]: displayName,
       };
     }
 
@@ -3421,19 +3325,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       if (!Number.isFinite(value) || value < 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidTradePercent"));
-        target.value = foundry.utils.getProperty(this.actor.system, field) ?? 0;
+        target.value = foundry.utils.getProperty(getMerchantData(this.actor) ?? {}, field) ?? 0;
         return;
       }
 
-      await this.actor.update({
-        [`system.${field}`]: value,
-      });
+      await updateMerchantData(this.actor, foundry.utils.setProperty({}, field, value));
       return;
     }
 
-    await this.actor.update({
-      [`system.${field}`]: target.value?.trim() ?? "",
-    });
+    await updateMerchantData(this.actor, foundry.utils.setProperty({}, field, target.value?.trim() ?? ""));
   }
 
   async #onWalletCurrencyChange(event) {
@@ -3448,16 +3348,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!Number.isFinite(amount) || amount < 0) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidWalletAmount"));
-      target.value = this.actor.system.wallet?.currencies?.[currencyId] ?? 0;
+      target.value = getMerchantData(this.actor)?.wallet?.currencies?.[currencyId] ?? 0;
       return;
     }
 
-    const currencies = foundry.utils.deepClone(this.actor.system.wallet?.currencies ?? {});
+    const currencies = foundry.utils.deepClone(getMerchantData(this.actor)?.wallet?.currencies ?? {});
     currencies[currencyId] = amount;
 
-    await this.actor.update({
-      "system.wallet.currencies": currencies,
-    });
+    await updateMerchantData(this.actor, { wallet: { currencies } });
   }
 
   // ─── Free price toggle handlers ───────────────────────────────────────────
@@ -3467,16 +3365,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return;
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
     this.#saveScrollPositions();
-    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      hasFreePrice: !product.hasFreePrice,
-    });
-
+    await updateCatalogProduct(this.actor, product.id, { hasFreePrice: !product.hasFreePrice });
     this.render();
   }
 
@@ -3488,7 +3381,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const serviceIndex = entries.findIndex((s) => s.id === serviceId);
     if (serviceIndex === -1) return;
 
@@ -3496,7 +3389,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     entries[serviceIndex].isCommerciallyModified = true;
 
     this.#saveScrollPositions();
-    await this.actor.update({ "system.services.entries": entries });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
     this.render();
   }
 
@@ -3510,7 +3403,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
 
     const newId = foundry.utils.randomID();
     const newService = {
@@ -3521,9 +3414,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     entries.push(newService);
 
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
   }
 
   static async #onAddServiceToSession(event, target) {
@@ -3658,14 +3549,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return;
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
 
     if (index !== -1) {
       entries.splice(index, 1);
-      await this.actor.update({
-        "system.services.entries": entries,
-      });
+      await updateMerchantData(this.actor, { catalog: { services: entries } });
     }
   }
 
@@ -3677,16 +3566,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
     if (index === -1) return;
 
     entries[index].isExpanded = !Boolean(entries[index].isExpanded);
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
 
     this.render();
   }
@@ -3698,16 +3585,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const catalogKind = target.dataset.catalogKind ?? "";
     if (catalogKind === "product") {
-      const item = this.#getItemFromEvent(target);
-      if (!item) return;
+      const product = this.#getProductFromEvent(target);
+      if (!product) return;
 
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
       this.#saveScrollPositions();
-      await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
-        isHidden: !Boolean(product.isHidden),
-      });
-
+      await updateCatalogProduct(this.actor, product.id, { isHidden: !product.isHidden });
       this.render();
       return;
     }
@@ -3716,16 +3598,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
     if (index === -1) return;
 
     entries[index].isHidden = !Boolean(entries[index].isHidden);
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
 
     this.render();
   }
@@ -3738,16 +3618,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const index = entries.findIndex((s) => s.id === serviceId);
     if (index === -1) return;
 
     entries[index].requiresApproval = !Boolean(entries[index].requiresApproval);
 
     this.#saveScrollPositions();
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
 
     this.render();
   }
@@ -3757,17 +3635,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.isEditable) return;
 
-    const item = this.#getItemFromEvent(target);
-    if (!item) return;
-
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+    const product = this.#getProductFromEvent(target);
+    if (!product) return;
 
     this.#saveScrollPositions();
-    await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      requiresApproval: !Boolean(product.requiresApproval),
-    });
-
+    await updateCatalogProduct(this.actor, product.id, { requiresApproval: !product.requiresApproval });
     this.render();
   }
 
@@ -3779,7 +3651,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const serviceId = target.closest("[data-service-id]")?.dataset.serviceId;
     if (!serviceId) return;
 
-    const entries = foundry.utils.deepClone(this.actor.system.services?.entries ?? []);
+    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
     const serviceIndex = entries.findIndex((s) => s.id === serviceId);
 
     if (serviceIndex === -1) return;
@@ -3858,8 +3730,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       entries[serviceIndex].isCommerciallyModified = true;
     }
 
-    await this.actor.update({
-      "system.services.entries": entries,
-    });
+    await updateMerchantData(this.actor, { catalog: { services: entries } });
   }
 }

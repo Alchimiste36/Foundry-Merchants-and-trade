@@ -90,6 +90,10 @@
       "currencies": {
         "name": "Devises configurées",
         "hint": "Liste des devises du module MTT. Géré via la fenêtre de configuration MTT."
+      },
+      "allowedMerchantActorTypes": {
+        "name": "Types d'acteurs convertibles en marchand MTT",
+        "hint": "JSON interne géré via la fenêtre de configuration MTT."
       }
     },
     "sheet": {
@@ -168,6 +172,20 @@
       "deleteItem": {
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
+      }
+    },
+    "actorDirectory": {
+      "convertToMerchant": "Convertir en marchand MTT",
+      "openMerchant": "Ouvrir la boutique MTT",
+      "openManager": "Ouvrir le gérant",
+      "removeMerchant": "Retirer la boutique MTT"
+    },
+    "dialogs": {
+      "removeMerchant": {
+        "title": "Retirer la boutique MTT",
+        "content": "Cette action supprimera la boutique MTT attachée à cet acteur : catalogue, services, sessions, journal, état de référence et configuration commerciale. L’acteur système, sa fiche native et son inventaire personnel ne seront pas supprimés. Continuer ?",
+        "confirm": "Retirer la boutique",
+        "cancel": "Annuler"
       }
     },
     "globalJournal": {
@@ -260,7 +278,17 @@
       "sessionSocketNoResponse": "La demande de modification de session n’a pas reçu de réponse.",
       "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
       "sessionSocketRequestDenied": "La demande de modification de session a été refusée.",
-      "noItemPricePath": "Aucun chemin de prix d'item configuré. Vérifiez le tableau des devises du module."
+      "noItemPricePath": "Aucun chemin de prix d'item configuré. Vérifiez le tableau des devises du module.",
+      "merchantConversion": {
+        "gmOnly": "Seul le MJ peut convertir un acteur en marchand MTT.",
+        "alreadyMerchant": "Cet acteur possède déjà une boutique MTT.",
+        "typeNotAllowed": "Le type d'acteur '{type}' n'est pas autorisé pour les boutiques MTT.",
+        "success": "{name} possède maintenant une boutique MTT.",
+        "noMerchant": "Cet acteur ne possède pas de boutique MTT."
+      },
+      "merchantRemoval": {
+        "success": "La boutique MTT de {name} a été retirée."
+      }
     },
     "price": {
       "freePrice": "Prix libre",
@@ -875,6 +903,12 @@
         "itemPricePathPlaceholder": "system.price.value",
         "itemCurrencyPathPlaceholder": "system.price.currency",
         "itemCurrencyValuesPlaceholder": "pa, PA, sp, SP"
+      },
+      "actorTypes": {
+        "title": "Types d'acteurs convertibles en marchand MTT",
+        "hint": "Sélectionnez les types d'acteurs du système actif qui pourront recevoir une boutique MTT. MTT ne crée pas d'acteur automatiquement : le MJ crée un acteur normal puis le convertit en boutique MTT.",
+        "noneAvailable": "Aucun type d'acteur n'a été détecté pour ce système.",
+        "noneSelected": "Aucun type d'acteur n'est actuellement autorisé pour la conversion en marchand MTT."
       }
     }
   }

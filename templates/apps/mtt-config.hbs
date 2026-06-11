@@ -16,6 +16,32 @@
     </section>
 
     <section class="mtt-config-section">
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.actorTypes.title"}}</h2>
+      <p class="mtt-config-section-hint">{{localize "mtt.config.actorTypes.hint"}}</p>
+
+      {{#if availableActorTypes.length}}
+        <div class="mtt-config-actor-types">
+          {{#each availableActorTypes as |actorType|}}
+            <label class="mtt-config-checkbox-field">
+              <input
+                type="checkbox"
+                name="allowedMerchantActorTypes"
+                value="{{actorType.value}}"
+                {{#if actorType.checked}}checked{{/if}}
+              />
+              <span>{{actorType.label}}</span>
+            </label>
+          {{/each}}
+        </div>
+        {{#unless hasAllowedActorTypes}}
+          <p class="notification warning">{{localize "mtt.config.actorTypes.noneSelected"}}</p>
+        {{/unless}}
+      {{else}}
+        <p class="mtt-config-section-hint">{{localize "mtt.config.actorTypes.noneAvailable"}}</p>
+      {{/if}}
+    </section>
+
+    <section class="mtt-config-section">
       <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.items"}}</h2>
 
       <div class="mtt-config-grid">

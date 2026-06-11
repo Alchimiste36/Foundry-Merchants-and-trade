@@ -126,8 +126,8 @@
             <input
               class="mtt-merchant-field-input"
               type="text"
-              name="system.manager.displayName"
-              value="{{system.manager.displayName}}"
+              name="flags.mtt-merchants.merchant.manager.displayName"
+              value="{{merchant.manager.displayName}}"
               data-mtt-merchant-field="manager.displayName"
               placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
             />
@@ -135,7 +135,7 @@
         </div>
       {{else}}
         <div class="mtt-merchant-manager-summary">
-          <span class="mtt-merchant-manager-name">{{system.manager.displayName}}</span>
+          <span class="mtt-merchant-manager-name">{{merchant.manager.displayName}}</span>
           <button
           class="mtt-merchant-header-action"
           type="button"

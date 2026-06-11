@@ -1,5 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
+import { getMerchantData } from "../../documents/merchant-flags.mjs"
 
 // ─── Parsing / quantités ─────────────────────────────────────────────────────
 
@@ -408,7 +409,7 @@ export function htmlToPlainText(value) {
 // ─── Droits / état feuille ───────────────────────────────────────────────────
 
 export function getMerchantSheetLockedState(actor) {
-  return Boolean(foundry.utils.getProperty(actor, "system.sheet.isLocked"))
+  return Boolean(getMerchantData(actor)?.sheet?.isLocked)
 }
 
 export function getMerchantLimitedState(actor, user = game.user) {

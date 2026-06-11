@@ -34,7 +34,7 @@ import {
   prepareMerchantCatalogItemData,
 } from "./merchant-catalog.mjs";
 import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs";
-import { getCatalogProduct, updateCatalogProduct } from "../../documents/merchant-products.mjs";
+import { getCatalogProduct, updateCatalogProduct, addCatalogProduct, buildCatalogProductFromItem } from "../../documents/merchant-products.mjs";
 
 // ─── Session normalization ────────────────────────────────────────────────────
 
@@ -2409,23 +2409,24 @@ export async function executeSessionItemTransfers(actor, plan) {
     const sourceUuid = String(transfer.sourceItem.uuid ?? "").trim();
     const existingMerchantItem = findMergeableMerchantItemBySourceUuid(actor, sourceUuid);
 
-    // TODO étape 9 : remplacer par updateCatalogProduct quand l'exécution sera adaptée au catalogue flags.
-    if (existingMerchantItem && typeof existingMerchantItem.getFlag === "function") {
-      const product = existingMerchantItem.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
-      const currentQuantity = Number.isFinite(Number(product.quantity))
-        ? Number(product.quantity)
-        : MTT.PRODUCT_DEFAULTS.quantity;
-      await existingMerchantItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-        ...product,
+    if (existingMerchantItem) {
+      const existingFlags = existingMerchantItem.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {};
+      const currentQuantity = isUnlimitedQuantity(existingFlags.quantity)
+        ? 0
+        : (Number.isFinite(Number(existingFlags.quantity)) ? Number(existingFlags.quantity) : 0);
+      await updateCatalogProduct(actor, existingMerchantItem.id, {
         quantity: Number((currentQuantity + transfer.quantity).toFixed(2)),
       });
     } else {
-      const itemData = buildMerchantReceivedItemData(transfer.sourceItem, transfer.quantity, {
-        automaticCategory,
+      const { itemData, productFlags } = buildCatalogProductFromItem(transfer.sourceItem, {
         categoryValue,
+        automaticCategory,
+        sourceUuid,
       });
-      // Seller transfer: this creates merchant catalogue stock, not a purchased Item on the client actor.
-      await actor.createEmbeddedDocuments("Item", [itemData]);
+      await addCatalogProduct(actor, {
+        itemData,
+        productFlags: { ...productFlags, quantity: transfer.quantity },
+      });
     }
 
     await transfer.sourceItem.update({

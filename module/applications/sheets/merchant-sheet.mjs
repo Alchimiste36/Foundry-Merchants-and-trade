@@ -1,5 +1,5 @@
 import { MTT } from "../../config/constants.mjs";
-import { isMTTMerchant, getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs";
+import { isMTTMerchant, getMerchantData, getMerchantFlagPath, updateMerchantData, createLocalMerchantCategory } from "../../documents/merchant-flags.mjs";
 import { getMerchantAccessContext, canUserManageMerchant } from "../../documents/merchant-access.mjs";
 import {
   isUnlimitedQuantity,
@@ -48,6 +48,7 @@ import {
   moveProductToCategory,
   createServiceFromItem,
   prepareSellerItemDropData,
+  resolveDroppedItemSourceUuid,
 } from "./merchant-catalog.mjs";
 import {
   getCatalogProducts,
@@ -693,7 +694,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const automaticCategory = getAutomaticItemCategory(document);
     const productCategoryValue = await getOrCreateAutomaticProductCategory(this.actor, automaticCategory);
 
-    await addOrMergeProduct(this.actor, document, productCategoryValue, automaticCategory, document.uuid);
+    const sourceUuid = resolveDroppedItemSourceUuid(event, document);
+    await addOrMergeProduct(this.actor, document, productCategoryValue, automaticCategory, sourceUuid);
   }
 
   // ─── Item/service helpers ─────────────────────────────────────────────────
@@ -1242,7 +1244,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (catalogItem.kind === "product") {
       this.#saveScrollPositions();
-      const hasSecrets = Boolean(secrets.secretName || secrets.secretPrice || secrets.secretDescription);
+      const hasSecrets = Boolean(secrets.secretName || secrets.secretPrice || secrets.secretCurrency || secrets.secretDescription);
       await updateCatalogProduct(this.actor, catalogItem.productId, {
         ...secrets,
         ...(hasSecrets ? { isCommerciallyModified: true } : {}),
@@ -1410,11 +1412,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.#canModifyMerchant()) return;
 
     const categories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.productCategories ?? []);
-    const categoryId = `category-${foundry.utils.randomID(6)}`;
-    categories.push({
-      id: categoryId,
+    categories.push(createLocalMerchantCategory({
       name: game.i18n.localize("mtt.products.category.new"),
-    });
+    }));
 
     this.#saveScrollPositions();
     await updateMerchantData(this.actor, { catalog: { productCategories: categories } });
@@ -3190,9 +3190,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return;
     }
 
-    if (["secretName", "secretPrice", "secretDescription"].includes(field)) {
+    if (["secretName", "secretPrice", "secretCurrency", "secretDescription"].includes(field)) {
       this.#saveScrollPositions();
-      await updateCatalogProduct(this.actor, product.id, { [field]: target.value?.trim() ?? "" });
+      await updateCatalogProduct(this.actor, product.id, {
+        [field]: target.value?.trim() ?? "",
+        isCommerciallyModified: true,
+      });
       return;
     }
 

@@ -4,6 +4,8 @@ import { getMerchantData, updateMerchantData } from "../../documents/merchant-fl
 import {
   getCatalogProducts,
   findMergeableCatalogProduct,
+  findMergeableCatalogItemBySourceUuid,
+  getMerchantProductFlags,
   buildCatalogProductFromItem,
   addCatalogProduct,
   updateCatalogProduct,
@@ -438,25 +440,43 @@ export async function getOrCreateAutomaticProductCategory(actor, automaticCatego
   return categoryId
 }
 
+export function resolveDroppedItemSourceUuid(event, document) {
+  const productFlag = document?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)
+  const flagSourceUuid = String(productFlag?.sourceUuid ?? "").trim()
+  if (flagSourceUuid) return flagSourceUuid
+
+  let dropUuid = ""
+  try {
+    const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event)
+    dropUuid = String(data?.uuid ?? "").trim()
+  } catch {
+    dropUuid = ""
+  }
+
+  if (dropUuid) return dropUuid
+
+  return String(document?.uuid ?? "").trim()
+}
+
 export function findMergeableMerchantItemBySourceUuid(actor, sourceUuid) {
-  // Délègue vers le catalogue flags — aucun actor.items
-  return findMergeableCatalogProduct(getCatalogProducts(actor), sourceUuid)
+  return findMergeableCatalogItemBySourceUuid(actor, sourceUuid)
 }
 
 export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", automaticCategory = null, sourceUuid = "") {
   const normalizedSourceUuid = String(sourceUuid ?? sourceItem?.uuid ?? "").trim()
-  const existingProducts = getCatalogProducts(actor)
-  const existingProduct = findMergeableCatalogProduct(existingProducts, normalizedSourceUuid)
+  const existingItem = findMergeableCatalogItemBySourceUuid(actor, normalizedSourceUuid)
 
-  if (existingProduct) {
-    if (isUnlimitedQuantity(existingProduct.quantity)) return
+  if (existingItem) {
+    const existingFlags = getMerchantProductFlags(existingItem)
+    const currentQuantity = isUnlimitedQuantity(existingFlags.quantity)
+      ? 1
+      : (Number.isFinite(Number(existingFlags.quantity)) ? Number(existingFlags.quantity) : 1)
 
-    const currentQuantity = Number.isFinite(Number(existingProduct.quantity))
-      ? Number(existingProduct.quantity)
-      : 1
+    await updateCatalogProduct(actor, existingItem.id, {
+      quantity: Number((currentQuantity + 1).toFixed(2)),
+    })
 
-    await updateCatalogProduct(actor, existingProduct.id, { quantity: currentQuantity + 1 })
-    return
+    return existingItem
   }
 
   const product = buildCatalogProductFromItem(sourceItem, {
@@ -465,7 +485,7 @@ export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", a
     sourceUuid: normalizedSourceUuid,
   })
 
-  await addCatalogProduct(actor, product)
+  return addCatalogProduct(actor, product)
 }
 
 export async function moveProductToCategory(actor, productId, categoryValue) {

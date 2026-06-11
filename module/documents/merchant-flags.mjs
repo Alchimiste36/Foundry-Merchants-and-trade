@@ -19,21 +19,39 @@ export function getMerchantFlagPath(path = "") {
   return suffix ? `${base}.${suffix}` : base
 }
 
-// ─── Catégories personnalisées globales ──────────────────────────────────────
+// ─── Catégories produit locales ───────────────────────────────────────────────
 
-function slugifyCategoryId(name) {
-  return (
-    "global-" +
-    String(name ?? "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-  )
+const GLOBAL_CATEGORY_MARKERS = [
+  "isGlobal",
+  "global",
+  "globalId",
+  "sourceType",
+  "fromGlobal",
+  "fromGlobalCategory",
+  "isFromGlobalCategory",
+  "protected",
+  "locked",
+  "isProtected",
+  "canDelete",
+  "readonly",
+  "templateId",
+  "settingId",
+  "configId",
+  "globalCategoryId",
+]
+
+export function createLocalMerchantCategory({ name = "", id = "", sort = null } = {}) {
+  const category = {
+    id: String(id ?? "").trim() || `category-${foundry.utils.randomID(6)}`,
+    name: String(name ?? "").trim(),
+  }
+
+  if (Number.isFinite(Number(sort))) category.sort = Number(sort)
+
+  return category
 }
 
-function getGlobalMerchantProductCategories() {
+function getConfiguredInitialProductCategoryNames() {
   try {
     const raw = String(game.settings.get(MTT.ID, "defaultCustomCategories") ?? "")
     const seen = new Set()
@@ -47,29 +65,38 @@ function getGlobalMerchantProductCategories() {
         seen.add(key)
         return true
       })
-      .map((name) => ({ id: slugifyCategoryId(name), name }))
+      .map((name) => name)
   } catch {
     return []
   }
 }
 
-function mergeGlobalCategoriesIntoMerchantCatalog(merchant) {
-  const globals = getGlobalMerchantProductCategories()
-  if (!globals.length) return merchant
+function buildInitialLocalProductCategories() {
+  return getConfiguredInitialProductCategoryNames().map((name, index) =>
+    createLocalMerchantCategory({ name, sort: index }),
+  )
+}
 
-  merchant.catalog ??= {}
-  merchant.catalog.productCategories ??= []
+function normalizeLocalMerchantCategory(category) {
+  const normalized = category && typeof category === "object"
+    ? foundry.utils.deepClone(category)
+    : { name: String(category ?? "").trim() }
 
-  const existing = merchant.catalog.productCategories
-  const existingIds = new Set(existing.map((c) => c.id))
-
-  for (const category of globals) {
-    if (existingIds.has(category.id)) continue
-    existing.push(category)
-    existingIds.add(category.id)
+  for (const marker of GLOBAL_CATEGORY_MARKERS) {
+    delete normalized[marker]
   }
+  if (normalized.source === "global") delete normalized.source
 
-  return merchant
+  const localCategory = createLocalMerchantCategory({
+    ...normalized,
+    id: normalized.id,
+    name: normalized.name || normalized.id,
+  })
+
+  return {
+    ...normalized,
+    ...localCategory,
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,9 +106,11 @@ function mergeGlobalCategoriesIntoMerchantCatalog(merchant) {
  * Ne persiste rien — retourne uniquement l'objet en mémoire.
  *
  * @param {Actor|null} [actor=null] - L'acteur système support de la boutique.
+ * @param {object} [options={}]
+ * @param {boolean} [options.includeInitialGlobalCategories=false] - Copie les CPG en catégories locales ordinaires.
  * @returns {object} Structure complète avec toutes les valeurs initiales.
  */
-export function buildDefaultMerchantData(actor = null) {
+export function buildDefaultMerchantData(actor = null, { includeInitialGlobalCategories = false } = {}) {
   return {
     enabled: true,
     version: 1,
@@ -120,7 +149,7 @@ export function buildDefaultMerchantData(actor = null) {
       keepEmptyItems: true,
       collapsedCategories: {},
       hiddenCategories: {},
-      productCategories: [],
+      productCategories: includeInitialGlobalCategories ? buildInitialLocalProductCategories() : [],
       products: [],
       services: [],
     },
@@ -160,6 +189,9 @@ export function normalizeMerchantData(data = {}, actor = null) {
   merged.catalog.products ??= []
   merged.catalog.services ??= []
   merged.catalog.productCategories ??= []
+  merged.catalog.productCategories = merged.catalog.productCategories
+    .map(normalizeLocalMerchantCategory)
+    .filter((category) => category.id && category.name)
   merged.catalog.collapsedCategories ??= {}
   merged.catalog.hiddenCategories ??= {}
   merged.sessions ??= { entries: [] }
@@ -168,8 +200,6 @@ export function normalizeMerchantData(data = {}, actor = null) {
   merged.journal.transactions ??= []
   merged.access ??= { clients: [] }
   merged.access.clients ??= []
-
-  mergeGlobalCategoriesIntoMerchantCatalog(merged)
 
   return merged
 }

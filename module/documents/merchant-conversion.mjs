@@ -26,7 +26,7 @@ export async function convertActorToMerchant(actor) {
     return
   }
 
-  await setMerchantData(actor, buildDefaultMerchantData(actor))
+  await setMerchantData(actor, buildDefaultMerchantData(actor, { includeInitialGlobalCategories: true }))
   ui.notifications.info(game.i18n.format("mtt.notifications.merchantConversion.success", { name: actor.name }))
   openMerchantSheet(actor)
 }
@@ -41,7 +41,9 @@ export function openMerchantSheet(actor) {
         return
       }
     }
-  } catch {}
+    } catch {
+      // L'itération des applications peut échouer pendant certains cycles de rendu Foundry.
+    }
   new MerchantSheet({ document: actor }).render(true)
 }
 

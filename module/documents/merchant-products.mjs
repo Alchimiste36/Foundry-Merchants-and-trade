@@ -16,6 +16,32 @@ export function isMerchantProductItem(item) {
   return item?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.enabled === true
 }
 
+// ─── Helpers flags produit ────────────────────────────────────────────────────
+
+export function getMerchantProductFlags(item) {
+  return normalizeProductFlags(item?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {})
+}
+
+export function getMerchantProductSourceUuid(item) {
+  return String(getMerchantProductFlags(item).sourceUuid ?? "").trim()
+}
+
+export function isMerchantProductCommerciallyModified(item) {
+  return getMerchantProductFlags(item).isCommerciallyModified === true
+}
+
+export function merchantProductHasSecrets(itemOrProduct) {
+  const data = itemOrProduct?.getFlag
+    ? getMerchantProductFlags(itemOrProduct)
+    : (itemOrProduct ?? {})
+  return Boolean(
+    String(data.secretName ?? "").trim()
+    || String(data.secretPrice ?? "").trim()
+    || String(data.secretCurrency ?? "").trim()
+    || String(data.secretDescription ?? "").trim()
+  )
+}
+
 // ─── Normalisation des flags produit ─────────────────────────────────────────
 
 export function normalizeProductFlags(flags = {}) {
@@ -156,7 +182,6 @@ export function buildCatalogProductFromItem(sourceItem, options = {}) {
       requiresApproval: false,
       hasFreePrice: false,
       minimumPriceValue: 0,
-      isCommerciallyModified: false,
     }),
   }
 }
@@ -167,11 +192,13 @@ export async function addCatalogProduct(actor, { itemData, productFlags } = {}) 
   if (!itemData || !actor) return null
 
   const dataToCreate = foundry.utils.deepClone(itemData)
-  const [createdItem] = (await actor.createEmbeddedDocuments("Item", [dataToCreate])) ?? []
+  const [createdItem] = (await actor.createEmbeddedDocuments("Item", [dataToCreate], { mtt: true })) ?? []
   if (!createdItem) return null
 
   const normalizedFlags = normalizeProductFlags({ ...(productFlags ?? {}), enabled: true })
-  await createdItem.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, normalizedFlags)
+  await createdItem.update({
+    [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: normalizedFlags,
+  }, { mtt: true })
 
   return createdItem
 }
@@ -316,7 +343,30 @@ export function findMergeableCatalogProduct(products, sourceUuid) {
     products.find((p) => {
       if (String(p.sourceUuid ?? "").trim() !== normalized) return false
       if (p.isCommerciallyModified) return false
-      if (p.secretName || p.secretPrice || p.secretDescription) return false
+      if (p.secretName || p.secretPrice || p.secretCurrency || p.secretDescription) return false
+      return true
+    }) ?? null
+  )
+}
+
+/**
+ * Cherche le vrai Embedded Item fusionnable dans actor.items par sourceUuid.
+ * Retourne l'Item Foundry réel (avec getFlag/setFlag/update) ou null.
+ *
+ * @param {Actor} actor
+ * @param {string} sourceUuid
+ * @returns {Item|null}
+ */
+export function findMergeableCatalogItemBySourceUuid(actor, sourceUuid) {
+  const normalized = String(sourceUuid ?? "").trim()
+  if (!normalized || !actor?.items) return null
+  return (
+    Array.from(actor.items.values()).find((item) => {
+      if (!isMerchantProductItem(item)) return false
+      const itemSourceUuid = getMerchantProductSourceUuid(item)
+      if (!itemSourceUuid || itemSourceUuid !== normalized) return false
+      if (isMerchantProductCommerciallyModified(item)) return false
+      if (merchantProductHasSecrets(item)) return false
       return true
     }) ?? null
   )

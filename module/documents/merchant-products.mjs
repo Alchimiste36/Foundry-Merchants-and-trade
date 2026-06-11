@@ -199,7 +199,7 @@ const FLAG_FIELDS = new Set([
   "sourceUuid",
 ])
 
-export async function updateCatalogProduct(actor, productId, changes) {
+export async function updateCatalogProduct(actor, productId, changes, options = {}) {
   const id = String(productId ?? "").trim()
   if (!id || !actor?.items) return null
   const item = actor.items.get(id)
@@ -231,11 +231,14 @@ export async function updateCatalogProduct(actor, productId, changes) {
 
   const promises = []
   if (Object.keys(itemChanges).length > 0) {
-    promises.push(item.update(itemChanges, { mtt: true }))
+    promises.push(item.update(itemChanges, { mtt: true, ...options }))
   }
   if (Object.keys(flagChanges).length > 0) {
     const existing = normalizeProductFlags(item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT))
-    promises.push(item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, normalizeProductFlags({ ...existing, ...flagChanges })))
+    promises.push(item.update(
+      { [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: normalizeProductFlags({ ...existing, ...flagChanges }) },
+      { mtt: true, ...options },
+    ))
   }
 
   await Promise.all(promises)

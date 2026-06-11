@@ -19,6 +19,61 @@ export function getMerchantFlagPath(path = "") {
   return suffix ? `${base}.${suffix}` : base
 }
 
+// ─── Catégories personnalisées globales ──────────────────────────────────────
+
+function slugifyCategoryId(name) {
+  return (
+    "global-" +
+    String(name ?? "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  )
+}
+
+function getGlobalMerchantProductCategories() {
+  try {
+    const raw = String(game.settings.get(MTT.ID, "defaultCustomCategories") ?? "")
+    const seen = new Set()
+    return raw
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((name) => {
+        const key = name.toLowerCase()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+      .map((name) => ({ id: slugifyCategoryId(name), name }))
+  } catch {
+    return []
+  }
+}
+
+function mergeGlobalCategoriesIntoMerchantCatalog(merchant) {
+  const globals = getGlobalMerchantProductCategories()
+  if (!globals.length) return merchant
+
+  merchant.catalog ??= {}
+  merchant.catalog.productCategories ??= []
+
+  const existing = merchant.catalog.productCategories
+  const existingIds = new Set(existing.map((c) => c.id))
+
+  for (const category of globals) {
+    if (existingIds.has(category.id)) continue
+    existing.push(category)
+    existingIds.add(category.id)
+  }
+
+  return merchant
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Construit la structure de données par défaut d'une boutique MTT pour un acteur support.
  * Ne persiste rien — retourne uniquement l'objet en mémoire.
@@ -114,6 +169,8 @@ export function normalizeMerchantData(data = {}, actor = null) {
   merged.access ??= { clients: [] }
   merged.access.clients ??= []
 
+  mergeGlobalCategoriesIntoMerchantCatalog(merged)
+
   return merged
 }
 
@@ -162,10 +219,10 @@ export function isMTTMerchant(actor) {
  * @param {object} data - Données complètes de boutique à persister.
  * @returns {Promise<Actor|null>}
  */
-export async function setMerchantData(actor, data) {
+export async function setMerchantData(actor, data, options = {}) {
   if (!actor) return null
   const normalized = normalizeMerchantData(data, actor)
-  return actor.setFlag(MTT.ID, MTT.FLAGS.MERCHANT, normalized)
+  return actor.update({ [`flags.${MTT.ID}.${MTT.FLAGS.MERCHANT}`]: normalized }, options)
 }
 
 /**
@@ -177,7 +234,7 @@ export async function setMerchantData(actor, data) {
  * @param {object} [changes={}] - Modifications partielles à fusionner.
  * @returns {Promise<Actor|null>}
  */
-export async function updateMerchantData(actor, changes = {}) {
+export async function updateMerchantData(actor, changes = {}, options = {}) {
   if (!actor) return null
   if (!changes || typeof changes !== "object" || Array.isArray(changes)) {
     console.error(`${MTT.NAME} | updateMerchantData : changes doit être un objet, reçu :`, typeof changes, changes)
@@ -190,7 +247,7 @@ export async function updateMerchantData(actor, changes = {}) {
     insertValues: true,
     overwrite: true,
   })
-  return setMerchantData(actor, merged)
+  return setMerchantData(actor, merged, options)
 }
 
 /**

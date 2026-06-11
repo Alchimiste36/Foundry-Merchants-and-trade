@@ -1386,7 +1386,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       name: categoryName,
     };
 
-    await updateMerchantData(this.actor, { catalog: { productCategories: categories } });
+    await updateMerchantData(this.actor, { catalog: { productCategories: categories } }, { render: false });
   }
 
   static async #onToggleProductCategory(event, target) {
@@ -3125,16 +3125,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "name") {
       const name = String(target.value ?? "").trim() || product.name;
-      this.#saveScrollPositions();
-      await updateCatalogProduct(this.actor, product.id, { name, isCommerciallyModified: true });
+      await updateCatalogProduct(this.actor, product.id, { name, isCommerciallyModified: true }, { render: false });
       return;
     }
 
     if (field === "quantity") {
       const raw = target.value?.trim();
       if (raw === "") {
-        this.#saveScrollPositions();
-        await updateCatalogProduct(this.actor, product.id, { quantity: null });
+        await updateCatalogProduct(this.actor, product.id, { quantity: null }, { render: false });
         return;
       }
       const qty = Number(raw);
@@ -3143,16 +3141,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         target.value = product.quantity ?? "";
         return;
       }
-      this.#saveScrollPositions();
-      await updateCatalogProduct(this.actor, product.id, { quantity: qty });
+      await updateCatalogProduct(this.actor, product.id, { quantity: qty }, { render: false });
       return;
     }
 
     if (field === "deliveryQuantityPerLot") {
       const raw = target.value?.trim();
       if (raw === "") {
-        this.#saveScrollPositions();
-        await updateCatalogProduct(this.actor, product.id, { deliveryQuantityPerLot: null });
+        await updateCatalogProduct(this.actor, product.id, { deliveryQuantityPerLot: null }, { render: false });
         return;
       }
       const qty = Number(raw);
@@ -3161,8 +3157,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         target.value = product.deliveryQuantityPerLot ?? "";
         return;
       }
-      this.#saveScrollPositions();
-      await updateCatalogProduct(this.actor, product.id, { deliveryQuantityPerLot: Math.floor(qty) });
+      await updateCatalogProduct(this.actor, product.id, { deliveryQuantityPerLot: Math.floor(qty) }, { render: false });
       return;
     }
 
@@ -3173,8 +3168,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         target.value = product.priceValue ?? 0;
         return;
       }
-      this.#saveScrollPositions();
-      await updateCatalogProduct(this.actor, product.id, { priceValue: rawValue, isCommerciallyModified: true });
+      await updateCatalogProduct(this.actor, product.id, { priceValue: rawValue, isCommerciallyModified: true }, { render: false });
       return;
     }
 
@@ -3182,12 +3176,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const selectedValue = target.value?.trim() ?? "";
       const isFreePriceCurrencyValue = isFreePriceCurrency(selectedValue);
       const effectiveCurrency = isFreePriceCurrencyValue ? "" : selectedValue;
-      this.#saveScrollPositions();
       await updateCatalogProduct(this.actor, product.id, {
         priceCurrency: effectiveCurrency,
         hasFreePrice: isFreePriceCurrencyValue,
         isCommerciallyModified: true,
-      });
+      }, { render: false });
       return;
     }
 

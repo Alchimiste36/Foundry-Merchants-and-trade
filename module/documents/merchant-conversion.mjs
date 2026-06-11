@@ -2,8 +2,12 @@ import { isMTTMerchant, buildDefaultMerchantData, setMerchantData, unsetMerchant
 import { isActorTypeAllowedForMerchant } from "../config/actor-types.mjs"
 import { MerchantSheet } from "../applications/sheets/merchant-sheet.mjs"
 
-// Bypass runtime : IDs acteurs dont la prochaine ouverture ne doit pas être redirigée vers MTT
-const _managerBypassIds = new Set()
+// Bypass ponctuel : IDs acteurs en attente d'un premier render à marquer comme bypassé
+const _managerBypassActorIds = new Set()
+
+// Bypass durable : instances d'applications dont les rerenders ne redirigent pas vers MTT.
+// WeakSet = pas de fuite mémoire quand l'app est détruite.
+const _managerBypassApps = new WeakSet()
 
 // ─── Actions de conversion ───────────────────────────────────────────────────
 
@@ -43,10 +47,10 @@ export function openMerchantSheet(actor) {
 
 export function openManagerActorSheet(actor) {
   if (!actor) return
-  _managerBypassIds.add(actor.id)
+  _managerBypassActorIds.add(actor.id)
   actor.sheet?.render(true)
   // Nettoyage de sécurité si le hook de rendu ne se déclenche jamais
-  setTimeout(() => _managerBypassIds.delete(actor.id), 2000)
+  setTimeout(() => _managerBypassActorIds.delete(actor.id), 2000)
 }
 
 export async function removeMerchantFromActor(actor) {
@@ -73,16 +77,37 @@ export async function removeMerchantFromActor(actor) {
   ui.notifications.info(game.i18n.format("mtt.notifications.merchantRemoval.success", { name: actor.name }))
 }
 
-// ─── Header controls des fiches acteur ──────────────────────────────────────
+// ─── Helpers de résolution d'acteur ──────────────────────────────────────────
 
+/**
+ * Pour les header controls : retourne l'acteur associé à une feuille.
+ * Exclut les ItemSheets (document = Item) pour ne pas injecter de contrôles MTT sur les items.
+ */
 function getActorFromSheetApplication(app) {
-  // Utilise uniquement app.actor pour éviter de cibler des apps de configuration
-  // (ex. DocumentOwnershipConfig) qui exposent l'acteur via app.document mais
-  // ne sont pas des fiches acteur.
-  const doc = app?.actor ?? null
+  const doc = app?.document ?? app?.object ?? null
+  if (doc?.documentName === "Item") return null
+  const actor = app?.actor ?? null
+  if (!actor || actor.documentName !== "Actor") return null
+  return actor
+}
+
+/**
+ * Pour la logique de redirection uniquement.
+ * Ne remonte JAMAIS vers item.parent — retourne null si le document principal n'est pas un Actor.
+ */
+function getDirectActorForRedirect(app) {
+  const doc = app?.document ?? app?.object ?? null
   if (!doc) return null
-  if (doc.documentName === "Actor") return doc
-  return null
+  if (doc.documentName !== "Actor") return null
+  return doc
+}
+
+/**
+ * Applications natives Foundry de configuration qui ne doivent jamais être redirigées.
+ */
+function isFoundryConfigApplication(app) {
+  const name = app?.constructor?.name ?? ""
+  return ["DocumentOwnershipConfig", "DocumentSheetConfig", "DocumentDirectoryConfig"].includes(name)
 }
 
 function buildMTTControlsV2(actor, isOnMerchantSheet) {
@@ -195,12 +220,22 @@ export function registerMerchantSheetOpenHooks() {
   // ApplicationV2 — hook générique pour toutes les fiches AppV2
   Hooks.on("renderApplicationV2", (app, _element, _context, _options) => {
     if (app instanceof MerchantSheet) return
-    const actor = getActorFromSheetApplication(app)
+    if (isFoundryConfigApplication(app)) return
+
+    // Bypass durable : feuille gérant ouverte explicitement — ses rerenders restent intacts
+    if (_managerBypassApps.has(app)) return
+
+    // Ne rediriger que si le document principal est directement un Actor (pas un Item embedded)
+    const actor = getDirectActorForRedirect(app)
     if (!actor || !isMTTMerchant(actor)) return
-    if (_managerBypassIds.has(actor.id)) {
-      _managerBypassIds.delete(actor.id)
+
+    // Bypass ponctuel au premier render → mémoriser l'instance pour tous ses rerenders futurs
+    if (_managerBypassActorIds.has(actor.id)) {
+      _managerBypassActorIds.delete(actor.id)
+      _managerBypassApps.add(app)
       return
     }
+
     queueMicrotask(() => {
       app.close({ animate: false })
       openMerchantSheet(actor)
@@ -209,14 +244,21 @@ export function registerMerchantSheetOpenHooks() {
 
   // Application v1 — hook générique pour toutes les fiches acteur legacy
   Hooks.on("renderApplicationV1", (app, _html, _data) => {
-    // Utilise app.actor uniquement (les vraies fiches acteur V1 l'exposent)
-    const actor = app.actor ?? null
-    if (!actor || actor.documentName !== "Actor") return
-    if (!isMTTMerchant(actor)) return
-    if (_managerBypassIds.has(actor.id)) {
-      _managerBypassIds.delete(actor.id)
+    if (isFoundryConfigApplication(app)) return
+
+    // Bypass durable
+    if (_managerBypassApps.has(app)) return
+
+    // Ne remonte jamais vers item.parent pour décider une redirection
+    const actor = getDirectActorForRedirect(app)
+    if (!actor || !isMTTMerchant(actor)) return
+
+    if (_managerBypassActorIds.has(actor.id)) {
+      _managerBypassActorIds.delete(actor.id)
+      _managerBypassApps.add(app)
       return
     }
+
     queueMicrotask(() => {
       app.close()
       openMerchantSheet(actor)

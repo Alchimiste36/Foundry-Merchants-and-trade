@@ -1242,7 +1242,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (catalogItem.kind === "product") {
       this.#saveScrollPositions();
-      await updateCatalogProduct(this.actor, catalogItem.productId, secrets);
+      const hasSecrets = Boolean(secrets.secretName || secrets.secretPrice || secrets.secretDescription);
+      await updateCatalogProduct(this.actor, catalogItem.productId, {
+        ...secrets,
+        ...(hasSecrets ? { isCommerciallyModified: true } : {}),
+      });
       this.render();
       return;
     }
@@ -1926,7 +1930,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return {
       savedAt: new Date().toISOString(),
       catalog: {
-        products: foundry.utils.deepClone(catalog.products ?? []),
+        products: getCatalogProducts(this.actor),
         services: foundry.utils.deepClone(catalog.services ?? []),
         productCategories: foundry.utils.deepClone(catalog.productCategories ?? []),
         keepEmptyItems: catalog.keepEmptyItems !== false,
@@ -2370,20 +2374,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const type = target.dataset.type || "loot";
     const name = game.i18n.localize("mtt.items.newItem");
 
-    const product = {
-      id: foundry.utils.randomID(),
-      name,
-      type,
-      img: "",
-      itemData: { name, type, img: "" },
-      quantity: null,
-      priceValue: 0,
-      priceCurrency: "",
-      isHidden: false,
-    };
-
     this.#saveScrollPositions();
-    await addCatalogProduct(this.actor, product);
+    await addCatalogProduct(this.actor, {
+      itemData: { name, type, img: "" },
+      productFlags: { enabled: true, isHidden: false },
+    });
   }
 
   static async #onEditItem(event, target) {
@@ -2391,24 +2386,28 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const product = this.#getProductFromEvent(target);
     if (!product) return;
+    if (!product.itemData?.type) return;
 
-    const rawItemData = foundry.utils.deepClone(product.itemData ?? {});
-    if (!rawItemData.type) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.productPreviewUnavailable"));
+    const { canManageMerchant } = getMerchantAccessContext(this.actor);
+
+    if (canManageMerchant) {
+      // GM/propriétaire : ouvre le vrai Item embedded — aucun Item temporaire, aucune erreur CoEquipmentSheet
+      const item = this.actor.items.get(product.id);
+      if (!item) return;
+      item.sheet?.render(true);
       return;
     }
 
-    rawItemData.name = rawItemData.name || product.name;
-    rawItemData.img = rawItemData.img || product.img;
+    // Client : vue en lecture seule via Item temporaire avec ID synthétique
+    const ItemClass = getDocumentClass("Item");
+    if (!ItemClass) return;
+    const rawItemData = foundry.utils.deepClone(product.itemData);
+    const idPart = product.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 13).padEnd(13, "0");
+    rawItemData._id = `mtt${idPart}`;
     rawItemData.ownership = { default: product.ownershipLevel };
-
-    try {
-      const ItemClass = getDocumentClass("Item");
-      const tempItem = new ItemClass(rawItemData);
-      tempItem.sheet?.render(true);
-    } catch {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.productPreviewUnavailable"));
-    }
+    const tempItem = new ItemClass(rawItemData);
+    tempItem.update = async function() { return this; };
+    tempItem.sheet?.render(true);
   }
 
   static async #onDeleteItem(event, target) {
@@ -3181,9 +3180,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (field === "priceCurrency") {
       const selectedValue = target.value?.trim() ?? "";
       const isFreePriceCurrencyValue = isFreePriceCurrency(selectedValue);
+      const effectiveCurrency = isFreePriceCurrencyValue ? "" : selectedValue;
       this.#saveScrollPositions();
       await updateCatalogProduct(this.actor, product.id, {
-        priceCurrency: isFreePriceCurrencyValue ? "" : selectedValue,
+        priceCurrency: effectiveCurrency,
         hasFreePrice: isFreePriceCurrencyValue,
         isCommerciallyModified: true,
       });

@@ -42,7 +42,8 @@
       "Bash(Select-Object -First 30)",
       "PowerShell($content = Get-Content \"C:\\\\Users\\\\Alchi\\\\.claude\\\\projects\\\\f--dataPath-dataPath14dev-Data-modules-mtt-merchants\\\\2eb136b3-8e22-4fc1-9bd8-26b0b51a734e.jsonl\" -Raw; $content.Length)",
       "Bash(xargs grep -l \"sourceUuid\")",
-      "Bash(Get-ChildItem \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\" -Filter \"*.md\" -Depth 0)"
+      "Bash(Get-ChildItem \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\" -Filter \"*.md\" -Depth 0)",
+      "PowerShell(Get-ChildItem -Path \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\" -Recurse -File | Where-Object {$_.Extension -eq \".mjs\" -or $_.Extension -eq \".hbs\"} | Select-Object FullName | Sort-Object FullName)"
     ],
     "additionalDirectories": [
       "\\tmp"

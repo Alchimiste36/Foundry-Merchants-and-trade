@@ -55,7 +55,7 @@
   justify-content: space-between;
   gap: 0;
   border-bottom: 1px solid var(--mtt-border);
-  margin-right: 6px;
+  padding-right: 6px;
 }
 .mtt-merchant-product-category-header-hidden {
   background: #d36b5f36;

@@ -2,11 +2,6 @@ export const MTT = {
   ID: "mtt-merchants",
   NAME: "Merchants, Trades and Transactions",
 
-  ACTOR_TYPES: {
-    // @deprecated — le sous-type acteur est supprimé (étape 2). Conserver uniquement pour référence historique.
-    MERCHANT: "mtt-merchants.merchant",
-  },
-
   FLAGS: {
     PRODUCT: "product",
     MERCHANT: "merchant",

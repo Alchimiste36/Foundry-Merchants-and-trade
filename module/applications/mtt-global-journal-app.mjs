@@ -118,15 +118,16 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
     }
     const sort = normalizeGlobalJournalSort(this.#sort)
     const merchants = game.actors.filter((actor) => isMTTMerchant(actor))
-    const collectedTransactions = merchants.flatMap((merchant) =>
-      (getMerchantData(merchant)?.journal?.transactions ?? []).map((entry) =>
+    const collectedTransactions = merchants.flatMap((merchant) => {
+      const shopName = getMerchantData(merchant)?.shop?.name || merchant.name
+      return (getMerchantData(merchant)?.journal?.transactions ?? []).map((entry) =>
         normalizeJournalEntry({
           ...entry,
           merchantActorUuid: entry.merchantActorUuid || merchant.uuid,
-          merchantName: entry.merchantName || merchant.name,
+          merchantName: entry.merchantName || shopName,
         }),
-      ),
-    )
+      )
+    })
     const filteredTransactions = collectedTransactions
       .filter((entry) => !filters.merchantUuid || entry.merchantActorUuid === filters.merchantUuid)
       .filter((entry) => !filters.buyerUuid || entry.buyerActorUuid === filters.buyerUuid)
@@ -146,7 +147,7 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
       merchants: merchants
         .map((merchant) => ({
           uuid: merchant.uuid,
-          name: merchant.name,
+          name: getMerchantData(merchant)?.shop?.name || merchant.name,
           selected: merchant.uuid === filters.merchantUuid,
         }))
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),

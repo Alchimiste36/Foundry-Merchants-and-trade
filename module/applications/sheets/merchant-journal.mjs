@@ -1,6 +1,8 @@
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getCatalogProduct } from "../../documents/merchant-products.mjs"
+import { canUserManageMerchant } from "../../documents/merchant-access.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
@@ -108,13 +110,12 @@ function getJournalLineHadSecrets(actor, item, side) {
   if (side !== "buyer") return false
 
   if (item.type === "product") {
-    const productItem = actor?.items?.get?.(item.sourceId)
-    const product = productItem?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    const product = getCatalogProduct(actor, item.sourceId) ?? {}
     return catalogEntryHasSecrets(product)
   }
 
   if (item.type === "service") {
-    const service = actor?.system?.services?.entries?.find((entry) => entry.id === item.sourceId) ?? {}
+    const service = getMerchantData(actor)?.catalog?.services?.find((entry) => entry.id === item.sourceId) ?? {}
     return catalogEntryHasSecrets(service)
   }
 
@@ -284,7 +285,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
     createdAt: new Date().toISOString(),
     status,
     merchantActorUuid: actor?.uuid ?? "",
-    merchantName: actor?.name ?? "",
+    merchantName: getMerchantData(actor)?.shop?.name || actor?.name || "",
     buyerActorUuid: session?.actorUuid ?? "",
     buyerName,
     buyerImg: session?.actorImg ?? getJournalBuyerImg(session),
@@ -343,7 +344,7 @@ export async function appendMerchantJournalEntry(actor, entry) {
     : transactionNumber + 1
   const normalizedEntry = normalizeJournalEntry({
     merchantActorUuid: actor.uuid,
-    merchantName: actor.name,
+    merchantName: getMerchantData(actor)?.shop?.name || actor?.name || "",
     ...entry,
     transactionNumber,
   })
@@ -361,8 +362,7 @@ export async function appendMerchantJournalEntry(actor, entry) {
 }
 
 export function userCanSeeAllMerchantJournal(actor, user = game.user) {
-  const permLevel = actor?.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-  return Boolean(user?.isGM) || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+  return canUserManageMerchant(actor, user)
 }
 
 export function userControlsJournalBuyer(entry, user = game.user) {

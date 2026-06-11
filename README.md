@@ -10,7 +10,7 @@ MTT est pensé comme un module générique : il peut être configuré pour diff�
 
 ## Fonctionnalités principales
 
-- Création d’acteurs marchands dédiés.
+- Conversion d’un acteur système normal en boutique MTT.
 - Catalogue de produits basé sur des Items Foundry.
 - Gestion de services dans la boutique.
 - Catégories et sous-catégories de catalogue.
@@ -76,12 +76,14 @@ https://raw.githubusercontent.com/Alchimiste36/Foundry-Merchants-and-trade/main/
 ## Premiers pas
 
 1. Activer le module dans votre monde.
-2. Créer un acteur de type **MTT Marchand**.
-3. Ouvrir la fiche du marchand.
-4. Configurer les monnaies et les chemins utiles pour votre système.
-5. Ajouter des produits ou services au catalogue.
-6. Autoriser un personnage joueur à commercer avec le marchand.
-7. Gérer la session de transaction depuis la fiche marchand.
+2. Configurer les types d'acteurs autorisés dans les paramètres MTT.
+3. Créer un acteur système normal d'un type autorisé.
+4. Ouvrir la fiche de l'acteur et cliquer sur **Convertir en boutique MTT** dans les options d'en-tête.
+5. La fiche MTT s'ouvre automatiquement.
+6. Configurer les monnaies et les chemins utiles pour votre système.
+7. Ajouter des produits ou services au catalogue.
+8. Autoriser un personnage joueur à commercer avec le marchand.
+9. Gérer la session de transaction depuis la fiche marchand.
 
 ---
 

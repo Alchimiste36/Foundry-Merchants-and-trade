@@ -9,9 +9,6 @@
       "merchant": "Merchant Sheet",
       "merchantTitle": "MTT - Merchant: {name}"
     },
-    "actorTypes": {
-      "merchant": "MTT Merchant"
-    },
     "settings": {
       "debug": {
         "name": "MTT debug mode",
@@ -546,7 +543,7 @@
     },
     "referenceState": {
       "title": "Reference state",
-      "description": "Saves the current quantities, visibilities, ownership levels and approval requests as the merchant's base state.",
+      "description": "Saves the entire catalog (products, services, categories, quantities, visibilities, prices) as the shop's base state.",
       "savedAt": "Last saved state:",
       "save": "Set state as reference",
       "restore": "Reset to reference",
@@ -554,7 +551,7 @@
       "restoreSuccess": "Merchant reset to reference state.",
       "missing": "No reference state saved.",
       "confirmTitle": "Reset merchant",
-      "confirmContent": "Reset the merchant to its reference state? Products, services and categories added after the save will not be deleted.",
+      "confirmContent": "Restore the shop catalog to the saved state? Products or services added since the save will disappear, and deleted ones will reappear. The manager actor and their system inventory will not be modified.",
       "confirmRestore": "Reset",
       "cancel": "Cancel"
     },

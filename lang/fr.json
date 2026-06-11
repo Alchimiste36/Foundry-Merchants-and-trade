@@ -9,9 +9,6 @@
       "merchant": "Feuille de marchand",
       "merchantTitle": "MTT - Marchand : {name}"
     },
-    "actorTypes": {
-      "merchant": "MTT Marchand"
-    },
     "settings": {
       "debug": {
         "name": "Mode debug MTT",
@@ -546,7 +543,7 @@
     },
     "referenceState": {
       "title": "État de référence",
-      "description": "Enregistre les quantités, visibilités, droits d’ouverture et demandes d’approbation actuels comme état de base du marchand.",
+      "description": "Enregistre l’intégralité du catalogue (produits, services, catégories, quantités, visibilités, prix) comme état de base de la boutique.",
       "savedAt": "Dernier état enregistré :",
       "save": "Définir l’état comme référence",
       "restore": "Réinitialiser la référence",
@@ -554,7 +551,7 @@
       "restoreSuccess": "Marchand réinitialisé à son état de référence.",
       "missing": "Aucun état de référence enregistré.",
       "confirmTitle": "Réinitialiser le marchand",
-      "confirmContent": "Réinitialiser le marchand à son état de référence ? Les produits, services et catégories ajoutés après l’enregistrement ne seront pas supprimés.",
+      "confirmContent": "Restaurer le catalogue de la boutique dans l’état enregistré ? Les produits ou services ajoutés depuis l’enregistrement disparaîtront, et ceux supprimés réapparaîtront. L’acteur gérant et son inventaire système ne seront pas modifiés.",
       "confirmRestore": "Réinitialiser",
       "cancel": "Annuler"
     },

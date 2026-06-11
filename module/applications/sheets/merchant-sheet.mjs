@@ -1,5 +1,6 @@
 import { MTT } from "../../config/constants.mjs";
 import { isMTTMerchant, getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs";
+import { getMerchantAccessContext, canUserManageMerchant } from "../../documents/merchant-access.mjs";
 import {
   isUnlimitedQuantity,
   isFreePriceCurrency,
@@ -192,6 +193,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isUnlocked,
       canEditMerchant,
       isLimited,
+      permissions: getMerchantAccessContext(this.actor),
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         lock: "mtt.sheet.lock",
@@ -943,9 +945,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
     event.stopPropagation();
 
-    const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
-    const canManage = game.user.isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
-    if (!canManage) return;
+    if (!canUserManageMerchant(this.actor)) return;
 
     const client = this.#getAccessClientCandidate(target.dataset.clientActorUuid);
     if (!client) return;
@@ -1518,11 +1518,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareAccessContext() {
-    const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
-    const isGM = Boolean(game.user.isGM);
-    const isOwner = isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
-    const isObserver = !isOwner && permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
-    const isLimited = !isOwner && !isObserver && permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED;
+    const { isOwnerLike: isOwner, isObserver, isLimited } = getMerchantAccessContext(this.actor);
     const canManageAccessRail = isOwner;
     const canSeeAccessDropZone = canManageAccessRail;
 
@@ -1684,7 +1680,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    const actor = await fromUuid(actorUuid)
+    let actor = null
+    try {
+      actor = await fromUuid(actorUuid)
+    } catch {
+      // UUID périmé — boutique importée depuis un compendium
+    }
     if (actor?.documentName !== "Actor") {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.actorNotFound"))
       return null
@@ -1920,27 +1921,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #buildReferenceState() {
     const merchantData = getMerchantData(this.actor);
-    const hiddenCategories = merchantData?.catalog?.hiddenCategories ?? {};
+    const catalog = merchantData?.catalog ?? {};
 
     return {
       savedAt: new Date().toISOString(),
-      products: getCatalogProducts(this.actor).map((product) => ({
-        id: product.id,
-        quantity: product.quantity ?? null,
-        isHidden: Boolean(product.isHidden),
-        ownershipLevel: product.ownershipLevel,
-        requiresApproval: Boolean(product.requiresApproval),
-      })),
-      services: (merchantData?.catalog?.services ?? []).map((service) => ({
-        id: service.id,
-        quantity: service.quantity ?? null,
-        isHidden: Boolean(service.isHidden),
-        requiresApproval: Boolean(service.requiresApproval),
-      })),
-      categories: (merchantData?.catalog?.productCategories ?? []).map((category) => ({
-        id: category.id,
-        isHidden: Boolean(hiddenCategories[category.id]),
-      })),
+      catalog: {
+        products: foundry.utils.deepClone(catalog.products ?? []),
+        services: foundry.utils.deepClone(catalog.services ?? []),
+        productCategories: foundry.utils.deepClone(catalog.productCategories ?? []),
+        keepEmptyItems: catalog.keepEmptyItems !== false,
+        collapsedCategories: foundry.utils.deepClone(catalog.collapsedCategories ?? {}),
+        hiddenCategories: foundry.utils.deepClone(catalog.hiddenCategories ?? {}),
+      },
     };
   }
 
@@ -1982,56 +1974,20 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #applyReferenceState(referenceState) {
-    const productSnapshots = new Map((referenceState.products ?? []).map((p) => [p.id, p]));
-    const currentProducts = getCatalogProducts(this.actor);
-    const updatedProducts = currentProducts.map((product) => {
-      const snapshot = productSnapshots.get(product.id);
-      if (!snapshot) return product;
-      const ownershipLevel = this.#normalizeReferenceOwnership(snapshot.ownershipLevel);
-      return {
-        ...product,
-        quantity: snapshot.quantity ?? null,
-        isHidden: Boolean(snapshot.isHidden),
-        ownershipLevel,
-        requiresApproval: Boolean(snapshot.requiresApproval),
-      };
-    });
+    const savedCatalog = referenceState.catalog;
+    if (!savedCatalog) return;
 
-    await replaceCatalogProducts(this.actor, updatedProducts);
-
-    const serviceSnapshots = new Map((referenceState.services ?? []).map((service) => [service.id, service]));
-    const merchantData = getMerchantData(this.actor);
-    const services = foundry.utils.deepClone(merchantData?.catalog?.services ?? []).map((service) => {
-      const snapshot = serviceSnapshots.get(service.id);
-      if (!snapshot) return service;
-
-      return {
-        ...service,
-        quantity: snapshot.quantity ?? null,
-        isHidden: Boolean(snapshot.isHidden),
-        requiresApproval: Boolean(snapshot.requiresApproval),
-      };
-    });
-
-    const categorySnapshots = new Map((referenceState.categories ?? []).map((category) => [category.id, category]));
-    const hiddenCategories = foundry.utils.deepClone(merchantData?.catalog?.hiddenCategories ?? {});
-    for (const category of merchantData?.catalog?.productCategories ?? []) {
-      const snapshot = categorySnapshots.get(category.id);
-      if (!snapshot) continue;
-      hiddenCategories[category.id] = Boolean(snapshot.isHidden);
-    }
+    await replaceCatalogProducts(this.actor, savedCatalog.products ?? []);
 
     await updateMerchantData(this.actor, {
-      catalog: { services, hiddenCategories },
+      catalog: {
+        services: foundry.utils.deepClone(savedCatalog.services ?? []),
+        productCategories: foundry.utils.deepClone(savedCatalog.productCategories ?? []),
+        keepEmptyItems: savedCatalog.keepEmptyItems !== false,
+        collapsedCategories: foundry.utils.deepClone(savedCatalog.collapsedCategories ?? {}),
+        hiddenCategories: foundry.utils.deepClone(savedCatalog.hiddenCategories ?? {}),
+      },
     });
-  }
-
-  #normalizeReferenceOwnership(value) {
-    const ownershipLevel = Number(value);
-    if (ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED) return ownershipLevel;
-    if (ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) return ownershipLevel;
-
-    return CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
   }
 
   #getSessionBuyerQuantity({ type, sourceId, unitPriceValue, priceCurrency }) {
@@ -2786,9 +2742,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault();
 
     const actorUuid = target.dataset.clientActorUuid;
-    const permLevel = this.actor.getUserLevel?.(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
-    const canManage = game.user.isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
-    if (!canManage && !this.#userControlsActor(actorUuid)) return;
+    if (!canUserManageMerchant(this.actor) && !this.#userControlsActor(actorUuid)) return;
 
     const client = this.#getAccessClientCandidate(actorUuid);
     if (!client) return;

@@ -95,10 +95,18 @@ export function normalizeMerchantData(data = {}, actor = null) {
   })
 
   merged.enabled = merged.enabled === true
+  merged.sheet ??= {}
+  merged.manager ??= {}
+  merged.trade ??= {}
+  merged.wallet ??= {}
+  merged.wallet.currencies ??= {}
+  merged.referenceState ??= null
   merged.catalog ??= {}
   merged.catalog.products ??= []
   merged.catalog.services ??= []
   merged.catalog.productCategories ??= []
+  merged.catalog.collapsedCategories ??= {}
+  merged.catalog.hiddenCategories ??= {}
   merged.sessions ??= { entries: [] }
   merged.sessions.entries ??= []
   merged.journal ??= { nextTransactionNumber: 1, transactions: [] }

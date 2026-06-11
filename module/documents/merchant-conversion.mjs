@@ -76,7 +76,10 @@ export async function removeMerchantFromActor(actor) {
 // ─── Header controls des fiches acteur ──────────────────────────────────────
 
 function getActorFromSheetApplication(app) {
-  const doc = app?.document ?? app?.actor ?? app?.options?.document ?? app?.object ?? null
+  // Utilise uniquement app.actor pour éviter de cibler des apps de configuration
+  // (ex. DocumentOwnershipConfig) qui exposent l'acteur via app.document mais
+  // ne sont pas des fiches acteur.
+  const doc = app?.actor ?? null
   if (!doc) return null
   if (doc.documentName === "Actor") return doc
   return null
@@ -171,21 +174,17 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
 export function registerActorSheetHeaderHooks() {
   // Hook ApplicationV2 — contrôles d'en-tête (three-dot menu)
   Hooks.on("getHeaderControlsApplicationV2", (app, controls) => {
-    console.log(`[MTT DEBUG] getHeaderControlsApplicationV2 | classe: ${app.constructor.name}`)
     const actor = getActorFromSheetApplication(app)
     if (!actor) return
     const isOnMerchantSheet = app instanceof MerchantSheet
-    console.log(`[MTT DEBUG] acteur: ${actor.name} | isMTTMerchant: ${isMTTMerchant(actor)} | isOnMerchantSheet: ${isOnMerchantSheet}`)
     controls.push(...buildMTTControlsV2(actor, isOnMerchantSheet))
   })
 
   // Hook Application v1 — fallback fiches acteur legacy
   Hooks.on("getApplicationV1HeaderButtons", (app, buttons) => {
-    console.log(`[MTT DEBUG] getApplicationV1HeaderButtons | classe: ${app.constructor.name}`)
     const actor = getActorFromSheetApplication(app)
     if (!actor) return
     const isOnMerchantSheet = app instanceof MerchantSheet
-    console.log(`[MTT DEBUG] acteur: ${actor.name} | isMTTMerchant: ${isMTTMerchant(actor)} | isOnMerchantSheet: ${isOnMerchantSheet}`)
     buttons.push(...buildMTTButtonsV1(actor, isOnMerchantSheet))
   })
 }
@@ -208,9 +207,10 @@ export function registerMerchantSheetOpenHooks() {
     })
   })
 
-  // Application v1 — hook générique pour toutes les fiches legacy
+  // Application v1 — hook générique pour toutes les fiches acteur legacy
   Hooks.on("renderApplicationV1", (app, _html, _data) => {
-    const actor = app.actor ?? app.document ?? app.object ?? null
+    // Utilise app.actor uniquement (les vraies fiches acteur V1 l'exposent)
+    const actor = app.actor ?? null
     if (!actor || actor.documentName !== "Actor") return
     if (!isMTTMerchant(actor)) return
     if (_managerBypassIds.has(actor.id)) {

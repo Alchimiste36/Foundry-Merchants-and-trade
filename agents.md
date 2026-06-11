@@ -236,7 +236,7 @@ agents.md
 module/config/constants.mjs
 module/config/settings.mjs
 module/config/config-export.mjs
-module/models/merchant-data.mjs
+module/documents/merchant-flags.mjs
 module/applications/sheets/merchant-sheet.mjs
 module/applications/sheets/merchant-catalog.mjs
 module/applications/sheets/merchant-trade.mjs
@@ -545,27 +545,33 @@ Les modules spécialisés peuvent recevoir `sheet`, `actor`, `event`, `target`, 
 
 ---
 
-## 11. Type d’acteur marchand
+## 11. Architecture boutique MTT
 
-Le module fournit son propre type d’acteur marchand.
+MTT ne crée plus de type d’acteur dédié.
 
-Type attendu :
+Le MJ crée un acteur système normal d’un type autorisé (configuré dans les paramètres MTT).
+Il le convertit ensuite en boutique MTT via les options d’en-tête de sa feuille acteur.
 
-```text
-mtt-merchants.merchant
-```
-
-Le module ne doit pas modifier les types d’acteurs du système actif.
-
-MTT ne doit pas remplacer la classe document des acteurs du système actif.
-
-MTT ne doit pas modifier directement les feuilles des acteurs CO2 ou d’un autre système.
-
-Ne pas réintroduire de fallback pour un ancien type d’acteur marchand non namespaced comme :
+La boutique est stockée dans les flags Foundry de l’acteur :
 
 ```text
-merchant
+flags.mtt-merchants.merchant
 ```
+
+L’acteur système reste le gérant/support. Son `actor.type` est celui du système actif.
+
+La détection d’une boutique MTT se fait via :
+
+```js
+isMTTMerchant(actor)  // → getMerchantData(actor)?.enabled === true
+```
+
+Ne pas réintroduire :
+
+- `CONFIG.Actor.dataModels["mtt-merchants.merchant"]`
+- `Actors.registerSheet(...)` avec `types: ["mtt-merchants.merchant"]`
+- `actor.type === "mtt-merchants.merchant"`
+- tout test `actor.type` pour la logique marchand MTT
 
 ---
 
@@ -593,40 +599,42 @@ Ne pas ajouter de migration MTT pour corriger des données internes CO2, par exe
 
 ---
 
-## 13. Données système du marchand
+## 13. Données de boutique MTT
 
-Utiliser un `TypeDataModel`.
+Toutes les données de boutique sont stockées dans les flags Foundry de l’acteur support, pas dans `actor.system`.
 
-Utiliser des blocs explicites plutôt qu’un champ trop générique.
-
-Exemples de blocs :
+Structure des flags :
 
 ```text
-system.merchant.description
-system.manager.displayName
-system.manager.actorUuid
-system.sheet.isLocked
-system.catalog
-system.services
-system.sessions.entries
-system.access.clients
-system.wallet.currencies
-system.trade.sellPercent
-system.trade.buyPercent
-system.trade.negotiationFormula
+flags.mtt-merchants.merchant.enabled
+flags.mtt-merchants.merchant.shop.name / img / description
+flags.mtt-merchants.merchant.manager.mode / displayName / actorUuid / img
+flags.mtt-merchants.merchant.sheet.isLocked
+flags.mtt-merchants.merchant.catalog.products[]
+flags.mtt-merchants.merchant.catalog.services[]
+flags.mtt-merchants.merchant.sessions.entries[]
+flags.mtt-merchants.merchant.access.clients[]
+flags.mtt-merchants.merchant.wallet.currencies
+flags.mtt-merchants.merchant.trade.sellPercent / buyPercent / serviceSellPercent / negotiationFormula
+flags.mtt-merchants.merchant.journal.transactions[]
+flags.mtt-merchants.merchant.referenceState
 ```
 
-La feuille marchand est verrouillée par défaut.
+Helpers centralisés dans `module/documents/merchant-flags.mjs` :
 
-Le verrouillage est stocké dans :
-
-```text
-system.sheet.isLocked
+```js
+getMerchantData(actor)       // lit + normalise les flags
+setMerchantData(actor, data) // écrit les flags
+updateMerchantData(actor, changes) // mise à jour partielle
+isMTTMerchant(actor)         // enabled === true
+getMerchantFlagPath(path)    // construit le chemin complet
 ```
 
-Le verrouillage protège les modifications de configuration/catalogue, mais les actions de session peuvent rester disponibles selon les règles du module.
+Aucune donnée boutique ne doit être écrite dans `actor.system`.
 
-Ne pas ajouter de champ legacy dans le DataModel pour préserver d’anciens marchands.
+Ne pas utiliser `TypeDataModel` pour les données boutique MTT.
+
+Ne pas ajouter de champ legacy dans les flags pour préserver d’anciens marchands.
 
 ---
 
@@ -665,49 +673,41 @@ Ne pas casser le dépassement du rail sur la droite de la fenêtre marchand.
 
 ---
 
-## 15. Produits : Item marchand source unique
+## 15. Produits : plain objects dans le catalogue MTT
 
-Un produit du catalogue est l’Item embarqué chez le marchand.
+Un produit du catalogue est un **plain object** stocké dans `flags.mtt-merchants.merchant.catalog.products[]`.
 
-Règle actuelle :
+Aucun Item n’est embarqué dans `actor.items` du gérant comme stock catalogue.
+
+Structure d’un produit :
 
 ```text
-Produit catalogue = Item marchand
-nom affiché = item.name
-prix affiché = prix lu depuis l’Item
-monnaie affichée = monnaie lue depuis l’Item
+product.id            — identifiant interne MTT
+product.sourceUuid    — UUID de l’Item source (peut être vide ou périmé après import)
+product.itemData      — deep clone de l’Item source au moment du drop (fallback si sourceUuid cassé)
+product.name / img / type
+product.priceValue / priceCurrency
+product.quantity / deliveryQuantityPerLot
+product.isHidden / requiresApproval / hasFreePrice / minimumPriceValue
+product.ownershipLevel / isCommerciallyModified
+product.secretName / secretPrice / secretCurrency / secretDescription
+product.category / systemCategoryKey / systemCategoryLabel / systemCategoryPath / systemSubcategory
 ```
 
-Si le MJ modifie le nom, le prix ou la monnaie depuis le catalogue, cela modifie directement l’Item marchand.
+Helpers dans `module/documents/merchant-products.mjs` :
 
-Si le MJ ouvre la fiche de l’Item et modifie son nom, son prix ou sa monnaie, le catalogue doit refléter directement ces valeurs au prochain rendu.
+```js
+getCatalogProducts(actor)
+normalizeCatalogProduct(product)
+buildCatalogProductFromItem(sourceItem, options)
+addCatalogProduct(actor, product)
+updateCatalogProduct(actor, productId, changes)
+removeCatalogProduct(actor, productId)
+```
 
-Ne pas recréer de couche commerciale séparée pour les produits.
+`actor.items` du gérant n’est pas le stock catalogue.
 
-Ne pas stocker dans les flags produit :
-
-- nom commercial séparé ;
-- prix commercial séparé ;
-- monnaie commerciale séparée ;
-- `displayName` produit ;
-- `priceValue` commercial produit ;
-- `isCommerciallyModified` produit.
-
-Les flags produit doivent rester réservés aux métadonnées MTT :
-
-- quantité/stock catalogue ;
-- catégorie ;
-- sous-catégorie ;
-- visibilité ;
-- approbation MJ ;
-- prix libre ;
-- prix minimum MJ ;
-- secrets ;
-- état Limited / Observer ;
-- sourceUuid ;
-- état de référence marchand.
-
-La livraison d’un produit acheté copie l’Item marchand actuel. MTT n’applique pas un nom/prix/monnaie commercial séparé depuis des flags.
+`product.itemData` est le fallback principal si `sourceUuid` ne résout plus (ex. après import compendium).
 
 ---
 

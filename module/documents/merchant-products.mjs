@@ -31,13 +31,17 @@ export function getCatalogProduct(actor, productId) {
 
 export function normalizeCatalogProduct(product) {
   const ownershipLevel = Number(product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)
+  const rawItemData =
+    product.itemData !== null && typeof product.itemData === "object" && !Array.isArray(product.itemData)
+      ? product.itemData
+      : {}
   return {
     id: String(product.id ?? foundry.utils.randomID()).trim() || foundry.utils.randomID(),
     sourceUuid: String(product.sourceUuid ?? "").trim(),
-    itemData: product.itemData ?? {},
-    name: String(product.name ?? "").trim(),
-    img: String(product.img ?? "").trim(),
-    type: String(product.type ?? "").trim(),
+    itemData: rawItemData,
+    name: String(product.name ?? rawItemData.name ?? "").trim(),
+    img: String(product.img ?? rawItemData.img ?? "").trim(),
+    type: String(product.type ?? rawItemData.type ?? "").trim(),
     quantity: product.quantity ?? null,
     deliveryQuantityPerLot: product.deliveryQuantityPerLot ?? null,
     priceValue:

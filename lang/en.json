@@ -276,6 +276,10 @@
       "sessionSocketNoHandler": "No connected GM or owner can handle this request.",
       "sessionSocketRequestDenied": "The session change request was denied.",
       "noItemPricePath": "No item price path configured. Check the module currencies table.",
+      "productCopied": "Product copied.",
+      "serviceCopied": "Service copied.",
+      "productCopyFailed": "Unable to copy product.",
+      "serviceCopyFailed": "Unable to copy service.",
       "merchantConversion": {
         "gmOnly": "Only the GM can convert an actor into an MTT merchant.",
         "alreadyMerchant": "This actor already has an MTT shop.",
@@ -504,7 +508,9 @@
         "requestApproval": "Request GM approval",
         "removeApproval": "Remove GM approval",
         "switchToLimitedOwnership": "Switch to Limited ownership",
-        "switchToObserverOwnership": "Switch to Observer ownership"
+        "switchToObserverOwnership": "Switch to Observer ownership",
+        "copyProduct": "Copy product",
+        "copyService": "Copy service"
       }
     },
     "secrets": {

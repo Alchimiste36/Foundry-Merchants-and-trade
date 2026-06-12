@@ -49,6 +49,8 @@ import {
   createServiceFromItem,
   prepareSellerItemDropData,
   resolveDroppedItemSourceUuid,
+  copyCatalogProduct,
+  copyCatalogService,
 } from "./merchant-catalog.mjs";
 import {
   getCatalogProducts,
@@ -1151,6 +1153,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       menu.append(ownership);
     }
 
+    const copyLabel = catalogItem.kind === "product"
+      ? game.i18n.localize("mtt.catalog.context.copyProduct")
+      : game.i18n.localize("mtt.catalog.context.copyService");
+    const copy = this.#createCatalogContextButton({
+      icon: "fa-copy",
+      label: copyLabel,
+      onClick: async () => this.#copyCatalogItem(catalogItem),
+    });
+    menu.append(copy);
+
     applicationElement.append(menu);
 
     window.setTimeout(() => {
@@ -1305,6 +1317,33 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#saveScrollPositions();
     await updateCatalogProduct(this.actor, catalogItem.productId, { ownershipLevel: nextLevel });
     this.render();
+  }
+
+  async #copyCatalogItem(catalogItem) {
+    if (!this.isEditable) return
+
+    this.#saveScrollPositions();
+
+    if (catalogItem.kind === "product") {
+      const result = await copyCatalogProduct(this.actor, catalogItem.productId);
+      if (result) {
+        ui.notifications.info(game.i18n.localize("mtt.notifications.productCopied"));
+      } else {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.productCopyFailed"));
+      }
+      this.render();
+      return;
+    }
+
+    if (catalogItem.kind === "service") {
+      const result = await copyCatalogService(this.actor, catalogItem.serviceId);
+      if (result) {
+        ui.notifications.info(game.i18n.localize("mtt.notifications.serviceCopied"));
+      } else {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.serviceCopyFailed"));
+      }
+      this.render();
+    }
   }
 
   // ─── Dropped document helpers ─────────────────────────────────────────────

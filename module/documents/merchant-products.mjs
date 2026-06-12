@@ -7,7 +7,7 @@ import {
   getItemCurrency,
   resolveItemCurrencyKey,
   getModuleSetting,
-  buildItemPriceWriteData,
+  buildItemPriceWriteData
 } from "../applications/sheets/merchant-utils.mjs"
 
 // ─── Identification ───────────────────────────────────────────────────────────
@@ -31,14 +31,12 @@ export function isMerchantProductCommerciallyModified(item) {
 }
 
 export function merchantProductHasSecrets(itemOrProduct) {
-  const data = itemOrProduct?.getFlag
-    ? getMerchantProductFlags(itemOrProduct)
-    : (itemOrProduct ?? {})
+  const data = itemOrProduct?.getFlag ? getMerchantProductFlags(itemOrProduct) : (itemOrProduct ?? {})
   return Boolean(
-    String(data.secretName ?? "").trim()
-    || String(data.secretPrice ?? "").trim()
-    || String(data.secretCurrency ?? "").trim()
-    || String(data.secretDescription ?? "").trim()
+    String(data.secretName ?? "").trim() ||
+    String(data.secretPrice ?? "").trim() ||
+    String(data.secretCurrency ?? "").trim() ||
+    String(data.secretDescription ?? "").trim()
   )
 }
 
@@ -69,7 +67,7 @@ export function normalizeProductFlags(flags = {}) {
     secretPrice: String(flags?.secretPrice ?? "").trim(),
     secretCurrency: String(flags?.secretCurrency ?? "").trim(),
     secretDescription: String(flags?.secretDescription ?? "").trim(),
-    isSecretExpanded: Boolean(flags?.isSecretExpanded),
+    isSecretExpanded: Boolean(flags?.isSecretExpanded)
   }
 }
 
@@ -80,8 +78,7 @@ function buildProductContextFromItem(item) {
 
   const priceRef = readItemReferencePrice(item)
   const priceValue = priceRef !== null ? priceRef.value : (getItemPrice(item) ?? 0)
-  const priceCurrency =
-    priceRef !== null ? priceRef.currency : (resolveItemCurrencyKey(getItemCurrency(item)) ?? "")
+  const priceCurrency = priceRef !== null ? priceRef.currency : (resolveItemCurrencyKey(getItemCurrency(item)) ?? "")
 
   return {
     id: item.id,
@@ -109,7 +106,7 @@ function buildProductContextFromItem(item) {
     secretDescription: flags.secretDescription,
     isCommerciallyModified: flags.isCommerciallyModified,
     isSecretExpanded: flags.isSecretExpanded,
-    itemData: item.toObject(),
+    itemData: item.toObject()
   }
 }
 
@@ -117,9 +114,7 @@ function buildProductContextFromItem(item) {
 
 export function getCatalogProducts(actor) {
   if (!actor?.items) return []
-  return Array.from(actor.items.values())
-    .filter(isMerchantProductItem)
-    .map(buildProductContextFromItem)
+  return Array.from(actor.items.values()).filter(isMerchantProductItem).map(buildProductContextFromItem)
 }
 
 export function getCatalogProduct(actor, productId) {
@@ -181,8 +176,8 @@ export function buildCatalogProductFromItem(sourceItem, options = {}) {
       isHidden: false,
       requiresApproval: false,
       hasFreePrice: false,
-      minimumPriceValue: 0,
-    }),
+      minimumPriceValue: 0
+    })
   }
 }
 
@@ -196,9 +191,12 @@ export async function addCatalogProduct(actor, { itemData, productFlags } = {}) 
   if (!createdItem) return null
 
   const normalizedFlags = normalizeProductFlags({ ...(productFlags ?? {}), enabled: true })
-  await createdItem.update({
-    [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: normalizedFlags,
-  }, { mtt: true })
+  await createdItem.update(
+    {
+      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: normalizedFlags
+    },
+    { mtt: true }
+  )
 
   return createdItem
 }
@@ -223,7 +221,7 @@ const FLAG_FIELDS = new Set([
   "ownershipLevel",
   "isSecretExpanded",
   "isCommerciallyModified",
-  "sourceUuid",
+  "sourceUuid"
 ])
 
 export async function updateCatalogProduct(actor, productId, changes, options = {}) {
@@ -262,10 +260,12 @@ export async function updateCatalogProduct(actor, productId, changes, options = 
   }
   if (Object.keys(flagChanges).length > 0) {
     const existing = normalizeProductFlags(item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT))
-    promises.push(item.update(
-      { [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: normalizeProductFlags({ ...existing, ...flagChanges }) },
-      { mtt: true, ...options },
-    ))
+    promises.push(
+      item.update(
+        { [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: normalizeProductFlags({ ...existing, ...flagChanges }) },
+        { mtt: true, ...options }
+      )
+    )
   }
 
   await Promise.all(promises)
@@ -320,8 +320,8 @@ export async function replaceCatalogProducts(actor, products) {
         secretPrice: product.secretPrice ?? "",
         secretCurrency: product.secretCurrency ?? "",
         secretDescription: product.secretDescription ?? "",
-        isSecretExpanded: product.isSecretExpanded ?? false,
-      },
+        isSecretExpanded: product.isSecretExpanded ?? false
+      }
     })
   }
 }
@@ -370,4 +370,32 @@ export function findMergeableCatalogItemBySourceUuid(actor, sourceUuid) {
       return true
     }) ?? null
   )
+}
+
+// ─── Utilitaire de copie ──────────────────────────────────────────────────────
+
+/**
+ * Nettoie les données d'un Item avant de les passer à createEmbeddedDocuments pour une copie produit.
+ * Supprime les champs Foundry internes et flags.exportSource (migré en _stats.exportSource en v13/v14)
+ * pour éviter les warnings de migration de COItem et autres systèmes.
+ * Les flags MTT (flags.mtt-merchants.*) sont conservés.
+ */
+export function sanitizeItemDataForMerchantProductCopy(data) {
+  const copy = foundry.utils.deepClone(data ?? {})
+
+  delete copy._id
+  delete copy.uuid
+  delete copy.folder
+  delete copy.sort
+  delete copy._stats
+
+  // Foundry v13/v14 : flags.exportSource est obsolète/migré.
+  if (copy.flags && Object.prototype.hasOwnProperty.call(copy.flags, "exportSource")) {
+    delete copy.flags.exportSource
+  }
+
+  // Sécurité si une donnée aplatie existe.
+  delete copy["flags.exportSource"]
+
+  return copy
 }

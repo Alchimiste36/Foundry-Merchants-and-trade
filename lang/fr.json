@@ -276,6 +276,10 @@
       "sessionSocketNoHandler": "Aucun MJ ou propriétaire connecté ne peut traiter cette demande.",
       "sessionSocketRequestDenied": "La demande de modification de session a été refusée.",
       "noItemPricePath": "Aucun chemin de prix d'item configuré. Vérifiez le tableau des devises du module.",
+      "productCopied": "Produit copié.",
+      "serviceCopied": "Service copié.",
+      "productCopyFailed": "Impossible de copier le produit.",
+      "serviceCopyFailed": "Impossible de copier le service.",
       "merchantConversion": {
         "gmOnly": "Seul le MJ peut convertir un acteur en marchand MTT.",
         "alreadyMerchant": "Cet acteur possède déjà une boutique MTT.",
@@ -504,7 +508,9 @@
         "requestApproval": "Demander l’approbation du MJ",
         "removeApproval": "Retirer l’approbation du MJ",
         "switchToLimitedOwnership": "Passer en droit Limité",
-        "switchToObserverOwnership": "Passer en droit Observateur"
+        "switchToObserverOwnership": "Passer en droit Observateur",
+        "copyProduct": "Copier le produit",
+        "copyService": "Copier le service"
       }
     },
     "secrets": {

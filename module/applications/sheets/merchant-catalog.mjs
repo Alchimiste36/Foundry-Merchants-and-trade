@@ -3,6 +3,7 @@ import { getCurrencies } from "../../config/settings.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
   getCatalogProducts,
+  isMerchantProductItem,
   findMergeableCatalogProduct,
   findMergeableCatalogItemBySourceUuid,
   getMerchantProductFlags,
@@ -10,6 +11,7 @@ import {
   buildCatalogProductFromItem,
   addCatalogProduct,
   updateCatalogProduct,
+  sanitizeItemDataForMerchantProductCopy,
 } from "../../documents/merchant-products.mjs"
 import {
   parseQuantityValue,
@@ -662,4 +664,60 @@ export async function rehydrateMerchantItemsOnConversion(actor) {
 
     await item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: flags }, { mtt: true })
   }
+}
+
+// ─── Copie de produit / service ───────────────────────────────────────────────
+
+/**
+ * Crée une ligne catalogue indépendante en dupliquant un produit existant.
+ * L'original n'est pas modifié. La copie reçoit une quantité commerciale forcée à 1.
+ * Le sourceUuid de l'Item source initial est conservé.
+ */
+export async function copyCatalogProduct(actor, itemId) {
+  const id = String(itemId ?? "").trim()
+  if (!id || !actor?.items) return null
+
+  const sourceItem = actor.items.get(id)
+  if (!sourceItem || !isMerchantProductItem(sourceItem)) return null
+
+  const data = sanitizeItemDataForMerchantProductCopy(sourceItem.toObject())
+
+  const existingFlags = normalizeProductFlags(
+    foundry.utils.getProperty(data, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`) ?? {}
+  )
+  // Conserver le sourceUuid de l'Item source initial (pas l'UUID du produit marchand)
+  const sourceUuid = existingFlags.sourceUuid || String(sourceItem.uuid ?? "").trim()
+  foundry.utils.setProperty(data, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
+    ...existingFlags,
+    enabled: true,
+    quantity: 1,
+    sourceUuid,
+  })
+
+  const [created] = (await actor.createEmbeddedDocuments("Item", [data], { mtt: true })) ?? []
+  return created ?? null
+}
+
+/**
+ * Crée une entrée service indépendante en dupliquant un service existant.
+ * L'original n'est pas modifié. La copie reçoit une quantité forcée à 1.
+ */
+export async function copyCatalogService(actor, serviceId) {
+  const id = String(serviceId ?? "").trim()
+  if (!id) return null
+
+  const merchantData = getMerchantData(actor)
+  if (!merchantData) return null
+
+  const service = merchantData.catalog.services.find((s) => s.id === id)
+  if (!service) return null
+
+  const entries = foundry.utils.deepClone(merchantData.catalog.services)
+  const copy = foundry.utils.deepClone(service)
+  copy.id = foundry.utils.randomID()
+  copy.quantity = 1
+
+  entries.push(copy)
+  await updateMerchantData(actor, { catalog: { services: entries } })
+  return copy
 }

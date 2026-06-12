@@ -1,6 +1,8 @@
 import { isMTTMerchant, buildDefaultMerchantData, setMerchantData, unsetMerchantData } from "./merchant-flags.mjs"
 import { isActorTypeAllowedForMerchant } from "../config/actor-types.mjs"
 import { MerchantSheet } from "../applications/sheets/merchant-sheet.mjs"
+import { rehydrateMerchantItemsOnConversion } from "../applications/sheets/merchant-catalog.mjs"
+import { MTT } from "../config/constants.mjs"
 
 // Bypass ponctuel : IDs acteurs en attente d'un premier render à marquer comme bypassé
 const _managerBypassActorIds = new Set()
@@ -26,7 +28,17 @@ export async function convertActorToMerchant(actor) {
     return
   }
 
-  await setMerchantData(actor, buildDefaultMerchantData(actor, { includeInitialGlobalCategories: true }))
+  const hasExistingProductItems = actor.items?.size > 0 &&
+    Array.from(actor.items.values()).some((item) => item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) != null)
+
+  await setMerchantData(actor, buildDefaultMerchantData(actor, {
+    includeInitialGlobalCategories: !hasExistingProductItems,
+  }))
+
+  if (hasExistingProductItems) {
+    await rehydrateMerchantItemsOnConversion(actor)
+  }
+
   ui.notifications.info(game.i18n.format("mtt.notifications.merchantConversion.success", { name: actor.name }))
   openMerchantSheet(actor)
 }

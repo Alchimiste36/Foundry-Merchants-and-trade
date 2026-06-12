@@ -6,6 +6,7 @@ import {
   findMergeableCatalogProduct,
   findMergeableCatalogItemBySourceUuid,
   getMerchantProductFlags,
+  normalizeProductFlags,
   buildCatalogProductFromItem,
   addCatalogProduct,
   updateCatalogProduct,
@@ -612,5 +613,53 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
     sourceLabel: game.i18n.localize("mtt.sessions.item.object"),
     isFromActor: Boolean(sourceActor),
     sourceActorName: sourceActor?.name ?? "",
+  }
+}
+
+// ─── Réhydratation lors de la reconversion ───────────────────────────────────
+
+/**
+ * Réhydrate les flags produit MTT des Items existants lors de la (re)conversion d'un acteur en marchand.
+ *
+ * Pour chaque Item possédant déjà des flags `flags.mtt-merchants.product` :
+ * - Conserve tous les champs existants (secrets, visibilité, quantités, prix, etc.)
+ * - Force enabled = true
+ * - Résout la catégorie : systemCategoryKey > recalcul automatique > Sans catégorie
+ * - Ne modifie pas isCommerciallyModified
+ *
+ * Les Items sans flags produit ne sont pas touchés.
+ */
+export async function rehydrateMerchantItemsOnConversion(actor) {
+  if (!actor?.items) return
+
+  for (const item of actor.items.values()) {
+    const existing = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)
+    if (existing == null) continue
+
+    const flags = normalizeProductFlags(existing)
+    flags.enabled = true
+    if (!flags.sourceUuid) flags.sourceUuid = item.uuid
+
+    // Résolution de catégorie : systemCategoryKey > recalcul depuis l'item > vide
+    if (flags.systemCategoryKey) {
+      flags.category = await getOrCreateAutomaticProductCategory(actor, {
+        key: flags.systemCategoryKey,
+        label: flags.systemCategoryLabel,
+        path: flags.systemCategoryPath,
+        raw: flags.systemCategoryLabel || flags.systemCategoryKey,
+      })
+    } else {
+      const auto = getAutomaticItemCategory(item)
+      if (auto) {
+        flags.category = await getOrCreateAutomaticProductCategory(actor, auto)
+        flags.systemCategoryKey = auto.key
+        flags.systemCategoryLabel = auto.label
+        flags.systemCategoryPath = auto.path
+      } else {
+        flags.category = ""
+      }
+    }
+
+    await item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: flags }, { mtt: true })
   }
 }

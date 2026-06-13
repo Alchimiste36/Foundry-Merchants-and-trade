@@ -118,7 +118,7 @@ export function buildDefaultMerchantData(actor = null, { includeInitialGlobalCat
       isLocked: true,
     },
     shop: {
-      name: actor?.name ?? "",
+      name: game.i18n?.localize("mtt.defaults.shopName") ?? "",
       img: DEFAULT_SHOP_IMAGE,
       description: "",
     },
@@ -180,7 +180,20 @@ export function normalizeMerchantData(data = {}, actor = null) {
 
   merged.enabled = merged.enabled === true
   merged.sheet ??= {}
+  merged.shop ??= {}
+  if (!String(merged.shop.name ?? "").trim()) {
+    merged.shop.name = game.i18n?.localize("mtt.defaults.shopName") ?? ""
+  }
+  if (!String(merged.shop.img ?? "").trim()) {
+    merged.shop.img = DEFAULT_SHOP_IMAGE
+  }
   merged.manager ??= {}
+  if (!String(merged.manager.displayName ?? "").trim()) {
+    merged.manager.displayName = actor?.name ?? ""
+  }
+  if (!String(merged.manager.img ?? "").trim()) {
+    merged.manager.img = actor?.img ?? DEFAULT_MANAGER_IMAGE
+  }
   merged.trade ??= {}
   merged.wallet ??= {}
   merged.wallet.currencies ??= {}

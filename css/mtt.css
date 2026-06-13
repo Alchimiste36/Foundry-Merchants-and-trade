@@ -2340,11 +2340,46 @@
 .mtt-merchant-header-right {
   min-width: 0;
   display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.mtt-merchant-header-right-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
   gap: 0.55rem;
 }
 .mtt-merchant-header-manager {
   flex: 1;
+}
+.mtt-merchant-manager-img-button {
+  width: 5rem;
+  height: 5rem;
+  flex: 0 0 5rem;
+  padding: 0;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: var(--mtt-bg-field);
+  border: 1px solid var(--mtt-border-soft);
+  cursor: default;
+  align-self: center;
+}
+.mtt-merchant-manager-img-button:not(:disabled) {
+  cursor: pointer;
+}
+.mtt-merchant-manager-img-button:disabled {
+  opacity: 1;
+}
+.mtt-merchant-manager-img-button:not(:disabled):hover {
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-manager-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
 }
 .mtt-merchant-image-button {
   width: 96px;

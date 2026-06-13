@@ -156,7 +156,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       acceptNegotiationOffer: MerchantSheet.#onAcceptNegotiationOffer,
       refuseNegotiationOffer: MerchantSheet.#onRefuseNegotiationOffer,
       clearSessionDraft: MerchantSheet.#onClearSessionDraft,
-      editMerchantImage: MerchantSheet.#onEditMerchantImage,
+      editShopImage: MerchantSheet.#onEditShopImage,
+      editManagerImage: MerchantSheet.#onEditManagerImage,
       rollNegotiation: MerchantSheet.#onRollNegotiation,
       selectTab: MerchantSheet.#onSelectTab,
       sortJournal: MerchantSheet.#onSortJournal,
@@ -3081,18 +3082,40 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render();
   }
 
-  static async #onEditMerchantImage(event) {
+  static async #onEditShopImage(event) {
     event.preventDefault();
 
     if (!this.#canModifyMerchant()) return;
 
+    const current = getMerchantData(this.actor)?.shop?.img ?? "icons/svg/hanging-sign.svg";
     const FilePickerApp = foundry.applications.apps.FilePicker.implementation;
     const picker = new FilePickerApp({
       type: "image",
-      current: this.actor.img,
+      current,
       callback: async (path) => {
         if (!path) return;
-        await this.actor.update({ img: path });
+        await updateMerchantData(this.actor, { shop: { img: path } });
+        this.render();
+      },
+    });
+
+    picker.browse();
+  }
+
+  static async #onEditManagerImage(event) {
+    event.preventDefault();
+
+    if (!this.#canModifyMerchant()) return;
+
+    const current = getMerchantData(this.actor)?.manager?.img ?? this.actor.img ?? "icons/svg/mystery-man.svg";
+    const FilePickerApp = foundry.applications.apps.FilePicker.implementation;
+    const picker = new FilePickerApp({
+      type: "image",
+      current,
+      callback: async (path) => {
+        if (!path) return;
+        await updateMerchantData(this.actor, { manager: { img: path } });
+        this.render();
       },
     });
 
@@ -3265,11 +3288,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const field = target?.dataset?.mttMerchantField;
     if (!field) return null;
 
-    if (field === "name") {
+    if (field === "shop.name") {
       const name = target.value?.trim() ?? "";
-      if (!name || name === this.actor.name) return null;
+      const current = getMerchantData(this.actor)?.shop?.name ?? "";
+      if (name === current) return null;
 
-      return { name };
+      return { [getMerchantFlagPath("shop.name")]: name };
     }
 
     if (field === "manager.displayName") {

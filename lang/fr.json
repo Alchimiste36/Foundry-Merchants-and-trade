@@ -122,6 +122,9 @@
         "label": "Nom affiché",
         "placeholder": "Nom du gérant"
       },
+      "image": {
+        "edit": "Modifier l'image du gérant"
+      },
       "empty": "Aucun gérant renseigné"
     },
     "actions": {
@@ -290,6 +293,9 @@
       "merchantRemoval": {
         "success": "La boutique MTT de {name} a été retirée."
       }
+    },
+    "defaults": {
+      "shopName": "Boutique"
     },
     "price": {
       "freePrice": "Prix libre",

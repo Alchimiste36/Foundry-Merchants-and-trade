@@ -122,6 +122,9 @@
         "label": "Displayed name",
         "placeholder": "Manager name"
       },
+      "image": {
+        "edit": "Edit manager image"
+      },
       "empty": "No manager defined"
     },
     "actions": {
@@ -290,6 +293,9 @@
       "merchantRemoval": {
         "success": "The MTT shop attached to {name} has been removed."
       }
+    },
+    "defaults": {
+      "shopName": "Shop"
     },
     "price": {
       "freePrice": "Free price",

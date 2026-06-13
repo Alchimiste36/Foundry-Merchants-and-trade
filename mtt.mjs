@@ -15,12 +15,10 @@ Hooks.once("init", async function () {
     applications,
     merchantFlags,
     merchantConversion,
-    merchantAccess,
+    merchantAccess
   }
 
-  await foundry.applications.handlebars.loadTemplates(
-    Object.values(MTT.TEMPLATES),
-  )
+  await foundry.applications.handlebars.loadTemplates(Object.values(MTT.TEMPLATES))
 
   registerSettings()
   merchantConversion.registerActorSheetHeaderHooks()
@@ -49,12 +47,15 @@ function registerMerchantProductHooks() {
     const productFlags = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     if (productFlags.isCommerciallyModified) return
 
-    await item.update({
-      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: {
-        ...productFlags,
-        isCommerciallyModified: true,
+    await item.update(
+      {
+        [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: {
+          ...productFlags,
+          isCommerciallyModified: true
+        }
       },
-    }, { mtt: true })
+      { mtt: true }
+    )
   })
 }
 

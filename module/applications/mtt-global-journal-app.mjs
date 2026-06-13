@@ -1,9 +1,6 @@
 import { MTT } from "../config/constants.mjs"
 import { isMTTMerchant, getMerchantData } from "../documents/merchant-flags.mjs"
-import {
-  normalizeJournalEntry,
-  prepareJournalEntryDisplay,
-} from "./sheets/merchant-journal.mjs"
+import { normalizeJournalEntry, prepareJournalEntryDisplay } from "./sheets/merchant-journal.mjs"
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -28,15 +25,12 @@ function compareGlobalJournalTransactions(a, b, sort) {
 
   if (sort.key === "buyer") {
     return (
-      String(a.buyerName ?? "").localeCompare(String(b.buyerName ?? ""), undefined, { sensitivity: "base" }) *
-      direction
+      String(a.buyerName ?? "").localeCompare(String(b.buyerName ?? ""), undefined, { sensitivity: "base" }) * direction
     )
   }
 
   if (sort.key === "status") {
-    return (
-      String(a.status ?? "").localeCompare(String(b.status ?? ""), undefined, { sensitivity: "base" }) * direction
-    )
+    return String(a.status ?? "").localeCompare(String(b.status ?? ""), undefined, { sensitivity: "base" }) * direction
   }
 
   if (sort.key === "paid") return (Number(a.paidTotalValue ?? 0) - Number(b.paidTotalValue ?? 0)) * direction
@@ -65,24 +59,22 @@ function getUniqueNamedOptions(entries, uuidKey, nameKey, selectedUuid) {
     options.set(uuid, {
       uuid,
       name: String(entry?.[nameKey] ?? "").trim() || uuid,
-      selected: uuid === selectedUuid,
+      selected: uuid === selectedUuid
     })
   }
 
-  return Array.from(options.values()).sort((a, b) =>
-    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
-  )
+  return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
 }
 
 export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #filters = {
     merchantUuid: "",
-    buyerUuid: "",
+    buyerUuid: ""
   }
 
   #sort = {
     key: "date",
-    direction: "desc",
+    direction: "desc"
   }
 
   static DEFAULT_OPTIONS = {
@@ -91,30 +83,30 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
     window: {
       title: "mtt.globalJournal.title",
       icon: "fas fa-book",
-      resizable: true,
+      resizable: true
     },
     position: {
       width: 980,
-      height: 720,
+      height: 720
     },
     actions: {
       sortGlobalJournal: MttGlobalJournalApp.#onSortGlobalJournal,
       setGlobalJournalFilter: MttGlobalJournalApp.#onSetGlobalJournalFilter,
-      clearGlobalJournalFilters: MttGlobalJournalApp.#onClearGlobalJournalFilters,
-    },
+      clearGlobalJournalFilters: MttGlobalJournalApp.#onClearGlobalJournalFilters
+    }
   }
 
   static PARTS = {
     body: {
-      template: MTT.TEMPLATES.MTT_GLOBAL_JOURNAL,
-    },
+      template: MTT.TEMPLATES.MTT_GLOBAL_JOURNAL
+    }
   }
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options)
     const filters = {
       merchantUuid: String(this.#filters.merchantUuid ?? ""),
-      buyerUuid: String(this.#filters.buyerUuid ?? ""),
+      buyerUuid: String(this.#filters.buyerUuid ?? "")
     }
     const sort = normalizeGlobalJournalSort(this.#sort)
     const merchants = game.actors.filter((actor) => isMTTMerchant(actor))
@@ -124,8 +116,8 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
         normalizeJournalEntry({
           ...entry,
           merchantActorUuid: entry.merchantActorUuid || merchant.uuid,
-          merchantName: entry.merchantName || shopName,
-        }),
+          merchantName: entry.merchantName || shopName
+        })
       )
     })
     const filteredTransactions = collectedTransactions
@@ -133,7 +125,7 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
       .filter((entry) => !filters.buyerUuid || entry.buyerActorUuid === filters.buyerUuid)
       .map((entry) => ({
         ...prepareJournalEntryDisplay(entry),
-        merchantFilterUuid: entry.merchantActorUuid,
+        merchantFilterUuid: entry.merchantActorUuid
       }))
 
     filteredTransactions.sort((a, b) => compareGlobalJournalTransactions(a, b, sort))
@@ -148,12 +140,12 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
         .map((merchant) => ({
           uuid: merchant.uuid,
           name: getMerchantData(merchant)?.shop?.name || merchant.name,
-          selected: merchant.uuid === filters.merchantUuid,
+          selected: merchant.uuid === filters.merchantUuid
         }))
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
       buyers: getUniqueNamedOptions(collectedTransactions, "buyerActorUuid", "buyerName", filters.buyerUuid),
       filters,
-      sort,
+      sort
     }
   }
 
@@ -174,7 +166,7 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
     const current = normalizeGlobalJournalSort(this.#sort)
     this.#sort = {
       key,
-      direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
     }
     this.render()
   }
@@ -191,7 +183,7 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
 
     this.#filters = {
       ...this.#filters,
-      [key]: String(target.value ?? ""),
+      [key]: String(target.value ?? "")
     }
     this.render()
   }
@@ -199,7 +191,7 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
   static async #onClearGlobalJournalFilters() {
     this.#filters = {
       merchantUuid: "",
-      buyerUuid: "",
+      buyerUuid: ""
     }
     this.render()
   }

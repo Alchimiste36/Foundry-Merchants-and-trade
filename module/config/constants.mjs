@@ -4,7 +4,7 @@ export const MTT = {
 
   FLAGS: {
     PRODUCT: "product",
-    MERCHANT: "merchant",
+    MERCHANT: "merchant"
   },
 
   PRODUCT_DEFAULTS: {
@@ -26,7 +26,7 @@ export const MTT = {
     isHidden: false,
     requiresApproval: false,
     hasFreePrice: false,
-    minimumPriceValue: 0,
+    minimumPriceValue: 0
   },
 
   SERVICE_DEFAULTS: {
@@ -52,12 +52,12 @@ export const MTT = {
     systemCategoryPath: "",
     isCommerciallyModified: false,
     hasFreePrice: false,
-    minimumPriceValue: 0,
+    minimumPriceValue: 0
   },
 
   JOURNAL_DEFAULTS: {
     transactions: [],
-    nextTransactionNumber: 1,
+    nextTransactionNumber: 1
   },
 
   JOURNAL_ENTRY_DEFAULTS: {
@@ -73,7 +73,7 @@ export const MTT = {
     summaryLabel: "",
     entries: [],
     moneyAdjustments: [],
-    secrets: [],
+    secrets: []
   },
 
   JOURNAL_TRANSACTION_ENTRY_DEFAULTS: {
@@ -94,37 +94,28 @@ export const MTT = {
     isNegotiated: false,
     negotiationStatus: "",
     isFreePrice: false,
-    hadSecrets: false,
+    hadSecrets: false
   },
 
   JOURNAL_MONEY_ADJUSTMENT_DEFAULTS: {
     side: "buyer",
     value: 0,
     currency: "",
-    label: "",
+    label: ""
   },
 
   TEMPLATES: {
     MERCHANT_SHEET: "modules/mtt-merchants/templates/actors/merchant-sheet.hbs",
-    MERCHANT_HEADER:
-      "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs",
-    MERCHANT_MAIN:
-      "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs",
-    MERCHANT_PRODUCTS:
-      "modules/mtt-merchants/templates/actors/parts/merchant-products.hbs",
-    MERCHANT_SERVICES:
-      "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs",
-    MERCHANT_CONFIGURATION:
-      "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs",
-    MERCHANT_JOURNAL:
-      "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs",
-    MERCHANT_SESSION:
-      "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
-    MERCHANT_ACCESS_RAIL:
-      "modules/mtt-merchants/templates/actors/parts/merchant-access-rail.hbs",
+    MERCHANT_HEADER: "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs",
+    MERCHANT_MAIN: "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs",
+    MERCHANT_PRODUCTS: "modules/mtt-merchants/templates/actors/parts/merchant-products.hbs",
+    MERCHANT_SERVICES: "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs",
+    MERCHANT_CONFIGURATION: "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs",
+    MERCHANT_JOURNAL: "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs",
+    MERCHANT_SESSION: "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
+    MERCHANT_ACCESS_RAIL: "modules/mtt-merchants/templates/actors/parts/merchant-access-rail.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",
-    MTT_GLOBAL_JOURNAL:
-      "modules/mtt-merchants/templates/apps/mtt-global-journal.hbs",
+    MTT_GLOBAL_JOURNAL: "modules/mtt-merchants/templates/apps/mtt-global-journal.hbs",
     MTT_DIALOG: "modules/mtt-merchants/templates/apps/mtt-dialog.hbs",
     CONFIRM_DIALOG: "modules/mtt-merchants/templates/dialogs/confirm-dialog.hbs",
     SECRET_INFO_DIALOG: "modules/mtt-merchants/templates/dialogs/secret-info-dialog.hbs",
@@ -132,11 +123,11 @@ export const MTT = {
     TRANSACTION_SUMMARY_DIALOG: "modules/mtt-merchants/templates/dialogs/transaction-summary-dialog.hbs",
     TRANSACTION_ERRORS_DIALOG: "modules/mtt-merchants/templates/dialogs/transaction-errors-dialog.hbs",
     SELLER_ITEM_DIALOG: "modules/mtt-merchants/templates/dialogs/seller-item-dialog.hbs",
-    SESSION_PREPARATION_DIALOG: "modules/mtt-merchants/templates/dialogs/session-preparation-dialog.hbs",
+    SESSION_PREPARATION_DIALOG: "modules/mtt-merchants/templates/dialogs/session-preparation-dialog.hbs"
   },
 
   CSS: {
     SHEET: "mtt-sheet",
-    MERCHANT_SHEET: "mtt-merchant-sheet",
-  },
-};
+    MERCHANT_SHEET: "mtt-merchant-sheet"
+  }
+}

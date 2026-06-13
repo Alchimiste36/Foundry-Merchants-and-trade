@@ -24,7 +24,7 @@ export async function renderMttDialogContent({
   details = "",
   variant = "default",
   entity = null,
-  form = "",
+  form = ""
 } = {}) {
   return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.MTT_DIALOG, {
     icon,
@@ -34,16 +34,21 @@ export async function renderMttDialogContent({
     variant,
     entity,
     form,
-    hasHeader: Boolean(icon || title),
+    hasHeader: Boolean(icon || title)
   })
 }
 
-export async function renderConfirmDialogContent({ message = "", details = "", warning = "", variant = "default" } = {}) {
+export async function renderConfirmDialogContent({
+  message = "",
+  details = "",
+  warning = "",
+  variant = "default"
+} = {}) {
   return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.CONFIRM_DIALOG, {
     message,
     details,
     warning,
-    variant,
+    variant
   })
 }
 
@@ -54,7 +59,7 @@ export async function renderSessionPreparationDialog({
   availableQuantity,
   includeProposedPrice = false,
   hasFreePrice = false,
-  referenceCurrencyLabel = "",
+  referenceCurrencyLabel = ""
 }) {
   return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SESSION_PREPARATION_DIALOG, {
     name,
@@ -64,7 +69,7 @@ export async function renderSessionPreparationDialog({
     hasQuantityMax: Number.isFinite(availableQuantity) && availableQuantity >= 0,
     includeProposedPrice,
     hasFreePrice,
-    referenceCurrencyLabel,
+    referenceCurrencyLabel
   })
 }
 
@@ -75,7 +80,7 @@ export async function openSessionPreparationDialog({
   availableQuantity,
   includeProposedPrice = false,
   hasFreePrice = false,
-  referenceCurrencyLabel = "",
+  referenceCurrencyLabel = ""
 }) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
@@ -88,7 +93,7 @@ export async function openSessionPreparationDialog({
     availableQuantity,
     includeProposedPrice,
     hasFreePrice,
-    referenceCurrencyLabel,
+    referenceCurrencyLabel
   })
 
   let result = null
@@ -102,7 +107,7 @@ export async function openSessionPreparationDialog({
         {
           action: "cancel",
           label: game.i18n.localize("mtt.sessions.actions.cancel"),
-          callback: () => null,
+          callback: () => null
         },
         {
           action: "add",
@@ -112,9 +117,9 @@ export async function openSessionPreparationDialog({
             const form = getDialogForm(button, dialog, event)
             if (!form) return null
             return Object.fromEntries(new FormData(form).entries())
-          },
-        },
-      ],
+          }
+        }
+      ]
     })
   } catch {
     return
@@ -143,14 +148,14 @@ export async function openSessionPreparationDialog({
     return {
       quantity: requestedQuantity,
       proposedPrice,
-      isFreePrice: true,
+      isFreePrice: true
     }
   }
 
   return {
     quantity: requestedQuantity,
     proposedPrice: result.proposedPrice ?? "",
-    isFreePrice: false,
+    isFreePrice: false
   }
 }
 
@@ -159,7 +164,7 @@ export async function openCatalogItemSecretsDialog({
   secretName = "",
   secretPrice = "",
   secretCurrency = "",
-  secretDescription = "",
+  secretDescription = ""
 }) {
   const title = game.i18n.format("mtt.secrets.titleWithName", { name })
 
@@ -169,7 +174,7 @@ export async function openCatalogItemSecretsDialog({
     secretName,
     secretPrice,
     secretDescription,
-    currencyOptions,
+    currencyOptions
   })
 
   try {
@@ -181,7 +186,7 @@ export async function openCatalogItemSecretsDialog({
         {
           action: "cancel",
           label: game.i18n.localize("mtt.secrets.cancel"),
-          callback: () => null,
+          callback: () => null
         },
         {
           action: "save",
@@ -195,11 +200,11 @@ export async function openCatalogItemSecretsDialog({
               secretName: String(formData.get("secretName") ?? "").trim(),
               secretPrice: String(formData.get("secretPrice") ?? "").trim(),
               secretCurrency: String(formData.get("secretCurrency") ?? "").trim(),
-              secretDescription: String(formData.get("secretDescription") ?? "").trim(),
+              secretDescription: String(formData.get("secretDescription") ?? "").trim()
             }
-          },
-        },
-      ],
+          }
+        }
+      ]
     })
   } catch {
     return null
@@ -212,7 +217,7 @@ export async function openClientRatesDialog({ clientName = "", rates = {} } = {}
     productSellPercent: rates.productSellPercent ?? 100,
     serviceSellPercent: rates.serviceSellPercent ?? 100,
     itemBuyPercent: rates.itemBuyPercent ?? 50,
-    note: rates.note ?? "",
+    note: rates.note ?? ""
   })
 
   try {
@@ -224,7 +229,7 @@ export async function openClientRatesDialog({ clientName = "", rates = {} } = {}
         {
           action: "cancel",
           label: game.i18n.localize("mtt.clientRates.cancel"),
-          callback: () => null,
+          callback: () => null
         },
         {
           action: "save",
@@ -239,11 +244,11 @@ export async function openClientRatesDialog({ clientName = "", rates = {} } = {}
               productSellPercent: formData.get("productSellPercent"),
               serviceSellPercent: formData.get("serviceSellPercent"),
               itemBuyPercent: formData.get("itemBuyPercent"),
-              note: String(formData.get("note") ?? "").trim(),
+              note: String(formData.get("note") ?? "").trim()
             }
-          },
-        },
-      ],
+          }
+        }
+      ]
     })
   } catch {
     return null
@@ -256,7 +261,6 @@ function getPreviewItemTypeLabel(item) {
   if (item.type === "service") return game.i18n.localize("mtt.services.title")
   return game.i18n.localize("mtt.products.title")
 }
-
 
 function getMoneyTransferGroups(transfers) {
   const groups = []
@@ -275,16 +279,15 @@ function getMoneyTransferGroups(transfers) {
   return groups
 }
 
-
 async function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}) {
   const buyerReceives = [
     ...(preview.buyerDeliveries ?? []),
-    ...(preview.services ?? []).map((item) => ({ ...item, type: "service" })),
+    ...(preview.services ?? []).map((item) => ({ ...item, type: "service" }))
   ].map((item) => ({ ...item, typeLabel: getPreviewItemTypeLabel(item) }))
 
   const buyerGives = (preview.sellerDeliveries ?? []).map((item) => ({
     ...item,
-    typeLabel: getPreviewItemTypeLabel(item),
+    typeLabel: getPreviewItemTypeLabel(item)
   }))
 
   const moneyTransferGroups = getMoneyTransferGroups(preview.moneyTransfers).map((group) => ({
@@ -292,8 +295,8 @@ async function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}
     sentence: game.i18n.format("mtt.dialog.transaction.moneyTransferSentence", {
       payer: group.payer,
       amount: group.amounts.join(", "),
-      receiver: group.receiver,
-    }),
+      receiver: group.receiver
+    })
   }))
 
   return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.TRANSACTION_SUMMARY_DIALOG, {
@@ -303,13 +306,13 @@ async function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}
     buyerGives,
     moneyTransferGroups,
     warnings: preview.warnings ?? [],
-    isPreviewOnly,
+    isPreviewOnly
   })
 }
 
 async function renderPreviewErrorContent(preview) {
   return foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.TRANSACTION_ERRORS_DIALOG, {
-    errors: preview.errors ?? [],
+    errors: preview.errors ?? []
   })
 }
 
@@ -319,7 +322,7 @@ export async function openPreviewDialog(preview) {
     icon: "fa-clipboard-list",
     title: game.i18n.localize("mtt.sessions.preview.title"),
     variant: "default",
-    form,
+    form
   })
 
   try {
@@ -332,9 +335,9 @@ export async function openPreviewDialog(preview) {
           action: "close",
           label: game.i18n.localize("mtt.sessions.preview.close"),
           default: true,
-          callback: () => null,
-        },
-      ],
+          callback: () => null
+        }
+      ]
     })
   } catch {
     // ignore
@@ -347,7 +350,7 @@ export async function openPreviewErrorDialog(preview) {
     icon: "fa-triangle-exclamation",
     title: game.i18n.localize("mtt.sessions.preview.errorTitle"),
     variant: "danger",
-    form,
+    form
   })
 
   try {
@@ -360,9 +363,9 @@ export async function openPreviewErrorDialog(preview) {
           action: "close",
           label: game.i18n.localize("mtt.sessions.preview.close"),
           default: true,
-          callback: () => null,
-        },
-      ],
+          callback: () => null
+        }
+      ]
     })
   } catch {
     // ignore
@@ -375,7 +378,7 @@ export async function openSessionValidationDialog(preview) {
     icon: "fa-circle-check",
     title: game.i18n.localize("mtt.sessions.execution.validateTitle"),
     variant: "default",
-    form,
+    form
   })
 
   let result = null
@@ -388,15 +391,15 @@ export async function openSessionValidationDialog(preview) {
         {
           action: "cancel",
           label: game.i18n.localize("mtt.sessions.execution.validateCancel"),
-          callback: () => false,
+          callback: () => false
         },
         {
           action: "confirm",
           label: game.i18n.localize("mtt.sessions.execution.validateConfirm"),
           default: true,
-          callback: () => true,
-        },
-      ],
+          callback: () => true
+        }
+      ]
     })
   } catch {
     return false
@@ -411,7 +414,7 @@ export async function openSessionExecutionErrorsDialog(preview) {
     icon: "fa-triangle-exclamation",
     title: game.i18n.localize("mtt.sessions.execution.executionErrorTitle"),
     variant: "danger",
-    form,
+    form
   })
 
   try {
@@ -424,9 +427,9 @@ export async function openSessionExecutionErrorsDialog(preview) {
           action: "close",
           label: game.i18n.localize("mtt.sessions.preview.close"),
           default: true,
-          callback: () => null,
-        },
-      ],
+          callback: () => null
+        }
+      ]
     })
   } catch {
     // ignore
@@ -439,7 +442,7 @@ export async function openRefuseConfirmDialog() {
     title: game.i18n.localize("mtt.sessions.confirm.refuseTitle"),
     message: game.i18n.localize("mtt.sessions.confirm.refuseContent"),
     details: game.i18n.localize("mtt.dialog.noTransactionNoJournal"),
-    variant: "warning",
+    variant: "warning"
   })
 
   let result = null
@@ -452,15 +455,15 @@ export async function openRefuseConfirmDialog() {
         {
           action: "cancel",
           label: game.i18n.localize("mtt.sessions.confirm.cancel"),
-          callback: () => false,
+          callback: () => false
         },
         {
           action: "confirm",
           label: game.i18n.localize("mtt.sessions.confirm.refuseConfirm"),
           default: true,
-          callback: () => true,
-        },
-      ],
+          callback: () => true
+        }
+      ]
     })
   } catch {
     return false
@@ -469,7 +472,14 @@ export async function openRefuseConfirmDialog() {
   return Boolean(result)
 }
 
-export async function openSellerItemDialog({ name, img, sourceActorName, availableQuantity, unitPriceValue, priceCurrency }) {
+export async function openSellerItemDialog({
+  name,
+  img,
+  sourceActorName,
+  availableQuantity,
+  unitPriceValue,
+  priceCurrency
+}) {
   const availableQuantityLabel =
     Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? String(availableQuantity)
@@ -480,14 +490,12 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
   const content = await foundry.applications.handlebars.renderTemplate(MTT.TEMPLATES.SELLER_ITEM_DIALOG, {
     name,
     img: img || "",
-    sourceActorMeta: sourceActorName
-      ? `${game.i18n.localize("mtt.sessions.sourceActor")} : ${sourceActorName}`
-      : "",
+    sourceActorMeta: sourceActorName ? `${game.i18n.localize("mtt.sessions.sourceActor")} : ${sourceActorName}` : "",
     availableQuantityLabel,
     availableQuantity,
     hasQuantityMax: Number.isFinite(availableQuantity) && availableQuantity >= 0,
     unitPriceValue,
-    currencyOptions,
+    currencyOptions
   })
 
   let result = null
@@ -501,7 +509,7 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
         {
           action: "cancel",
           label: game.i18n.localize("mtt.dialog.cancel"),
-          callback: () => null,
+          callback: () => null
         },
         {
           action: "add",
@@ -511,9 +519,9 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
             const form = getDialogForm(button, dialog, event)
             if (!form) return null
             return Object.fromEntries(new FormData(form).entries())
-          },
-        },
-      ],
+          }
+        }
+      ]
     })
   } catch {
     return null
@@ -541,6 +549,6 @@ export async function openSellerItemDialog({ name, img, sourceActorName, availab
   return {
     quantity,
     unitPriceValue: priceValue,
-    priceCurrency: result.priceCurrency?.trim() ?? "",
+    priceCurrency: result.priceCurrency?.trim() ?? ""
   }
 }

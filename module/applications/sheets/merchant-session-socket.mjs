@@ -26,7 +26,7 @@ debugSessionSocket("loaded", {
   channel: SOCKET_NAME,
   userId: game.user?.id ?? "",
   userName: game.user?.name ?? "",
-  isGM: Boolean(game.user?.isGM),
+  isGM: Boolean(game.user?.isGM)
 })
 
 function userCanUpdateMerchant(user, merchantActor) {
@@ -46,7 +46,7 @@ function sendSessionUpdateResponse({ requestId, recipientUserId, ok, updateData 
     type: "sessionUpdateResponse",
     requestId,
     recipientUserId,
-    ok,
+    ok
   }
 
   if (updateData) response.updateData = updateData
@@ -60,12 +60,14 @@ function buildSafeSessionUpdate(merchantActor, updateData) {
   const requestedSessions = updateData?.[getMerchantFlagPath("sessions.entries")]
   if (!Array.isArray(requestedSessions)) return null
 
-  const existingSessions = (getMerchantData(merchantActor)?.sessions?.entries ?? []).map((session) => normalizeSession(session))
+  const existingSessions = (getMerchantData(merchantActor)?.sessions?.entries ?? []).map((session) =>
+    normalizeSession(session)
+  )
   const requestedById = new Map(
     requestedSessions
       .map((session) => normalizeSession(session))
       .filter((session) => session.id)
-      .map((session) => [session.id, session]),
+      .map((session) => [session.id, session])
   )
 
   const mergedSessions = existingSessions.map((existingSession) => {
@@ -82,7 +84,7 @@ function buildSafeSessionUpdate(merchantActor, updateData) {
   }
 
   return {
-    [getMerchantFlagPath("sessions.entries")]: mergedSessions,
+    [getMerchantFlagPath("sessions.entries")]: mergedSessions
   }
 }
 
@@ -93,9 +95,10 @@ async function handleSessionUpdateRequest(message) {
   const processorUserIds = Array.isArray(message.processorUserIds)
     ? message.processorUserIds.map((id) => String(id ?? "")).filter(Boolean)
     : []
-  const isProcessorTarget = processorUserIds.length > 0
-    ? processorUserIds.includes(game.user.id)
-    : !processorUserId || processorUserId === game.user.id
+  const isProcessorTarget =
+    processorUserIds.length > 0
+      ? processorUserIds.includes(game.user.id)
+      : !processorUserId || processorUserId === game.user.id
 
   if (!isProcessorTarget) {
     debugSessionSocket("request ignored: not processor target", {
@@ -103,7 +106,7 @@ async function handleSessionUpdateRequest(message) {
       currentUserId: game.user.id,
       currentUserName: game.user.name,
       processorUserId,
-      processorUserIds,
+      processorUserIds
     })
     return
   }
@@ -117,7 +120,7 @@ async function handleSessionUpdateRequest(message) {
     currentUserName: game.user.name,
     currentUserCanProcess: true,
     actorUuid: message.actorUuid,
-    sessionActorUuids: message.sessionActorUuids ?? [],
+    sessionActorUuids: message.sessionActorUuids ?? []
   })
 
   try {
@@ -132,7 +135,7 @@ async function handleSessionUpdateRequest(message) {
       debugSessionSocket("request denied: processor cannot update merchant", {
         requestId,
         processorUserId: game.user.id,
-        actorUuid: message.actorUuid,
+        actorUuid: message.actorUuid
       })
       throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
     }
@@ -143,7 +146,7 @@ async function handleSessionUpdateRequest(message) {
         requestId,
         requestingUserId: recipientUserId,
         actorUuid: message.actorUuid,
-        sessionActorUuids: message.sessionActorUuids ?? [],
+        sessionActorUuids: message.sessionActorUuids ?? []
       })
       throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
     }
@@ -152,26 +155,26 @@ async function handleSessionUpdateRequest(message) {
     debugSessionSocket("merchant update succeeded", {
       requestId,
       processorUserId: game.user.id,
-      actorUuid: merchantActor.uuid,
+      actorUuid: merchantActor.uuid
     })
 
     sendSessionUpdateResponse({
       requestId,
       recipientUserId,
       ok: true,
-      updateData: safeUpdateData,
+      updateData: safeUpdateData
     })
   } catch (error) {
     debugSessionSocket("request failed", {
       requestId,
       processorUserId: game.user.id,
-      error: error?.message ?? "",
+      error: error?.message ?? ""
     })
     sendSessionUpdateResponse({
       requestId,
       recipientUserId,
       ok: false,
-      error: error?.message ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"),
+      error: error?.message ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied")
     })
   }
 }
@@ -184,7 +187,7 @@ function handleSessionUpdateResponse(message) {
       requestId,
       hasPendingRequest: Boolean(pending),
       recipientUserId: message.recipientUserId ?? "",
-      currentUserId: game.user.id,
+      currentUserId: game.user.id
     })
     return
   }
@@ -205,7 +208,7 @@ export function registerMerchantSessionSocket() {
     channel: SOCKET_NAME,
     userId: game.user?.id ?? "",
     userName: game.user?.name ?? "",
-    isGM: Boolean(game.user?.isGM),
+    isGM: Boolean(game.user?.isGM)
   })
 
   game.socket.on(SOCKET_NAME, (message) => {
@@ -229,7 +232,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
   if (processorUsers.length === 0) {
     debugSessionSocket("request blocked: no active processor", {
       actorUuid: merchantActor.uuid,
-      requestingUserId: game.user?.id ?? "",
+      requestingUserId: game.user?.id ?? ""
     })
     throw new Error(game.i18n.localize("mtt.notifications.sessionSocketNoHandler"))
   }
@@ -240,8 +243,8 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
     new Set(
       (updateData?.[getMerchantFlagPath("sessions.entries")] ?? [])
         .map((session) => String(session.actorUuid ?? "").trim())
-        .filter(Boolean),
-    ),
+        .filter(Boolean)
+    )
   )
   const payload = {
     type: "sessionUpdateRequest",
@@ -251,7 +254,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
     processorUserIds,
     actorUuid: merchantActor.uuid,
     sessionActorUuids,
-    updateData,
+    updateData
   }
 
   return new Promise((resolve, reject) => {
@@ -261,7 +264,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
         requestId,
         processorUserIds,
         actorUuid: merchantActor.uuid,
-        sessionActorUuids,
+        sessionActorUuids
       })
       reject(new Error(game.i18n.localize("mtt.notifications.sessionSocketNoResponse")))
     }, REQUEST_TIMEOUT)
@@ -270,8 +273,8 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
     debugSessionSocket("request sent", {
       ...payload,
       updateData: {
-        sessionCount: updateData?.[getMerchantFlagPath("sessions.entries")]?.length ?? 0,
-      },
+        sessionCount: updateData?.[getMerchantFlagPath("sessions.entries")]?.length ?? 0
+      }
     })
     game.socket.emit(SOCKET_NAME, payload)
   })

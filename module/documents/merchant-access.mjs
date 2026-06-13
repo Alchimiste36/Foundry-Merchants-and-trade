@@ -65,6 +65,6 @@ export function getMerchantAccessContext(actor, user = game.user) {
     canManageClients: isOwnerLike,
     canViewAllSessions: isOwnerLike,
     canViewJournal: true,
-    canViewSecrets: isOwnerLike,
+    canViewSecrets: isOwnerLike
   }
 }

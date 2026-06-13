@@ -30,8 +30,7 @@ import {
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
   getItemAvailableQuantity,
-  findMergeableMerchantItemBySourceUuid,
-  prepareMerchantCatalogItemData
+  findMergeableMerchantItemBySourceUuid
 } from "./merchant-catalog.mjs"
 import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
@@ -146,7 +145,7 @@ export function normalizeSessionNegotiation(negotiation = {}) {
 export function normalizeSession(session) {
   const normalizedStatus = ["active", "pending", "validated", "refused", "submitted"].includes(session.status)
     ? session.status
-    : Boolean(session.isSubmitted)
+    : session.isSubmitted
       ? "submitted"
       : "active"
 
@@ -1907,22 +1906,6 @@ function addDeliveredItemDescriptionBlock(itemData, productData = {}) {
   }
 }
 
-function buildVisibleProductItemData(sourceItem, product, quantity) {
-  const itemData = sourceItem.toObject()
-  delete itemData._id
-  delete itemData.uuid
-
-  if (product.img) itemData.img = product.img
-
-  if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID]
-  foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
-    sourceUuid: getMttSourceUuid(sourceItem, product)
-  })
-  setItemDataQuantity(itemData, quantity, sourceItem)
-
-  return itemData
-}
-
 function buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantity) {
   const itemData = foundry.utils.deepClone(catalogProduct.itemData ?? {})
   delete itemData._id
@@ -2092,18 +2075,6 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
   }
 
   return result
-}
-
-function buildMerchantReceivedItemData(sourceItem, quantity, options = {}) {
-  const itemData = prepareMerchantCatalogItemData(sourceItem, {
-    sourceUuid: sourceItem.uuid ?? "",
-    automaticCategory: options.automaticCategory ?? null,
-    categoryValue: options.categoryValue ?? "",
-    quantity
-  })
-  setItemDataQuantity(itemData, quantity, sourceItem)
-
-  return itemData
 }
 
 function getSourceActorUuid(item) {

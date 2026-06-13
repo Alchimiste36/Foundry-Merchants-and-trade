@@ -14,7 +14,7 @@ export function getAvailableActorTypes() {
     }
     return typeKeys.map((value) => {
       const labelKey = CONFIG.Actor.typeLabels?.[value]
-      const label = labelKey ? (game.i18n.localize(labelKey) || value) : value
+      const label = labelKey ? game.i18n.localize(labelKey) || value : value
       return { value, label }
     })
   } catch {

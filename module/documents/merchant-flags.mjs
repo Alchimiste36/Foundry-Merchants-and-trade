@@ -37,13 +37,13 @@ const GLOBAL_CATEGORY_MARKERS = [
   "templateId",
   "settingId",
   "configId",
-  "globalCategoryId",
+  "globalCategoryId"
 ]
 
 export function createLocalMerchantCategory({ name = "", id = "", sort = null } = {}) {
   const category = {
     id: String(id ?? "").trim() || `category-${foundry.utils.randomID(6)}`,
-    name: String(name ?? "").trim(),
+    name: String(name ?? "").trim()
   }
 
   if (Number.isFinite(Number(sort))) category.sort = Number(sort)
@@ -73,14 +73,15 @@ function getConfiguredInitialProductCategoryNames() {
 
 function buildInitialLocalProductCategories() {
   return getConfiguredInitialProductCategoryNames().map((name, index) =>
-    createLocalMerchantCategory({ name, sort: index }),
+    createLocalMerchantCategory({ name, sort: index })
   )
 }
 
 function normalizeLocalMerchantCategory(category) {
-  const normalized = category && typeof category === "object"
-    ? foundry.utils.deepClone(category)
-    : { name: String(category ?? "").trim() }
+  const normalized =
+    category && typeof category === "object"
+      ? foundry.utils.deepClone(category)
+      : { name: String(category ?? "").trim() }
 
   for (const marker of GLOBAL_CATEGORY_MARKERS) {
     delete normalized[marker]
@@ -90,12 +91,12 @@ function normalizeLocalMerchantCategory(category) {
   const localCategory = createLocalMerchantCategory({
     ...normalized,
     id: normalized.id,
-    name: normalized.name || normalized.id,
+    name: normalized.name || normalized.id
   })
 
   return {
     ...normalized,
-    ...localCategory,
+    ...localCategory
   }
 }
 
@@ -115,35 +116,35 @@ export function buildDefaultMerchantData(actor = null, { includeInitialGlobalCat
     enabled: true,
     version: 1,
     sheet: {
-      isLocked: true,
+      isLocked: true
     },
     shop: {
       name: game.i18n?.localize("mtt.defaults.shopName") ?? "",
       img: DEFAULT_SHOP_IMAGE,
-      description: "",
+      description: ""
     },
     manager: {
       mode: "actor",
       actorUuid: actor?.uuid ?? null,
       displayName: actor?.name ?? "",
-      img: actor?.img ?? DEFAULT_MANAGER_IMAGE,
+      img: actor?.img ?? DEFAULT_MANAGER_IMAGE
     },
     trade: {
       buyPercent: 50,
       sellPercent: 100,
       serviceSellPercent: 100,
-      negotiationFormula: "",
+      negotiationFormula: ""
     },
     wallet: {
-      currencies: {},
+      currencies: {}
     },
     referenceState: null,
     journal: {
       nextTransactionNumber: 1,
-      transactions: [],
+      transactions: []
     },
     access: {
-      clients: [],
+      clients: []
     },
     catalog: {
       keepEmptyItems: true,
@@ -151,11 +152,11 @@ export function buildDefaultMerchantData(actor = null, { includeInitialGlobalCat
       hiddenCategories: {},
       productCategories: includeInitialGlobalCategories ? buildInitialLocalProductCategories() : [],
       products: [],
-      services: [],
+      services: []
     },
     sessions: {
-      entries: [],
-    },
+      entries: []
+    }
   }
 }
 
@@ -175,7 +176,7 @@ export function normalizeMerchantData(data = {}, actor = null) {
     inplace: false,
     insertKeys: true,
     insertValues: true,
-    overwrite: true,
+    overwrite: true
   })
 
   merged.enabled = merged.enabled === true
@@ -288,7 +289,7 @@ export async function updateMerchantData(actor, changes = {}, options = {}) {
     inplace: false,
     insertKeys: true,
     insertValues: true,
-    overwrite: true,
+    overwrite: true
   })
   return setMerchantData(actor, merged, options)
 }

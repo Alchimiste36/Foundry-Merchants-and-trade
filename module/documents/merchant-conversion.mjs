@@ -28,12 +28,16 @@ export async function convertActorToMerchant(actor) {
     return
   }
 
-  const hasExistingProductItems = actor.items?.size > 0 &&
+  const hasExistingProductItems =
+    actor.items?.size > 0 &&
     Array.from(actor.items.values()).some((item) => item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) != null)
 
-  await setMerchantData(actor, buildDefaultMerchantData(actor, {
-    includeInitialGlobalCategories: !hasExistingProductItems,
-  }))
+  await setMerchantData(
+    actor,
+    buildDefaultMerchantData(actor, {
+      includeInitialGlobalCategories: !hasExistingProductItems
+    })
+  )
 
   if (hasExistingProductItems) {
     await rehydrateMerchantItemsOnConversion(actor)
@@ -53,9 +57,9 @@ export function openMerchantSheet(actor) {
         return
       }
     }
-    } catch {
-      // L'itération des applications peut échouer pendant certains cycles de rendu Foundry.
-    }
+  } catch {
+    // L'itération des applications peut échouer pendant certains cycles de rendu Foundry.
+  }
   new MerchantSheet({ document: actor }).render(true)
 }
 
@@ -83,7 +87,7 @@ export async function removeMerchantFromActor(actor) {
     content: `<p>${game.i18n.localize("mtt.dialogs.removeMerchant.content")}</p>`,
     rejectClose: false,
     yes: { label: game.i18n.localize("mtt.dialogs.removeMerchant.confirm") },
-    no: { label: game.i18n.localize("mtt.dialogs.removeMerchant.cancel") },
+    no: { label: game.i18n.localize("mtt.dialogs.removeMerchant.cancel") }
   })
   if (!confirmed) return
 
@@ -132,7 +136,7 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
       icon: "fa-solid fa-store",
       label: game.i18n.localize("mtt.actorDirectory.convertToMerchant"),
       action: "mtt-convert",
-      onClick: () => convertActorToMerchant(actor),
+      onClick: () => convertActorToMerchant(actor)
     })
   }
 
@@ -143,7 +147,7 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
         icon: "fa-solid fa-shop",
         label: game.i18n.localize("mtt.actorDirectory.openMerchant"),
         action: "mtt-open-merchant",
-        onClick: () => openMerchantSheet(actor),
+        onClick: () => openMerchantSheet(actor)
       })
     }
     if (isOnMerchantSheet) {
@@ -152,7 +156,7 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
         icon: "fa-solid fa-user",
         label: game.i18n.localize("mtt.actorDirectory.openManager"),
         action: "mtt-open-manager",
-        onClick: () => openManagerActorSheet(actor),
+        onClick: () => openManagerActorSheet(actor)
       })
     }
     if (game.user.isGM) {
@@ -160,7 +164,7 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
         icon: "fa-solid fa-trash",
         label: game.i18n.localize("mtt.actorDirectory.removeMerchant"),
         action: "mtt-remove-merchant",
-        onClick: () => removeMerchantFromActor(actor),
+        onClick: () => removeMerchantFromActor(actor)
       })
     }
   }
@@ -176,7 +180,7 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
       label: game.i18n.localize("mtt.actorDirectory.convertToMerchant"),
       class: "mtt-convert",
       icon: "fas fa-store",
-      onclick: () => convertActorToMerchant(actor),
+      onclick: () => convertActorToMerchant(actor)
     })
   }
 
@@ -186,7 +190,7 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
         label: game.i18n.localize("mtt.actorDirectory.openMerchant"),
         class: "mtt-open-merchant",
         icon: "fas fa-shop",
-        onclick: () => openMerchantSheet(actor),
+        onclick: () => openMerchantSheet(actor)
       })
     }
     if (isOnMerchantSheet) {
@@ -194,7 +198,7 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
         label: game.i18n.localize("mtt.actorDirectory.openManager"),
         class: "mtt-open-manager",
         icon: "fas fa-user",
-        onclick: () => openManagerActorSheet(actor),
+        onclick: () => openManagerActorSheet(actor)
       })
     }
     if (game.user.isGM) {
@@ -202,7 +206,7 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
         label: game.i18n.localize("mtt.actorDirectory.removeMerchant"),
         class: "mtt-remove-merchant",
         icon: "fas fa-trash",
-        onclick: () => removeMerchantFromActor(actor),
+        onclick: () => removeMerchantFromActor(actor)
       })
     }
   }
@@ -302,7 +306,7 @@ export function registerActorDirectoryHooks() {
         callback: (li) => {
           const actor = getActorFromLi(li)
           if (actor) convertActorToMerchant(actor)
-        },
+        }
       },
       {
         name: "mtt.actorDirectory.openMerchant",
@@ -314,7 +318,7 @@ export function registerActorDirectoryHooks() {
         callback: (li) => {
           const actor = getActorFromLi(li)
           if (actor) openMerchantSheet(actor)
-        },
+        }
       },
       {
         name: "mtt.actorDirectory.openManager",
@@ -327,7 +331,7 @@ export function registerActorDirectoryHooks() {
         callback: (li) => {
           const actor = getActorFromLi(li)
           if (actor) openManagerActorSheet(actor)
-        },
+        }
       },
       {
         name: "mtt.actorDirectory.removeMerchant",
@@ -340,8 +344,8 @@ export function registerActorDirectoryHooks() {
         callback: (li) => {
           const actor = getActorFromLi(li)
           if (actor) removeMerchantFromActor(actor)
-        },
-      },
+        }
+      }
     )
   })
 }

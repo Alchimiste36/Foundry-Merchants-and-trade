@@ -3449,10 +3449,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? []);
 
     const newId = foundry.utils.randomID();
+    const referenceCurrency = getReferenceCurrency();
+    const referenceCurrencyKey = String(
+      referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.key ?? "",
+    ).trim();
     const newService = {
       id: newId,
       ...foundry.utils.deepClone(MTT.SERVICE_DEFAULTS),
       name: game.i18n.localize("mtt.services.new"),
+      priceCurrency: referenceCurrencyKey,
     };
 
     entries.push(newService);

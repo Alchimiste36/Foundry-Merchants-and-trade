@@ -3069,7 +3069,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#saveMerchantConfigFieldsFromDom()
     }
 
-    // Use updateSource to avoid triggering the full actor data-preparation cycle (CO2 getRollData crash on merchant actors).
+    // Use updateSource to avoid triggering the full actor data-preparation cycle for actors converted by flags.
     this.actor.updateSource({ [getMerchantFlagPath("sheet.isLocked")]: !isLocked })
     await this.render({ force: true })
   }

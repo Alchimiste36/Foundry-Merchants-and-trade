@@ -238,6 +238,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       for (const key of MTT_EXPORTABLE_CONFIG_SETTINGS) {
         if (!Object.prototype.hasOwnProperty.call(data.settings, key)) continue
         try {
+          if (key === "allowedMerchantActorTypes") {
+            await setAllowedMerchantActorTypes(data.settings[key])
+            continue
+          }
           await game.settings.set(MTT.ID, key, data.settings[key])
         } catch {
           // ignore invalid values for individual settings

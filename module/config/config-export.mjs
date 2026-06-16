@@ -1,4 +1,5 @@
 import { MTT } from "./constants.mjs"
+import { normalizeAllowedMerchantActorTypes } from "./actor-types.mjs"
 
 export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemQuantityPath",
@@ -25,7 +26,9 @@ export function buildModuleConfigurationExport() {
   const settings = {}
   for (const key of MTT_EXPORTABLE_CONFIG_SETTINGS) {
     try {
-      settings[key] = game.settings.get(MTT.ID, key)
+      const value = game.settings.get(MTT.ID, key)
+      settings[key] =
+        key === "allowedMerchantActorTypes" ? JSON.stringify(normalizeAllowedMerchantActorTypes(value)) : value
     } catch {
       // skip unregistered settings
     }

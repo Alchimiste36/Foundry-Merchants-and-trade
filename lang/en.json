@@ -100,6 +100,16 @@
     "permissions": {
       "merchant": {
         "title": "Merchant permissions",
+        "config": {
+          "title": "Merchant permissions",
+          "hint": "Defines which actions are allowed according to the user ownership level on the merchant actor."
+        },
+        "columns": {
+          "permission": "Permission",
+          "limited": "Limited",
+          "observer": "Observer",
+          "owner": "Owner"
+        },
         "canViewConfigTab": {
           "label": "View the Configuration tab",
           "hint": "Allows this ownership level to view the merchant Configuration tab."

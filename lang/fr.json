@@ -100,6 +100,16 @@
     "permissions": {
       "merchant": {
         "title": "Permissions marchand",
+        "config": {
+          "title": "Permissions marchand",
+          "hint": "Définit les actions autorisées selon le droit de l’utilisateur sur l’acteur marchand."
+        },
+        "columns": {
+          "permission": "Permission",
+          "limited": "Limité",
+          "observer": "Observateur",
+          "owner": "Propriétaire"
+        },
         "canViewConfigTab": {
           "label": "Voir l’onglet Configuration",
           "hint": "Autorise ce niveau de droit à voir l’onglet Configuration du marchand."

@@ -193,6 +193,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
     const isLimited = getMerchantLimitedState(this.actor)
+    const permissions = getMerchantPermissions(this.actor, { user: game.user })
+
+    if (this.#activeTab === "configuration" && !permissions.canViewConfigTab) this.#activeTab = "products"
 
     context.mtt = {
       css: MTT.CSS,
@@ -203,7 +206,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       canEditMerchant,
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
-      configurablePermissions: getMerchantPermissions(this.actor, { user: game.user }),
+      configurablePermissions: permissions,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         lock: "mtt.sheet.lock",
@@ -214,6 +217,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     context.actor = this.actor
     context.merchant = getMerchantData(this.actor)
+    context.permissions = permissions
 
     const activeSession = this.#getActiveSession()
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
@@ -231,7 +235,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.referenceState = this.#prepareReferenceStateContext()
     context.mtt.journal = prepareMerchantJournalContext(this.actor, {
       user: game.user,
-      sort: this.#journalSort
+      sort: this.#journalSort,
+      permissions
     })
 
     return context
@@ -1554,10 +1559,22 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return actor.testUserPermission(game.user, "OWNER")
   }
 
+  #userObservesActor(actorUuid) {
+    if (game.user.isGM) return true
+    const normalizedUuid = String(actorUuid ?? "").trim()
+    if (!normalizedUuid) return false
+    const actor = game.actors.find((a) => a.uuid === normalizedUuid)
+    if (!actor) return false
+    if (actor.testUserPermission(game.user, "OWNER")) return false
+    return actor.testUserPermission(game.user, "OBSERVER")
+  }
+
   #userCanViewSession(session) {
     if (!session) return false
     if (this.isEditable) return true
-    return this.#userControlsActor(session.actorUuid)
+    const permissions = getMerchantPermissions(this.actor, { user: game.user })
+    return this.#userControlsActor(session.actorUuid) ||
+      (permissions.canViewObserverActorSessions && this.#userObservesActor(session.actorUuid))
   }
 
   #getPreferredPlayerSession(sessions) {
@@ -1572,15 +1589,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareAccessContext() {
-    const { isOwnerLike: isOwner, isObserver, isLimited } = getMerchantAccessContext(this.actor)
+    const { isOwnerLike: isOwner } = getMerchantAccessContext(this.actor)
+    const permissions = getMerchantPermissions(this.actor, { user: game.user })
     const canManageAccessRail = isOwner
-    const canSeeAccessDropZone = canManageAccessRail
+    const canSeeAccessDropZone = canManageAccessRail || permissions.canAddActorToMerchantRail
 
     const rawClients = this.#prepareAccessClients()
     const clients = rawClients
       .map((client) => {
         const isOwnClientCard = this.#userControlsActor(client.actorUuid)
-        const canSeeCard = canManageAccessRail || isObserver || (isLimited && isOwnClientCard)
+        const canSeeCard = canManageAccessRail || isOwnClientCard || permissions.canViewOtherActorsInRail
         const canClickCard = canManageAccessRail || isOwnClientCard
         const cardClasses = [
           "mtt-merchant-access-card",
@@ -3178,7 +3196,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const tab = target.dataset.tab
     if (!tab || tab === "sessions") return
 
-    if (tab === "configuration" && !this.isEditable) return
+    const permissions = getMerchantPermissions(this.actor, { user: game.user })
+    if (tab === "configuration" && !permissions.canViewConfigTab) return
 
     this.#activeTab = tab
     this.render()

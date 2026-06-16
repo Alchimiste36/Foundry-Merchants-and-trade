@@ -5,7 +5,12 @@ import {
   getAllowedMerchantActorTypes,
   setAllowedMerchantActorTypes
 } from "../config/actor-types.mjs"
-import { normalizeMerchantPermissionProfiles } from "../documents/merchant-access.mjs"
+import {
+  MERCHANT_CONFIGURABLE_PERMISSIONS,
+  MERCHANT_PERMISSION_DEFINITIONS,
+  MERCHANT_PERMISSION_PROFILE_KEYS,
+  normalizeMerchantPermissionProfiles
+} from "../documents/merchant-access.mjs"
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -50,10 +55,22 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const availableTypes = getAvailableActorTypes()
     const allowedTypes = getAllowedMerchantActorTypes()
+    const merchantPermissionProfiles = normalizeMerchantPermissionProfiles(
+      game.settings.get(MTT.ID, "merchantPermissionProfiles")
+    )
     return {
       ...context,
       availableActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedTypes.includes(t.value) })),
       hasAllowedActorTypes: allowedTypes.length > 0,
+      merchantPermissionProfiles,
+      merchantPermissionRows: MERCHANT_CONFIGURABLE_PERMISSIONS.map((key) => ({
+        key,
+        label: MERCHANT_PERMISSION_DEFINITIONS[key].label,
+        hint: MERCHANT_PERMISSION_DEFINITIONS[key].hint,
+        limited: merchantPermissionProfiles.limited[key],
+        observer: merchantPermissionProfiles.observer[key],
+        owner: merchantPermissionProfiles.owner[key]
+      })),
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
       itemDeliveryQuantityPerLotPath: game.settings.get(MTT.ID, "itemDeliveryQuantityPerLotPath"),
       deliveryItemQuantityPath: game.settings.get(MTT.ID, "deliveryItemQuantityPath"),
@@ -125,7 +142,24 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.element.querySelectorAll("input[name='allowedMerchantActorTypes']:checked")
     ).map((cb) => cb.value)
     await setAllowedMerchantActorTypes(allowedActorTypes)
+    await game.settings.set(MTT.ID, "merchantPermissionProfiles", JSON.stringify(this.#collectMerchantPermissionProfiles()))
     this.close()
+  }
+
+  #collectMerchantPermissionProfiles() {
+    const profiles = {}
+
+    for (const profileKey of MERCHANT_PERMISSION_PROFILE_KEYS) {
+      profiles[profileKey] = {}
+      for (const permissionKey of MERCHANT_CONFIGURABLE_PERMISSIONS) {
+        const input = this.element.querySelector(
+          `input[name="merchantPermissionProfiles.${profileKey}.${permissionKey}"]`
+        )
+        profiles[profileKey][permissionKey] = Boolean(input?.checked)
+      }
+    }
+
+    return normalizeMerchantPermissionProfiles(profiles)
   }
 
   static async #onCancel(_event, _target) {

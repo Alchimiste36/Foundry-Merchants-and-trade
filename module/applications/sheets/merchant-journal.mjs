@@ -379,13 +379,28 @@ export function userControlsJournalBuyer(entry, user = game.user) {
   return Boolean(actor?.testUserPermission?.(user, "OWNER"))
 }
 
+export function userObservesJournalBuyer(entry, user = game.user) {
+  const buyerUuid = String(entry?.buyerActorUuid ?? "").trim()
+  if (!buyerUuid) return false
+
+  const actor = game.actors.find((candidate) => candidate.uuid === buyerUuid)
+  if (!actor || actor.testUserPermission?.(user, "OWNER")) return false
+  return Boolean(actor.testUserPermission?.(user, "OBSERVER"))
+}
+
 export function prepareMerchantJournalContext(actor, options = {}) {
   const user = options.user ?? game.user
   const sort = normalizeJournalSort(options.sort)
+  const permissions = options.permissions ?? {}
   const canSeeAll = userCanSeeAllMerchantJournal(actor, user)
   const transactions = getMerchantJournalTransactions(actor)
     .map((entry) => normalizeJournalEntry(entry))
-    .filter((entry) => canSeeAll || userControlsJournalBuyer(entry, user))
+    .filter(
+      (entry) =>
+        canSeeAll ||
+        userControlsJournalBuyer(entry, user) ||
+        (permissions.canViewObserverActorJournalEntries && userObservesJournalBuyer(entry, user))
+    )
     .map((entry) => prepareJournalEntryDisplay(entry))
 
   transactions.sort((a, b) => compareJournalTransactions(a, b, sort))

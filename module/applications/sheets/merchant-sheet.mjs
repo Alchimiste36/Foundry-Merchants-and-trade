@@ -383,6 +383,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return this.isEditable ? "merchant" : "buyer"
   }
 
+  #requireMerchantPermission(permissionKey, { notify = true } = {}) {
+    if (game.user?.isGM) return true
+
+    const permissions = getMerchantPermissions(this.actor, { user: game.user })
+    if (permissions?.[permissionKey]) return true
+
+    if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+    return false
+  }
+
   #canAnswerNegotiation(negotiation) {
     if (!negotiation || negotiation.status !== "active") return false
     return negotiation.currentTurn === this.#getNegotiationOfferSide()
@@ -624,6 +634,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
     if (field === "label") {
       const label = input.value?.trim() ?? ""
       if (!label) {
@@ -826,6 +838,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Session seller drag/drop ─────────────────────────────────────────────
 
   #onSessionSellerDragOver(event) {
+    if (!this.#requireMerchantPermission("canInteractWithSession", { notify: false })) return
+
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
   }
@@ -833,6 +847,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async #onSessionSellerDrop(event) {
     event.preventDefault()
     event.stopPropagation()
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     try {
       const rawPayload = event.dataTransfer.getData("application/json")
@@ -933,16 +949,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Client drag/drop and context menu ───────────────────────────────────
 
   #onClientDragOver(event) {
-    if (!this.isEditable) return
+    if (!this.#requireMerchantPermission("canAddActorToMerchantRail", { notify: false })) return
+
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
   }
 
   async #onClientDrop(event) {
-    if (!this.isEditable) return
-
     event.preventDefault()
     event.stopPropagation()
+
+    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
 
     const actor = await this.#getDroppedActorDocument(event)
     if (!actor) {
@@ -1573,8 +1590,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return false
     if (this.isEditable) return true
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    return this.#userControlsActor(session.actorUuid) ||
+    return (
+      this.#userControlsActor(session.actorUuid) ||
       (permissions.canViewObserverActorSessions && this.#userObservesActor(session.actorUuid))
+    )
   }
 
   #getPreferredPlayerSession(sessions) {
@@ -1880,6 +1899,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getSessions().find((entry) => entry.id === sessionId)
     if (!session) {
       this.#activeSessionId = null
+      return null
+    }
+
+    if (!this.#userCanViewSession(session)) {
+      this.#activeSessionId = null
+      this.#selectedClientActorUuid = ""
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
       return null
     }
 
@@ -2470,6 +2496,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
+    if (!this.#requireMerchantPermission("canOpenProduct")) return
+
     // Client : vue en lecture seule via Item temporaire avec ID synthétique
     const ItemClass = getDocumentClass("Item")
     if (!ItemClass) return
@@ -2516,6 +2544,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onAddProductToSession(event, target) {
     event.preventDefault()
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     const product = this.#getProductFromEvent(target)
     if (!product) return
@@ -2624,6 +2654,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRemoveSessionItem(event, target) {
     event.preventDefault()
 
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
     const session = this.#getActiveSession()
     if (!session) return
 
@@ -2639,6 +2671,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onSubmitNegotiationOffer(event, target) {
     event.preventDefault()
+
+    if (!this.isEditable && !this.#requireMerchantPermission("canInteractWithSession")) return
 
     const session = this.#getActiveSession()
     if (!session) return
@@ -2672,6 +2706,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onAcceptNegotiationOffer(event, target) {
     event.preventDefault()
+
+    if (!this.isEditable && !this.#requireMerchantPermission("canInteractWithSession")) return
 
     const session = this.#getActiveSession()
     if (!session) return
@@ -2709,6 +2745,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRefuseNegotiationOffer(event, target) {
     event.preventDefault()
 
+    if (!this.isEditable && !this.#requireMerchantPermission("canInteractWithSession")) return
+
     const session = this.#getActiveSession()
     if (!session) return
 
@@ -2726,6 +2764,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onIncreaseSessionItemQuantity(event, target) {
     event.preventDefault()
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
     const session = this.#getActiveSession()
     if (!session) return
 
@@ -2752,6 +2793,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onDecreaseSessionItemQuantity(event, target) {
     event.preventDefault()
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
     const session = this.#getActiveSession()
     if (!session) return
 
@@ -2777,6 +2821,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onClearSessionDraft(event) {
     event.preventDefault()
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     const session = this.#getActiveSession()
     if (!session) return
@@ -2818,13 +2864,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
 
     const actorUuid = target.dataset.clientActorUuid
-    if (!canUserManageMerchant(this.actor) && !this.#userControlsActor(actorUuid)) return
 
     const client = this.#getAccessClientCandidate(actorUuid)
     if (!client) return
 
     if (!client.isAuthorized) {
-      if (!this.isEditable) return
+      if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
 
       if (
         !getBestSessionForClient(this.actor, client.actorUuid) &&
@@ -2853,12 +2898,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#selectedClientActorUuid = client.actorUuid
     const session = getBestSessionForClient(this.actor, client.actorUuid)
     if (session) {
+      if (!this.#userCanViewSession(session)) {
+        this.#activeSessionId = null
+        this.#selectedClientActorUuid = ""
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+        return
+      }
+
       this.#selectSession(session.id)
       this.render()
       return
     }
 
-    if (!this.isEditable) return
+    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
 
     const repairedSession = await this.#createSessionForClient(client)
     if (!repairedSession) return
@@ -2874,6 +2926,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const status = target.dataset.sessionStatus
     if (!["active", "pending", "submitted", "validated", "refused"].includes(status)) return
+    if (["validated", "refused"].includes(status)) {
+      if (!this.#requireMerchantPermission("canValidateOrRefuseSessions")) return
+    } else if (!this.#requireMerchantPermission("canInteractWithSession")) {
+      return
+    }
 
     session.status = status
     await this.#saveSession(session)
@@ -2934,6 +2991,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onSubmitSession(event) {
     event.preventDefault()
 
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
     const session = this.#getActiveSession()
     if (!session) return
 
@@ -2945,6 +3004,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onUnlockSubmittedSession(event) {
     event.preventDefault()
+
+    if (!this.#requireMerchantPermission("canValidateOrRefuseSessions")) return
 
     const session = this.#getActiveSession()
     if (!session) return
@@ -2958,7 +3019,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onValidateSessionTransaction(event) {
     event.preventDefault()
 
-    if (!(game.user?.isGM ?? false)) return
+    if (!this.#requireMerchantPermission("canValidateOrRefuseSessions")) return
 
     const session = this.#getActiveSession()
     if (!session) return
@@ -3052,7 +3113,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRefuseSessionTransaction(event) {
     event.preventDefault()
 
-    if (!(game.user?.isGM ?? false)) return
+    if (!this.#requireMerchantPermission("canValidateOrRefuseSessions")) return
 
     const session = this.#getActiveSession()
     if (!session) return
@@ -3518,6 +3579,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   static async #onAddServiceToSession(event, target) {
     event.preventDefault()
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     const service = this.#getServiceFromEvent(target)
     if (!service || service.isHidden) return

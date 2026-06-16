@@ -1,6 +1,7 @@
 import { MTT } from "./constants.mjs"
 import { MttConfigApp } from "../applications/mtt-config-app.mjs"
 import { MttGlobalJournalApp } from "../applications/mtt-global-journal-app.mjs"
+import { MERCHANT_DEFAULT_PERMISSION_PROFILES } from "../documents/merchant-access.mjs"
 
 export function registerSettings() {
   game.settings.register(MTT.ID, "debug", {
@@ -183,6 +184,15 @@ export function registerSettings() {
     config: false,
     type: String,
     default: "[]"
+  })
+
+  game.settings.register(MTT.ID, "merchantPermissionProfiles", {
+    name: "mtt.settings.merchantPermissionProfiles.name",
+    hint: "mtt.settings.merchantPermissionProfiles.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: JSON.stringify(MERCHANT_DEFAULT_PERMISSION_PROFILES)
   })
 
   game.settings.registerMenu(MTT.ID, "openConfigWindow", {

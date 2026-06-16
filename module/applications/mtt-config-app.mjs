@@ -5,6 +5,7 @@ import {
   getAllowedMerchantActorTypes,
   setAllowedMerchantActorTypes
 } from "../config/actor-types.mjs"
+import { normalizeMerchantPermissionProfiles } from "../documents/merchant-access.mjs"
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 
@@ -240,6 +241,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
         try {
           if (key === "allowedMerchantActorTypes") {
             await setAllowedMerchantActorTypes(data.settings[key])
+            continue
+          }
+          if (key === "merchantPermissionProfiles") {
+            await game.settings.set(MTT.ID, key, JSON.stringify(normalizeMerchantPermissionProfiles(data.settings[key])))
             continue
           }
           await game.settings.set(MTT.ID, key, data.settings[key])

@@ -6,7 +6,11 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import { getMerchantAccessContext, canUserManageMerchant } from "../../documents/merchant-access.mjs"
+import {
+  getMerchantAccessContext,
+  getMerchantPermissions,
+  canUserManageMerchant
+} from "../../documents/merchant-access.mjs"
 import {
   isUnlimitedQuantity,
   isFreePriceCurrency,
@@ -199,6 +203,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       canEditMerchant,
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
+      configurablePermissions: getMerchantPermissions(this.actor, { user: game.user }),
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         lock: "mtt.sheet.lock",

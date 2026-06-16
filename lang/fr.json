@@ -91,6 +91,55 @@
       "allowedMerchantActorTypes": {
         "name": "Types d'acteurs convertibles en marchand MTT",
         "hint": "JSON interne géré via la fenêtre de configuration MTT."
+      },
+      "merchantPermissionProfiles": {
+        "name": "Profils de permissions marchand",
+        "hint": "JSON interne des permissions configurables par niveau de droit marchand."
+      }
+    },
+    "permissions": {
+      "merchant": {
+        "title": "Permissions marchand",
+        "canViewConfigTab": {
+          "label": "Voir l’onglet Configuration",
+          "hint": "Autorise ce niveau de droit à voir l’onglet Configuration du marchand."
+        },
+        "canViewApprovalStatus": {
+          "label": "Voir les statuts d’approbation",
+          "hint": "Autorise ce niveau de droit à voir les indicateurs de produits et services nécessitant l’approbation du MJ."
+        },
+        "canViewPrices": {
+          "label": "Voir les prix",
+          "hint": "Autorise ce niveau de droit à voir les prix des produits et services."
+        },
+        "canOpenProduct": {
+          "label": "Ouvrir les produits",
+          "hint": "Autorise ce niveau de droit à ouvrir la fiche d’un produit et à voir l’indicateur Limited ou Observer de la ligne produit."
+        },
+        "canInteractWithSession": {
+          "label": "Interagir avec la session",
+          "hint": "Autorise ce niveau de droit à ajouter des produits ou services, vendre ou donner des objets au marchand, modifier une session éditable et l’envoyer pour validation."
+        },
+        "canAddActorToMerchantRail": {
+          "label": "Ajouter un acteur au rail",
+          "hint": "Autorise ce niveau de droit à ajouter un acteur au marchand via le rail."
+        },
+        "canViewOtherActorsInRail": {
+          "label": "Voir les autres acteurs du rail",
+          "hint": "Autorise ce niveau de droit à voir les autres acteurs autorisés dans le rail du marchand."
+        },
+        "canViewObserverActorSessions": {
+          "label": "Voir les sessions Observateur",
+          "hint": "Autorise ce niveau de droit à voir les sessions des acteurs pour lesquels l’utilisateur a le droit Observateur."
+        },
+        "canValidateOrRefuseSessions": {
+          "label": "Valider ou refuser les sessions",
+          "hint": "Autorise ce niveau de droit à valider ou refuser une session de transaction."
+        },
+        "canViewObserverActorJournalEntries": {
+          "label": "Voir les journaux Observateur",
+          "hint": "Autorise ce niveau de droit à voir les entrées de journal des acteurs pour lesquels l’utilisateur a le droit Observateur."
+        }
       }
     },
     "sheet": {

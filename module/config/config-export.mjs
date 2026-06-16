@@ -1,5 +1,6 @@
 import { MTT } from "./constants.mjs"
 import { normalizeAllowedMerchantActorTypes } from "./actor-types.mjs"
+import { normalizeMerchantPermissionProfiles } from "../documents/merchant-access.mjs"
 
 export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemQuantityPath",
@@ -19,7 +20,8 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemSubcategoryPath",
   "itemCategoryI18nPrefix",
   "itemSubcategoryI18nPrefix",
-  "allowedMerchantActorTypes"
+  "allowedMerchantActorTypes",
+  "merchantPermissionProfiles"
 ]
 
 export function buildModuleConfigurationExport() {
@@ -28,7 +30,11 @@ export function buildModuleConfigurationExport() {
     try {
       const value = game.settings.get(MTT.ID, key)
       settings[key] =
-        key === "allowedMerchantActorTypes" ? JSON.stringify(normalizeAllowedMerchantActorTypes(value)) : value
+        key === "allowedMerchantActorTypes"
+          ? JSON.stringify(normalizeAllowedMerchantActorTypes(value))
+          : key === "merchantPermissionProfiles"
+            ? JSON.stringify(normalizeMerchantPermissionProfiles(value))
+            : value
     } catch {
       // skip unregistered settings
     }

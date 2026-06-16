@@ -18,6 +18,7 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemSubcategoryPath",
   "itemCategoryI18nPrefix",
   "itemSubcategoryI18nPrefix",
+  "allowedMerchantActorTypes"
 ]
 
 export function buildModuleConfigurationExport() {
@@ -38,6 +39,6 @@ export function buildModuleConfigurationExport() {
     moduleVersion: game.modules.get(MTT.ID)?.version ?? "",
     systemId: game.system.id,
     systemTitle: game.system.title,
-    settings,
+    settings
   }
 }

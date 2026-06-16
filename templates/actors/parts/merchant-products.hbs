@@ -89,7 +89,7 @@
                 {{#each category.items as |item|}}
                   <li
                     class="mtt-merchant-product-row draggable {{#unless item.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}"
-                    data-item-id="{{item.id}}"
+                    data-product-id="{{item.id}}"
                     data-mtt-product-id="{{item.id}}"
                     {{#if @root.mtt.isEditable}}
                       data-mtt-catalog-context-menu

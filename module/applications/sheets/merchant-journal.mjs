@@ -1,5 +1,8 @@
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getCatalogProduct } from "../../documents/merchant-products.mjs"
+import { canUserManageMerchant } from "../../documents/merchant-access.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
@@ -57,7 +60,7 @@ function normalizeJournalTransactionEntry(entry = {}) {
     isNegotiated: Boolean(entry.isNegotiated ?? defaults.isNegotiated),
     negotiationStatus: String(entry.negotiationStatus ?? defaults.negotiationStatus),
     isFreePrice: Boolean(entry.isFreePrice ?? defaults.isFreePrice),
-    hadSecrets: Boolean(entry.hadSecrets ?? defaults.hadSecrets),
+    hadSecrets: Boolean(entry.hadSecrets ?? defaults.hadSecrets)
   }
 }
 
@@ -70,7 +73,7 @@ function normalizeJournalMoneyAdjustment(adjustment = {}) {
     side: JOURNAL_ENTRY_SIDES.includes(side) ? side : defaults.side,
     value: normalizeJournalNumber(adjustment.value, defaults.value),
     currency: String(adjustment.currency ?? defaults.currency),
-    label: String(adjustment.label ?? defaults.label),
+    label: String(adjustment.label ?? defaults.label)
   }
 }
 
@@ -90,7 +93,7 @@ function getJournalLineKey(line) {
     normalizeJournalEntryType(line.type),
     String(line.sourceId ?? ""),
     String(line.sourceUuid ?? ""),
-    String(line.name ?? ""),
+    String(line.name ?? "")
   ].join("|")
 }
 
@@ -107,13 +110,12 @@ function getJournalLineHadSecrets(actor, item, side) {
   if (side !== "buyer") return false
 
   if (item.type === "product") {
-    const productItem = actor?.items?.get?.(item.sourceId)
-    const product = productItem?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    const product = getCatalogProduct(actor, item.sourceId) ?? {}
     return catalogEntryHasSecrets(product)
   }
 
   if (item.type === "service") {
-    const service = actor?.system?.services?.entries?.find((entry) => entry.id === item.sourceId) ?? {}
+    const service = getMerchantData(actor)?.catalog?.services?.find((entry) => entry.id === item.sourceId) ?? {}
     return catalogEntryHasSecrets(service)
   }
 
@@ -141,7 +143,7 @@ function buildJournalLineFromSessionItem(actor, item, side, negotiationsByLineKe
     isNegotiated: proposedUnitPriceValue !== null && proposedUnitPriceValue !== undefined,
     negotiationStatus: "",
     isFreePrice: Boolean(item.isFreePrice),
-    hadSecrets: getJournalLineHadSecrets(actor, item, side),
+    hadSecrets: getJournalLineHadSecrets(actor, item, side)
   }
 
   const negotiation = negotiationsByLineKey.get(getJournalLineKey(line))
@@ -178,9 +180,10 @@ function buildJournalLineFromNegotiation(actor, negotiation, status) {
     referenceUnitPriceValue: normalizeJournalNullableNumber(negotiation.referenceUnitPriceValue),
     percentOfReference: normalizeJournalNullableNumber(lastOffer?.percentOfReference),
     isNegotiated: true,
-    negotiationStatus: status === "refused" && negotiation.status === "active" ? "refused" : String(negotiation.status ?? ""),
+    negotiationStatus:
+      status === "refused" && negotiation.status === "active" ? "refused" : String(negotiation.status ?? ""),
     isFreePrice: Boolean(negotiation.isFreePrice),
-    hadSecrets: getJournalLineHadSecrets(actor, negotiation, normalizeJournalEntrySide(negotiation.side)),
+    hadSecrets: getJournalLineHadSecrets(actor, negotiation, normalizeJournalEntrySide(negotiation.side))
   }
 }
 
@@ -226,7 +229,7 @@ function prepareJournalMoneyAdjustments(entries) {
         side: difference > 0 ? "seller" : "buyer",
         value: Math.abs(difference),
         currency,
-        label: "Ajustement monétaire",
+        label: "Ajustement monétaire"
       }
     })
     .filter(Boolean)
@@ -266,7 +269,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
   const entries = [
     ...buyerItems.map((item) => buildJournalLineFromSessionItem(actor, item, "buyer", acceptedByLineKey)),
     ...sellerItems.map((item) => buildJournalLineFromSessionItem(actor, item, "seller", acceptedByLineKey)),
-    ...extraLines,
+    ...extraLines
   ]
   const executableEntries = entries.filter((entry) => isExecutableJournalLine(entry, status))
   const buyerTotal = executableEntries
@@ -283,7 +286,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
     createdAt: new Date().toISOString(),
     status,
     merchantActorUuid: actor?.uuid ?? "",
-    merchantName: actor?.name ?? "",
+    merchantName: getMerchantData(actor)?.shop?.name || actor?.name || "",
     buyerActorUuid: session?.actorUuid ?? "",
     buyerName,
     buyerImg: session?.actorImg ?? getJournalBuyerImg(session),
@@ -296,12 +299,13 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
     entries,
     moneyAdjustments: options.moneyAdjustments ?? prepareJournalMoneyAdjustments(executableEntries),
     secrets: [],
-    transactionNumber: options.transactionNumber,
+    transactionNumber: options.transactionNumber
   })
 }
 
 export function getMerchantJournalTransactions(actor) {
-  return Array.isArray(actor?.system?.journal?.transactions) ? actor.system.journal.transactions : []
+  const transactions = getMerchantData(actor)?.journal?.transactions
+  return Array.isArray(transactions) ? transactions : []
 }
 
 export function normalizeJournalEntry(entry = {}) {
@@ -325,7 +329,7 @@ export function normalizeJournalEntry(entry = {}) {
     moneyAdjustments: Array.isArray(entry.moneyAdjustments)
       ? entry.moneyAdjustments.map((adjustment) => normalizeJournalMoneyAdjustment(adjustment))
       : [],
-    secrets: Array.isArray(entry.secrets) ? entry.secrets : [],
+    secrets: Array.isArray(entry.secrets) ? entry.secrets : []
   }
 }
 
@@ -333,7 +337,10 @@ export async function appendMerchantJournalEntry(actor, entry) {
   if (!actor) return null
 
   const transactions = foundry.utils.deepClone(getMerchantJournalTransactions(actor))
-  const nextTransactionNumber = normalizeJournalTransactionNumber(actor.system?.journal?.nextTransactionNumber, 1)
+  const nextTransactionNumber = normalizeJournalTransactionNumber(
+    getMerchantData(actor)?.journal?.nextTransactionNumber,
+    1
+  )
   const entryTransactionNumber = normalizeJournalTransactionNumber(entry?.transactionNumber)
   const transactionNumber = entryTransactionNumber ?? nextTransactionNumber
   const nextValue = entryTransactionNumber
@@ -341,24 +348,25 @@ export async function appendMerchantJournalEntry(actor, entry) {
     : transactionNumber + 1
   const normalizedEntry = normalizeJournalEntry({
     merchantActorUuid: actor.uuid,
-    merchantName: actor.name,
+    merchantName: getMerchantData(actor)?.shop?.name || actor?.name || "",
     ...entry,
-    transactionNumber,
+    transactionNumber
   })
 
   transactions.unshift(normalizedEntry)
 
-  await actor.update({
-    "system.journal.transactions": transactions,
-    "system.journal.nextTransactionNumber": nextValue,
+  await updateMerchantData(actor, {
+    journal: {
+      transactions,
+      nextTransactionNumber: nextValue
+    }
   })
 
   return normalizedEntry
 }
 
 export function userCanSeeAllMerchantJournal(actor, user = game.user) {
-  const permLevel = actor?.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-  return Boolean(user?.isGM) || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+  return canUserManageMerchant(actor, user)
 }
 
 export function userControlsJournalBuyer(entry, user = game.user) {
@@ -387,7 +395,7 @@ export function prepareMerchantJournalContext(actor, options = {}) {
     canSeeSecretIndicators: canSeeAll,
     hasTransactions: transactions.length > 0,
     transactions,
-    sort,
+    sort
   }
 }
 
@@ -403,19 +411,18 @@ function compareJournalTransactions(a, b, sort) {
 
   if (sort.key === "buyer") {
     return (
-      String(a.buyerName ?? "").localeCompare(String(b.buyerName ?? ""), undefined, { sensitivity: "base" }) *
-      direction
+      String(a.buyerName ?? "").localeCompare(String(b.buyerName ?? ""), undefined, { sensitivity: "base" }) * direction
     )
   }
 
   if (sort.key === "status") {
-    return (
-      String(a.status ?? "").localeCompare(String(b.status ?? ""), undefined, { sensitivity: "base" }) * direction
-    )
+    return String(a.status ?? "").localeCompare(String(b.status ?? ""), undefined, { sensitivity: "base" }) * direction
   }
 
   if (sort.key === "total") {
-    return (normalizeJournalNumber(a.totalReferenceValue, 0) - normalizeJournalNumber(b.totalReferenceValue, 0)) * direction
+    return (
+      (normalizeJournalNumber(a.totalReferenceValue, 0) - normalizeJournalNumber(b.totalReferenceValue, 0)) * direction
+    )
   }
 
   const dateA = Date.parse(a.createdAt ?? "") || 0
@@ -434,7 +441,7 @@ export function prepareJournalEntryDisplay(entry) {
         month: "2-digit",
         year: "2-digit",
         hour: "2-digit",
-        minute: "2-digit",
+        minute: "2-digit"
       })
   const entries = normalized.entries.map((line) => prepareJournalLineDisplay(line))
   const executableEntries = entries.filter((line) => isExecutableJournalLine(line, normalized.status))
@@ -457,9 +464,7 @@ export function prepareJournalEntryDisplay(entry) {
     transactionNumberLabel: normalized.transactionNumber ? String(normalized.transactionNumber) : JOURNAL_EMPTY_LABEL,
     statusLabelKey: `mtt.journal.status.${normalized.status}`,
     statusClass:
-      normalized.status === "refused"
-        ? "mtt-merchant-journal-status-refused"
-        : "mtt-merchant-journal-status-validated",
+      normalized.status === "refused" ? "mtt-merchant-journal-status-refused" : "mtt-merchant-journal-status-validated",
     createdAtLabel,
     createdAtShortLabel,
     paidTotalValue: paidTotal,
@@ -468,9 +473,13 @@ export function prepareJournalEntryDisplay(entry) {
     moneyAdjustmentValue,
     paidTotalLabel: formatSignedPriceLabel(paidTotal, normalized.referenceCurrency, "-"),
     receivedTotalLabel: formatSignedPriceLabel(receivedTotal, normalized.referenceCurrency, "+"),
-    moneyAdjustmentLabel: formatSignedPriceLabel(moneyAdjustmentValue, normalized.referenceCurrency, moneyAdjustmentSign),
+    moneyAdjustmentLabel: formatSignedPriceLabel(
+      moneyAdjustmentValue,
+      normalized.referenceCurrency,
+      moneyAdjustmentSign
+    ),
     hasEntries: entries.length > 0,
-    entries,
+    entries
   }
 }
 
@@ -487,7 +496,7 @@ function prepareJournalLineDisplay(line) {
         product: "fas fa-box",
         service: "fas fa-handshake",
         item: "fas fa-box-open",
-        money: "fas fa-coins",
+        money: "fas fa-coins"
       }[normalized.type] ?? "fas fa-box-open",
     typeLabel: game.i18n.localize(`mtt.journal.type.${normalized.type}`),
     sideLabel: game.i18n.localize(`mtt.journal.side.${normalized.side}`),
@@ -498,6 +507,6 @@ function prepareJournalLineDisplay(line) {
     hasNegotiationIcon,
     negotiationIcon: negotiationStatus === "accepted" ? "fas fa-check" : "fas fa-times",
     negotiationTooltipKey: `mtt.journal.negotiation.${negotiationStatus}`,
-    canShowSecretIndicator: Boolean(normalized.hadSecrets),
+    canShowSecretIndicator: Boolean(normalized.hadSecrets)
   }
 }

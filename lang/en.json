@@ -9,9 +9,6 @@
       "merchant": "Merchant Sheet",
       "merchantTitle": "MTT - Merchant: {name}"
     },
-    "actorTypes": {
-      "merchant": "MTT Merchant"
-    },
     "settings": {
       "debug": {
         "name": "MTT debug mode",
@@ -90,6 +87,10 @@
       "currencies": {
         "name": "Configured currencies",
         "hint": "List of MTT module currencies. Managed through the MTT configuration window."
+      },
+      "allowedMerchantActorTypes": {
+        "name": "Actor types convertible to MTT merchants",
+        "hint": "Internal JSON managed through the MTT configuration window."
       }
     },
     "sheet": {
@@ -120,6 +121,9 @@
       "displayName": {
         "label": "Displayed name",
         "placeholder": "Manager name"
+      },
+      "image": {
+        "edit": "Edit manager image"
       },
       "empty": "No manager defined"
     },
@@ -168,6 +172,20 @@
       "deleteItem": {
         "title": "Delete item",
         "content": "Do you really want to delete this item from the merchant?"
+      }
+    },
+    "actorDirectory": {
+      "convertToMerchant": "Convert to MTT merchant",
+      "openMerchant": "Open MTT shop",
+      "openManager": "Open manager",
+      "removeMerchant": "Remove MTT shop"
+    },
+    "dialogs": {
+      "removeMerchant": {
+        "title": "Remove MTT shop",
+        "content": "This action will delete the MTT shop attached to this actor: catalog, services, sessions, journal, reference state, and trade configuration. The system actor, its native sheet, and its personal inventory will not be deleted. Continue?",
+        "confirm": "Remove shop",
+        "cancel": "Cancel"
       }
     },
     "globalJournal": {
@@ -260,7 +278,24 @@
       "sessionSocketNoResponse": "The session change request received no response.",
       "sessionSocketNoHandler": "No connected GM or owner can handle this request.",
       "sessionSocketRequestDenied": "The session change request was denied.",
-      "noItemPricePath": "No item price path configured. Check the module currencies table."
+      "noItemPricePath": "No item price path configured. Check the module currencies table.",
+      "productCopied": "Product copied.",
+      "serviceCopied": "Service copied.",
+      "productCopyFailed": "Unable to copy product.",
+      "serviceCopyFailed": "Unable to copy service.",
+      "merchantConversion": {
+        "gmOnly": "Only the GM can convert an actor into an MTT merchant.",
+        "alreadyMerchant": "This actor already has an MTT shop.",
+        "typeNotAllowed": "Actor type '{type}' is not allowed for MTT shops.",
+        "success": "{name} now has an MTT shop.",
+        "noMerchant": "This actor does not have an MTT shop."
+      },
+      "merchantRemoval": {
+        "success": "The MTT shop attached to {name} has been removed."
+      }
+    },
+    "defaults": {
+      "shopName": "Shop"
     },
     "price": {
       "freePrice": "Free price",
@@ -479,7 +514,9 @@
         "requestApproval": "Request GM approval",
         "removeApproval": "Remove GM approval",
         "switchToLimitedOwnership": "Switch to Limited ownership",
-        "switchToObserverOwnership": "Switch to Observer ownership"
+        "switchToObserverOwnership": "Switch to Observer ownership",
+        "copyProduct": "Copy product",
+        "copyService": "Copy service"
       }
     },
     "secrets": {
@@ -518,7 +555,7 @@
     },
     "referenceState": {
       "title": "Reference state",
-      "description": "Saves the current quantities, visibilities, ownership levels and approval requests as the merchant's base state.",
+      "description": "Saves the entire catalog (products, services, categories, quantities, visibilities, prices) as the shop's base state.",
       "savedAt": "Last saved state:",
       "save": "Set state as reference",
       "restore": "Reset to reference",
@@ -526,7 +563,7 @@
       "restoreSuccess": "Merchant reset to reference state.",
       "missing": "No reference state saved.",
       "confirmTitle": "Reset merchant",
-      "confirmContent": "Reset the merchant to its reference state? Products, services and categories added after the save will not be deleted.",
+      "confirmContent": "Restore the shop catalog to the saved state? Products or services added since the save will disappear, and deleted ones will reappear. The manager actor and their system inventory will not be modified.",
       "confirmRestore": "Reset",
       "cancel": "Cancel"
     },
@@ -875,6 +912,12 @@
         "itemPricePathPlaceholder": "system.price.value",
         "itemCurrencyPathPlaceholder": "system.price.currency",
         "itemCurrencyValuesPlaceholder": "pa, PA, sp, SP"
+      },
+      "actorTypes": {
+        "title": "Actor types convertible to MTT merchants",
+        "hint": "Select which actor types from the active system may receive an MTT shop. MTT does not create actors automatically: the GM creates a normal actor and then converts it into an MTT shop.",
+        "noneAvailable": "No actor type was detected for this system.",
+        "noneSelected": "No actor type is currently allowed for conversion into an MTT merchant."
       }
     }
   }

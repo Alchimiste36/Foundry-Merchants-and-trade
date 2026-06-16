@@ -3,13 +3,7 @@ import globals from "globals"
 
 export default [
   {
-    ignores: [
-      "node_modules/",
-      "css/mtt.css",
-      "dist/",
-      "build/",
-      "coverage/"
-    ]
+    ignores: ["node_modules/", "css/mtt.css", "dist/", "build/", "coverage/"]
   },
   js.configs.recommended,
   {
@@ -22,10 +16,13 @@ export default [
         ...globals.es2024,
         CONFIG: "readonly",
         CONST: "readonly",
+        ChatMessage: "readonly",
         Hooks: "readonly",
+        Roll: "readonly",
         fromUuid: "readonly",
         foundry: "readonly",
         game: "readonly",
+        getDocumentClass: "readonly",
         ui: "readonly"
       }
     },

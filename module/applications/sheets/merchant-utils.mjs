@@ -1,5 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
+import { getMerchantData } from "../../documents/merchant-flags.mjs"
 
 // ─── Parsing / quantités ─────────────────────────────────────────────────────
 
@@ -8,7 +9,7 @@ function parsePositiveNumberValue(value) {
     return value
   }
   if (typeof value === "string") {
-    const match = value.match(/-?\d+(?:[\.,]\d+)?/)
+    const match = value.match(/-?\d+(?:[.,]\d+)?/)
     if (!match) return null
     const parsed = Number(match[0].replace(",", "."))
     return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
@@ -94,7 +95,7 @@ export function getDeliveryStackingConfig() {
     quantityPath:
       String(getModuleSetting("deliveryItemQuantityPath") ?? "").trim() ||
       String(getModuleSetting("itemQuantityPath") ?? "").trim(),
-    maxQuantityPath: String(getModuleSetting("deliveryItemMaxQuantityPath") ?? "").trim(),
+    maxQuantityPath: String(getModuleSetting("deliveryItemMaxQuantityPath") ?? "").trim()
   }
 }
 
@@ -107,9 +108,9 @@ export function hasSecretValue(value) {
 export function productHasSecretInfo(productData = {}) {
   return Boolean(
     hasSecretValue(productData?.secretName) ||
-      hasSecretValue(productData?.secretPrice) ||
-      hasSecretValue(productData?.secretCurrency) ||
-      hasSecretValue(productData?.secretDescription),
+    hasSecretValue(productData?.secretPrice) ||
+    hasSecretValue(productData?.secretCurrency) ||
+    hasSecretValue(productData?.secretDescription)
   )
 }
 
@@ -140,7 +141,9 @@ function getMttProductFlags(itemOrData) {
 // Uses toLocaleLowerCase for locale-aware comparison of item names and category labels.
 // normalizeCurrencyText (exported) uses toLowerCase for stable currency key matching.
 function normalizeComparableText(value) {
-  return String(value ?? "").trim().toLocaleLowerCase()
+  return String(value ?? "")
+    .trim()
+    .toLocaleLowerCase()
 }
 
 function normalizeComparableNumber(value) {
@@ -200,7 +203,9 @@ function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productD
   if (normalizeComparableText(existingItem?.type) !== normalizeComparableText(deliveredItemData?.type)) return false
 
   const subtypePath = getComparableSubtypePath(existingItem, deliveredItemData, productData)
-  const existingSubtype = subtypePath ? normalizeComparableText(foundry.utils.getProperty(existingItem, subtypePath)) : ""
+  const existingSubtype = subtypePath
+    ? normalizeComparableText(foundry.utils.getProperty(existingItem, subtypePath))
+    : ""
   const deliveredSubtype = subtypePath
     ? normalizeComparableText(foundry.utils.getProperty(deliveredItemData, subtypePath))
     : ""
@@ -220,7 +225,8 @@ export function getDeliveredItemMergeMode(existingItem, deliveredItemData, produ
     productHasSecretInfo(productData) ||
     productHasSecretInfo(deliveredProduct) ||
     productHasSecretInfo(existingProduct)
-  ) return null
+  )
+    return null
 
   if (canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "strict"
   if (!getModuleSetting("allowExtendedItemMerge")) return null
@@ -247,7 +253,9 @@ export function isFreePriceService(serviceData) {
 }
 
 export function normalizeCurrencyText(value) {
-  return String(value ?? "").trim().toLowerCase()
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
 }
 
 function resolveConfiguredCurrency(currencyText) {
@@ -299,7 +307,7 @@ export function convertPriceToReferenceCurrency(value, priceCurrency) {
   if (!referenceCurrency) {
     return {
       value: Number(safeValue.toFixed(2)),
-      currency: String(priceCurrency ?? "").trim(),
+      currency: String(priceCurrency ?? "").trim()
     }
   }
 
@@ -316,7 +324,7 @@ export function convertPriceToReferenceCurrency(value, priceCurrency) {
 
   return {
     value: Number(convertedValue.toFixed(2)),
-    currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim(),
+    currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim()
   }
 }
 
@@ -390,7 +398,10 @@ export function htmlToPlainText(value) {
   if (typeof document !== "undefined") {
     const container = document.createElement("div")
     container.innerHTML = withLineBreaks
-    return container.textContent.replace(/\u00a0/g, " ").replace(/\n{3,}/g, "\n\n").trim()
+    return container.textContent
+      .replace(/\u00a0/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
   }
 
   return withLineBreaks
@@ -408,7 +419,7 @@ export function htmlToPlainText(value) {
 // ─── Droits / état feuille ───────────────────────────────────────────────────
 
 export function getMerchantSheetLockedState(actor) {
-  return Boolean(foundry.utils.getProperty(actor, "system.sheet.isLocked"))
+  return Boolean(getMerchantData(actor)?.sheet?.isLocked)
 }
 
 export function getMerchantLimitedState(actor, user = game.user) {
@@ -454,7 +465,7 @@ export function normalizeAutomaticCategoryValue(value) {
   return {
     key,
     label: formatAutomaticCategoryLabel(raw),
-    raw,
+    raw
   }
 }
 
@@ -487,7 +498,7 @@ export function getItemDescription(item) {
     const candidates = [
       foundry.utils.getProperty(item, "system.description"),
       foundry.utils.getProperty(item, "system.description.value"),
-      foundry.utils.getProperty(item, "system.details.description"),
+      foundry.utils.getProperty(item, "system.details.description")
     ]
 
     for (const c of candidates) {
@@ -507,21 +518,21 @@ export function getItemPrice(item) {
     const candidates = [
       foundry.utils.getProperty(item, "system.price"),
       foundry.utils.getProperty(item, "system.cost"),
-      foundry.utils.getProperty(item, "system.value"),
+      foundry.utils.getProperty(item, "system.value")
     ]
 
     for (const c of candidates) {
       if (c === undefined || c === null) continue
       if (typeof c === "number" && Number.isFinite(c)) return c
       if (typeof c === "string") {
-        const m = c.match(/-?\d+(?:[\.,]\d+)?/)
+        const m = c.match(/-?\d+(?:[.,]\d+)?/)
         if (m) return Number(m[0].replace(",", "."))
       }
       if (typeof c === "object" && c?.value) {
         const v = c.value
         if (typeof v === "number" && Number.isFinite(v)) return v
         if (typeof v === "string") {
-          const m = v.match(/-?\d+(?:[\.,]\d+)?/)
+          const m = v.match(/-?\d+(?:[.,]\d+)?/)
           if (m) return Number(m[0].replace(",", "."))
         }
       }
@@ -539,7 +550,7 @@ export function getItemCurrency(item) {
     foundry.utils.getProperty(item, "system.cost.currency"),
     foundry.utils.getProperty(item, "system.value.currency"),
     foundry.utils.getProperty(item, "system.price.denomination"),
-    foundry.utils.getProperty(item, "system.currency"),
+    foundry.utils.getProperty(item, "system.currency")
   ]
 
   for (const candidate of candidates) {
@@ -619,7 +630,9 @@ function parseCurrencyAliases(value) {
 }
 
 function matchesCurrencyAlias(actual, aliases) {
-  const normalizedActual = String(actual ?? "").trim().toLocaleLowerCase()
+  const normalizedActual = String(actual ?? "")
+    .trim()
+    .toLocaleLowerCase()
   return aliases.some((alias) => alias.toLocaleLowerCase() === normalizedActual)
 }
 
@@ -645,7 +658,7 @@ function readItemCurrencyAmounts(item, currencies) {
     currencyId: currency.id,
     abbreviation: currency.abbreviation,
     rate: Number(currency.rate) || 1,
-    amount: readItemCurrencyAmount(item, currency),
+    amount: readItemCurrencyAmount(item, currency)
   }))
 }
 
@@ -677,7 +690,7 @@ export function readItemReferencePrice(item) {
 
   return {
     value: refValue,
-    currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim(),
+    currency: String(referenceCurrency.abbreviation ?? referenceCurrency.id ?? "").trim()
   }
 }
 
@@ -726,7 +739,7 @@ export function prepareCurrencyOptions() {
         value: key,
         abbreviation: abbr || fallbackAbbr || key || label,
         label,
-        isFreePrice: false,
+        isFreePrice: false
       }
     })
     .filter(Boolean)
@@ -735,8 +748,7 @@ export function prepareCurrencyOptions() {
     value: FREE_PRICE_CURRENCY_KEY,
     abbreviation: "",
     label: game.i18n.localize("mtt.price.freePrice"),
-    isFreePrice: true,
+    isFreePrice: true
   })
   return options
 }
-

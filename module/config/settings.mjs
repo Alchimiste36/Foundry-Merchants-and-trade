@@ -1,6 +1,6 @@
-import { MTT } from "./constants.mjs";
-import { MttConfigApp } from "../applications/mtt-config-app.mjs";
-import { MttGlobalJournalApp } from "../applications/mtt-global-journal-app.mjs";
+import { MTT } from "./constants.mjs"
+import { MttConfigApp } from "../applications/mtt-config-app.mjs"
+import { MttGlobalJournalApp } from "../applications/mtt-global-journal-app.mjs"
 
 export function registerSettings() {
   game.settings.register(MTT.ID, "debug", {
@@ -9,8 +9,8 @@ export function registerSettings() {
     scope: "client",
     config: true,
     type: Boolean,
-    default: false,
-  });
+    default: false
+  })
 
   game.settings.register(MTT.ID, "itemQuantityPath", {
     name: "mtt.settings.itemQuantityPath.name",
@@ -18,8 +18,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "itemDeliveryQuantityPerLotPath", {
     name: "mtt.settings.itemDeliveryQuantityPerLotPath.name",
@@ -27,8 +27,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   // Actor delivery only: these paths distribute purchased Items into receiving actor stacks.
   // They must never limit or split the merchant's independent catalogue stock.
@@ -38,8 +38,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "deliveryItemMaxQuantityPath", {
     name: "mtt.settings.deliveryItemMaxQuantityPath.name",
@@ -47,8 +47,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "allowExtendedItemMerge", {
     name: "mtt.settings.allowExtendedItemMerge.name",
@@ -56,8 +56,8 @@ export function registerSettings() {
     scope: "world",
     config: true,
     type: Boolean,
-    default: false,
-  });
+    default: false
+  })
 
   game.settings.register(MTT.ID, "writeDeliveryDescriptionInfo", {
     name: "mtt.settings.writeDeliveryDescriptionInfo.name",
@@ -65,8 +65,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Boolean,
-    default: true,
-  });
+    default: true
+  })
 
   game.settings.register(MTT.ID, "itemDescriptionPath", {
     name: "mtt.settings.itemDescriptionPath.name",
@@ -74,8 +74,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "itemSecretDescriptionPath", {
     name: "mtt.settings.itemSecretDescriptionPath.name",
@@ -83,8 +83,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "allowedProductTypes", {
     name: "mtt.settings.allowedProductTypes.name",
@@ -92,8 +92,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "allowedServiceTypes", {
     name: "mtt.settings.allowedServiceTypes.name",
@@ -101,8 +101,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "itemCategoryPaths", {
     name: "mtt.settings.itemCategoryPaths.name",
@@ -110,8 +110,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "useItemTypeAsCategoryFallback", {
     name: "mtt.settings.useItemTypeAsCategoryFallback.name",
@@ -119,8 +119,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: Boolean,
-    default: true,
-  });
+    default: true
+  })
 
   game.settings.register(MTT.ID, "categoryLabelMap", {
     name: "mtt.settings.categoryLabelMap.name",
@@ -128,8 +128,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "defaultCustomCategories", {
     name: "mtt.settings.defaultCustomCategories.name",
@@ -137,8 +137,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "itemSubcategoryPath", {
     name: "mtt.settings.itemSubcategoryPath.name",
@@ -146,8 +146,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "itemCategoryI18nPrefix", {
     name: "mtt.settings.itemCategoryI18nPrefix.name",
@@ -155,8 +155,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "itemSubcategoryI18nPrefix", {
     name: "mtt.settings.itemSubcategoryI18nPrefix.name",
@@ -164,8 +164,8 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "",
-  });
+    default: ""
+  })
 
   game.settings.register(MTT.ID, "currencies", {
     name: "mtt.settings.currencies.name",
@@ -173,8 +173,17 @@ export function registerSettings() {
     scope: "world",
     config: false,
     type: String,
-    default: "[]",
-  });
+    default: "[]"
+  })
+
+  game.settings.register(MTT.ID, "allowedMerchantActorTypes", {
+    name: "mtt.settings.allowedMerchantActorTypes.name",
+    hint: "mtt.settings.allowedMerchantActorTypes.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "[]"
+  })
 
   game.settings.registerMenu(MTT.ID, "openConfigWindow", {
     name: "mtt.settings.openConfigWindow.name",
@@ -182,8 +191,8 @@ export function registerSettings() {
     hint: "mtt.settings.openConfigWindow.hint",
     icon: "fas fa-shop",
     type: MttConfigApp,
-    restricted: true,
-  });
+    restricted: true
+  })
 
   game.settings.registerMenu(MTT.ID, "openGlobalJournalWindow", {
     name: "mtt.settings.openGlobalJournal.name",
@@ -191,29 +200,29 @@ export function registerSettings() {
     hint: "mtt.settings.openGlobalJournal.hint",
     icon: "fas fa-book",
     type: MttGlobalJournalApp,
-    restricted: true,
-  });
+    restricted: true
+  })
 }
 
 export function getCurrencies() {
   try {
-    return JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]");
+    return JSON.parse(game.settings.get(MTT.ID, "currencies") || "[]")
   } catch {
-    return [];
+    return []
   }
 }
 
 export function parseDefaultCustomCategories(value) {
-  const seen = new Set();
+  const seen = new Set()
 
   return String(value ?? "")
     .split(/\r?\n/)
     .map((entry) => entry.trim())
     .filter(Boolean)
     .filter((entry) => {
-      const key = entry.toLocaleLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+      const key = entry.toLocaleLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 }

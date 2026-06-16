@@ -1,11 +1,21 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
-  parsePriceValue,
+  getCatalogProducts,
+  isMerchantProductItem,
+  findMergeableCatalogItemBySourceUuid,
+  getMerchantProductFlags,
+  normalizeProductFlags,
+  buildCatalogProductFromItem,
+  addCatalogProduct,
+  updateCatalogProduct,
+  sanitizeItemDataForMerchantProductCopy
+} from "../../documents/merchant-products.mjs"
+import {
   parseQuantityValue,
   isUnlimitedQuantity,
   FREE_PRICE_CURRENCY_KEY,
-  isFreePriceCurrency,
   isFreePriceService,
   formatPriceLabel,
   normalizeAutomaticCategoryValue,
@@ -14,7 +24,6 @@ import {
   getCategoryLabelMap,
   localizeConfiguredValue,
   getConfiguredItemValue,
-  getModuleSetting,
   getItemDescription,
   getItemPrice,
   getItemCurrency,
@@ -23,9 +32,8 @@ import {
   htmlToPlainText,
   productHasSecretInfo,
   readItemReferencePrice,
-  buildItemPriceWriteData,
   normalizeEffectiveDeliveryQuantityPerLot,
-  formatProductNameWithLotQuantity,
+  formatProductNameWithLotQuantity
 } from "./merchant-utils.mjs"
 
 export function adjustPriceValue(priceValue, sellPercent) {
@@ -36,25 +44,22 @@ export function adjustPriceValue(priceValue, sellPercent) {
 }
 
 export function prepareTrade(actor) {
+  const trade = getMerchantData(actor)?.trade
   return {
     buyPercent:
-      Number.isFinite(Number(actor.system.trade?.buyPercent)) && Number(actor.system.trade.buyPercent) >= 0
-        ? Number(actor.system.trade.buyPercent)
-        : 50,
+      Number.isFinite(Number(trade?.buyPercent)) && Number(trade?.buyPercent) >= 0 ? Number(trade.buyPercent) : 50,
     sellPercent:
-      Number.isFinite(Number(actor.system.trade?.sellPercent)) && Number(actor.system.trade.sellPercent) >= 0
-        ? Number(actor.system.trade.sellPercent)
-        : 100,
+      Number.isFinite(Number(trade?.sellPercent)) && Number(trade?.sellPercent) >= 0 ? Number(trade.sellPercent) : 100,
     serviceSellPercent:
-      Number.isFinite(Number(actor.system.trade?.serviceSellPercent)) && Number(actor.system.trade.serviceSellPercent) >= 0
-        ? Number(actor.system.trade.serviceSellPercent)
+      Number.isFinite(Number(trade?.serviceSellPercent)) && Number(trade?.serviceSellPercent) >= 0
+        ? Number(trade.serviceSellPercent)
         : 100,
-    negotiationFormula: actor.system.trade?.negotiationFormula ?? "",
+    negotiationFormula: trade?.negotiationFormula ?? ""
   }
 }
 
 export function prepareWalletCurrencies(actor) {
-  const walletCurrencies = actor.system.wallet?.currencies ?? {}
+  const walletCurrencies = getMerchantData(actor)?.wallet?.currencies ?? {}
 
   return getCurrencies()
     .map((currency) => {
@@ -69,7 +74,7 @@ export function prepareWalletCurrencies(actor) {
         name: String(currency.name ?? "").trim(),
         amount: Number.isFinite(configuredAmount) && configuredAmount >= 0 ? configuredAmount : 0,
         rate: currency.rate,
-        isDefault: Boolean(currency.isDefault),
+        isDefault: Boolean(currency.isDefault)
       }
     })
     .filter(Boolean)
@@ -82,7 +87,10 @@ export function getReferenceCurrency() {
 function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency = "", secretDescription = "" } = {}) {
   const description = String(secretDescription ?? "").trim()
   const shortDescription = description.length > 180 ? `${description.slice(0, 177)}...` : description
-  const priceLabel = [secretPrice, secretCurrency].map((value) => String(value ?? "").trim()).filter(Boolean).join(" ")
+  const priceLabel = [secretPrice, secretCurrency]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ")
   const lines = []
 
   if (String(secretName ?? "").trim()) {
@@ -99,100 +107,88 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
 }
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
-  const items = actor.items.map((item) => {
-    const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-    const quantity = product.quantity
-    const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot)
-    const hasDeliveryQuantityPerLot = effectiveDeliveryQuantityPerLot > 1
-    const displayName = formatProductNameWithLotQuantity(item.name, product.deliveryQuantityPerLot)
-    const hasFreePrice = product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice
+  const products = getCatalogProducts(actor)
 
-    let itemPriceValue, priceCurrency
+  const items = products
+    .map((product) => {
+      const quantity = product.quantity
+      const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot)
+      const hasDeliveryQuantityPerLot = effectiveDeliveryQuantityPerLot > 1
+      const displayName = formatProductNameWithLotQuantity(product.name, product.deliveryQuantityPerLot)
+      const hasFreePrice = product.hasFreePrice
 
-    const universalPrice = readItemReferencePrice(item)
-    if (universalPrice !== null) {
-      itemPriceValue = universalPrice.value
-      priceCurrency = universalPrice.currency
-    } else {
-      itemPriceValue = getItemPrice(item) ?? 0
-      priceCurrency = resolveItemCurrencyKey(getItemCurrency(item)) || (product.priceCurrency?.trim() ?? "")
-    }
+      const itemPriceValue = product.priceValue
+      const priceCurrency = product.priceCurrency
 
-    const displayPriceValue = hasFreePrice ? itemPriceValue : adjustPriceValue(itemPriceValue, sellPercent)
-    const isHidden = Boolean(product.isHidden ?? MTT.PRODUCT_DEFAULTS.isHidden)
-    const isVisible = !isHidden
-    const configuredOwnershipLevel = Number(
-      product.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-    )
-    const ownershipLevel = Number.isFinite(configuredOwnershipLevel)
-      ? configuredOwnershipLevel
-      : CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
-    const isObserverOwnership = ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
-    const isLimitedOwnership = !isObserverOwnership
-    const ownershipClass = isObserverOwnership
-      ? "mtt-merchant-product-ownership-observer"
-      : "mtt-merchant-product-ownership-limited"
-    const ownershipLabelKey = isObserverOwnership
-      ? "mtt.products.ownership.observer"
-      : "mtt.products.ownership.limited"
-    const secretName = product.secretName ?? ""
-    const secretPrice = product.secretPrice ?? ""
-    const secretCurrency = product.secretCurrency ?? ""
-    const secretDescription = product.secretDescription ?? ""
-    const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
+      const displayPriceValue = hasFreePrice ? itemPriceValue : adjustPriceValue(itemPriceValue, sellPercent)
+      const isHidden = product.isHidden
+      const isVisible = !isHidden
+      const ownershipLevel = product.ownershipLevel
+      const isObserverOwnership = ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+      const isLimitedOwnership = !isObserverOwnership
+      const ownershipClass = isObserverOwnership
+        ? "mtt-merchant-product-ownership-observer"
+        : "mtt-merchant-product-ownership-limited"
+      const ownershipLabelKey = isObserverOwnership
+        ? "mtt.products.ownership.observer"
+        : "mtt.products.ownership.limited"
+      const secretName = product.secretName
+      const secretPrice = product.secretPrice
+      const secretCurrency = product.secretCurrency
+      const secretDescription = product.secretDescription
+      const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
 
-    return {
-      id: item.id,
-      uuid: item.uuid,
-      name: item.name,
-      displayName,
-      type: item.type,
-      img: item.img,
-      quantity,
-      deliveryQuantityPerLot: hasDeliveryQuantityPerLot ? effectiveDeliveryQuantityPerLot : "",
-      effectiveDeliveryQuantityPerLot,
-      hasQuantity: !isUnlimitedQuantity(quantity),
-      document: item,
-      secretName,
-      secretPrice,
-      secretCurrency,
-      secretDescription,
-      priceValue: itemPriceValue,
-      itemPriceValue,
-      displayPriceValue,
-      priceCurrency,
-      category: (product.category ?? "").trim(),
-      hasCategory: Boolean((product.category ?? "").trim()),
-      systemCategoryKey: product.systemCategoryKey ?? "",
-      systemCategoryLabel: product.systemCategoryLabel ?? "",
-      systemCategoryPath: product.systemCategoryPath ?? "",
-      sourceUuid: product.sourceUuid ?? "",
-      systemSubcategory: product.systemSubcategory ?? "",
-      hasSystemCategory: Boolean(product.systemCategoryKey || product.systemCategoryLabel),
-      hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
-      isHidden,
-      isVisible,
-      ownershipLevel,
-      isLimitedOwnership,
-      isObserverOwnership,
-      ownershipClass,
-      ownershipLabelKey,
-      requiresApproval: product.requiresApproval ?? MTT.PRODUCT_DEFAULTS.requiresApproval,
-      priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
-      displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
-      itemPriceLabel: formatPriceLabel(itemPriceValue, priceCurrency),
-      hasSecrets,
-      hasSecretInfos: hasSecrets,
-      secretTooltip: hasSecrets ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription }) : "",
-      isSecretExpanded: product.isSecretExpanded ?? MTT.PRODUCT_DEFAULTS.isSecretExpanded,
-      hasFreePrice: product.hasFreePrice ?? MTT.PRODUCT_DEFAULTS.hasFreePrice,
-      minimumPriceValue:
-        Number.isFinite(Number(product.minimumPriceValue)) && Number(product.minimumPriceValue) >= 0
-          ? Number(product.minimumPriceValue)
-          : MTT.PRODUCT_DEFAULTS.minimumPriceValue,
-      selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
-    }
-  }).filter((item) => includeHidden || item.isVisible)
+      return {
+        id: product.id,
+        name: product.name,
+        displayName,
+        type: product.type,
+        img: product.img,
+        quantity,
+        deliveryQuantityPerLot: hasDeliveryQuantityPerLot ? effectiveDeliveryQuantityPerLot : "",
+        effectiveDeliveryQuantityPerLot,
+        hasQuantity: !isUnlimitedQuantity(quantity),
+        itemData: product.itemData,
+        sourceUuid: product.sourceUuid,
+        secretName,
+        secretPrice,
+        secretCurrency,
+        secretDescription,
+        priceValue: itemPriceValue,
+        itemPriceValue,
+        displayPriceValue,
+        priceCurrency,
+        category: product.category,
+        hasCategory: Boolean(product.category),
+        systemCategoryKey: product.systemCategoryKey,
+        systemCategoryLabel: product.systemCategoryLabel,
+        systemCategoryPath: product.systemCategoryPath,
+        systemSubcategory: product.systemSubcategory,
+        hasSystemCategory: Boolean(product.systemCategoryKey || product.systemCategoryLabel),
+        hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
+        isHidden,
+        isVisible,
+        ownershipLevel,
+        isLimitedOwnership,
+        isObserverOwnership,
+        ownershipClass,
+        ownershipLabelKey,
+        requiresApproval: product.requiresApproval,
+        priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
+        displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
+        itemPriceLabel: formatPriceLabel(itemPriceValue, priceCurrency),
+        hasSecrets,
+        hasSecretInfos: hasSecrets,
+        secretTooltip: hasSecrets
+          ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription })
+          : "",
+        isSecretExpanded: product.isSecretExpanded,
+        hasFreePrice,
+        minimumPriceValue: product.minimumPriceValue,
+        selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency
+      }
+    })
+    .filter((item) => includeHidden || item.isVisible)
 
   return assignSubcategoryIconClasses(items)
 }
@@ -221,9 +217,7 @@ function assignSubcategoryIconClasses(products) {
       }
     }
 
-    const sortedKeys = Array.from(seen.keys()).sort((a, b) =>
-      seen.get(a).localeCompare(seen.get(b)),
-    )
+    const sortedKeys = Array.from(seen.keys()).sort((a, b) => seen.get(a).localeCompare(seen.get(b)))
     const iconByKey = new Map(sortedKeys.map((k, i) => [k, iconClasses[i % iconClasses.length]]))
 
     for (const product of categoryProducts) {
@@ -231,9 +225,7 @@ function assignSubcategoryIconClasses(products) {
       const subcategoryLabel = raw ? localizeConfiguredValue(raw, i18nPrefix) : ""
       product.hasSubcategory = Boolean(raw)
       product.subcategoryLabel = subcategoryLabel
-      product.subcategoryIconClass = raw
-        ? (iconByKey.get(raw.toLocaleLowerCase()) ?? iconClasses[0])
-        : ""
+      product.subcategoryIconClass = raw ? (iconByKey.get(raw.toLocaleLowerCase()) ?? iconClasses[0]) : ""
     }
   }
 
@@ -255,76 +247,80 @@ function assignSubcategoryIconClasses(products) {
 }
 
 export function prepareServices(actor, serviceSellPercent, { includeHidden = false } = {}) {
-  const entries = actor.system.services?.entries ?? []
-  return entries.map((service) => {
-    const basePriceValue =
-      Number.isFinite(Number(service.priceValue)) && Number(service.priceValue) >= 0
-        ? Number(service.priceValue)
-        : MTT.SERVICE_DEFAULTS.priceValue
-    const hasFreePrice = isFreePriceService(service)
-    const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, serviceSellPercent)
-    const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency
-    const isHidden = Boolean(service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden)
-    const isVisible = !isHidden
-    const secretName = service.secretName ?? ""
-    const secretPrice = service.secretPrice ?? ""
-    const secretCurrency = service.secretCurrency ?? ""
-    const secretDescription = service.secretDescription ?? ""
-    const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
+  const entries = getMerchantData(actor)?.catalog?.services ?? []
+  return entries
+    .map((service) => {
+      const basePriceValue =
+        Number.isFinite(Number(service.priceValue)) && Number(service.priceValue) >= 0
+          ? Number(service.priceValue)
+          : MTT.SERVICE_DEFAULTS.priceValue
+      const hasFreePrice = isFreePriceService(service)
+      const displayPriceValue = hasFreePrice ? basePriceValue : adjustPriceValue(basePriceValue, serviceSellPercent)
+      const priceCurrency = service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency
+      const isHidden = Boolean(service.isHidden ?? MTT.SERVICE_DEFAULTS.isHidden)
+      const isVisible = !isHidden
+      const secretName = service.secretName ?? ""
+      const secretPrice = service.secretPrice ?? ""
+      const secretCurrency = service.secretCurrency ?? ""
+      const secretDescription = service.secretDescription ?? ""
+      const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
 
-    return {
-      id: service.id,
-      name: service.name,
-      description: service.description || "",
-      descriptionText: htmlToPlainText(service.description || ""),
-      secretName,
-      secretPrice,
-      secretCurrency,
-      secretDescription,
-      hasSecrets,
-      secretTooltip: hasSecrets ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription }) : "",
-      priceValue: basePriceValue,
-      basePriceValue,
-      displayPriceValue,
-      priceCurrency,
-      hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
-      priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
-      displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
-      basePriceLabel: formatPriceLabel(basePriceValue, priceCurrency),
-      quantity: service.quantity,
-      hasQuantity: !isUnlimitedQuantity(service.quantity),
-      isHidden,
-      isVisible,
-      requiresApproval: service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
-      isExpanded: service.isExpanded ?? MTT.SERVICE_DEFAULTS.isExpanded,
-      sourceUuid: service.sourceUuid ?? null,
-      sourceName: service.sourceName ?? "",
-      sourceType: service.sourceType ?? "",
-      sourceImg: service.sourceImg ?? "",
-      hasSource: Boolean(service.sourceUuid || service.sourceName || service.sourceType || service.sourceImg),
-      category: service.category ?? "",
-      systemCategoryKey: service.systemCategoryKey ?? "",
-      systemCategoryLabel: service.systemCategoryLabel ?? "",
-      systemCategoryPath: service.systemCategoryPath ?? "",
-      isCommerciallyModified: Boolean(service.isCommerciallyModified),
-      hasSystemCategory: Boolean(service.systemCategoryKey || service.systemCategoryLabel),
-      hasFreePrice,
-      minimumPriceValue:
-        Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
-          ? Number(service.minimumPriceValue)
-          : MTT.SERVICE_DEFAULTS.minimumPriceValue,
-      selectedCurrencyKey:
-        hasFreePrice
+      return {
+        id: service.id,
+        name: service.name,
+        description: service.description || "",
+        descriptionText: htmlToPlainText(service.description || ""),
+        secretName,
+        secretPrice,
+        secretCurrency,
+        secretDescription,
+        hasSecrets,
+        secretTooltip: hasSecrets
+          ? buildSecretTooltip({ secretName, secretPrice, secretCurrency, secretDescription })
+          : "",
+        priceValue: basePriceValue,
+        basePriceValue,
+        displayPriceValue,
+        priceCurrency,
+        hasPrice: Number.isFinite(displayPriceValue) && displayPriceValue >= 0,
+        priceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
+        displayPriceLabel: formatPriceLabel(displayPriceValue, priceCurrency),
+        basePriceLabel: formatPriceLabel(basePriceValue, priceCurrency),
+        quantity: service.quantity,
+        hasQuantity: !isUnlimitedQuantity(service.quantity),
+        isHidden,
+        isVisible,
+        requiresApproval: service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
+        isExpanded: service.isExpanded ?? MTT.SERVICE_DEFAULTS.isExpanded,
+        sourceUuid: service.sourceUuid ?? null,
+        sourceName: service.sourceName ?? "",
+        sourceType: service.sourceType ?? "",
+        sourceImg: service.sourceImg ?? "",
+        hasSource: Boolean(service.sourceUuid || service.sourceName || service.sourceType || service.sourceImg),
+        category: service.category ?? "",
+        systemCategoryKey: service.systemCategoryKey ?? "",
+        systemCategoryLabel: service.systemCategoryLabel ?? "",
+        systemCategoryPath: service.systemCategoryPath ?? "",
+        isCommerciallyModified: Boolean(service.isCommerciallyModified),
+        hasSystemCategory: Boolean(service.systemCategoryKey || service.systemCategoryLabel),
+        hasFreePrice,
+        minimumPriceValue:
+          Number.isFinite(Number(service.minimumPriceValue)) && Number(service.minimumPriceValue) >= 0
+            ? Number(service.minimumPriceValue)
+            : MTT.SERVICE_DEFAULTS.minimumPriceValue,
+        selectedCurrencyKey: hasFreePrice
           ? FREE_PRICE_CURRENCY_KEY
-          : (service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency),
-    }
-  }).filter((service) => includeHidden || service.isVisible)
+          : (service.priceCurrency?.trim() ?? MTT.SERVICE_DEFAULTS.priceCurrency)
+      }
+    })
+    .filter((service) => includeHidden || service.isVisible)
 }
 
 export function prepareProductCategories(actor, items, { includeHidden = false } = {}) {
-  const definedCategories = actor.system.catalog?.productCategories ?? []
+  const merchantCatalog = getMerchantData(actor)?.catalog
+  const definedCategories = merchantCatalog?.productCategories ?? []
   const categories = new Map()
-  const hiddenCategories = actor.system.catalog?.hiddenCategories ?? {}
+  const hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
 
   const shouldShowSystemCategory = items.length > 0 || definedCategories.length > 0
   if (shouldShowSystemCategory) {
@@ -338,7 +334,7 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
       isCollapsed: false,
       isHidden,
       isVisible: !isHidden,
-      isSystemCategory: true,
+      isSystemCategory: true
     })
   }
 
@@ -354,7 +350,7 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
       isCollapsed: false,
       isHidden,
       isVisible: !isHidden,
-      isSystemCategory: false,
+      isSystemCategory: false
     })
   })
 
@@ -366,13 +362,13 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     group.count += 1
   })
 
-  const collapsedCategories = actor.system.catalog?.collapsedCategories ?? {}
+  const collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
 
   const sortedCategories = Array.from(categories.values())
     .filter((group) => includeHidden || group.isVisible)
     .map((group) => ({
       ...group,
-      isCollapsed: Boolean(collapsedCategories[group.categoryValue]),
+      isCollapsed: Boolean(collapsedCategories[group.categoryValue])
     }))
 
   sortedCategories.sort((a, b) => {
@@ -402,7 +398,7 @@ export function getAutomaticItemCategory(item) {
     return {
       ...normalized,
       label: resolveLabel(normalized),
-      path,
+      path
     }
   }
 
@@ -412,7 +408,7 @@ export function getAutomaticItemCategory(item) {
       return {
         ...normalized,
         label: resolveLabel(normalized),
-        path: "type",
+        path: "type"
       }
     }
   }
@@ -423,15 +419,12 @@ export function getAutomaticItemCategory(item) {
 export async function getOrCreateAutomaticProductCategory(actor, automaticCategory) {
   if (!automaticCategory?.key) return ""
 
-  const categories = foundry.utils.deepClone(actor.system.catalog?.productCategories ?? [])
+  const categories = foundry.utils.deepClone(getMerchantData(actor)?.catalog?.productCategories ?? [])
   const matchingCategory = categories.find((category) => {
     if (!category?.id) return false
     if (category.id === automaticCategory.key || category.id === `auto-${automaticCategory.key}`) return true
     const categoryNameKey = slugifyCategoryKey(category.name)
-    return (
-      categoryNameKey === automaticCategory.key ||
-      categoryNameKey === slugifyCategoryKey(automaticCategory.label)
-    )
+    return categoryNameKey === automaticCategory.key || categoryNameKey === slugifyCategoryKey(automaticCategory.label)
   })
 
   if (matchingCategory) return matchingCategory.id
@@ -439,199 +432,86 @@ export async function getOrCreateAutomaticProductCategory(actor, automaticCatego
   const categoryId = `auto-${automaticCategory.key}`
   categories.push({
     id: categoryId,
-    name: automaticCategory.label || automaticCategory.raw,
+    name: automaticCategory.label || automaticCategory.raw
   })
 
-  await actor.update({
-    "system.catalog.productCategories": categories,
-  })
+  await updateMerchantData(actor, { catalog: { productCategories: categories } })
 
   return categoryId
 }
 
-export function createProductFlags(itemData, options = {}) {
-  const productFlags = foundry.utils.deepClone(MTT.PRODUCT_DEFAULTS)
+export function resolveDroppedItemSourceUuid(event, document) {
+  const productFlag = document?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)
+  const flagSourceUuid = String(productFlag?.sourceUuid ?? "").trim()
+  if (flagSourceUuid) return flagSourceUuid
 
-  productFlags.sourceUuid = String(options.sourceUuid ?? productFlags.sourceUuid ?? "").trim()
-  productFlags.ownershipLevel = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
-
-  const subcategoryPath = String(getModuleSetting("itemSubcategoryPath") ?? "").trim()
-  if (subcategoryPath) {
-    const rawSubcategory = foundry.utils.getProperty(itemData, subcategoryPath)
-    productFlags.systemSubcategory = String(rawSubcategory ?? "").trim()
-  } else {
-    productFlags.systemSubcategory = ""
+  let dropUuid = ""
+  try {
+    const data = foundry.applications.ux.TextEditor.implementation.getDragEventData(event)
+    dropUuid = String(data?.uuid ?? "").trim()
+  } catch {
+    dropUuid = ""
   }
 
-  const universalPrice = readItemReferencePrice(itemData)
-  if (universalPrice !== null) {
-    productFlags.priceCurrency = universalPrice.currency
-  } else {
-    productFlags.priceCurrency = resolveItemCurrencyKey(getItemCurrency(itemData))
-  }
+  if (dropUuid) return dropUuid
 
-  const configuredQuantity = getConfiguredItemValue(itemData, "itemQuantityPath")
-  const parsedQuantity = parseQuantityValue(configuredQuantity)
-  if (parsedQuantity !== null) {
-    productFlags.quantity = parsedQuantity
-  }
-
-  const configuredDeliveryQuantityPerLot = getConfiguredItemValue(itemData, "itemDeliveryQuantityPerLotPath")
-  const parsedDeliveryQuantityPerLot = parseQuantityValue(configuredDeliveryQuantityPerLot)
-  if (parsedDeliveryQuantityPerLot !== null && parsedDeliveryQuantityPerLot > 1) {
-    productFlags.deliveryQuantityPerLot = Math.floor(parsedDeliveryQuantityPerLot)
-  }
-
-  foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, productFlags)
-
-  return itemData
-}
-
-export async function updateMerchantProductItemData(item, changes = {}) {
-  const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-  const updatedProduct = { ...product }
-  const updateData = {}
-  let flagsChanged = false
-
-  if (Object.hasOwn(changes, "name")) {
-    const name = String(changes.name ?? "").trim() || item.name
-    updateData.name = name
-  }
-
-  if (Object.hasOwn(changes, "priceValue")) {
-    const currency = updatedProduct.priceCurrency?.trim() ?? ""
-    const { ok, paths } = buildItemPriceWriteData(changes.priceValue, currency)
-    if (ok) {
-      Object.assign(updateData, paths)
-    } else {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.noItemPricePath"))
-    }
-  }
-
-  if (Object.hasOwn(changes, "priceCurrency")) {
-    const priceCurrency = String(changes.priceCurrency ?? "").trim()
-    if (isFreePriceCurrency(priceCurrency)) {
-      updatedProduct.hasFreePrice = true
-      updatedProduct.priceCurrency = ""
-    } else {
-      updatedProduct.hasFreePrice = false
-      updatedProduct.priceCurrency = priceCurrency
-    }
-    flagsChanged = true
-  }
-
-  if (flagsChanged) {
-    updateData[`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`] = updatedProduct
-  }
-
-  if (Object.keys(updateData).length > 0) {
-    await item.update(updateData)
-  }
-}
-
-export function prepareMerchantCatalogItemData(sourceItem, options = {}) {
-  const sourceUuid = String(options.sourceUuid ?? sourceItem?.uuid ?? "").trim()
-  const automaticCategory = options.automaticCategory ?? null
-  const productData = sourceItem?.toObject
-    ? sourceItem.toObject()
-    : foundry.utils.deepClone(sourceItem ?? {})
-
-  delete productData._id
-  delete productData.uuid
-  productData.flags = productData.flags ?? {}
-  if (productData.flags[MTT.ID]) delete productData.flags[MTT.ID]
-
-  createProductFlags(productData, { sourceUuid })
-  foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`, options.categoryValue ?? "")
-  foundry.utils.setProperty(
-    productData,
-    `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.systemCategoryKey`,
-    automaticCategory?.key ?? "",
-  )
-  foundry.utils.setProperty(
-    productData,
-    `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.systemCategoryLabel`,
-    automaticCategory?.label ?? "",
-  )
-  foundry.utils.setProperty(
-    productData,
-    `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.systemCategoryPath`,
-    automaticCategory?.path ?? "",
-  )
-  foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.sourceUuid`, sourceUuid)
-
-  if (Number.isFinite(Number(options.quantity)) && Number(options.quantity) >= 0) {
-    foundry.utils.setProperty(productData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.quantity`, Number(options.quantity))
-  }
-
-  return productData
+  return String(document?.uuid ?? "").trim()
 }
 
 export function findMergeableMerchantItemBySourceUuid(actor, sourceUuid) {
-  const normalizedSourceUuid = String(sourceUuid ?? "").trim()
-  if (!normalizedSourceUuid) return null
-
-  return (
-    actor.items.find((item) => {
-      const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-      return String(product.sourceUuid ?? "").trim() === normalizedSourceUuid
-    }) ?? null
-  )
+  return findMergeableCatalogItemBySourceUuid(actor, sourceUuid)
 }
 
-export async function addOrMergeProduct(actor, sourceItem, categoryValue = "", automaticCategory = null, sourceUuid = "") {
+export async function addOrMergeProduct(
+  actor,
+  sourceItem,
+  categoryValue = "",
+  automaticCategory = null,
+  sourceUuid = ""
+) {
   const normalizedSourceUuid = String(sourceUuid ?? sourceItem?.uuid ?? "").trim()
-  const existingProduct = findMergeableMerchantItemBySourceUuid(actor, normalizedSourceUuid)
+  const existingItem = findMergeableCatalogItemBySourceUuid(actor, normalizedSourceUuid)
 
-  if (existingProduct) {
-    const product = existingProduct.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-    if (isUnlimitedQuantity(product.quantity)) return
+  if (existingItem) {
+    const existingFlags = getMerchantProductFlags(existingItem)
+    const currentQuantity = isUnlimitedQuantity(existingFlags.quantity)
+      ? 1
+      : Number.isFinite(Number(existingFlags.quantity))
+        ? Number(existingFlags.quantity)
+        : 1
 
-    const currentQuantity = Number.isFinite(Number(product.quantity))
-      ? Number(product.quantity)
-      : MTT.PRODUCT_DEFAULTS.quantity
-
-    await existingProduct.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-      ...product,
-      quantity: currentQuantity + 1,
+    await updateCatalogProduct(actor, existingItem.id, {
+      quantity: Number((currentQuantity + 1).toFixed(2))
     })
 
-    return
+    return existingItem
   }
 
-  const productData = prepareMerchantCatalogItemData(sourceItem, {
+  const product = buildCatalogProductFromItem(sourceItem, {
     categoryValue,
     automaticCategory,
-    sourceUuid: normalizedSourceUuid,
+    sourceUuid: normalizedSourceUuid
   })
-  productData.ownership = {
-    default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-  }
-  // Catalogue drop: this creates merchant catalogue stock, not a purchased Item on a client actor.
-  const [createdItem] = await actor.createEmbeddedDocuments("Item", [productData])
 
-  if (createdItem) {
-    await createdItem.update({
-      ownership: {
-        default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-      },
-    })
-  }
+  return addCatalogProduct(actor, product)
 }
 
-export async function moveProductToCategory(actor, itemId, categoryValue) {
-  const item = actor.items.get(itemId)
-  if (!item) return
+export async function moveProductToCategory(actor, productId, categoryValue) {
+  await updateCatalogProduct(actor, productId, { category: categoryValue ?? "" })
+}
 
-  const product = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-  await item.setFlag(MTT.ID, MTT.FLAGS.PRODUCT, {
-    ...product,
-    category: categoryValue ?? "",
-  })
+// TODO étape 9 : supprimer quand l'exécution des transactions sera adaptée au catalogue flags.
+// Utilisé uniquement dans buildMerchantReceivedItemData (merchant-trade.mjs) pour la vente PJ→marchand.
+export function prepareMerchantCatalogItemData(sourceItem, _options = {}) {
+  const rawItemData = sourceItem?.toObject ? sourceItem.toObject() : foundry.utils.deepClone(sourceItem ?? {})
+  delete rawItemData._id
+  delete rawItemData.uuid
+  if (rawItemData.flags?.[MTT.ID]) delete rawItemData.flags[MTT.ID]
+  return rawItemData
 }
 
 export async function createServiceFromItem(actor, item) {
-  const entries = foundry.utils.deepClone(actor.system.services?.entries ?? [])
+  const entries = foundry.utils.deepClone(getMerchantData(actor)?.catalog?.services ?? [])
 
   const newId = foundry.utils.randomID()
 
@@ -675,14 +555,12 @@ export async function createServiceFromItem(actor, item) {
     category: automaticCategory?.key ?? "",
     systemCategoryKey: automaticCategory?.key ?? "",
     systemCategoryLabel: automaticCategory?.label ?? "",
-    systemCategoryPath: automaticCategory?.path ?? "",
+    systemCategoryPath: automaticCategory?.path ?? ""
   }
 
   entries.push(newService)
 
-  await actor.update({
-    "system.services.entries": entries,
-  })
+  await updateMerchantData(actor, { catalog: { services: entries } })
 }
 
 export function getItemAvailableQuantity(item) {
@@ -693,7 +571,7 @@ export function getItemAvailableQuantity(item) {
     foundry.utils.getProperty(item, "system.quantity"),
     foundry.utils.getProperty(item, "system.quantity.value"),
     foundry.utils.getProperty(item, "system.qty"),
-    foundry.utils.getProperty(item, "system.stack.quantity"),
+    foundry.utils.getProperty(item, "system.stack.quantity")
   ]
 
   for (const candidate of candidates) {
@@ -717,12 +595,13 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
     priceCurrency = resolveItemCurrencyKey(getItemCurrency(item))
   }
 
+  const merchantBuyPercent = getMerchantData(actor)?.trade?.buyPercent
   const effectiveBuyPercent =
     Number.isFinite(Number(buyPercent)) && Number(buyPercent) >= 0
       ? Number(buyPercent)
-      : Number.isFinite(Number(actor.system.trade?.buyPercent)) && Number(actor.system.trade.buyPercent) >= 0
-      ? Number(actor.system.trade.buyPercent)
-      : 50
+      : Number.isFinite(Number(merchantBuyPercent)) && Number(merchantBuyPercent) >= 0
+        ? Number(merchantBuyPercent)
+        : 50
   const unitPriceValue = Number(((basePriceValue * effectiveBuyPercent) / 100).toFixed(2))
   const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
 
@@ -740,6 +619,110 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
     priceCurrency,
     sourceLabel: game.i18n.localize("mtt.sessions.item.object"),
     isFromActor: Boolean(sourceActor),
-    sourceActorName: sourceActor?.name ?? "",
+    sourceActorName: sourceActor?.name ?? ""
   }
+}
+
+// ─── Réhydratation lors de la reconversion ───────────────────────────────────
+
+/**
+ * Réhydrate les flags produit MTT des Items existants lors de la (re)conversion d'un acteur en marchand.
+ *
+ * Pour chaque Item possédant déjà des flags `flags.mtt-merchants.product` :
+ * - Conserve tous les champs existants (secrets, visibilité, quantités, prix, etc.)
+ * - Force enabled = true
+ * - Résout la catégorie : systemCategoryKey > recalcul automatique > Sans catégorie
+ * - Ne modifie pas isCommerciallyModified
+ *
+ * Les Items sans flags produit ne sont pas touchés.
+ */
+export async function rehydrateMerchantItemsOnConversion(actor) {
+  if (!actor?.items) return
+
+  for (const item of actor.items.values()) {
+    const existing = item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT)
+    if (existing == null) continue
+
+    const flags = normalizeProductFlags(existing)
+    flags.enabled = true
+    if (!flags.sourceUuid) flags.sourceUuid = item.uuid
+
+    // Résolution de catégorie : systemCategoryKey > recalcul depuis l'item > vide
+    if (flags.systemCategoryKey) {
+      flags.category = await getOrCreateAutomaticProductCategory(actor, {
+        key: flags.systemCategoryKey,
+        label: flags.systemCategoryLabel,
+        path: flags.systemCategoryPath,
+        raw: flags.systemCategoryLabel || flags.systemCategoryKey
+      })
+    } else {
+      const auto = getAutomaticItemCategory(item)
+      if (auto) {
+        flags.category = await getOrCreateAutomaticProductCategory(actor, auto)
+        flags.systemCategoryKey = auto.key
+        flags.systemCategoryLabel = auto.label
+        flags.systemCategoryPath = auto.path
+      } else {
+        flags.category = ""
+      }
+    }
+
+    await item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`]: flags }, { mtt: true })
+  }
+}
+
+// ─── Copie de produit / service ───────────────────────────────────────────────
+
+/**
+ * Crée une ligne catalogue indépendante en dupliquant un produit existant.
+ * L'original n'est pas modifié. La copie reçoit une quantité commerciale forcée à 1.
+ * Le sourceUuid de l'Item source initial est conservé.
+ */
+export async function copyCatalogProduct(actor, itemId) {
+  const id = String(itemId ?? "").trim()
+  if (!id || !actor?.items) return null
+
+  const sourceItem = actor.items.get(id)
+  if (!sourceItem || !isMerchantProductItem(sourceItem)) return null
+
+  const data = sanitizeItemDataForMerchantProductCopy(sourceItem.toObject())
+
+  const existingFlags = normalizeProductFlags(
+    foundry.utils.getProperty(data, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`) ?? {}
+  )
+  // Conserver le sourceUuid de l'Item source initial (pas l'UUID du produit marchand)
+  const sourceUuid = existingFlags.sourceUuid || String(sourceItem.uuid ?? "").trim()
+  foundry.utils.setProperty(data, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
+    ...existingFlags,
+    enabled: true,
+    quantity: 1,
+    sourceUuid
+  })
+
+  const [created] = (await actor.createEmbeddedDocuments("Item", [data], { mtt: true })) ?? []
+  return created ?? null
+}
+
+/**
+ * Crée une entrée service indépendante en dupliquant un service existant.
+ * L'original n'est pas modifié. La copie reçoit une quantité forcée à 1.
+ */
+export async function copyCatalogService(actor, serviceId) {
+  const id = String(serviceId ?? "").trim()
+  if (!id) return null
+
+  const merchantData = getMerchantData(actor)
+  if (!merchantData) return null
+
+  const service = merchantData.catalog.services.find((s) => s.id === id)
+  if (!service) return null
+
+  const entries = foundry.utils.deepClone(merchantData.catalog.services)
+  const copy = foundry.utils.deepClone(service)
+  copy.id = foundry.utils.randomID()
+  copy.quantity = 1
+
+  entries.push(copy)
+  await updateMerchantData(actor, { catalog: { services: entries } })
+  return copy
 }

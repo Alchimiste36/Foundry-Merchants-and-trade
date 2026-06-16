@@ -32,7 +32,18 @@
       "Bash(grep -n \"Â\\\\|\\\\\\\\\\\\\\\\00B7\\\\|middle\" styles/applications/merchant-session.less)",
       "Bash(wc -l module/applications/sheets/merchant-sheet.mjs module/applications/sheets/merchant-catalog.mjs module/applications/sheets/merchant-utils.mjs)",
       "Bash(powershell -Command 'Get-ChildItem module/applications/sheets/merchant-sheet.mjs,module/applications/sheets/merchant-catalog.mjs,module/applications/sheets/merchant-utils.mjs | ForEach-Object { $_.Name + '\\\\'' : '\\\\'' + \\(Get-Content $_.FullName\\).Count + '\\\\'' lignes'\\\\'' }')",
-      "Bash(grep -v \"node_modules\\\\|//\\\\s*\")"
+      "Bash(grep -v \"node_modules\\\\|//\\\\s*\")",
+      "Bash(Test-Path \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\")",
+      "Bash(cd /f/dataPath/dataPath14dev/Data/modules/mtt-merchants/module && grep -r \"secretName\\\\|secretPrice\\\\|secretDescription\" . --include=\"*.mjs\" -C 2)",
+      "Read(//f/f/dataPath/dataPath14dev/Data/modules/mtt-merchants/**)",
+      "Bash(cd /f/dataPath/dataPath14dev/Data/modules/mtt-merchants/module && grep -r \"appendMerchantJournalEntry\" . --include=\"*.mjs\" -C 2)",
+      "Bash(Get-Content \"C:\\\\Users\\\\Alchi\\\\.claude\\\\projects\\\\f--dataPath-dataPath14dev-Data-modules-mtt-merchants\\\\2eb136b3-8e22-4fc1-9bd8-26b0b51a734e.jsonl\")",
+      "Bash(Select-String -Pattern \"etape-12|étape 12|droits-visibilite|canUserAccess|canUserManage|isAuthorizedClient|merchant\\\\.access\")",
+      "Bash(Select-Object -First 30)",
+      "PowerShell($content = Get-Content \"C:\\\\Users\\\\Alchi\\\\.claude\\\\projects\\\\f--dataPath-dataPath14dev-Data-modules-mtt-merchants\\\\2eb136b3-8e22-4fc1-9bd8-26b0b51a734e.jsonl\" -Raw; $content.Length)",
+      "Bash(xargs grep -l \"sourceUuid\")",
+      "Bash(Get-ChildItem \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\" -Filter \"*.md\" -Depth 0)",
+      "PowerShell(Get-ChildItem -Path \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\" -Recurse -File | Where-Object {$_.Extension -eq \".mjs\" -or $_.Extension -eq \".hbs\"} | Select-Object FullName | Sort-Object FullName)"
     ],
     "additionalDirectories": [
       "\\tmp"

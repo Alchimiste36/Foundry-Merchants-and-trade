@@ -210,7 +210,7 @@ export function registerSettings() {
     hint: "mtt.settings.openGlobalJournal.hint",
     icon: "fas fa-book",
     type: MttGlobalJournalApp,
-    restricted: true
+    restricted: false
   })
 }
 

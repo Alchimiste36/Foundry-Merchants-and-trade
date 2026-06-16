@@ -158,6 +158,54 @@ export function getMerchantPermissions(actor, { user = game.user, profiles = nul
   )
 }
 
+export function getUserActorAccessLevel(actor, user = game.user) {
+  if (!actor || !user) return "none"
+  if (user.isGM) return "owner"
+
+  const level = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+  if (level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER) return "owner"
+  if (level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) return "observer"
+  if (level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED) return "limited"
+  return "none"
+}
+
+function userOwnsActorByCharacter(actor, user = game.user) {
+  return Boolean(actor?.uuid && user?.character?.uuid === actor.uuid)
+}
+
+export function canUserViewClientActor(actor, permissions = {}, user = game.user) {
+  if (user?.isGM) return true
+  if (!actor) return false
+  if (userOwnsActorByCharacter(actor, user)) return true
+
+  const accessLevel = getUserActorAccessLevel(actor, user)
+  if (accessLevel === "owner") return true
+
+  return Boolean(permissions.canViewOtherActorsInRail)
+}
+
+export function canUserViewClientSession(actor, permissions = {}, user = game.user) {
+  if (user?.isGM) return true
+  if (!actor) return false
+  if (userOwnsActorByCharacter(actor, user)) return true
+
+  const accessLevel = getUserActorAccessLevel(actor, user)
+  if (accessLevel === "owner") return true
+  if (accessLevel === "observer") return Boolean(permissions.canViewObserverActorSessions)
+  return false
+}
+
+export function canUserViewClientJournalEntries(actor, permissions = {}, user = game.user) {
+  if (user?.isGM) return true
+  if (!actor) return false
+  if (userOwnsActorByCharacter(actor, user)) return true
+
+  const accessLevel = getUserActorAccessLevel(actor, user)
+  if (accessLevel === "owner") return true
+  if (accessLevel === "observer") return Boolean(permissions.canViewObserverActorJournalEntries)
+  return false
+}
+
 /**
  * Vérifie si un utilisateur a un accès de gestion (propriétaire ou MJ) sur la boutique.
  * Critère : GM ou niveau Foundry OWNER sur l'acteur support.

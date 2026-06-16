@@ -9,7 +9,9 @@ import {
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
-  canUserManageMerchant
+  canUserManageMerchant,
+  canUserViewClientActor,
+  canUserViewClientSession
 } from "../../documents/merchant-access.mjs"
 import {
   isUnlimitedQuantity,
@@ -1566,34 +1568,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ─── Access context ───────────────────────────────────────────────────────
 
+  #getClientActor(actorUuid) {
+    const normalizedUuid = String(actorUuid ?? "").trim()
+    if (!normalizedUuid) return null
+
+    return game.actors.find((actor) => actor.uuid === normalizedUuid) ?? null
+  }
+
   #userControlsActor(actorUuid) {
     if (game.user.isGM) return true
     const normalizedUuid = String(actorUuid ?? "").trim()
     if (!normalizedUuid) return false
     if (game.user.character?.uuid === normalizedUuid) return true
-    const actor = game.actors.find((a) => a.uuid === normalizedUuid)
+    const actor = this.#getClientActor(normalizedUuid)
     if (!actor) return false
     return actor.testUserPermission(game.user, "OWNER")
   }
 
-  #userObservesActor(actorUuid) {
-    if (game.user.isGM) return true
-    const normalizedUuid = String(actorUuid ?? "").trim()
-    if (!normalizedUuid) return false
-    const actor = game.actors.find((a) => a.uuid === normalizedUuid)
-    if (!actor) return false
-    if (actor.testUserPermission(game.user, "OWNER")) return false
-    return actor.testUserPermission(game.user, "OBSERVER")
-  }
-
   #userCanViewSession(session) {
     if (!session) return false
-    if (this.isEditable) return true
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    return (
-      this.#userControlsActor(session.actorUuid) ||
-      (permissions.canViewObserverActorSessions && this.#userObservesActor(session.actorUuid))
-    )
+    return canUserViewClientSession(this.#getClientActor(session.actorUuid), permissions, game.user)
   }
 
   #getPreferredPlayerSession(sessions) {
@@ -1611,14 +1606,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const { isOwnerLike: isOwner } = getMerchantAccessContext(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
     const canManageAccessRail = isOwner
-    const canSeeAccessDropZone = canManageAccessRail || permissions.canAddActorToMerchantRail
+    const canSeeAccessDropZone = permissions.canAddActorToMerchantRail
 
     const rawClients = this.#prepareAccessClients()
     const clients = rawClients
       .map((client) => {
+        const clientActor = this.#getClientActor(client.actorUuid)
         const isOwnClientCard = this.#userControlsActor(client.actorUuid)
-        const canSeeCard = canManageAccessRail || isOwnClientCard || permissions.canViewOtherActorsInRail
-        const canClickCard = canManageAccessRail || isOwnClientCard
+        const canSeeCard = canUserViewClientActor(clientActor, permissions, game.user)
+        const canViewSession = canUserViewClientSession(clientActor, permissions, game.user)
+        const canClickCard = canViewSession || (!client.isAuthorized && permissions.canAddActorToMerchantRail)
         const cardClasses = [
           "mtt-merchant-access-card",
           client.isAuthorized ? "mtt-merchant-access-card-authorized" : "mtt-merchant-access-card-unauthorized",
@@ -1967,14 +1964,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    const activeSession = sessions.find((s) => s.status === "active")
+    const visibleSessions = sessions.filter((session) => this.#userCanViewSession(session))
+    const activeSession = visibleSessions.find((s) => s.status === "active")
     if (activeSession) {
       this.#activeSessionId = activeSession.id
       this.#selectedClientActorUuid = activeSession.actorUuid ?? ""
       return normalizeSession(activeSession)
     }
 
-    const firstSession = sessions[0]
+    const firstSession = visibleSessions[0]
     if (firstSession) {
       this.#activeSessionId = firstSession.id
       this.#selectedClientActorUuid = firstSession.actorUuid ?? ""

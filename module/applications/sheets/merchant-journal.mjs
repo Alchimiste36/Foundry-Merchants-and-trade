@@ -2,7 +2,7 @@ import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import { getCatalogProduct } from "../../documents/merchant-products.mjs"
-import { canUserManageMerchant } from "../../documents/merchant-access.mjs"
+import { canUserViewClientJournalEntries } from "../../documents/merchant-access.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
@@ -365,45 +365,25 @@ export async function appendMerchantJournalEntry(actor, entry) {
   return normalizedEntry
 }
 
-export function userCanSeeAllMerchantJournal(actor, user = game.user) {
-  return canUserManageMerchant(actor, user)
-}
-
-export function userControlsJournalBuyer(entry, user = game.user) {
+function getJournalBuyerActor(entry) {
   const buyerUuid = String(entry?.buyerActorUuid ?? "").trim()
-  if (!buyerUuid) return false
+  if (!buyerUuid) return null
 
-  if (user?.character?.uuid === buyerUuid) return true
-
-  const actor = game.actors.find((candidate) => candidate.uuid === buyerUuid)
-  return Boolean(actor?.testUserPermission?.(user, "OWNER"))
-}
-
-export function userObservesJournalBuyer(entry, user = game.user) {
-  const buyerUuid = String(entry?.buyerActorUuid ?? "").trim()
-  if (!buyerUuid) return false
-
-  const actor = game.actors.find((candidate) => candidate.uuid === buyerUuid)
-  if (!actor || actor.testUserPermission?.(user, "OWNER")) return false
-  return Boolean(actor.testUserPermission?.(user, "OBSERVER"))
+  return game.actors.find((candidate) => candidate.uuid === buyerUuid) ?? null
 }
 
 export function prepareMerchantJournalContext(actor, options = {}) {
   const user = options.user ?? game.user
   const sort = normalizeJournalSort(options.sort)
   const permissions = options.permissions ?? {}
-  const canSeeAll = userCanSeeAllMerchantJournal(actor, user)
   const transactions = getMerchantJournalTransactions(actor)
     .map((entry) => normalizeJournalEntry(entry))
-    .filter(
-      (entry) =>
-        canSeeAll ||
-        userControlsJournalBuyer(entry, user) ||
-        (permissions.canViewObserverActorJournalEntries && userObservesJournalBuyer(entry, user))
-    )
+    .filter((entry) => canUserViewClientJournalEntries(getJournalBuyerActor(entry), permissions, user))
     .map((entry) => prepareJournalEntryDisplay(entry))
 
   transactions.sort((a, b) => compareJournalTransactions(a, b, sort))
+
+  const canSeeAll = Boolean(user?.isGM)
 
   return {
     canSeeAll,

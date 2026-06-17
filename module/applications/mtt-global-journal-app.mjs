@@ -1,5 +1,6 @@
 import { MTT } from "../config/constants.mjs"
 import { isMTTMerchant, getMerchantData } from "../documents/merchant-flags.mjs"
+import { canUserViewClientJournalEntries, getMerchantPermissions } from "../documents/merchant-access.mjs"
 import { normalizeJournalEntry, prepareJournalEntryDisplay } from "./sheets/merchant-journal.mjs"
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
@@ -66,6 +67,23 @@ function getUniqueNamedOptions(entries, uuidKey, nameKey, selectedUuid) {
   return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }))
 }
 
+function getActorByUuid(actorUuid) {
+  const normalizedUuid = String(actorUuid ?? "").trim()
+  if (!normalizedUuid) return null
+
+  return game.actors.find((actor) => actor.uuid === normalizedUuid) ?? null
+}
+
+function canUserViewGlobalJournalEntry(entry, user = game.user) {
+  if (user?.isGM) return true
+
+  const merchantActor = getActorByUuid(entry?.merchantActorUuid)
+  if (!merchantActor) return false
+
+  const permissions = getMerchantPermissions(merchantActor, { user })
+  return canUserViewClientJournalEntries(getActorByUuid(entry?.buyerActorUuid), permissions, user)
+}
+
 export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #filters = {
     merchantUuid: "",
@@ -120,7 +138,8 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
         })
       )
     })
-    const filteredTransactions = collectedTransactions
+    const visibleTransactions = collectedTransactions.filter((entry) => canUserViewGlobalJournalEntry(entry, game.user))
+    const filteredTransactions = visibleTransactions
       .filter((entry) => !filters.merchantUuid || entry.merchantActorUuid === filters.merchantUuid)
       .filter((entry) => !filters.buyerUuid || entry.buyerActorUuid === filters.buyerUuid)
       .map((entry) => ({
@@ -135,15 +154,16 @@ export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV
       transactions: filteredTransactions,
       canSeeSecretIndicators: Boolean(game.user?.isGM),
       hasTransactions: filteredTransactions.length > 0,
-      hasCollectedTransactions: collectedTransactions.length > 0,
+      hasCollectedTransactions: visibleTransactions.length > 0,
       merchants: merchants
+        .filter((merchant) => visibleTransactions.some((entry) => entry.merchantActorUuid === merchant.uuid))
         .map((merchant) => ({
           uuid: merchant.uuid,
           name: getMerchantData(merchant)?.shop?.name || merchant.name,
           selected: merchant.uuid === filters.merchantUuid
         }))
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
-      buyers: getUniqueNamedOptions(collectedTransactions, "buyerActorUuid", "buyerName", filters.buyerUuid),
+      buyers: getUniqueNamedOptions(visibleTransactions, "buyerActorUuid", "buyerName", filters.buyerUuid),
       filters,
       sort
     }

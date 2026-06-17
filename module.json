@@ -29,13 +29,5 @@
       "name": "English",
       "path": "lang/en.json"
     }
-  ],
-  "documentTypes": {
-    "Actor": {
-      "merchant": {
-        "label": "mtt.actorTypes.merchant",
-        "htmlFields": ["merchant.description"]
-      }
-    }
-  }
+  ]
 }

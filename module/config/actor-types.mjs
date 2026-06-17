@@ -1,5 +1,22 @@
 import { MTT } from "./constants.mjs"
 
+const LEGACY_MTT_ACTOR_TYPES = new Set(["merchant", "mtt-merchants.merchant"])
+
+function isLegacyMTTActorType(type) {
+  return LEGACY_MTT_ACTOR_TYPES.has(String(type ?? "").trim())
+}
+
+function normalizeActorTypeList(types) {
+  return Array.from(
+    new Set(
+      types
+        .filter((type) => typeof type === "string")
+        .map((type) => type.trim())
+        .filter((type) => type && !isLegacyMTTActorType(type))
+    )
+  )
+}
+
 export function getAvailableActorTypes() {
   try {
     const systemTypes = game.system?.documentTypes?.Actor
@@ -12,6 +29,7 @@ export function getAvailableActorTypes() {
     if (typeKeys.length === 0) {
       typeKeys = Object.keys(CONFIG.Actor.dataModels ?? {}).filter((t) => t.trim())
     }
+    typeKeys = normalizeActorTypeList(typeKeys)
     return typeKeys.map((value) => {
       const labelKey = CONFIG.Actor.typeLabels?.[value]
       const label = labelKey ? game.i18n.localize(labelKey) || value : value
@@ -25,7 +43,7 @@ export function getAvailableActorTypes() {
 export function normalizeAllowedMerchantActorTypes(types) {
   try {
     const arr = Array.isArray(types) ? types : JSON.parse(String(types ?? "[]"))
-    return arr.filter((t) => typeof t === "string" && t.trim())
+    return normalizeActorTypeList(arr)
   } catch {
     return []
   }
@@ -45,7 +63,9 @@ export async function setAllowedMerchantActorTypes(types) {
 }
 
 export function isActorTypeAllowedForMerchant(actorOrType) {
-  const type = typeof actorOrType === "string" ? actorOrType : actorOrType?.type
+  const rawType = typeof actorOrType === "string" ? actorOrType : actorOrType?.type
+  const type = typeof rawType === "string" ? rawType.trim() : ""
   if (!type) return false
+  if (isLegacyMTTActorType(type)) return false
   return getAllowedMerchantActorTypes().includes(type)
 }

@@ -91,6 +91,65 @@
       "allowedMerchantActorTypes": {
         "name": "Actor types convertible to MTT merchants",
         "hint": "Internal JSON managed through the MTT configuration window."
+      },
+      "merchantPermissionProfiles": {
+        "name": "Merchant permission profiles",
+        "hint": "Internal JSON for configurable permissions by merchant ownership level."
+      }
+    },
+    "permissions": {
+      "merchant": {
+        "title": "Merchant permissions",
+        "config": {
+          "title": "Merchant permissions",
+          "hint": "Defines which actions are allowed according to the user ownership level on the merchant actor."
+        },
+        "columns": {
+          "permission": "Permission",
+          "limited": "Limited",
+          "observer": "Observer",
+          "owner": "Owner"
+        },
+        "canViewConfigTab": {
+          "label": "View the Configuration tab",
+          "hint": "Allows this ownership level to view the merchant Configuration tab."
+        },
+        "canViewApprovalStatus": {
+          "label": "View approval statuses",
+          "hint": "Allows this ownership level to view indicators for products and services requiring GM approval."
+        },
+        "canViewPrices": {
+          "label": "View prices",
+          "hint": "Allows this ownership level to view product and service prices."
+        },
+        "canOpenProduct": {
+          "label": "Open products",
+          "hint": "Allows this ownership level to open a product sheet and see the Limited or Observer indicator on the product row."
+        },
+        "canInteractWithSession": {
+          "label": "Interact with the session",
+          "hint": "Allows this ownership level to add products or services, sell or give items to the merchant, edit an editable session, and submit it for validation."
+        },
+        "canAddActorToMerchantRail": {
+          "label": "Add an actor to the rail",
+          "hint": "Allows this ownership level to add an actor to the merchant through the rail."
+        },
+        "canViewOtherActorsInRail": {
+          "label": "View other rail actors",
+          "hint": "Allows this ownership level to view other authorized actors in the merchant rail."
+        },
+        "canViewObserverActorSessions": {
+          "label": "View Observer actor sessions",
+          "hint": "Allows this ownership level to view sessions for actors where the user has Observer permission."
+        },
+        "canValidateOrRefuseSessions": {
+          "label": "Validate or refuse sessions",
+          "hint": "Allows this ownership level to validate or refuse a transaction session."
+        },
+        "canViewObserverActorJournalEntries": {
+          "label": "View Observer actor journal entries",
+          "hint": "Allows this ownership level to view journal entries for actors where the user has Observer permission."
+        }
       }
     },
     "sheet": {
@@ -209,6 +268,7 @@
       }
     },
     "notifications": {
+      "permissionDenied": "You are not allowed to perform this action.",
       "sheetLocked": "The merchant sheet is locked.",
       "onlyItemsCanBeDropped": "Only items can be added to the merchant.",
       "productQuantityIncreased": "The quantity of the existing product has been increased.",

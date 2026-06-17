@@ -41,6 +41,56 @@
       {{/if}}
     </section>
 
+    <section class="mtt-config-section mtt-config-permissions">
+      <h2 class="mtt-config-section-title">{{localize "mtt.permissions.merchant.config.title"}}</h2>
+      <p class="mtt-config-section-hint">{{localize "mtt.permissions.merchant.config.hint"}}</p>
+
+      <div class="mtt-permissions-table">
+        <div class="mtt-permissions-table-head">
+          <span>{{localize "mtt.permissions.merchant.columns.permission"}}</span>
+          <span>{{localize "mtt.permissions.merchant.columns.limited"}}</span>
+          <span>{{localize "mtt.permissions.merchant.columns.observer"}}</span>
+          <span>{{localize "mtt.permissions.merchant.columns.owner"}}</span>
+        </div>
+
+        <div class="mtt-permissions-table-body">
+          {{#each merchantPermissionRows as |permission|}}
+            <div class="mtt-permissions-row">
+              <div class="mtt-permissions-label">
+                <span>{{localize permission.label}}</span>
+                <i
+                  class="fas fa-circle-info mtt-config-info-icon"
+                  data-tooltip="{{localize permission.hint}}"
+                  aria-hidden="true"
+                ></i>
+              </div>
+              <label class="mtt-permissions-check">
+                <input
+                  type="checkbox"
+                  name="merchantPermissionProfiles.limited.{{permission.key}}"
+                  {{#if permission.limited}}checked{{/if}}
+                />
+              </label>
+              <label class="mtt-permissions-check">
+                <input
+                  type="checkbox"
+                  name="merchantPermissionProfiles.observer.{{permission.key}}"
+                  {{#if permission.observer}}checked{{/if}}
+                />
+              </label>
+              <label class="mtt-permissions-check">
+                <input
+                  type="checkbox"
+                  name="merchantPermissionProfiles.owner.{{permission.key}}"
+                  {{#if permission.owner}}checked{{/if}}
+                />
+              </label>
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    </section>
+
     <section class="mtt-config-section">
       <h2 class="mtt-config-section-title">{{localize "mtt.config.sections.items"}}</h2>
 

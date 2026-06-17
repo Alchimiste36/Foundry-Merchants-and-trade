@@ -114,6 +114,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #sessionCheckResult = null
   #journalSort = { key: "date", direction: "desc" }
   #scrollPositions = {}
+  #scrollRestorePending = false
 
   static DEFAULT_OPTIONS = {
     classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET, "mtt-merchant-window"],
@@ -323,6 +324,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     this.#renderAccessRail(context)
 
+    this.#scrollRestorePending = true
     requestAnimationFrame(() => this.#restoreScrollPositions())
   }
 
@@ -484,6 +486,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #saveScrollPositions() {
+    if (this.#scrollRestorePending) return
+
     this.#scrollPositions = {}
 
     const selectors = [".mtt-merchant-tab-content", ".mtt-merchant-session-sidebar"]
@@ -496,6 +500,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #restoreScrollPositions() {
+    this.#scrollRestorePending = false
     for (const [selector, scrollTop] of Object.entries(this.#scrollPositions ?? {})) {
       const element = this.element?.querySelector(selector)
       if (!element) continue

@@ -25,6 +25,600 @@
   padding: 0;
 }
 /* MTT — Fiche marchand : styles généraux et imports */
+/* MTT — Rail acheteurs */
+.mtt-merchant-access-rail {
+  position: absolute;
+  z-index: 20;
+  top: 5rem;
+  right: -3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+}
+.mtt-merchant-access-card,
+.mtt-merchant-access-drop-card {
+  position: relative;
+  width: 3rem;
+  height: 3rem;
+  padding: 0.25rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0 0.4rem 0.4rem 0;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+}
+.mtt-merchant-access-card:disabled {
+  cursor: default;
+}
+.mtt-merchant-access-card-readonly {
+  cursor: default;
+}
+.mtt-merchant-access-card:not(:disabled):not(.mtt-merchant-access-card-readonly):hover,
+.mtt-merchant-access-drop-card:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+  transform: translateX(-0.2rem);
+}
+.mtt-merchant-access-context-menu {
+  position: fixed;
+  z-index: 130;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 12rem;
+  padding: 0.35rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel);
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+.mtt-merchant-access-context-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--mtt-text);
+  text-align: left;
+  cursor: pointer;
+  justify-content: flex-start;
+}
+.mtt-merchant-access-context-menu-button:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+}
+.mtt-merchant-catalog-context-menu {
+  z-index: 135;
+}
+.mtt-merchant-access-card-selected {
+  border-color: var(--mtt-accent);
+  box-shadow: 0 0 0 2px var(--mtt-accent-soft), 0 0.35rem 1rem rgba(199, 154, 72, 0.28);
+  transform: translateX(-0.25rem);
+  width: 4rem;
+  height: 4rem;
+}
+.mtt-merchant-access-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.25rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-merchant-access-card-authorized {
+  opacity: 1;
+}
+.mtt-merchant-access-card-authorized .mtt-merchant-access-card-image {
+  filter: none;
+}
+.mtt-merchant-access-card-unauthorized {
+  opacity: 0.58;
+}
+.mtt-merchant-access-card-unauthorized .mtt-merchant-access-card-image {
+  filter: grayscale(1);
+}
+.mtt-merchant-access-session-badge {
+  position: absolute;
+  right: 0.05rem;
+  bottom: 0.05rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.68rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mtt-client-custom-rates-icon {
+  position: absolute;
+  top: 0.05rem;
+  right: 0.05rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #d6a84f;
+  font-size: 0.62rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mtt-merchant-access-session-active {
+  background: #5f86d3;
+}
+.mtt-merchant-access-session-pending {
+  background: #d6a84f;
+  color: #261b0a;
+}
+.mtt-merchant-access-session-validated {
+  background: #2f8f55;
+}
+.mtt-merchant-access-session-refused {
+  background: var(--mtt-danger);
+}
+.mtt-merchant-access-session-submitted {
+  color: #b00020;
+}
+.mtt-merchant-access-drop-card {
+  border: 1px dashed var(--mtt-border);
+  color: var(--mtt-text-soft);
+  background: rgba(0, 0, 0, 0.45);
+}
+.mtt-merchant-access-drop-card i {
+  color: var(--mtt-accent);
+}
+/* ─── Structure générale ──────────────────────────────────────────────────── */
+.mtt-merchant-window {
+  overflow: visible;
+  min-width: 650px;
+}
+.mtt-merchant-sheet {
+  display: flex;
+  flex-direction: column;
+  background: var(--mtt-bg-main);
+}
+.mtt-merchant-form {
+  height: 100%;
+}
+.mtt-merchant-layout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  height: 100%;
+  padding: 3px;
+  background: var(--mtt-bg-main);
+  overflow: visible;
+}
+.mtt-merchant-body {
+  display: flex;
+  gap: 0.5rem;
+  min-height: 0;
+  flex: 1;
+}
+.mtt-merchant-header,
+.mtt-merchant-main-zone,
+.mtt-merchant-session-sidebar {
+  background: var(--mtt-bg-panel);
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.5rem;
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.24);
+}
+/* ─── En-tête ─────────────────────────────────────────────────────────────── */
+.mtt-merchant-header {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+.mtt-merchant-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-width: 0;
+}
+.mtt-merchant-header-right {
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.mtt-merchant-header-right-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.mtt-merchant-header-manager {
+  flex: 1;
+}
+.mtt-merchant-manager-img-button {
+  width: 5rem;
+  height: 5rem;
+  flex: 0 0 5rem;
+  padding: 0;
+  border-radius: 0.25rem;
+  overflow: hidden;
+  background: var(--mtt-bg-field);
+  border: 1px solid var(--mtt-border-soft);
+  cursor: default;
+  align-self: center;
+}
+.mtt-merchant-manager-img-button:not(:disabled) {
+  cursor: pointer;
+}
+.mtt-merchant-manager-img-button:disabled {
+  opacity: 1;
+}
+.mtt-merchant-manager-img-button:not(:disabled):hover {
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-manager-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+}
+.mtt-merchant-image-button {
+  width: 96px;
+  height: 96px;
+  flex: 0 0 96px;
+  padding: 0;
+  border-radius: 0.6rem;
+  overflow: hidden;
+  background: var(--mtt-bg-field);
+  border: 1px solid var(--mtt-border);
+  cursor: default;
+}
+.mtt-merchant-image-button:not(:disabled) {
+  cursor: pointer;
+}
+.mtt-merchant-image-button:disabled {
+  opacity: 1;
+}
+.mtt-merchant-image-button:not(:disabled):hover {
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 0;
+}
+.mtt-merchant-image-editable {
+  cursor: pointer;
+}
+.mtt-merchant-image-editable:hover {
+  filter: brightness(1.15);
+}
+.mtt-merchant-header-title-area {
+  display: grid;
+  grid-template-columns: 0.7fr 1fr 0.5fr;
+  min-width: 0;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+.mtt-merchant-title-block {
+  flex: 1;
+  min-width: 0;
+}
+.mtt-merchant-name {
+  grid-column: 1 / 3;
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--mtt-text);
+}
+.mtt-merchant-name-input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+  font-size: 1.35rem;
+  font-weight: 700;
+  grid-column: 1 / 3;
+}
+.mtt-merchant-state-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.mtt-nav-info {
+  grid-column: 2 / 4;
+}
+.mtt-merchant-header-wallet-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+}
+.mtt-merchant-header-wallet-currency {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.mtt-merchant-header-wallet-currency + .mtt-merchant-header-wallet-currency::before {
+  content: "·";
+  margin-right: 0.1rem;
+  color: var(--mtt-text-soft);
+}
+.mtt-merchant-header-wallet-currency strong {
+  color: var(--mtt-text);
+}
+.mtt-merchant-header-wallet-empty {
+  color: var(--mtt-text-soft);
+  font-style: italic;
+}
+/* ─── Boutons et navigation partagés ─────────────────────────────────────── */
+.mtt-merchant-lock-button,
+.mtt-merchant-product-create-button,
+.mtt-merchant-product-action,
+.mtt-merchant-secret-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--mtt-text);
+  cursor: pointer;
+}
+.mtt-merchant-lock-button,
+.mtt-merchant-product-action,
+.mtt-merchant-secret-toggle {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: 0.45rem;
+}
+.mtt-merchant-lock-button:hover,
+.mtt-merchant-product-create-button:hover,
+.mtt-merchant-product-action:hover,
+.mtt-merchant-secret-toggle:hover {
+  background: var(--mtt-bg-hover);
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-lock-button span {
+  display: none;
+}
+.mtt-is-locked .mtt-merchant-lock-button {
+  color: var(--mtt-accent);
+}
+.mtt-is-unlocked .mtt-merchant-lock-button {
+  color: var(--mtt-danger);
+}
+.mtt-merchant-tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.3rem 0;
+}
+.mtt-merchant-tab-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--mtt-border);
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text);
+  cursor: pointer;
+  border-radius: 0.35rem;
+}
+.mtt-merchant-tab-nav-btn:hover {
+  background: var(--mtt-bg-hover);
+  border-color: var(--mtt-accent);
+}
+.mtt-merchant-tab-nav-btn-active {
+  background: var(--mtt-accent-soft);
+  border-color: var(--mtt-accent);
+  color: var(--mtt-accent);
+}
+/* ─── Zone principale et navigation de contenu ───────────────────────────── */
+.mtt-merchant-main {
+  flex: 1;
+  min-width: 0;
+}
+.mtt-merchant-main-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0.3rem;
+  min-width: 350px;
+}
+.mtt-merchant-section-title {
+  margin: 10px 0 0 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--mtt-accent);
+}
+.mtt-merchant-section-subtitle {
+  margin: 0;
+  color: var(--mtt-text-muted);
+  font-size: 0.86rem;
+}
+.mtt-merchant-field,
+.mtt-merchant-manager-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.mtt-merchant-field + .mtt-merchant-field {
+  margin-top: 0.55rem;
+}
+.mtt-merchant-field-label {
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.mtt-merchant-product-price-readonly {
+  text-align: right;
+}
+.mtt-merchant-field-input,
+.mtt-merchant-product-name-input,
+.mtt-merchant-product-quantity-input,
+.mtt-merchant-product-price-value-input,
+.mtt-merchant-product-price-currency-input,
+.mtt-merchant-product-category-input,
+.mtt-merchant-product-secret-input,
+.mtt-merchant-product-secret-textarea,
+.mtt-merchant-name-input {
+  border: 1px solid var(--mtt-border);
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+.mtt-merchant-field-input,
+.mtt-merchant-product-category-input,
+.mtt-merchant-product-secret-input {
+  min-height: 1.85rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.35rem;
+}
+.mtt-merchant-product-name-input,
+.mtt-merchant-product-price-value,
+.mtt-merchant-product-quantity-input,
+.mtt-merchant-product-lot-quantity-input {
+  padding: 0rem 0.45rem;
+  height: 1.6rem;
+}
+.mtt-merchant-product-lot-quantity-input {
+  padding: 0;
+}
+.mtt-merchant-product-price-value {
+  text-align: right;
+}
+.mtt-merchant-product-price-currency {
+  padding: 0;
+  height: 1.6rem;
+}
+.mtt-merchant-product-secret-textarea {
+  min-height: 4.5rem;
+  padding: 0.45rem;
+  border-radius: 0.35rem;
+  resize: vertical;
+}
+.mtt-merchant-field-input:focus,
+.mtt-merchant-product-name-input:focus,
+.mtt-merchant-product-quantity-input:focus,
+.mtt-merchant-product-price-value-input:focus,
+.mtt-merchant-product-price-currency-input:focus,
+.mtt-merchant-product-category-input:focus,
+.mtt-merchant-product-secret-input:focus,
+.mtt-merchant-product-secret-textarea:focus,
+.mtt-merchant-name-input:focus {
+  border-color: var(--mtt-accent);
+  box-shadow: 0 0 0 2px var(--mtt-accent-soft);
+  outline: none;
+}
+.mtt-merchant-manager-summary {
+  padding: 0.65rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text-muted);
+}
+.mtt-merchant-manager-summary {
+  display: flex;
+  flex-direction: row;
+  gap: 0.25rem;
+  justify-content: space-between;
+}
+.mtt-merchant-header-action {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--mtt-text);
+  cursor: pointer;
+  align-items: center;
+  height: auto;
+  min-height: 0;
+}
+.mtt-merchant-manager-empty,
+.mtt-merchant-description-empty,
+.mtt-merchant-product-quantity-empty,
+.mtt-merchant-product-price-empty,
+.mtt-merchant-product-category-empty {
+  color: var(--mtt-text-soft);
+  font-style: italic;
+}
+.mtt-merchant-tab-content {
+  min-height: 0;
+  overflow: auto;
+}
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .mtt-merchant-header {
+    grid-template-columns: 1fr;
+  }
+  .mtt-merchant-access-rail {
+    right: -0.45rem;
+  }
+  .mtt-merchant-wallet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mtt-merchant-body {
+    flex-direction: column;
+  }
+  .mtt-merchant-session-sidebar {
+    width: 100%;
+    flex: none;
+  }
+}
+@media (max-width: 720px) {
+  .mtt-merchant-configuration-grid,
+  .mtt-merchant-wallet-grid,
+  .mtt-merchant-wallet-currency {
+    grid-template-columns: 1fr;
+  }
+  .mtt-merchant-header-left {
+    flex-direction: column;
+  }
+  .mtt-merchant-product-row {
+    grid-template-columns: 1fr;
+    grid-template-areas: "main" "details" "actions" "secret";
+  }
+  .mtt-merchant-product-subcategory-slot {
+    display: none;
+  }
+  .mtt-merchant-product-details {
+    grid-template-columns: 1fr;
+  }
+  .mtt-merchant-product-actions {
+    justify-content: flex-start;
+  }
+  .mtt-merchant-product-secret-fields {
+    grid-template-columns: 1fr;
+  }
+}
 /* MTT — Catalogue : produits, services, catégories, configuration */
 .mtt-merchant-products {
   padding: 0;
@@ -751,6 +1345,669 @@
     justify-content: start;
   }
 }
+/* MTT — Dialogues */
+.mtt-dialog {
+  display: grid;
+  gap: 0.75rem;
+  min-width: min(420px, 100%);
+  color: var(--mtt-text);
+}
+.mtt-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--mtt-border-soft);
+}
+.mtt-dialog-icon {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mtt-dialog-title {
+  margin: 0;
+  color: var(--mtt-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.mtt-dialog-content {
+  display: grid;
+  gap: 0.65rem;
+}
+.mtt-dialog-message,
+.mtt-dialog-details {
+  margin: 0;
+  color: var(--mtt-text-muted);
+  line-height: 1.35;
+}
+.mtt-dialog-details {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.4rem;
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--mtt-text-soft);
+  font-size: 0.85rem;
+}
+.mtt-dialog-warning .mtt-dialog-icon {
+  border-color: #d6a84f;
+  color: #d6a84f;
+}
+.mtt-dialog-danger .mtt-dialog-icon {
+  border-color: var(--mtt-danger);
+  color: var(--mtt-danger);
+}
+.mtt-dialog-entity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-dialog-entity-image {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft);
+}
+.mtt-dialog-entity-main {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+.mtt-dialog-entity-name {
+  color: var(--mtt-text);
+  overflow-wrap: anywhere;
+}
+.mtt-dialog-entity-meta {
+  color: var(--mtt-text-soft);
+  font-size: 0.82rem;
+}
+.mtt-dialog-form {
+  display: grid;
+  gap: 0.6rem;
+}
+.mtt-dialog-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 140px);
+  gap: 0.55rem;
+  align-items: center;
+}
+.mtt-dialog-field-label {
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.mtt-dialog-field-value {
+  color: var(--mtt-text);
+  text-align: right;
+}
+.mtt-dialog-field input {
+  min-height: 1.85rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+.mtt-dialog-preview-header {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.12);
+}
+.mtt-dialog-preview-header p {
+  margin: 0;
+  min-width: 0;
+  color: var(--mtt-text-muted);
+  overflow-wrap: anywhere;
+}
+.mtt-dialog-preview-section {
+  display: grid;
+  gap: 0.4rem;
+}
+.mtt-dialog-preview-section-title {
+  margin: 0;
+  color: var(--mtt-accent);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+}
+.mtt-dialog-preview-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--mtt-border-soft);
+  background: var(--mtt-bg-field);
+}
+.mtt-dialog-preview-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 0;
+}
+.mtt-dialog-preview-table th,
+.mtt-dialog-preview-table td {
+  padding: 0;
+  border-bottom: 1px solid var(--mtt-border-soft);
+  color: var(--mtt-text-muted);
+  text-align: left;
+  vertical-align: middle;
+}
+.mtt-dialog-preview-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--mtt-text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.mtt-dialog-preview-table tr:last-child td {
+  border-bottom: 0;
+}
+.mtt-dialog-preview-col-img {
+  width: 2.4rem;
+  text-align: center;
+}
+.mtt-dialog-preview-img {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.25rem;
+  background: var(--mtt-bg-panel-soft);
+}
+.mtt-dialog-preview-name {
+  color: var(--mtt-text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.mtt-dialog-preview-number,
+.mtt-dialog-preview-price {
+  white-space: nowrap;
+  text-align: right;
+}
+.mtt-dialog-preview-row-missing td {
+  color: var(--mtt-danger);
+}
+.mtt-dialog-preview-empty {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-soft);
+  background: rgba(0, 0, 0, 0.12);
+}
+.mtt-dialog-preview-money {
+  display: grid;
+  gap: 0.3rem;
+}
+.mtt-dialog-preview-money-line {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-muted);
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 1rem;
+}
+.mtt-dialog-preview-money-line .fa-coins {
+  color: var(--mtt-accent);
+}
+.mtt-dialog-preview-money-warning {
+  border-color: var(--mtt-warning);
+}
+.mtt-dialog-preview-warning-icon {
+  color: var(--mtt-warning);
+}
+.mtt-dialog-preview-list {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mtt-dialog-preview-warning,
+.mtt-dialog-preview-error,
+.mtt-dialog-preview-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.45rem;
+  line-height: 1.3;
+}
+.mtt-dialog-preview-warning {
+  border: 1px solid var(--mtt-warning);
+  color: var(--mtt-warning);
+  background: rgba(214, 168, 79, 0.12);
+}
+.mtt-dialog-preview-error {
+  border: 1px solid var(--mtt-danger);
+  color: var(--mtt-danger);
+  background: rgba(211, 107, 95, 0.12);
+}
+.mtt-dialog-preview-notice {
+  border: 1px solid var(--mtt-border-soft);
+  color: var(--mtt-text-soft);
+  background: rgba(0, 0, 0, 0.12);
+}
+.mtt-session-dialog-form {
+  display: grid;
+  gap: 0.75rem;
+}
+.mtt-session-dialog-summary {
+  display: grid;
+  gap: 0.35rem;
+}
+.mtt-session-dialog-title {
+  margin: 0;
+  color: var(--mtt-text);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.mtt-session-dialog-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  color: var(--mtt-text-muted);
+}
+.mtt-session-dialog-line strong {
+  color: var(--mtt-text);
+}
+.mtt-session-dialog-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.mtt-session-dialog-field span {
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.mtt-secret-info-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.mtt-secret-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.mtt-secret-info-price-row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 1fr) 7rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+.mtt-secret-info-field textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.mtt-client-rates-dialog {
+  display: grid;
+  gap: 0.75rem;
+}
+.mtt-client-rates-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+.mtt-client-rates-field {
+  display: grid;
+  gap: 0.3rem;
+}
+.mtt-client-rates-field span {
+  color: var(--mtt-text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.mtt-client-rates-field input,
+.mtt-client-rates-field textarea {
+  min-width: 0;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+.mtt-client-rates-field textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+}
+/* MTT — Journal marchand */
+.mtt-merchant-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mtt-merchant-journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.mtt-merchant-journal-title {
+  margin: 0;
+  color: var(--mtt-accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.mtt-merchant-journal-empty,
+.mtt-merchant-journal-no-detail {
+  margin: 0;
+  padding: 0.65rem;
+  border: 1px dashed var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-soft);
+  text-align: center;
+}
+.mtt-merchant-journal-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mtt-merchant-journal-sortbar {
+  display: grid;
+  grid-template-columns: 1.5rem auto 3rem 4rem 4rem 4rem;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0 0.5rem;
+  text-align: center;
+}
+.mtt-merchant-journal-sortbar > span {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  color: var(--mtt-text-muted);
+  font-weight: 700;
+}
+.mtt-merchant-journal-sortbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text-muted);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.mtt-merchant-journal-sortbar button:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+  color: var(--mtt-text);
+}
+.mtt-merchant-journal-sortbar i {
+  color: var(--mtt-accent);
+}
+.mtt-merchant-journal-entry {
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-merchant-journal-entry details {
+  padding: 0.5rem;
+}
+.mtt-merchant-journal-summary {
+  display: grid;
+  grid-template-columns: 1.5rem auto 3rem 4rem 4rem 4rem;
+  gap: 0.3rem;
+  align-items: center;
+  color: var(--mtt-text-muted);
+  cursor: pointer;
+}
+.mtt-merchant-journal-buyer {
+  color: var(--mtt-text);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mtt-merchant-journal-status {
+  font-weight: 700;
+}
+.mtt-merchant-journal-status-validated {
+  color: var(--mtt-accent);
+  font-weight: 600;
+}
+.mtt-merchant-journal-status-refused {
+  color: #b33939;
+  font-weight: 700;
+}
+.mtt-merchant-journal-paid,
+.mtt-merchant-journal-received,
+.mtt-merchant-journal-adjustment {
+  text-align: right;
+}
+.mtt-merchant-journal-adjustment {
+  font-weight: 700;
+}
+.mtt-merchant-journal-details {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+.mtt-merchant-journal-items {
+  display: grid;
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+  background-color: #c79a4817;
+}
+.mtt-merchant-journal-item-row {
+  display: grid;
+  grid-template-columns: 3rem auto 3rem 4.5rem 4.5rem 2.5rem;
+  gap: 0.4rem;
+  align-items: center;
+  border-top: 1px solid var(--mtt-border-soft);
+}
+.mtt-merchant-journal-item-type,
+.mtt-merchant-journal-item-quantity,
+.mtt-merchant-journal-item-negotiation {
+  text-align: center;
+}
+.mtt-merchant-journal-item-name {
+  text-align: left;
+}
+.mtt-journal-secret-indicator {
+  color: var(--mtt-danger);
+  font-size: 0.85rem;
+  margin-right: 0.25rem;
+}
+.mtt-merchant-journal-item-unit-price,
+.mtt-merchant-journal-item-total {
+  text-align: right;
+}
+.mtt-merchant-journal-item-head {
+  color: var(--mtt-text);
+  font-weight: 700;
+  text-align: right;
+  font-size: 0.7rem;
+}
+.mtt-merchant-journal-transaction-number,
+.mtt-merchant-journal-item-type,
+.mtt-merchant-journal-item-negotiation {
+  text-align: center;
+}
+.mtt-merchant-journal-item-type i,
+.mtt-merchant-journal-item-negotiation i {
+  color: var(--mtt-accent);
+}
+.mtt-merchant-journal-item-negotiation .fa-check {
+  color: #6fbf8f;
+}
+.mtt-merchant-journal-item-negotiation .fa-times {
+  color: var(--mtt-danger);
+}
+.mtt-merchant-journal-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mtt-global-journal {
+  display: grid;
+  gap: 0.75rem;
+  color: var(--mtt-text);
+}
+.mtt-global-journal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.mtt-global-journal-title {
+  margin: 0;
+  color: var(--mtt-accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.mtt-global-journal-filters {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+.mtt-global-journal-filter {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  color: var(--mtt-text-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.mtt-global-journal-filter select {
+  width: 100%;
+  min-height: 1.9rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+}
+.mtt-global-journal-filters button,
+.mtt-global-journal-sortbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.45rem;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+  background: var(--mtt-bg-panel-soft);
+  color: var(--mtt-text-muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+.mtt-global-journal-filters button:hover,
+.mtt-global-journal-sortbar button:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+  color: var(--mtt-text);
+}
+.mtt-global-journal-sortbar {
+  display: grid;
+  grid-template-columns: 3rem minmax(8rem, 1fr) minmax(8rem, 1fr) 5rem 5rem 5rem 6rem;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0 0.5rem;
+}
+.mtt-global-journal-sortbar i,
+.mtt-global-journal-filters button i {
+  color: var(--mtt-accent);
+}
+.mtt-global-journal-list {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mtt-global-journal-entry {
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+}
+.mtt-global-journal-summary {
+  display: grid;
+  grid-template-columns: 3rem minmax(8rem, 1fr) minmax(8rem, 1fr) 5rem 5rem 5rem 6rem;
+  gap: 0.35rem;
+  align-items: center;
+  color: var(--mtt-text-muted);
+  cursor: pointer;
+}
+.mtt-global-journal-merchant,
+.mtt-global-journal-buyer {
+  color: var(--mtt-text);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mtt-global-journal-status {
+  font-weight: 700;
+}
+.mtt-global-journal-paid,
+.mtt-global-journal-received,
+.mtt-global-journal-adjustment {
+  text-align: right;
+}
+.mtt-global-journal-adjustment {
+  font-weight: 700;
+}
+.mtt-global-journal-transaction-number {
+  text-align: center;
+}
+.mtt-global-journal-details {
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+.mtt-global-journal-empty,
+.mtt-global-journal-no-detail {
+  margin: 0;
+  padding: 0.65rem;
+  border: 1px dashed var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  color: var(--mtt-text-soft);
+  text-align: center;
+}
+@media (max-width: 720px) {
+  .mtt-merchant-journal-sortbar,
+  .mtt-merchant-journal-summary,
+  .mtt-global-journal-sortbar,
+  .mtt-global-journal-summary,
+  .mtt-global-journal-filters {
+    grid-template-columns: 1fr;
+  }
+  .mtt-merchant-journal-paid,
+  .mtt-merchant-journal-received,
+  .mtt-merchant-journal-adjustment,
+  .mtt-global-journal-paid,
+  .mtt-global-journal-received,
+  .mtt-global-journal-adjustment {
+    text-align: left;
+  }
+}
 /* MTT — Session de transaction */
 .mtt-merchant-session-sidebar {
   width: 340px;
@@ -1463,1263 +2720,6 @@
 .mtt-merchant-session-final-action.delete {
   color: var(--mtt-accent);
   border-color: var(--mtt-accent);
-}
-/* MTT — Rail acheteurs */
-.mtt-merchant-access-rail {
-  position: absolute;
-  z-index: 20;
-  top: 5rem;
-  right: -3.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  width: auto;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  pointer-events: none;
-}
-.mtt-merchant-access-card,
-.mtt-merchant-access-drop-card {
-  position: relative;
-  width: 3rem;
-  height: 3rem;
-  padding: 0.25rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0 0.4rem 0.4rem 0;
-  background: var(--mtt-bg-panel-soft);
-  color: var(--mtt-text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.28);
-  pointer-events: auto;
-}
-.mtt-merchant-access-card:disabled {
-  cursor: default;
-}
-.mtt-merchant-access-card-readonly {
-  cursor: default;
-}
-.mtt-merchant-access-card:not(:disabled):not(.mtt-merchant-access-card-readonly):hover,
-.mtt-merchant-access-drop-card:hover {
-  border-color: var(--mtt-accent);
-  background: var(--mtt-bg-hover);
-  transform: translateX(-0.2rem);
-}
-.mtt-merchant-access-context-menu {
-  position: fixed;
-  z-index: 130;
-  display: grid;
-  gap: 0.25rem;
-  min-width: 12rem;
-  padding: 0.35rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-panel);
-  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.35);
-  pointer-events: auto;
-}
-.mtt-merchant-access-context-menu-button {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  width: 100%;
-  min-height: 1.9rem;
-  padding: 0.25rem 0.45rem;
-  border: 1px solid transparent;
-  border-radius: 0.35rem;
-  background: transparent;
-  color: var(--mtt-text);
-  text-align: left;
-  cursor: pointer;
-  justify-content: flex-start;
-}
-.mtt-merchant-access-context-menu-button:hover {
-  border-color: var(--mtt-accent);
-  background: var(--mtt-bg-hover);
-}
-.mtt-merchant-catalog-context-menu {
-  z-index: 135;
-}
-.mtt-merchant-access-card-selected {
-  border-color: var(--mtt-accent);
-  box-shadow: 0 0 0 2px var(--mtt-accent-soft), 0 0.35rem 1rem rgba(199, 154, 72, 0.28);
-  transform: translateX(-0.25rem);
-  width: 4rem;
-  height: 4rem;
-}
-.mtt-merchant-access-card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.25rem;
-  background: var(--mtt-bg-field);
-}
-.mtt-merchant-access-card-authorized {
-  opacity: 1;
-}
-.mtt-merchant-access-card-authorized .mtt-merchant-access-card-image {
-  filter: none;
-}
-.mtt-merchant-access-card-unauthorized {
-  opacity: 0.58;
-}
-.mtt-merchant-access-card-unauthorized .mtt-merchant-access-card-image {
-  filter: grayscale(1);
-}
-.mtt-merchant-access-session-badge {
-  position: absolute;
-  right: 0.05rem;
-  bottom: 0.05rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  border-radius: 999px;
-  color: #ffffff;
-  font-size: 0.68rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.mtt-client-custom-rates-icon {
-  position: absolute;
-  top: 0.05rem;
-  right: 0.05rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #d6a84f;
-  font-size: 0.62rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.mtt-merchant-access-session-active {
-  background: #5f86d3;
-}
-.mtt-merchant-access-session-pending {
-  background: #d6a84f;
-  color: #261b0a;
-}
-.mtt-merchant-access-session-validated {
-  background: #2f8f55;
-}
-.mtt-merchant-access-session-refused {
-  background: var(--mtt-danger);
-}
-.mtt-merchant-access-session-submitted {
-  color: #b00020;
-}
-.mtt-merchant-access-drop-card {
-  border: 1px dashed var(--mtt-border);
-  color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.45);
-}
-.mtt-merchant-access-drop-card i {
-  color: var(--mtt-accent);
-}
-/* MTT — Journal marchand */
-.mtt-merchant-journal {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.mtt-merchant-journal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.mtt-merchant-journal-title {
-  margin: 0;
-  color: var(--mtt-accent);
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-.mtt-merchant-journal-empty,
-.mtt-merchant-journal-no-detail {
-  margin: 0;
-  padding: 0.65rem;
-  border: 1px dashed var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  color: var(--mtt-text-soft);
-  text-align: center;
-}
-.mtt-merchant-journal-list {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.mtt-merchant-journal-sortbar {
-  display: grid;
-  grid-template-columns: 1.5rem auto 3rem 4rem 4rem 4rem;
-  gap: 0.3rem;
-  align-items: center;
-  padding: 0 0.5rem;
-  text-align: center;
-}
-.mtt-merchant-journal-sortbar > span {
-  min-height: 1.9rem;
-  padding: 0.25rem 0.45rem;
-  color: var(--mtt-text-muted);
-  font-weight: 700;
-}
-.mtt-merchant-journal-sortbar button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
-  min-height: 1.9rem;
-  padding: 0.25rem 0.45rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.35rem;
-  background: var(--mtt-bg-panel-soft);
-  color: var(--mtt-text-muted);
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-}
-.mtt-merchant-journal-sortbar button:hover {
-  border-color: var(--mtt-accent);
-  background: var(--mtt-bg-hover);
-  color: var(--mtt-text);
-}
-.mtt-merchant-journal-sortbar i {
-  color: var(--mtt-accent);
-}
-.mtt-merchant-journal-entry {
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-field);
-}
-.mtt-merchant-journal-entry details {
-  padding: 0.5rem;
-}
-.mtt-merchant-journal-summary {
-  display: grid;
-  grid-template-columns: 1.5rem auto 3rem 4rem 4rem 4rem;
-  gap: 0.3rem;
-  align-items: center;
-  color: var(--mtt-text-muted);
-  cursor: pointer;
-}
-.mtt-merchant-journal-buyer {
-  color: var(--mtt-text);
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mtt-merchant-journal-status {
-  font-weight: 700;
-}
-.mtt-merchant-journal-status-validated {
-  color: var(--mtt-accent);
-  font-weight: 600;
-}
-.mtt-merchant-journal-status-refused {
-  color: #b33939;
-  font-weight: 700;
-}
-.mtt-merchant-journal-paid,
-.mtt-merchant-journal-received,
-.mtt-merchant-journal-adjustment {
-  text-align: right;
-}
-.mtt-merchant-journal-adjustment {
-  font-weight: 700;
-}
-.mtt-merchant-journal-details {
-  margin-top: 0.5rem;
-  overflow-x: auto;
-}
-.mtt-merchant-journal-items {
-  display: grid;
-  color: var(--mtt-text-muted);
-  font-size: 0.82rem;
-  background-color: #c79a4817;
-}
-.mtt-merchant-journal-item-row {
-  display: grid;
-  grid-template-columns: 3rem auto 3rem 4.5rem 4.5rem 2.5rem;
-  gap: 0.4rem;
-  align-items: center;
-  border-top: 1px solid var(--mtt-border-soft);
-}
-.mtt-merchant-journal-item-type,
-.mtt-merchant-journal-item-quantity,
-.mtt-merchant-journal-item-negotiation {
-  text-align: center;
-}
-.mtt-merchant-journal-item-name {
-  text-align: left;
-}
-.mtt-journal-secret-indicator {
-  color: var(--mtt-danger);
-  font-size: 0.85rem;
-  margin-right: 0.25rem;
-}
-.mtt-merchant-journal-item-unit-price,
-.mtt-merchant-journal-item-total {
-  text-align: right;
-}
-.mtt-merchant-journal-item-head {
-  color: var(--mtt-text);
-  font-weight: 700;
-  text-align: right;
-  font-size: 0.7rem;
-}
-.mtt-merchant-journal-transaction-number,
-.mtt-merchant-journal-item-type,
-.mtt-merchant-journal-item-negotiation {
-  text-align: center;
-}
-.mtt-merchant-journal-item-type i,
-.mtt-merchant-journal-item-negotiation i {
-  color: var(--mtt-accent);
-}
-.mtt-merchant-journal-item-negotiation .fa-check {
-  color: #6fbf8f;
-}
-.mtt-merchant-journal-item-negotiation .fa-times {
-  color: var(--mtt-danger);
-}
-.mtt-merchant-journal-item-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mtt-global-journal {
-  display: grid;
-  gap: 0.75rem;
-  color: var(--mtt-text);
-}
-.mtt-global-journal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-.mtt-global-journal-title {
-  margin: 0;
-  color: var(--mtt-accent);
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-.mtt-global-journal-filters {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(12rem, 1fr) auto;
-  gap: 0.75rem;
-  align-items: end;
-}
-.mtt-global-journal-filter {
-  display: grid;
-  gap: 0.25rem;
-  min-width: 0;
-  color: var(--mtt-text-muted);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-.mtt-global-journal-filter select {
-  width: 100%;
-  min-height: 1.9rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.35rem;
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text);
-}
-.mtt-global-journal-filters button,
-.mtt-global-journal-sortbar button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
-  min-height: 1.9rem;
-  padding: 0.25rem 0.45rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.35rem;
-  background: var(--mtt-bg-panel-soft);
-  color: var(--mtt-text-muted);
-  font-weight: 700;
-  cursor: pointer;
-}
-.mtt-global-journal-filters button:hover,
-.mtt-global-journal-sortbar button:hover {
-  border-color: var(--mtt-accent);
-  background: var(--mtt-bg-hover);
-  color: var(--mtt-text);
-}
-.mtt-global-journal-sortbar {
-  display: grid;
-  grid-template-columns: 3rem minmax(8rem, 1fr) minmax(8rem, 1fr) 5rem 5rem 5rem 6rem;
-  gap: 0.35rem;
-  align-items: center;
-  padding: 0 0.5rem;
-}
-.mtt-global-journal-sortbar i,
-.mtt-global-journal-filters button i {
-  color: var(--mtt-accent);
-}
-.mtt-global-journal-list {
-  display: grid;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.mtt-global-journal-entry {
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-field);
-}
-.mtt-global-journal-summary {
-  display: grid;
-  grid-template-columns: 3rem minmax(8rem, 1fr) minmax(8rem, 1fr) 5rem 5rem 5rem 6rem;
-  gap: 0.35rem;
-  align-items: center;
-  color: var(--mtt-text-muted);
-  cursor: pointer;
-}
-.mtt-global-journal-merchant,
-.mtt-global-journal-buyer {
-  color: var(--mtt-text);
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mtt-global-journal-status {
-  font-weight: 700;
-}
-.mtt-global-journal-paid,
-.mtt-global-journal-received,
-.mtt-global-journal-adjustment {
-  text-align: right;
-}
-.mtt-global-journal-adjustment {
-  font-weight: 700;
-}
-.mtt-global-journal-transaction-number {
-  text-align: center;
-}
-.mtt-global-journal-details {
-  margin-top: 0.5rem;
-  overflow-x: auto;
-}
-.mtt-global-journal-empty,
-.mtt-global-journal-no-detail {
-  margin: 0;
-  padding: 0.65rem;
-  border: 1px dashed var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  color: var(--mtt-text-soft);
-  text-align: center;
-}
-@media (max-width: 720px) {
-  .mtt-merchant-journal-sortbar,
-  .mtt-merchant-journal-summary,
-  .mtt-global-journal-sortbar,
-  .mtt-global-journal-summary,
-  .mtt-global-journal-filters {
-    grid-template-columns: 1fr;
-  }
-  .mtt-merchant-journal-paid,
-  .mtt-merchant-journal-received,
-  .mtt-merchant-journal-adjustment,
-  .mtt-global-journal-paid,
-  .mtt-global-journal-received,
-  .mtt-global-journal-adjustment {
-    text-align: left;
-  }
-}
-/* MTT — Dialogues */
-.mtt-dialog {
-  display: grid;
-  gap: 0.75rem;
-  min-width: min(420px, 100%);
-  color: var(--mtt-text);
-}
-.mtt-dialog-header {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding-bottom: 0.55rem;
-  border-bottom: 1px solid var(--mtt-border-soft);
-}
-.mtt-dialog-icon {
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-panel-soft);
-  color: var(--mtt-accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.mtt-dialog-title {
-  margin: 0;
-  color: var(--mtt-text);
-  font-size: 1rem;
-  font-weight: 700;
-}
-.mtt-dialog-content {
-  display: grid;
-  gap: 0.65rem;
-}
-.mtt-dialog-message,
-.mtt-dialog-details {
-  margin: 0;
-  color: var(--mtt-text-muted);
-  line-height: 1.35;
-}
-.mtt-dialog-details {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.4rem;
-  background: rgba(0, 0, 0, 0.14);
-  color: var(--mtt-text-soft);
-  font-size: 0.85rem;
-}
-.mtt-dialog-warning .mtt-dialog-icon {
-  border-color: #d6a84f;
-  color: #d6a84f;
-}
-.mtt-dialog-danger .mtt-dialog-icon {
-  border-color: var(--mtt-danger);
-  color: var(--mtt-danger);
-}
-.mtt-dialog-entity {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-width: 0;
-  padding: 0.5rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-field);
-}
-.mtt-dialog-entity-image {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
-  object-fit: cover;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.35rem;
-  background: var(--mtt-bg-panel-soft);
-}
-.mtt-dialog-entity-main {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-}
-.mtt-dialog-entity-name {
-  color: var(--mtt-text);
-  overflow-wrap: anywhere;
-}
-.mtt-dialog-entity-meta {
-  color: var(--mtt-text-soft);
-  font-size: 0.82rem;
-}
-.mtt-dialog-form {
-  display: grid;
-  gap: 0.6rem;
-}
-.mtt-dialog-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(96px, 140px);
-  gap: 0.55rem;
-  align-items: center;
-}
-.mtt-dialog-field-label {
-  color: var(--mtt-text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-.mtt-dialog-field-value {
-  color: var(--mtt-text);
-  text-align: right;
-}
-.mtt-dialog-field input {
-  min-height: 1.85rem;
-  padding: 0.25rem 0.45rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.35rem;
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text);
-}
-.mtt-dialog-preview-header {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem;
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  background: rgba(0, 0, 0, 0.12);
-}
-.mtt-dialog-preview-header p {
-  margin: 0;
-  min-width: 0;
-  color: var(--mtt-text-muted);
-  overflow-wrap: anywhere;
-}
-.mtt-dialog-preview-section {
-  display: grid;
-  gap: 0.4rem;
-}
-.mtt-dialog-preview-section-title {
-  margin: 0;
-  color: var(--mtt-accent);
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-}
-.mtt-dialog-preview-table-wrap {
-  overflow-x: auto;
-  border: 1px solid var(--mtt-border-soft);
-  background: var(--mtt-bg-field);
-}
-.mtt-dialog-preview-table {
-  width: 100%;
-  min-width: 520px;
-  border-collapse: collapse;
-  font-size: 0.82rem;
-  margin: 0;
-}
-.mtt-dialog-preview-table th,
-.mtt-dialog-preview-table td {
-  padding: 0;
-  border-bottom: 1px solid var(--mtt-border-soft);
-  color: var(--mtt-text-muted);
-  text-align: left;
-  vertical-align: middle;
-}
-.mtt-dialog-preview-table th {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--mtt-text-soft);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-.mtt-dialog-preview-table tr:last-child td {
-  border-bottom: 0;
-}
-.mtt-dialog-preview-col-img {
-  width: 2.4rem;
-  text-align: center;
-}
-.mtt-dialog-preview-img {
-  width: 28px;
-  height: 28px;
-  object-fit: cover;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.25rem;
-  background: var(--mtt-bg-panel-soft);
-}
-.mtt-dialog-preview-name {
-  color: var(--mtt-text);
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.mtt-dialog-preview-number,
-.mtt-dialog-preview-price {
-  white-space: nowrap;
-  text-align: right;
-}
-.mtt-dialog-preview-row-missing td {
-  color: var(--mtt-danger);
-}
-.mtt-dialog-preview-empty {
-  margin: 0;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.12);
-}
-.mtt-dialog-preview-money {
-  display: grid;
-  gap: 0.3rem;
-}
-.mtt-dialog-preview-money-line {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  color: var(--mtt-text-muted);
-  background: rgba(0, 0, 0, 0.12);
-  font-size: 1rem;
-}
-.mtt-dialog-preview-money-line .fa-coins {
-  color: var(--mtt-accent);
-}
-.mtt-dialog-preview-money-warning {
-  border-color: var(--mtt-warning);
-}
-.mtt-dialog-preview-warning-icon {
-  color: var(--mtt-warning);
-}
-.mtt-dialog-preview-list {
-  display: grid;
-  gap: 0.35rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.mtt-dialog-preview-warning,
-.mtt-dialog-preview-error,
-.mtt-dialog-preview-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
-  margin: 0;
-  padding: 0.45rem 0.6rem;
-  border-radius: 0.45rem;
-  line-height: 1.3;
-}
-.mtt-dialog-preview-warning {
-  border: 1px solid var(--mtt-warning);
-  color: var(--mtt-warning);
-  background: rgba(214, 168, 79, 0.12);
-}
-.mtt-dialog-preview-error {
-  border: 1px solid var(--mtt-danger);
-  color: var(--mtt-danger);
-  background: rgba(211, 107, 95, 0.12);
-}
-.mtt-dialog-preview-notice {
-  border: 1px solid var(--mtt-border-soft);
-  color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.12);
-}
-.mtt-session-dialog-form {
-  display: grid;
-  gap: 0.75rem;
-}
-.mtt-session-dialog-summary {
-  display: grid;
-  gap: 0.35rem;
-}
-.mtt-session-dialog-title {
-  margin: 0;
-  color: var(--mtt-text);
-  font-size: 1rem;
-  font-weight: 700;
-}
-.mtt-session-dialog-line {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0;
-  color: var(--mtt-text-muted);
-}
-.mtt-session-dialog-line strong {
-  color: var(--mtt-text);
-}
-.mtt-session-dialog-field {
-  display: grid;
-  gap: 0.3rem;
-}
-.mtt-session-dialog-field span {
-  color: var(--mtt-text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-.mtt-secret-info-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-.mtt-secret-info-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.mtt-secret-info-price-row {
-  display: grid;
-  grid-template-columns: minmax(6rem, 1fr) 7rem;
-  gap: 0.5rem;
-  align-items: center;
-}
-.mtt-secret-info-field textarea {
-  min-height: 6rem;
-  resize: vertical;
-}
-.mtt-client-rates-dialog {
-  display: grid;
-  gap: 0.75rem;
-}
-.mtt-client-rates-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.55rem;
-}
-.mtt-client-rates-field {
-  display: grid;
-  gap: 0.3rem;
-}
-.mtt-client-rates-field span {
-  color: var(--mtt-text-soft);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-.mtt-client-rates-field input,
-.mtt-client-rates-field textarea {
-  min-width: 0;
-  padding: 0.35rem 0.45rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.35rem;
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text);
-}
-.mtt-client-rates-field textarea {
-  min-height: 4.5rem;
-  resize: vertical;
-}
-/* ─── Structure générale ──────────────────────────────────────────────────── */
-.mtt-merchant-window {
-  overflow: visible;
-  min-width: 650px;
-}
-.mtt-merchant-sheet {
-  display: flex;
-  flex-direction: column;
-  background: var(--mtt-bg-main);
-}
-.mtt-merchant-form {
-  height: 100%;
-}
-.mtt-merchant-layout {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  height: 100%;
-  padding: 3px;
-  background: var(--mtt-bg-main);
-  overflow: visible;
-}
-.mtt-merchant-body {
-  display: flex;
-  gap: 0.5rem;
-  min-height: 0;
-  flex: 1;
-}
-.mtt-merchant-header,
-.mtt-merchant-main-zone,
-.mtt-merchant-session-sidebar {
-  background: var(--mtt-bg-panel);
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.5rem;
-  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.24);
-}
-/* ─── En-tête ─────────────────────────────────────────────────────────────── */
-.mtt-merchant-header {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.5rem;
-}
-.mtt-merchant-header-left {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  min-width: 0;
-}
-.mtt-merchant-header-right {
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-.mtt-merchant-header-right-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-.mtt-merchant-header-manager {
-  flex: 1;
-}
-.mtt-merchant-manager-img-button {
-  width: 5rem;
-  height: 5rem;
-  flex: 0 0 5rem;
-  padding: 0;
-  border-radius: 0.25rem;
-  overflow: hidden;
-  background: var(--mtt-bg-field);
-  border: 1px solid var(--mtt-border-soft);
-  cursor: default;
-  align-self: center;
-}
-.mtt-merchant-manager-img-button:not(:disabled) {
-  cursor: pointer;
-}
-.mtt-merchant-manager-img-button:disabled {
-  opacity: 1;
-}
-.mtt-merchant-manager-img-button:not(:disabled):hover {
-  border-color: var(--mtt-accent);
-}
-.mtt-merchant-manager-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border: 0;
-}
-.mtt-merchant-image-button {
-  width: 96px;
-  height: 96px;
-  flex: 0 0 96px;
-  padding: 0;
-  border-radius: 0.6rem;
-  overflow: hidden;
-  background: var(--mtt-bg-field);
-  border: 1px solid var(--mtt-border);
-  cursor: default;
-}
-.mtt-merchant-image-button:not(:disabled) {
-  cursor: pointer;
-}
-.mtt-merchant-image-button:disabled {
-  opacity: 1;
-}
-.mtt-merchant-image-button:not(:disabled):hover {
-  border-color: var(--mtt-accent);
-}
-.mtt-merchant-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border: 0;
-}
-.mtt-merchant-image-editable {
-  cursor: pointer;
-}
-.mtt-merchant-image-editable:hover {
-  filter: brightness(1.15);
-}
-.mtt-merchant-header-title-area {
-  display: grid;
-  grid-template-columns: 0.7fr 1fr 0.5fr;
-  min-width: 0;
-  gap: 0.5rem;
-  align-items: center;
-  width: 100%;
-}
-.mtt-merchant-title-block {
-  flex: 1;
-  min-width: 0;
-}
-.mtt-merchant-name {
-  grid-column: 1 / 3;
-  margin: 0;
-  font-size: 1.65rem;
-  font-weight: 700;
-  color: var(--mtt-text);
-}
-.mtt-merchant-name-input {
-  width: 100%;
-  padding: 0.55rem 0.7rem;
-  border: 1px solid var(--mtt-border);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text);
-  font-size: 1.35rem;
-  font-weight: 700;
-  grid-column: 1 / 3;
-}
-.mtt-merchant-state-row {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-.mtt-nav-info {
-  grid-column: 2 / 4;
-}
-.mtt-merchant-header-wallet-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.5rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text-muted);
-  font-size: 0.82rem;
-}
-.mtt-merchant-header-wallet-currency {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-.mtt-merchant-header-wallet-currency + .mtt-merchant-header-wallet-currency::before {
-  content: "·";
-  margin-right: 0.1rem;
-  color: var(--mtt-text-soft);
-}
-.mtt-merchant-header-wallet-currency strong {
-  color: var(--mtt-text);
-}
-.mtt-merchant-header-wallet-empty {
-  color: var(--mtt-text-soft);
-  font-style: italic;
-}
-/* ─── Boutons et navigation partagés ─────────────────────────────────────── */
-.mtt-merchant-lock-button,
-.mtt-merchant-product-create-button,
-.mtt-merchant-product-action,
-.mtt-merchant-secret-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  color: var(--mtt-text);
-  cursor: pointer;
-}
-.mtt-merchant-lock-button,
-.mtt-merchant-product-action,
-.mtt-merchant-secret-toggle {
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border-radius: 0.45rem;
-}
-.mtt-merchant-lock-button:hover,
-.mtt-merchant-product-create-button:hover,
-.mtt-merchant-product-action:hover,
-.mtt-merchant-secret-toggle:hover {
-  background: var(--mtt-bg-hover);
-  border-color: var(--mtt-accent);
-}
-.mtt-merchant-lock-button span {
-  display: none;
-}
-.mtt-is-locked .mtt-merchant-lock-button {
-  color: var(--mtt-accent);
-}
-.mtt-is-unlocked .mtt-merchant-lock-button {
-  color: var(--mtt-danger);
-}
-.mtt-merchant-tab-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.3rem 0;
-}
-.mtt-merchant-tab-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 1px solid var(--mtt-border);
-  background: var(--mtt-bg-panel-soft);
-  color: var(--mtt-text);
-  cursor: pointer;
-  border-radius: 0.35rem;
-}
-.mtt-merchant-tab-nav-btn:hover {
-  background: var(--mtt-bg-hover);
-  border-color: var(--mtt-accent);
-}
-.mtt-merchant-tab-nav-btn-active {
-  background: var(--mtt-accent-soft);
-  border-color: var(--mtt-accent);
-  color: var(--mtt-accent);
-}
-/* ─── Zone principale et navigation de contenu ───────────────────────────── */
-.mtt-merchant-main {
-  flex: 1;
-  min-width: 0;
-}
-.mtt-merchant-main-zone {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  height: 100%;
-  padding: 0.3rem;
-  min-width: 350px;
-}
-.mtt-merchant-section-title {
-  margin: 10px 0 0 0;
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--mtt-accent);
-}
-.mtt-merchant-section-subtitle {
-  margin: 0;
-  color: var(--mtt-text-muted);
-  font-size: 0.86rem;
-}
-.mtt-merchant-field,
-.mtt-merchant-manager-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-.mtt-merchant-field + .mtt-merchant-field {
-  margin-top: 0.55rem;
-}
-.mtt-merchant-field-label {
-  color: var(--mtt-text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-.mtt-merchant-product-price-readonly {
-  text-align: right;
-}
-.mtt-merchant-field-input,
-.mtt-merchant-product-name-input,
-.mtt-merchant-product-quantity-input,
-.mtt-merchant-product-price-value-input,
-.mtt-merchant-product-price-currency-input,
-.mtt-merchant-product-category-input,
-.mtt-merchant-product-secret-input,
-.mtt-merchant-product-secret-textarea,
-.mtt-merchant-name-input {
-  border: 1px solid var(--mtt-border);
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text);
-}
-.mtt-merchant-field-input,
-.mtt-merchant-product-category-input,
-.mtt-merchant-product-secret-input {
-  min-height: 1.85rem;
-  padding: 0.25rem 0.45rem;
-  border-radius: 0.35rem;
-}
-.mtt-merchant-product-name-input,
-.mtt-merchant-product-price-value,
-.mtt-merchant-product-quantity-input,
-.mtt-merchant-product-lot-quantity-input {
-  padding: 0rem 0.45rem;
-  height: 1.6rem;
-}
-.mtt-merchant-product-lot-quantity-input {
-  padding: 0;
-}
-.mtt-merchant-product-price-value {
-  text-align: right;
-}
-.mtt-merchant-product-price-currency {
-  padding: 0;
-  height: 1.6rem;
-}
-.mtt-merchant-product-secret-textarea {
-  min-height: 4.5rem;
-  padding: 0.45rem;
-  border-radius: 0.35rem;
-  resize: vertical;
-}
-.mtt-merchant-field-input:focus,
-.mtt-merchant-product-name-input:focus,
-.mtt-merchant-product-quantity-input:focus,
-.mtt-merchant-product-price-value-input:focus,
-.mtt-merchant-product-price-currency-input:focus,
-.mtt-merchant-product-category-input:focus,
-.mtt-merchant-product-secret-input:focus,
-.mtt-merchant-product-secret-textarea:focus,
-.mtt-merchant-name-input:focus {
-  border-color: var(--mtt-accent);
-  box-shadow: 0 0 0 2px var(--mtt-accent-soft);
-  outline: none;
-}
-.mtt-merchant-manager-summary {
-  padding: 0.65rem;
-  border: 1px solid var(--mtt-border-soft);
-  border-radius: 0.45rem;
-  background: var(--mtt-bg-field);
-  color: var(--mtt-text-muted);
-}
-.mtt-merchant-manager-summary {
-  display: flex;
-  flex-direction: row;
-  gap: 0.25rem;
-  justify-content: space-between;
-}
-.mtt-merchant-header-action {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--mtt-text);
-  cursor: pointer;
-  align-items: center;
-  height: auto;
-  min-height: 0;
-}
-.mtt-merchant-manager-empty,
-.mtt-merchant-description-empty,
-.mtt-merchant-product-quantity-empty,
-.mtt-merchant-product-price-empty,
-.mtt-merchant-product-category-empty {
-  color: var(--mtt-text-soft);
-  font-style: italic;
-}
-.mtt-merchant-tab-content {
-  min-height: 0;
-  overflow: auto;
-}
-/* ─── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 980px) {
-  .mtt-merchant-header {
-    grid-template-columns: 1fr;
-  }
-  .mtt-merchant-access-rail {
-    right: -0.45rem;
-  }
-  .mtt-merchant-wallet-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .mtt-merchant-body {
-    flex-direction: column;
-  }
-  .mtt-merchant-session-sidebar {
-    width: 100%;
-    flex: none;
-  }
-}
-@media (max-width: 720px) {
-  .mtt-merchant-configuration-grid,
-  .mtt-merchant-wallet-grid,
-  .mtt-merchant-wallet-currency {
-    grid-template-columns: 1fr;
-  }
-  .mtt-merchant-header-left {
-    flex-direction: column;
-  }
-  .mtt-merchant-product-row {
-    grid-template-columns: 1fr;
-    grid-template-areas: "main" "details" "actions" "secret";
-  }
-  .mtt-merchant-product-subcategory-slot {
-    display: none;
-  }
-  .mtt-merchant-product-details {
-    grid-template-columns: 1fr;
-  }
-  .mtt-merchant-product-actions {
-    justify-content: flex-start;
-  }
-  .mtt-merchant-product-secret-fields {
-    grid-template-columns: 1fr;
-  }
 }
 .mtt-config-app .window-content {
   padding: 0;

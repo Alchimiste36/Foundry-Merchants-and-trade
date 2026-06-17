@@ -344,6 +344,7 @@
       "serviceCopied": "Service copied.",
       "productCopyFailed": "Unable to copy product.",
       "serviceCopyFailed": "Unable to copy service.",
+      "noProductsInCategory": "No products to update in this category.",
       "merchantConversion": {
         "gmOnly": "Only the GM can convert an actor into an MTT merchant.",
         "alreadyMerchant": "This actor already has an MTT shop.",
@@ -577,7 +578,11 @@
         "switchToLimitedOwnership": "Switch to Limited ownership",
         "switchToObserverOwnership": "Switch to Observer ownership",
         "copyProduct": "Copy product",
-        "copyService": "Copy service"
+        "copyService": "Copy service",
+        "categorySetProductsLimited": "Set all products to Limited",
+        "categorySetProductsObserver": "Set all products to Observer",
+        "categoryRequireApprovalForProducts": "Request GM approval for all products",
+        "categoryRemoveApprovalForProducts": "Remove GM approval for all products"
       }
     },
     "secrets": {

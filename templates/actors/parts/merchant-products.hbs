@@ -9,7 +9,13 @@
             data-mtt-category-drop
             data-category="{{category.categoryValue}}"
           >
-            <header class="mtt-merchant-product-category-header {{#unless category.isVisible}}mtt-merchant-product-category-header-hidden{{/unless}}">
+            <header
+              class="mtt-merchant-product-category-header {{#unless category.isVisible}}mtt-merchant-product-category-header-hidden{{/unless}}"
+              {{#if @root.mtt.isEditable}}
+                data-mtt-catalog-context-menu
+                data-catalog-kind="category"
+              {{/if}}
+            >
               <div class="mtt-merchant-product-category-header-main">
                 <button
                   class="mtt-merchant-product-category-toggle"

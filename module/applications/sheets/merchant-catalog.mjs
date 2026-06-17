@@ -381,8 +381,8 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     }))
 
   sortedCategories.sort((a, b) => {
-    if (a.isSystemCategory && !b.isSystemCategory) return -1
-    if (!a.isSystemCategory && b.isSystemCategory) return 1
+    if (a.isSystemCategory && !b.isSystemCategory) return 1
+    if (!a.isSystemCategory && b.isSystemCategory) return -1
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   })
 

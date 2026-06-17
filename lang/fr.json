@@ -344,6 +344,7 @@
       "serviceCopied": "Service copié.",
       "productCopyFailed": "Impossible de copier le produit.",
       "serviceCopyFailed": "Impossible de copier le service.",
+      "noProductsInCategory": "Aucun produit à modifier dans cette catégorie.",
       "merchantConversion": {
         "gmOnly": "Seul le MJ peut convertir un acteur en marchand MTT.",
         "alreadyMerchant": "Cet acteur possède déjà une boutique MTT.",
@@ -577,7 +578,11 @@
         "switchToLimitedOwnership": "Passer en droit Limité",
         "switchToObserverOwnership": "Passer en droit Observateur",
         "copyProduct": "Copier le produit",
-        "copyService": "Copier le service"
+        "copyService": "Copier le service",
+        "categorySetProductsLimited": "Passer tous les produits en Limité",
+        "categorySetProductsObserver": "Passer tous les produits en Observateur",
+        "categoryRequireApprovalForProducts": "Demander l'approbation MJ pour tous les produits",
+        "categoryRemoveApprovalForProducts": "Retirer l'approbation MJ pour tous les produits"
       }
     },
     "secrets": {

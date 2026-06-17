@@ -1158,6 +1158,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    if (kind === "category") {
+      const categoryValue = target.closest("[data-category]")?.dataset.category ?? ""
+      return { kind, categoryValue }
+    }
+
     return null
   }
 
@@ -1172,6 +1177,39 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     menu.style.left = `${event.clientX}px`
     menu.style.top = `${event.clientY}px`
     menu.setAttribute("aria-label", game.i18n.localize("mtt.catalog.context.title"))
+
+    if (catalogItem.kind === "category") {
+      const setLimited = this.#createCatalogContextButton({
+        icon: "fa-eye-slash",
+        label: game.i18n.localize("mtt.catalog.context.categorySetProductsLimited"),
+        onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED)
+      })
+      const setObserver = this.#createCatalogContextButton({
+        icon: "fa-eye",
+        label: game.i18n.localize("mtt.catalog.context.categorySetProductsObserver"),
+        onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)
+      })
+      const requireApproval = this.#createCatalogContextButton({
+        icon: "fa-user-check",
+        label: game.i18n.localize("mtt.catalog.context.categoryRequireApprovalForProducts"),
+        onClick: async () => this.#setCategoryProductsApproval(catalogItem, true)
+      })
+      const removeApproval = this.#createCatalogContextButton({
+        icon: "fa-user-minus",
+        label: game.i18n.localize("mtt.catalog.context.categoryRemoveApprovalForProducts"),
+        onClick: async () => this.#setCategoryProductsApproval(catalogItem, false)
+      })
+      menu.append(setLimited, setObserver, requireApproval, removeApproval)
+      applicationElement.append(menu)
+      window.setTimeout(() => {
+        const closeMenu = (closeEvent) => {
+          if (!menu.contains(closeEvent.target)) this.#closeAccessContextMenu()
+          document.removeEventListener("click", closeMenu, true)
+        }
+        document.addEventListener("click", closeMenu, true)
+      }, 0)
+      return
+    }
 
     const secretInfo = this.#createCatalogContextButton({
       icon: "fa-mask",
@@ -1402,6 +1440,42 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
       this.render()
     }
+  }
+
+  async #setCategoryProductsOwnership(catalogItem, level) {
+    if (!this.isEditable) return
+
+    const products = getCatalogProducts(this.actor).filter((p) => p.category === catalogItem.categoryValue)
+    if (!products.length) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.noProductsInCategory"))
+      return
+    }
+
+    this.#saveScrollPositions()
+    const updates = products.map((p) => ({
+      _id: p.id,
+      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.ownershipLevel`]: level
+    }))
+    await this.actor.updateEmbeddedDocuments("Item", updates)
+    this.render()
+  }
+
+  async #setCategoryProductsApproval(catalogItem, requiresApproval) {
+    if (!this.isEditable) return
+
+    const products = getCatalogProducts(this.actor).filter((p) => p.category === catalogItem.categoryValue)
+    if (!products.length) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.noProductsInCategory"))
+      return
+    }
+
+    this.#saveScrollPositions()
+    const updates = products.map((p) => ({
+      _id: p.id,
+      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.requiresApproval`]: requiresApproval
+    }))
+    await this.actor.updateEmbeddedDocuments("Item", updates)
+    this.render()
   }
 
   // ─── Dropped document helpers ─────────────────────────────────────────────

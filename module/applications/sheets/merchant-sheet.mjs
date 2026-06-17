@@ -9,7 +9,6 @@ import {
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
-  canUserManageMerchant,
   canUserViewClientActor,
   canUserViewClientSession
 } from "../../documents/merchant-access.mjs"
@@ -977,7 +976,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
     event.stopPropagation()
 
-    if (!canUserManageMerchant(this.actor)) return
+    if (!this.isEditable) return
 
     const client = this.#getAccessClientCandidate(target.dataset.clientActorUuid)
     if (!client) return
@@ -1603,9 +1602,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareAccessContext() {
-    const { isOwnerLike: isOwner } = getMerchantAccessContext(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    const canManageAccessRail = isOwner
     const canSeeAccessDropZone = permissions.canAddActorToMerchantRail
 
     const rawClients = this.#prepareAccessClients()
@@ -1634,7 +1631,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return {
       clients,
       hasClients: clients.length > 0,
-      canManage: canManageAccessRail,
       canSeeAccessDropZone,
       railAriaLabel: game.i18n.localize("mtt.access.title"),
       dropZoneTooltip: game.i18n.localize("mtt.access.dropTooltip")
@@ -2432,13 +2428,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       [getMerchantFlagPath("sessions.entries")]: sessions
     }
 
-    const permissionLevel = this.actor.getUserLevel(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-    const canUpdateDirectly =
-      game.user?.isGM ||
-      this.actor.testUserPermission?.(game.user, "OWNER") ||
-      permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    if (game.user?.isGM) {
+      await this.actor.update(updateData)
+      return
+    }
 
-    if (canUpdateDirectly) {
+    const permissionLevel = this.actor.getUserLevel(game.user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    const isOwner =
+      this.actor.testUserPermission?.(game.user, "OWNER") || permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+
+    if (isOwner) {
       await this.actor.update(updateData)
       return
     }
@@ -2484,9 +2483,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!product) return
     if (!product.itemData?.type) return
 
-    const { canManageMerchant } = getMerchantAccessContext(this.actor)
-
-    if (canManageMerchant) {
+    if (this.isEditable) {
       // GM/propriétaire : ouvre le vrai Item embedded — aucun Item temporaire, aucune erreur CoEquipmentSheet
       const item = this.actor.items.get(product.id)
       if (!item) return

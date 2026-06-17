@@ -138,9 +138,9 @@ export function normalizeMerchantPermissionProfiles(value) {
 }
 
 function getMerchantPermissionProfileKey(actor, user) {
-  const accessContext = getMerchantAccessContext(actor, user)
-  if (accessContext.isOwnerLike) return "owner"
-  if (accessContext.isObserver) return "observer"
+  const accessLevel = getUserActorAccessLevel(actor, user)
+  if (accessLevel === "owner") return "owner"
+  if (accessLevel === "observer") return "observer"
   return "limited"
 }
 
@@ -207,21 +207,6 @@ export function canUserViewClientJournalEntries(actor, permissions = {}, user = 
 }
 
 /**
- * Vérifie si un utilisateur a un accès de gestion (propriétaire ou MJ) sur la boutique.
- * Critère : GM ou niveau Foundry OWNER sur l'acteur support.
- *
- * @param {Actor|null} actor - L'acteur support de la boutique.
- * @param {User} [user=game.user] - L'utilisateur à tester.
- * @returns {boolean}
- */
-export function canUserManageMerchant(actor, user = game.user) {
-  if (!actor || !user) return false
-  if (user.isGM) return true
-  const level = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-  return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-}
-
-/**
  * Retourne le contexte complet de permissions MTT pour un utilisateur.
  * Utilisé pour construire context.mtt.permissions dans MerchantSheet._prepareContext().
  *
@@ -229,39 +214,29 @@ export function canUserManageMerchant(actor, user = game.user) {
  * @param {User} [user=game.user] - L'utilisateur courant.
  * @returns {{
  *   isGM: boolean,
- *   isOwnerLike: boolean,
+ *   isOwner: boolean,
  *   isObserver: boolean,
  *   isLimited: boolean,
- *   canManageMerchant: boolean,
- *   canEditCatalog: boolean,
- *   canEditServices: boolean,
- *   canManageClients: boolean,
- *   canViewAllSessions: boolean,
- *   canViewJournal: boolean,
- *   canViewSecrets: boolean
+ *   permissionLevel: number
  * }}
  */
 export function getMerchantAccessContext(actor, user = game.user) {
   const isGM = Boolean(user?.isGM)
-  const permLevel = isGM
-    ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-    : (actor?.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE)
+  const permissionLevel = actor?.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
 
-  const isOwnerLike = isGM || permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-  const isObserver = !isOwnerLike && permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
-  const isLimited = !isOwnerLike && !isObserver && permLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+  const isOwner = !isGM && permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+  const isObserver = !isGM && !isOwner && permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+  const isLimited =
+    !isGM &&
+    !isOwner &&
+    !isObserver &&
+    permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
 
   return {
     isGM,
-    isOwnerLike,
+    isOwner,
     isObserver,
     isLimited,
-    canManageMerchant: isOwnerLike,
-    canEditCatalog: isOwnerLike,
-    canEditServices: isOwnerLike,
-    canManageClients: isOwnerLike,
-    canViewAllSessions: isOwnerLike,
-    canViewJournal: true,
-    canViewSecrets: isOwnerLike
+    permissionLevel
   }
 }

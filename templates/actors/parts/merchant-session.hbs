@@ -499,42 +499,40 @@
         {{#if mtt.session.isSubmitted}}
           <p class="mtt-merchant-session-submitted-message">{{localize "mtt.sessions.submittedMessage"}}</p>
         {{/if}}
-        {{#if @root.permissions.canInteractWithSession}}
-            <button
-              class="mtt-merchant-session-final-action delete"
-              type="button"
-              data-action="clearSessionDraft"
-              data-tooltip="{{localize 'mtt.sessions.clearOnly'}}"
-            >
-              <i class="fas fa-rotate-left"></i>
-            </button>
-        {{/if}}
-        {{#if @root.permissions.canValidateOrRefuseSessions}}
-          {{#if mtt.session.hasAnyItems}}
-            <button class="mtt-merchant-session-final-action" type="button" data-action="previewSessionExecution" data-tooltip="{{localize 'mtt.sessions.actions.previewTooltip'}}">
-              <i class="fas fa-clipboard-list"></i>
-            </button>
-          {{/if}}
-        {{/if}}
-        {{#if @root.permissions.canValidateOrRefuseSessions}}
-          {{#if mtt.session.isSubmitted}}
-            <button class="mtt-merchant-session-final-action" type="button" data-action="unlockSubmittedSession" data-tooltip="{{localize 'mtt.sessions.unlockSubmittedSession'}}">
-              <i class="fas fa-thumbs-down"></i>
-            </button>
-          {{/if}}
-          <button class="mtt-merchant-session-final-action valide" type="button" data-action="validateSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.validateTooltip'}}">
-            <i class="fas fa-check"></i>
-          </button>
-          <button class="mtt-merchant-session-final-action refuse" type="button" data-action="refuseSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.refuseTooltip'}}">
-            <i class="fas fa-xmark"></i>
-          </button>
-        {{else}}
+        {{#if mtt.session.hasAnyItems}}
           {{#if @root.permissions.canInteractWithSession}}
-            {{#unless mtt.session.isSubmitted}}
-              <button class="mtt-merchant-session-final-action" type="button" data-action="submitSession" data-tooltip="{{localize 'mtt.sessions.submitSession'}}">
-                <i class="fas fa-thumbs-up"></i>
+              <button
+                class="mtt-merchant-session-final-action delete"
+                type="button"
+                data-action="clearSessionDraft"
+                data-tooltip="{{localize 'mtt.sessions.clearOnly'}}"
+              >
+                <i class="fas fa-rotate-left"></i>
               </button>
-            {{/unless}}
+          {{/if}}
+          <button class="mtt-merchant-session-final-action" type="button" data-action="previewSessionExecution" data-tooltip="{{localize 'mtt.sessions.actions.previewTooltip'}}">
+            <i class="fas fa-clipboard-list"></i>
+          </button>
+          {{#if @root.permissions.canValidateOrRefuseSessions}}
+            {{#if mtt.session.isSubmitted}}
+              <button class="mtt-merchant-session-final-action" type="button" data-action="unlockSubmittedSession" data-tooltip="{{localize 'mtt.sessions.unlockSubmittedSession'}}">
+                <i class="fas fa-thumbs-down"></i>
+              </button>
+            {{/if}}
+            <button class="mtt-merchant-session-final-action valide" type="button" data-action="validateSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.validateTooltip'}}">
+              <i class="fas fa-check"></i>
+            </button>
+            <button class="mtt-merchant-session-final-action refuse" type="button" data-action="refuseSessionTransaction" data-tooltip="{{localize 'mtt.sessions.actions.refuseTooltip'}}">
+              <i class="fas fa-xmark"></i>
+            </button>
+          {{else}}
+            {{#if @root.permissions.canInteractWithSession}}
+              {{#unless mtt.session.isSubmitted}}
+                <button class="mtt-merchant-session-final-action" type="button" data-action="submitSession" data-tooltip="{{localize 'mtt.sessions.submitSession'}}">
+                  <i class="fas fa-thumbs-up"></i>
+                </button>
+              {{/unless}}
+            {{/if}}
           {{/if}}
         {{/if}}
       {{/if}}

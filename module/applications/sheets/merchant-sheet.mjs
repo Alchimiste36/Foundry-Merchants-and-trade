@@ -26,7 +26,8 @@ import {
   getMerchantLimitedState,
   productHasSecretInfo,
   normalizeEffectiveDeliveryQuantityPerLot,
-  formatProductNameWithLotQuantity
+  formatProductNameWithLotQuantity,
+  buildProductAvailabilityMap
 } from "./merchant-utils.mjs"
 import {
   renderMttDialogContent,
@@ -586,7 +587,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #removeSessionItemById(session, itemId, side) {
     return removeSessionItemById(session, itemId, side)
   }
+  #getProductAvailability(productId, options = {}) {
+    return buildProductAvailabilityMap(getCatalogProducts(this.actor), this.#getSessions(), options).get(productId) ?? null
+  }
+  #getProductSessionItemQuantityLimit(item, session) {
+    if (!item || item.type !== "product") return null
+
+    const availability = this.#getProductAvailability(item.sourceId, {
+      excludeSessionId: session?.id ?? "",
+      excludeSessionItemId: item.id ?? ""
+    })
+
+    if (!availability?.hasLimitedQuantity) return null
+    return availability.availableQuantity
+  }
   #canAcceptSessionQuantity(item, quantity) {
+    if (item?.type === "product") {
+      const session = this.#getActiveSession()
+      const quantityLimit = this.#getProductSessionItemQuantityLimit(item, session)
+      const requestedQuantity = Number(quantity)
+
+      if (!Number.isFinite(requestedQuantity) || requestedQuantity < 0) return false
+      if (quantityLimit === null) return true
+      return requestedQuantity <= quantityLimit
+    }
+
     return canAcceptSessionQuantity(this.actor, item, quantity)
   }
 
@@ -2169,8 +2194,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
 
     if (existingItem) {
-      existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
-      existingItem.hasLimitedQuantity = hasLimitedStock
+      const existingQuantityLimit =
+        type === "product" ? this.#getProductSessionItemQuantityLimit(existingItem, session) : normalizedAvailableQuantity
+      const hasExistingQuantityLimit = Number.isFinite(existingQuantityLimit) && existingQuantityLimit >= 0
+
+      existingItem.availableQuantity = hasExistingQuantityLimit ? existingQuantityLimit : null
+      existingItem.hasLimitedQuantity = type === "product" ? hasExistingQuantityLimit : hasLimitedStock
       if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
@@ -2542,11 +2571,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
-    const product = this.#getProductFromEvent(target)
+    const productId =
+      target.closest("[data-product-id]")?.dataset.productId ?? target.closest("[data-item-id]")?.dataset.itemId
+    if (!productId) return
+
+    this.render()
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+
+    const product = getCatalogProduct(this.actor, productId)
     if (!product) return
 
     if (product.isHidden) return
     if (!this.#requireSelectedSessionForItemAddition()) return
+
+    const availability = this.#getProductAvailability(product.id)
+    const hasLimitedAvailableQuantity = Boolean(availability?.hasLimitedQuantity)
+    const availableQuantity = hasLimitedAvailableQuantity ? availability.availableQuantity : null
+
+    if (hasLimitedAvailableQuantity && availableQuantity <= 0) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.productUnavailableQuantity"))
+      return
+    }
 
     const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot)
     const displayName = formatProductNameWithLotQuantity(product.name, product.deliveryQuantityPerLot)
@@ -2555,7 +2600,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const displayPriceValue = adjustPriceValue(itemPriceValue, rates.productSellPercent)
     const priceCurrency = product.priceCurrency
     const quantity = product.quantity
-    const availableQuantity = normalizeFiniteQuantity(quantity)
     const hasFreePrice = Boolean(product.hasFreePrice)
     const minimumPriceValue = product.minimumPriceValue
 
@@ -2573,6 +2617,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         ? game.i18n.localize("mtt.price.freePrice")
         : formatPriceLabel(displayPriceValue, priceCurrency),
       availableQuantity,
+      availableQuantityLabel: availability?.quantityTooltip ?? "",
       includeProposedPrice: !hasFreePrice,
       hasFreePrice,
       referenceCurrencyLabel
@@ -2582,16 +2627,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const hasProposedPrice = dialogData.proposedPrice !== ""
     const unitPriceValue = hasFreePrice || hasProposedPrice ? Number(dialogData.proposedPrice) : displayPriceValue
 
-    const requestedTotal =
-      dialogData.quantity +
-      this.#getSessionBuyerQuantity({
-        type: "product",
-        sourceId: product.id,
-        unitPriceValue,
-        priceCurrency: sessionCurrency
-      })
-
-    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && requestedTotal > availableQuantity) {
+    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && dialogData.quantity > availableQuantity) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.notEnoughQuantity"))
       return
     }

@@ -286,6 +286,7 @@
       "emptyNegotiationFormula": "No negotiation formula is defined.",
       "invalidSessionQuantity": "The requested quantity must be a positive number.",
       "notEnoughQuantity": "The requested quantity exceeds the available quantity.",
+      "productUnavailableQuantity": "This product has no available quantity left.",
       "productAddedToSession": "Product added to session.",
       "serviceAddedToSession": "Service added to session.",
       "sessionItemRemoved": "Item removed from session.",

@@ -116,12 +116,13 @@
                         min="0"
                         value="{{item.quantity}}"
                         placeholder="{{localize 'mtt.products.quantity.unlimited'}}"
+                        data-tooltip="{{item.quantityTooltip}}"
                         data-mtt-product-field="quantity"
                       />
                     {{else}}
                       {{#if item.hasQuantity}}
-                        <div class="mtt-merchant-product-quantity">
-                          {{item.quantity}}x
+                        <div class="mtt-merchant-product-quantity" data-tooltip="{{item.quantityTooltip}}">
+                          {{item.quantityDisplay}}
                         </div>
                       {{else}}
                         <span class="mtt-merchant-product-quantity mtt-merchant-product-quantity-empty">

@@ -78,14 +78,16 @@ export async function openSessionPreparationDialog({
   name,
   priceLabel,
   availableQuantity,
+  availableQuantityLabel: providedAvailableQuantityLabel = "",
   includeProposedPrice = false,
   hasFreePrice = false,
   referenceCurrencyLabel = ""
 }) {
   const availableQuantityLabel =
-    Number.isFinite(availableQuantity) && availableQuantity >= 0
+    providedAvailableQuantityLabel ||
+    (Number.isFinite(availableQuantity) && availableQuantity >= 0
       ? String(availableQuantity)
-      : game.i18n.localize("mtt.sessions.dialog.unlimitedQuantity")
+      : game.i18n.localize("mtt.sessions.dialog.unlimitedQuantity"))
   const content = await renderSessionPreparationDialog({
     name,
     priceLabel,

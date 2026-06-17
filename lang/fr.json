@@ -286,6 +286,7 @@
       "emptyNegotiationFormula": "Aucune formule de négociation n’est renseignée.",
       "invalidSessionQuantity": "La quantité demandée doit être un nombre positif.",
       "notEnoughQuantity": "La quantité demandée dépasse la quantité disponible.",
+      "productUnavailableQuantity": "Ce produit n’a plus de quantité disponible.",
       "productAddedToSession": "Produit ajouté à la session.",
       "serviceAddedToSession": "Service ajouté à la session.",
       "sessionItemRemoved": "Élément retiré de la session.",

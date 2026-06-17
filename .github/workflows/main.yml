@@ -59,7 +59,6 @@ on:
   release:
     types: [published]
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -69,7 +68,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
 
       # Extract version embedded in the tag.
       # This step expects the tag to be one of the following formats:
@@ -82,7 +80,6 @@ jobs:
         id: get_version
         uses: battila7/get-version-action@v2
 
-
       # Modify "module.json" with values specific to the release.
       # Since the values for the "version" and "url" keys aren't known ahead of
       # time, the manifest file in the repository is updated with these values.
@@ -93,22 +90,22 @@ jobs:
         id: sub_manifest_link_version
         uses: cschleiden/replace-tokens@v1
         with:
-          files: 'module.json'
+          files: "module.json"
         env:
           VERSION: ${{steps.get_version.outputs.version-without-v}}
           URL: ${{ env.project_url }}
           MANIFEST: ${{ env.latest_manifest_url }}
-          DOWNLOAD: ${{ env.release_module_url }} 
+          DOWNLOAD: ${{ env.release_module_url }}
 
       # `npm ci` is recommended:
       # https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
       - name: Install Dependencies
         run: npm ci
-      
+
       # Pull YAML to LDB packs
       - name: Build Packs
         run: npm run YMLtoLDB
-          
+
       # Create a "module.zip" archive containing all the module's required files.
       # If you have other directories or files that will need to be added to
       # your packaged module, add them here.
@@ -122,15 +119,13 @@ jobs:
              ./module.zip                        \
             `# The files that will be included.` \
             module.json                          \
-            cof2ta_reliques_union.mjs            \
-            cof2ta_reliques_union.css            \
+            mtt.mjs                              \
             README.md                            \
             CHANGELOG.md                         \
-            assets/                              \
-            fonts/                               \
+            css/                                 \
+            module/                              \
             lang/                                \
-            templates/                           \
-            packs/
+            templates/
           # Don't forget to add a backslash at the end of the line for any additional files or directories!
       # Update the GitHub release with the manifest and module archive files.
       - name: Update Release With Files
@@ -142,7 +137,7 @@ jobs:
           draft: ${{ github.event.release.unpublished }}
           prerelease: ${{ github.event.release.prerelease }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: './module.json, ./module.zip'
+          artifacts: "./module.json, ./module.zip"
           tag: ${{ github.event.release.tag_name }}
           body: ${{ github.event.release.body }}
 

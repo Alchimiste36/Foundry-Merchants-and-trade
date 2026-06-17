@@ -20,11 +20,25 @@ Le module cible **Foundry VTT v14**.
 
 Le fichier d’instructions du projet est nommé `agents.md` en minuscules. Ne pas chercher uniquement `AGENTS.md`.
 
-L’utilisateur est néophyte en développement. Les modifications doivent rester cohérentes avec l’existant, faciles à relire, faciles à tester, et éviter les refontes massives non demandées.
+L’utilisateur est néophyte en développement. Les modifications doivent rester cohérentes avec l’existant, faciles à relire, faciles à tester et éviter les refontes massives non demandées.
 
 ---
 
-## 2. Règle majeure : aucun legacy à préserver
+## 2. État actuel du module
+
+La partie **Marchand MTT** fonctionne et constitue désormais une base de travail importante.
+
+Ne pas casser les fonctions déjà validées du marchand.
+
+Avant toute modification, lire l’état actuel du dépôt et tenir compte des changements déjà effectués par les agents précédents. Ne pas raisonner uniquement à partir d’une ancienne archive, d’un ancien rapport ou d’une ancienne instruction.
+
+Quand l’utilisateur dit qu’une correction fonctionne, considérer cette correction comme une base stable pour la suite.
+
+Quand l’utilisateur dit qu’il a poussé sur le dépôt GitHub, le dépôt GitHub redevient l’état de référence.
+
+---
+
+## 3. Règle majeure : aucun legacy à préserver
 
 Le module MTT est encore en développement local et n’est pas distribué publiquement.
 
@@ -57,7 +71,7 @@ Conséquences :
 
 ---
 
-## 3. Vision générale MTT 2.0
+## 4. Vision générale MTT 2.0
 
 MTT doit évoluer vers un module **multi-types MTT**.
 
@@ -71,8 +85,6 @@ Acteur système normal
    → Stockage / Réserve
    → autres types éventuels plus tard
 ```
-
-Le module ne doit plus être pensé comme “le module marchand uniquement”.
 
 Types MTT prévus :
 
@@ -93,7 +105,7 @@ Ne pas mélanger les données de stockage dans `merchant`.
 
 ---
 
-## 4. Philosophie de développement
+## 5. Philosophie de développement
 
 Avancer étape par étape, avec rigueur.
 
@@ -101,32 +113,65 @@ Ne pas ajouter de fonctionnalité avancée non demandée.
 
 Ne pas refactoriser massivement sans demande explicite.
 
-Quand une modification demandée est confirmée comme fonctionnelle par l’utilisateur, considérer qu’elle existe dans son état local, même si elle n’a pas encore été poussée sur GitHub.
-
-Quand l’utilisateur dit qu’il a poussé, le dépôt GitHub redevient l’état de référence.
-
-Pour Codex ou Claude Code, modifier directement les fichiers sans demander à l’utilisateur de recoller manuellement de gros morceaux.
-
-Pour les gros changements, créer un rapport `.md` à la racine du module quand l’utilisateur demande une étape de nettoyage, une correction structurée ou une refactorisation. Le rapport doit lister les fichiers modifiés, les choix techniques, les tests réalisés et les risques restants.
+Ne pas se compliquer la vie avec des notions bloquantes, des couches d’abstraction ou des systèmes génériques non demandés.
 
 Préférer :
 
 - corrections ciblées ;
 - étapes courtes ;
-- tests fréquents ;
-- instructions vérifiables ;
-- code lisible plutôt qu’abstractions prématurées.
+- code lisible ;
+- noms clairs ;
+- peu de constantes ;
+- peu de helpers, mais bien définis ;
+- réutilisation progressive des fonctions existantes ;
+- extraction commune uniquement quand elle est réellement utile.
 
 Éviter :
 
 - gros frameworks internes trop tôt ;
 - factorisation anticipée ;
 - réécriture complète d’une fonctionnalité validée ;
-- changements simultanés sur plusieurs sujets sans nécessité.
+- changements simultanés sur plusieurs sujets sans nécessité ;
+- multiplication de constantes du type `isEditable`, `canManage...`, `canDoThis...` si une constante existante couvre déjà le besoin.
+
+Règle importante :
+
+```text
+Ne pas créer de rapport `.md` après chaque instruction.
+Créer un rapport uniquement si l’utilisateur le demande explicitement.
+```
 
 ---
 
-## 5. Outils et dépendances
+## 6. Roadmap et ordre de travail
+
+Avant de modifier une fonctionnalité importante, vérifier la roadmap du projet et l’état réellement déjà implémenté.
+
+Ne pas refaire une étape déjà effectuée.
+
+Ne pas changer une logique validée sans raison.
+
+Quand une instruction concerne les stockages, vérifier si une fonction équivalente existe déjà côté marchand :
+
+```text
+Si la fonction existe déjà côté marchand :
+→ l’extraire vers une partie commune seulement si c’est nécessaire ;
+→ préserver le comportement marchand ;
+→ ne pas casser les imports ni la logique existante.
+
+Si la fonction n’existe pas côté marchand :
+→ l’implémenter côté stockage sans créer prématurément une abstraction commune.
+```
+
+La règle est :
+
+```text
+Réutiliser ce qui existe, mais ne pas forcer l’abstraction.
+```
+
+---
+
+## 7. Outils et dépendances
 
 Le projet MTT doit rester simple.
 
@@ -170,11 +215,9 @@ Ne pas ajouter automatiquement :
 - dépendance externe non demandée ;
 - outil de packaging non demandé.
 
-Si une nouvelle dépendance semble utile, proposer d’abord l’ajout avec une justification courte, puis attendre validation.
-
 ---
 
-## 6. Conventions JavaScript et Foundry v14
+## 8. Conventions JavaScript et Foundry v14
 
 Utiliser du JavaScript moderne compatible Foundry VTT v14.
 
@@ -229,7 +272,7 @@ export const MTT = {
 
 ---
 
-## 7. Convention de fichiers et chemins
+## 9. Convention de fichiers et chemins
 
 Tous les fichiers et dossiers doivent être en minuscules.
 
@@ -246,12 +289,19 @@ module/documents/merchant-conversion.mjs
 module/documents/merchant-flags.mjs
 module/documents/merchant-access.mjs
 module/documents/merchant-products.mjs
+module/documents/storage-flags.mjs
+module/documents/storage-access.mjs
 module/applications/sheets/merchant-sheet.mjs
 module/applications/sheets/merchant-catalog.mjs
 module/applications/sheets/merchant-trade.mjs
 module/applications/sheets/merchant-dialogs.mjs
 module/applications/sheets/merchant-utils.mjs
+module/applications/sheets/storage-sheet.mjs
+module/applications/sheets/storage-content.mjs
+module/applications/sheets/storage-trade.mjs
+module/applications/sheets/mtt-sheet-common.mjs
 templates/actors/merchant-sheet.hbs
+templates/actors/storage-sheet.hbs
 templates/actors/parts/merchant-access-rail.hbs
 templates/dialogs/confirm-dialog.hbs
 styles/mtt.less
@@ -264,7 +314,7 @@ lang/en.json
 
 ---
 
-## 8. Localisation
+## 10. Localisation
 
 Toute chaîne affichée à l’utilisateur doit passer par les fichiers de langue.
 
@@ -282,16 +332,6 @@ Cela concerne :
 
 Le namespace de localisation est `mtt`.
 
-La structure des fichiers de langue doit rester hiérarchisée.
-
-Utiliser :
-
-```js
-game.i18n.localize("mtt.log.initializing")
-```
-
-Ne pas utiliser de namespace en majuscules comme `MTT.Log.Initializing`.
-
 Les fichiers `lang/fr.json` et `lang/en.json` doivent rester alignés.
 
 Quand une clé visible est ajoutée, modifiée, renommée ou supprimée, mettre à jour les deux fichiers.
@@ -300,7 +340,7 @@ Ne pas conserver de clés de langue inutilisées pour d’anciennes décisions.
 
 ---
 
-## 9. CSS / Less
+## 11. CSS / Less
 
 Toutes les classes CSS propres au module doivent être préfixées par `mtt-`.
 
@@ -342,80 +382,109 @@ button
 title
 ```
 
-Structure souhaitée :
-
-```text
-styles/
-  mtt.less
-  applications/
-    _index.less
-    merchant-variables.less
-    merchant-sheet.less
-    merchant-catalog.less
-    merchant-session.less
-    merchant-access-rail.less
-    merchant-journal.less
-    merchant-dialogs.less
-    mtt-config.less
-```
-
 Le CSS compilé doit aller dans :
 
 ```text
 css/mtt.css
 ```
 
-Le CSS local modifié manuellement par l’utilisateur doit être préservé. Ne pas réécrire/refactoriser le CSS des produits, du rail client, des sessions ou du layout général sans nécessité explicite.
+Le CSS local modifié manuellement par l’utilisateur doit être préservé.
 
-Les variables CSS `--mtt-*` sont centralisées dans `:root`.
+Ne pas réécrire/refactoriser le CSS des produits, du rail client, des sessions ou du layout général sans nécessité explicite.
 
 Les boutons MTT doivent être compacts, avec icône Font Awesome et tooltip localisé, surtout dans les zones denses.
 
-Éviter le texte visible sur les boutons dans :
-
-- lignes produits ;
-- lignes services ;
-- rail clients ;
-- actions rapides ;
-- navigation secondaire ;
-- session.
-
-Utiliser :
-
-```hbs
-data-tooltip="{{localize "..."}}"
-```
-
 ---
 
-## 10. Architecture JavaScript actuelle
+## 12. Architecture JavaScript marchand
 
 La feuille marchand est séparée en plusieurs fichiers cohérents. Respecter cette organisation.
 
 ### `module/applications/sheets/merchant-sheet.mjs`
 
-Rôle : fichier principal et orchestrateur de la feuille marchand.
+Fichier principal et orchestrateur de la feuille marchand.
 
-Il contient principalement :
+Il contient la classe `MerchantSheet`, les options, les parties de template, la préparation du contexte, le rendu, les actions Application V2 et les appels vers les fonctions spécialisées.
 
-- la classe `MerchantSheet` ;
-- `DEFAULT_OPTIONS` ;
-- `PARTS` ;
-- `_prepareContext` si la préparation reste directement liée à la feuille ;
-- `_onRender` ;
-- les actions Application V2 déclarées ;
-- les appels vers les fonctions importées ;
-- les wrappers nécessaires quand une action Application V2 doit rester attachée à la classe ;
-- l’injection et l’activation de certaines zones de feuille si elles dépendent de la fenêtre.
+Ce fichier pourra être séparé plus tard, mais ne pas commencer par un refactor massif tant que ce n’est pas demandé.
 
-Ce fichier pourra être séparé plus tard.
+### `module/applications/sheets/merchant-catalog.mjs`
 
-Découpage futur souhaité, mais pas à faire avant stabilisation :
+Catalogue du marchand.
+
+Il regroupe :
+
+- produits ;
+- services ;
+- catégories ;
+- sous-catégories ;
+- catégories automatiques ;
+- drops ;
+- déplacement de produit ;
+- ajout/fusion de produit ;
+- création de services ;
+- prix ;
+- prix libre ;
+- quantités ;
+- masquage ;
+- secrets ;
+- approbation MJ ;
+- copie produit/service.
+
+Produits et services restent ensemble dans ce fichier.
+
+### `module/applications/sheets/merchant-trade.mjs`
+
+Échange entre client et marchand.
+
+Ce fichier peut rester volumineux tant qu’il reste cohérent.
+
+Il regroupe :
+
+- sessions de transaction ;
+- buyerItems ;
+- sellerItems ;
+- quantités ;
+- totaux ;
+- ajustement monétaire ;
+- vérification transaction ;
+- validation/refus ;
+- transfert objets/monnaies ;
+- livraison ;
+- fusion/stacking ;
+- négociation ;
+- visibilité de session.
+
+Ne pas le découper sauf demande explicite.
+
+### `module/applications/sheets/merchant-dialogs.mjs`
+
+Centralise les dialogues MTT.
+
+Les dialogues importants doivent utiliser les templates dédiés dans :
+
+```text
+templates/dialogs/
+```
+
+Éviter le HTML brut dispersé dans les MJS.
+
+### `module/applications/sheets/merchant-utils.mjs`
+
+Utilitaires simples et réutilisables.
+
+Ne pas transformer ce fichier en fourre-tout.
+
+---
+
+## 13. Architecture commune future
+
+Découpage futur possible :
 
 ```text
 module/applications/sheets/mtt-sheet-common.mjs
   → fonctions communes de feuille MTT
-  → helpers UI, positionnement, activation listeners communs, contexte partagé éventuel
+  → helpers UI, positionnement, mémorisation scroll, activation listeners communs
 
 module/applications/sheets/merchant-sheet.mjs
   → fonctions spécifiques marchand
@@ -424,99 +493,28 @@ module/applications/sheets/storage-sheet.mjs
   → fonctions spécifiques stockage
 ```
 
-Ne pas commencer par ce refactor tant que les règles marchand ne sont pas stabilisées.
-
-### `module/applications/sheets/merchant-catalog.mjs`
-
-Rôle : catalogue du marchand.
-
-Il regroupe la logique liée à :
-
-- produits ;
-- services ;
-- catégories ;
-- sous-catégories ;
-- catégories automatiques ;
-- drop externe / drop interne ;
-- déplacement de produit entre catégories ;
-- ajout/fusion de produit ;
-- création de services libres ;
-- ajout de service basé sur Item ;
-- prix affichés ;
-- prix libre ;
-- prix minimum MJ ;
-- quantités catalogue ;
-- produits/services masqués ;
-- informations secrètes ;
-- approbation MJ ;
-- copie produit/service.
-
-Produits et services restent ensemble dans ce fichier, car leur logique reste proche.
-
-### `module/applications/sheets/merchant-trade.mjs`
-
-Rôle : échange entre un client et le marchand.
-
-Ce fichier peut rester volumineux tant qu’il reste cohérent, car il porte une logique métier dense.
-
-Il regroupe :
-
-- sessions de transaction ;
-- buyerItems : “Le PJ achète / reçoit” ;
-- sellerItems : “Le PJ vend / donne” ;
-- quantités dans la session ;
-- totaux ;
-- ajustement monétaire ;
-- vérification de transaction ;
-- prévisualisation d’exécution ;
-- validation/refus réel ;
-- transfert objets/monnaies ;
-- livraison ;
-- fusion/stacking ;
-- négociation ;
-- visibilité de session ;
-- préparation de données utiles aux sessions.
-
-Ne pas recréer séparément `merchant-sessions.mjs` ou `merchant-transaction-check.mjs` sauf demande explicite.
-
-### `module/applications/sheets/merchant-dialogs.mjs`
-
-Rôle : centraliser les dialogues MTT.
-
-Les dialogues importants doivent utiliser les templates dédiés dans :
+Règle pour les stockages :
 
 ```text
-templates/dialogs/
+À chaque fonction nécessaire pour le stockage, vérifier si elle existe déjà côté marchand.
 ```
 
-Éviter le HTML brut dispersé dans les fichiers MJS.
+Si oui :
 
-### `module/applications/sheets/merchant-utils.mjs`
+- déplacer vers une partie commune uniquement si le stockage en a réellement besoin ;
+- ne pas changer le comportement marchand ;
+- garder le nom clair ;
+- éviter les wrappers inutiles ;
+- ne pas créer de surcouche générique si un helper simple suffit.
 
-Rôle : utilitaires simples et réutilisables.
+Si non :
 
-Ce fichier peut contenir :
-
-- génération d’identifiants ;
-- parsing de nombres ;
-- normalisation de quantités ;
-- lecture de valeur par chemin configuré ;
-- helpers de devises ;
-- helpers de fusion ;
-- helpers de livraison ;
-- helpers HTML/textes réutilisés.
-
-Ne pas transformer ce fichier en fourre-tout.
-
-### `module/config/config-export.mjs`
-
-Rôle : regrouper la liste des settings exportables et la logique d’export de configuration.
-
-Ne pas recréer de cycle d’import `settings.mjs ↔ mtt-config-app.mjs`.
+- créer la fonction côté stockage ;
+- ne pas anticiper une généralisation inutile.
 
 ---
 
-## 11. Architecture marchand actuelle
+## 14. Architecture marchand actuelle
 
 MTT ne crée plus de type d’acteur marchand dédié.
 
@@ -547,27 +545,9 @@ Ne pas réintroduire :
 - `actor.type === "mtt-merchants.merchant"` ;
 - tout test `actor.type` pour identifier un marchand MTT.
 
-Point de vigilance prioritaire :
-
-```text
-module.json ne doit pas déclarer un ancien type d’acteur marchand dédié si la logique active repose sur la conversion par flags.
-```
-
-Vérifier et clarifier tout reliquat du type :
-
-```json
-"documentTypes": {
-  "Actor": {
-    "merchant": {}
-  }
-}
-```
-
-Sauf preuve technique contraire, ce reliquat est incohérent avec l’architecture actuelle et doit être supprimé.
-
 ---
 
-## 12. Données marchand
+## 15. Données marchand
 
 Toutes les données marchand sont stockées dans les flags Foundry de l’acteur support, pas dans `actor.system`.
 
@@ -603,7 +583,7 @@ Ne pas utiliser `TypeDataModel` pour les données marchand MTT.
 
 ---
 
-## 13. Produits marchands actuels
+## 16. Produits marchands actuels
 
 Décision actuelle importante :
 
@@ -621,7 +601,7 @@ flags.mtt-merchants.merchant.catalog.products[]
 
 Les données produit MTT doivent être en flags sur l’Item.
 
-Exemples de métadonnées produit :
+Exemples :
 
 ```text
 flags.mtt-merchants.product.enabled
@@ -643,33 +623,17 @@ Les helpers liés aux produits se trouvent dans :
 module/documents/merchant-products.mjs
 ```
 
-Attention aux copies d’Items :
-
-- nettoyer `flags.exportSource` ;
-- utiliser `_stats.exportSource` si nécessaire ;
-- préserver `sourceUuid` quand c’est utile ;
-- ne pas modifier l’Item source d’origine si une copie commerciale est créée.
-
-La copie produit/service du menu contextuel doit :
-
-- créer une nouvelle ligne indépendante ;
-- mettre la quantité à `1` ;
-- ne pas diminuer la ligne d’origine ;
-- conserver `sourceUuid`.
+La copie produit/service du menu contextuel doit créer une nouvelle ligne indépendante, quantité `1`, sans diminuer la ligne d’origine, et conserver `sourceUuid`.
 
 ---
 
-## 14. Services
+## 17. Services
 
 Les services restent stockés dans :
 
 ```text
 flags.mtt-merchants.merchant.catalog.services[]
 ```
-
-Les services peuvent être créés librement depuis l’interface MTT ou provenir d’un Item.
-
-Ne pas supprimer le bouton ni la logique de création de service libre.
 
 Un service acheté :
 
@@ -678,8 +642,7 @@ Un service acheté :
 - peut avoir un stock limité ou illimité ;
 - peut avoir un prix libre ;
 - peut demander une approbation MJ ;
-- peut avoir des informations secrètes ;
-- peut utiliser une logique propre aux services.
+- peut avoir des informations secrètes.
 
 Quantité service vide, `null` ou `undefined` = illimité.
 
@@ -687,7 +650,7 @@ Un nouveau service doit initialiser sa monnaie de prix avec la monnaie de réfé
 
 ---
 
-## 15. Catégories et sous-catégories
+## 18. Catégories et sous-catégories marchand
 
 MTT distingue :
 
@@ -699,31 +662,25 @@ Les catégories automatiques doivent utiliser des chemins configurables.
 
 La catégorie automatique issue du système ne doit jamais modifier l’Item source.
 
-Elle sert seulement à initialiser ou suggérer la catégorie MTT.
-
-Si le MJ déplace ensuite un produit vers une autre catégorie, ne pas le remettre automatiquement dans sa catégorie système.
+Si le MJ déplace un produit vers une autre catégorie, ne pas le remettre automatiquement dans sa catégorie système.
 
 Les catégories personnalisées globales sont copiées une seule fois à la conversion en catégories locales du marchand. Pas de resynchronisation automatique ensuite.
 
+La catégorie “Sans catégorie” doit être affichée à la fin du catalogue.
+
+Le clic droit sur une catégorie principale peut appliquer une action de masse aux produits de cette catégorie :
+
+- passer tous les produits en Limited ou Observer ;
+- demander l’approbation MJ sur tous les produits ;
+- retirer l’approbation MJ sur tous les produits.
+
+Ces actions modifient directement chaque produit, pas la catégorie. Si le produit change ensuite de catégorie, il conserve son droit et son statut d’approbation.
+
 ---
 
-## 16. Monnaies et prix
+## 19. Monnaies et prix
 
 Le tableau des devises est la source actuelle pour les prix et monnaies.
-
-Chaque ligne de devise peut définir :
-
-```text
-id
-name
-abbreviation
-actorPath
-itemPricePath
-itemCurrencyPath
-itemCurrencyValues
-rate
-isDefault
-```
 
 Ne pas réintroduire les anciens settings globaux :
 
@@ -735,15 +692,13 @@ actorCurrencyPath
 
 Lecture et écriture du prix Item doivent passer par les fonctions actuelles fondées sur le tableau des devises.
 
-Si le tableau des devises n’est pas configuré correctement, afficher une notification claire au MJ plutôt que d’utiliser un fallback legacy.
-
-La monnaie de référence est la devise dont le taux vaut 1 et/ou qui est marquée comme référence selon la logique actuelle.
+Si le tableau des devises n’est pas configuré correctement, afficher une notification claire au MJ.
 
 ---
 
-## 17. Informations secrètes
+## 20. Informations secrètes
 
-Un produit ou service peut avoir des informations secrètes :
+Un produit ou service peut avoir :
 
 - nom secret ;
 - prix secret ;
@@ -752,41 +707,23 @@ Un produit ou service peut avoir des informations secrètes :
 
 Ces informations sont réservées au MJ et aux utilisateurs ayant les droits appropriés.
 
-Elles ne remplacent pas les données visibles.
-
-Lors de la livraison d’un objet acheté, MTT peut ajouter :
-
-- une origine visible dans le chemin de description visible configuré ;
-- un bloc secret dans le chemin de description secrète configuré.
-
 Le joueur ne doit pas voir de bouton ou d’indicateur lui révélant qu’un secret existe.
 
 Dans le journal, les secrets ne doivent pas exposer leur contenu aux acheteurs.
 
 ---
 
-## 18. Prix libre et négociation
+## 21. Prix libre et négociation
 
-Le prix classique d’un produit/service peut être ajusté par les pourcentages du marchand et par les taux personnalisés du client actif.
+Le prix classique d’un produit/service peut être ajusté par les pourcentages du marchand et les taux personnalisés du client actif.
 
-Pour l’option “prix libre / proposer un prix au vendeur” :
+Le prix libre doit rester compact, avec icône, tooltip, prix minimum MJ caché et décision manuelle du MJ.
 
-- afficher une icône compacte, par exemple une balance ;
-- ne pas afficher un long texte dans la ligne catalogue ;
-- ajouter un tooltip ;
-- ajouter un prix minimum MJ caché ;
-- ne pas afficher ce prix minimum aux acheteurs ;
-- ne pas appliquer les pourcentages de vente/rachat à ce prix libre.
-
-Le test de négociation n’a aucun rôle automatique.
-
-Il sert seulement d’outil MJ.
-
-Le MJ décide manuellement d’accepter, refuser ou contre-proposer chaque ligne de négociation.
+Le test de négociation n’a aucun rôle automatique. Il sert seulement d’outil MJ.
 
 ---
 
-## 19. Clients autorisés et rail de cards
+## 22. Rail clients et sessions marchand
 
 Le MJ gère les clients autorisés via le rail de cards.
 
@@ -797,261 +734,191 @@ Logique :
 - retirer une autorisation : clic droit / menu contextuel ;
 - supprimer l’acteur du marchand : clic droit / menu contextuel.
 
-Une card non autorisée est en noir et blanc avec opacité réduite.
-
-Une card autorisée est en couleur avec opacité normale.
-
-L’icône de card signale seulement l’état de session :
-
-- aucune session = aucune icône ;
-- session en cours = sablier ;
-- en attente de décision = warning ;
-- validée = check vert ;
-- refusée = croix rouge.
-
 Quand un acteur est autorisé à commercer, une session doit exister pour lui chez ce marchand.
 
 Un acteur ne peut avoir qu’une seule session par marchand.
 
----
-
-## 20. Sessions marchand
-
 Toutes les transactions passent par une session.
 
-La session contient deux parties :
+La session contient :
 
 ```text
 Le PJ achète / reçoit
 Le PJ vend / donne
 ```
 
-Ne pas créer de troisième zone “Le PJ doit” ni de section séparée “Solde”.
+L’ajustement monétaire automatique est une ligne dans l’une de ces deux parties.
 
-La monnaie d’équilibrage est représentée par une ligne automatique “Ajustement monétaire” dans l’une des deux parties.
+Quand une session est validée, la transaction est exécutée, le journal est écrit, et l’acteur repart sur une session vide.
 
-Si le PJ doit compléter, l’ajustement apparaît côté “Le PJ vend / donne”.
-
-Si le marchand doit rendre de la monnaie, l’ajustement apparaît côté “Le PJ achète / reçoit”.
-
-Le bouton “Créer une session” ne doit pas être utilisé dans la sidebar : la session est créée via l’autorisation client.
-
-Le bouton “Supprimer la session” ne doit pas être utilisé dans la sidebar : la session prend fin via retrait d’autorisation ou décision finale.
-
-Le bouton “Vider la session” reste utile.
-
-Quand une session entière est validée :
-
-- la transaction est exécutée ;
-- les objets sont transmis dans les deux sens ;
-- l’ajustement monétaire est appliqué ;
-- une entrée “validée” est ajoutée au journal marchand ;
-- l’acteur repart sur une session vide ;
-- l’autorisation de commercer peut être conservée.
-
-Quand une session entière est refusée :
-
-- aucune transaction réelle n’est appliquée ;
-- une entrée “refusée” est ajoutée au journal marchand ;
-- l’acteur repart sur une session vide ;
-- l’autorisation de commercer peut être conservée.
-
-Quand le MJ retire l’autorisation d’un acteur :
-
-- c’est une annulation/remise à zéro ;
-- aucun transfert ;
-- aucune entrée de journal.
+Quand une session est refusée, aucune transaction réelle n’est appliquée, le journal est écrit, et l’acteur repart sur une session vide.
 
 ---
 
-## 21. Quantités disponibles et réservations
+## 23. Render, update et scroll marchand
 
-Point prioritaire pour la consolidation marchand.
-
-Le catalogue ne doit pas seulement afficher le stock réel brut.
-
-Il faut tenir compte des quantités déjà engagées dans les sessions pertinentes.
-
-Logique attendue :
+Terminologie de travail pour ce projet :
 
 ```text
-stockTotal = quantité réelle du produit ou service chez le marchand
+update = mise à jour globale qui modifie l’acteur marchand et peut impacter toutes les feuilles ouvertes
+render = rafraîchissement local de la feuille utilisateur
+```
+
+Les grosses modifications du marchand peuvent utiliser un update :
+
+- catalogue ;
+- configuration ;
+- changement de catégorie ;
+- validation/refus ;
+- modification réelle de stock ;
+- journalisation ;
+- masquage ;
+- prix ;
+- services.
+
+Les interactions de session utilisent les renders existants et ne doivent pas être complexifiées tant que la mémorisation du scroll rend l’expérience fluide.
+
+La position des scrolls doit être préservée lors des renders/updates de la feuille marchand :
+
+- onglet produits ;
+- onglet services ;
+- onglet configuration si scrollable ;
+- journal ;
+- session ;
+- autres conteneurs scrollables pertinents.
+
+---
+
+## 24. Quantités disponibles et réservations
+
+Le catalogue marchand tient compte des quantités engagées dans les sessions pertinentes.
+
+Logique :
+
+```text
+stockTotal = quantité réelle du produit chez le marchand
 reservedQuantity = quantités déjà engagées dans les sessions actives/submitted/pending pertinentes
 availableQuantity = stockTotal - reservedQuantity
+```
+
+L’affichage produit doit rester compact :
+
+```text
+8x
+8x!
+```
+
+Le `!` indique que le stock réel est partiellement engagé dans une ou plusieurs sessions.
+
+Le tooltip de la quantité indique :
+
+```text
+disponible / stock réel
 ```
 
 Exemple :
 
 ```text
-Potion de soins : 3 disponibles / 10 total
+8/10
 ```
 
-Si une session est vidée, refusée ou annulée, les quantités réservées redeviennent disponibles.
-
-Si une session est validée/exécutée, le stock réel est décrémenté.
-
-Le même principe sera nécessaire pour le futur stockage.
-
-Il faut donc éviter un patch trop local qui rendrait impossible la réutilisation future.
-
-À la validation réelle d’une session, toujours revérifier :
-
-- existence de l’objet ;
-- quantité réelle ;
-- quantité disponible ;
-- droits ;
-- statut technique éventuel ;
-- acteur source ;
-- acteur destination ;
-- chemins configurés.
-
-Ne jamais se fier uniquement à ce qui était vrai au moment du clic d’ajout à la session.
+La validation finale doit toujours revérifier la disponibilité réelle.
 
 ---
 
-## 22. Livraison et fusion des objets
+## 25. Livraison et fusion des objets
 
 Lors d’un achat validé, MTT doit :
 
 - copier l’Item marchand actuel ;
-- créer ou fusionner l’Item sur l’acteur client selon les règles de stacking/fusion ;
+- créer ou fusionner l’Item sur l’acteur client ;
 - appliquer la quantité achetée ;
-- appliquer les informations de provenance visibles si l’option est activée ;
-- ajouter les informations secrètes au chemin secret configuré si nécessaire ;
-- accorder des droits sur l’objet livré selon l’option prévue ;
-- respecter les quantités maximales de pile uniquement sur l’acteur destinataire.
+- appliquer l’origine visible si configurée ;
+- ajouter les informations secrètes si configurées ;
+- accorder les droits prévus sur l’objet livré ;
+- respecter les quantités maximales uniquement sur l’acteur destinataire.
 
-La logique de quantité maximale par pile ne s’applique pas au stock du marchand.
-
-Un marchand peut avoir un stock catalogue de 35 armures même si le système actif limite l’Item acteur à 1 par pile.
-
-La quantité max sert uniquement au moment de livrer/fusionner/créer les Items sur l’acteur acheteur.
+La quantité max ne limite pas le stock du marchand.
 
 ---
 
-## 23. Vente d’objets du PJ au marchand
+## 26. Permissions marchand
 
-Lors de l’exécution réelle, MTT doit seulement diminuer la quantité possédée par le PJ sur l’Item source.
+La matrice de permissions marchand doit rester simple.
 
-MTT ne doit pas supprimer directement l’Item si la quantité tombe à zéro.
+Permissions configurables validées :
 
-Le système actif gère ses propres règles du type “détruire l’objet si vide”.
-
-Au moment de valider/exécuter la session, MTT doit revérifier :
-
-- quantité disponible actuelle ;
-- prix/valeur actuelle ;
-- existence de l’Item source.
-
-La zone “Le PJ vend / donne” doit refuser les drops internes depuis le catalogue du marchand.
-
----
-
-## 24. Permissions marchand à consolider
-
-Les permissions marchand doivent évoluer vers une table centrale de profils.
-
-Éviter les conditions dispersées du type :
-
-```js
-if (isObserver) { ... }
-if (isOwner) { ... }
+```text
+canViewConfigTab
+canViewApprovalStatus
+canViewPrices
+canOpenProduct
+canInteractWithSession
+canAddActorToMerchantRail
+canViewOtherActorsInRail
+canViewObserverActorSessions
+canValidateOrRefuseSessions
+canViewObserverActorJournalEntries
 ```
 
-Ces états peuvent servir à identifier le profil, mais les actions doivent vérifier des permissions concrètes.
+Colonnes configurables :
 
-Structure attendue à terme :
-
-```js
-const MERCHANT_PERMISSION_PROFILES = {
-  limited: {
-    canViewCatalog: true,
-    canViewPrices: true,
-    canAddProductToSession: false,
-    canAddServiceToSession: false,
-    canSellItemToMerchant: false,
-    canSubmitSession: false,
-    canValidateTransaction: false,
-    canRejectTransaction: false,
-    canClearSession: false,
-    canManageCatalog: false,
-    canManageServices: false,
-    canManageClientRates: false,
-    canManageSecrets: false,
-    canViewJournal: true,
-    canManageMerchantConfig: false
-  },
-  observer: {
-    canViewCatalog: true,
-    canViewPrices: true,
-    canAddProductToSession: true,
-    canAddServiceToSession: true,
-    canSellItemToMerchant: true,
-    canSubmitSession: true,
-    canValidateTransaction: false,
-    canRejectTransaction: false,
-    canClearSession: true,
-    canManageCatalog: false,
-    canManageServices: false,
-    canManageClientRates: false,
-    canManageSecrets: false,
-    canViewJournal: true,
-    canManageMerchantConfig: false
-  },
-  owner: {
-    canViewCatalog: true,
-    canViewPrices: true,
-    canAddProductToSession: true,
-    canAddServiceToSession: true,
-    canSellItemToMerchant: true,
-    canSubmitSession: true,
-    canValidateTransaction: true,
-    canRejectTransaction: true,
-    canClearSession: true,
-    canManageCatalog: true,
-    canManageServices: true,
-    canManageClientRates: true,
-    canManageSecrets: true,
-    canViewJournal: true,
-    canManageMerchantConfig: true
-  },
-  gm: {
-    // toutes les permissions à true
-  }
-}
+```text
+limited
+observer
+owner
 ```
 
-Le MJ peut tout faire, toujours.
+Le MJ a toujours toutes les permissions à `true`.
 
-Les templates HBS doivent utiliser ces permissions pour afficher/masquer les éléments.
+Le profil `owner` est configurable. Par défaut il peut tout faire, mais un MJ peut désactiver certaines permissions owner.
 
-Les handlers JS doivent revérifier les mêmes permissions avant d’exécuter une action.
+Ne pas rendre configurables :
 
-Ne jamais se contenter de masquer un bouton côté HTML.
+- produits/services/catégories masqués ;
+- indicateurs de secrets ;
+- stock exact ;
+- fonctions profondes de gestion marchand.
+
+Conserver uniquement :
+
+```text
+isEditable
+canEditMerchant
+```
+
+pour la gestion profonde du marchand.
+
+Ne pas réintroduire :
+
+```text
+canUserManageMerchant
+isOwnerLike
+```
+
+`canUserManageMerchant` est redondant avec `canEditMerchant`.
+
+`isOwnerLike` mélangeait GM et Owner et doit rester supprimé.
 
 ---
 
-## 25. Journal marchand et journal global
+## 27. Journal marchand et journal global
 
 Le journal marchand existe.
 
 Le journal global existe.
 
-La visibilité est filtrée selon les droits :
-
-- MJ / propriétaire / gestionnaire du marchand : voit toutes les transactions du marchand ;
-- acheteur : voit uniquement ses propres transactions avec ce marchand ;
-- journal global : doit respecter la même logique de visibilité.
+La visibilité est filtrée selon les droits et permissions actuels.
 
 Les sessions validées/refusées sont copiées dans le journal du marchand.
 
 Les secrets ne doivent pas exposer leur contenu aux acheteurs.
 
-Ne pas prévoir d’annulation automatique après coup : c’est trop risqué et complexe.
+Ne pas prévoir d’annulation automatique après coup.
 
 ---
 
-## 26. Configuration du module
+## 28. Configuration du module
 
 Le module doit permettre de configurer des chemins pour rester universel.
 
@@ -1069,18 +936,10 @@ Options importantes :
 - mapping de libellés de catégories ;
 - catégories personnalisées globales ;
 - sous-catégories ;
-- préfixes i18n simples pour catégories/sous-catégories ;
-- tableau des devises et taux de conversion ;
+- préfixes i18n simples ;
+- tableau des devises ;
 - monnaie de référence ;
-- droits accordés aux objets livrés si l’option existe.
-
-Ne pas réintroduire les anciens settings supprimés :
-
-```text
-itemPriceValuePath
-itemPriceCurrencyPath
-actorCurrencyPath
-```
+- matrice de permissions marchand.
 
 L’import/export de configuration est géré via :
 
@@ -1090,7 +949,7 @@ module/config/config-export.mjs
 
 ---
 
-## 27. Futur stockage MTT
+## 29. Stockage MTT — vision fonctionnelle
 
 Le stockage MTT représentera :
 
@@ -1133,19 +992,38 @@ Le contenu du stockage doit afficher :
 
 Le stockage doit utiliser des sessions d’échange, pas du retrait libre généralisé.
 
-Actions futures :
+---
 
-- déposer objet ;
-- demander objet ;
-- retirer objet selon droits ;
-- voter/répondre à une demande ;
-- valider/refuser une session ;
-- répartir monnaie ;
-- journaliser tous les mouvements.
+## 30. Stockage MTT — développement progressif
+
+Ordre de développement prévu :
+
+1. Introduire le type logique MTT `storage`.
+2. Ajouter la conversion MTT avec choix Marchand / Stockage.
+3. Ajouter les types d’acteurs convertibles en stockage dans la configuration.
+4. Créer les helpers de flags stockage.
+5. Créer la feuille stockage minimale.
+6. Créer les templates de base.
+7. Ajouter une palette CSS distincte et un layout inversé.
+8. Afficher le contenu du stockage.
+9. Gérer les catégories du stockage.
+10. Ajouter les tags d’information.
+11. Ajouter les statuts techniques.
+12. Créer les sessions d’échange.
+13. Ajouter les actions de dépôt.
+14. Ajouter les actions de retrait/demande.
+15. Valider/refuser les sessions d’échange.
+16. Exécuter les transferts réels.
+17. Journaliser les mouvements.
+18. Ajouter demandes/votes.
+19. Ajouter gestion des monnaies.
+20. Ajouter répartition de monnaie.
+
+Ne pas ajouter les étapes de test ou de consolidation dans les instructions de développement sauf demande explicite de l’utilisateur.
 
 ---
 
-## 28. Tags et statuts du stockage
+## 31. Tags et statuts du stockage
 
 Distinguer clairement tags humains et statuts techniques.
 
@@ -1177,89 +1055,42 @@ Ne pas mélanger les deux.
 
 ---
 
-## 29. Permissions stockage futures
+## 32. Permissions stockage futures
 
-Le stockage devra utiliser une table centrale de permissions par profil.
+Le stockage devra utiliser une table centrale de permissions par profil, mais elle devra rester simple.
 
-Niveaux de base :
+Niveaux prévus :
 
-- `limited`
-- `observer`
-- `owner`
-- `gm`
-
-Exemples de permissions :
-
-```js
-const STORAGE_PERMISSION_PROFILES = {
-  limited: {
-    canViewStorage: true,
-    canViewContent: true,
-    canOpenItemSheet: true,
-    canSearchContent: true,
-    canFilterContent: true,
-    canAddItemToExchangeSession: false,
-    canDepositItems: false,
-    canWithdrawItems: false,
-    canCreateItemRequest: true,
-    canRespondItemRequest: true,
-    canResolveItemRequest: false,
-    canSplitCurrency: false,
-    canManageCategories: false,
-    canManageAccess: false
-  },
-  observer: {
-    canViewStorage: true,
-    canViewContent: true,
-    canOpenItemSheet: true,
-    canSearchContent: true,
-    canFilterContent: true,
-    canAddItemToExchangeSession: true,
-    canDepositItems: true,
-    canWithdrawItems: false,
-    canViewOtherSessions: true,
-    canCreateItemRequest: true,
-    canRespondItemRequest: true,
-    canResolveItemRequest: false,
-    canSplitCurrency: false,
-    canManageCategories: false,
-    canManageAccess: false
-  },
-  owner: {
-    canViewStorage: true,
-    canViewContent: true,
-    canOpenItemSheet: true,
-    canSearchContent: true,
-    canFilterContent: true,
-    canAddItemToExchangeSession: true,
-    canDepositItems: true,
-    canWithdrawItems: true,
-    canViewOtherSessions: true,
-    canValidateExchangeSession: true,
-    canRejectExchangeSession: true,
-    canClearExchangeSession: true,
-    canCreateItemRequest: true,
-    canRespondItemRequest: true,
-    canResolveItemRequest: true,
-    canSplitCurrency: true,
-    canManageCategories: true,
-    canManageAccess: false
-  },
-  gm: {
-    // toutes les permissions à true
-  }
-}
+```text
+limited
+observer
+owner
+gm
 ```
 
-Même règle que pour le marchand :
+Le MJ peut tout faire.
 
-- permissions utilisées côté HBS ;
-- permissions revérifiées côté JS ;
-- MJ toujours tout-puissant.
+Ne pas partir dans une liste excessive de micro-permissions.
+
+Définir seulement les permissions réellement utiles pour l’interface stockage :
+
+- voir le stockage ;
+- voir le contenu ;
+- ouvrir un Item ;
+- déposer ;
+- demander/retrait ;
+- voir les sessions selon droits ;
+- valider/refuser ;
+- gérer tags/statuts si prévu ;
+- gérer catégories si prévu ;
+- gérer accès si prévu ;
+- répartir monnaie si prévu.
+
+Les permissions doivent être utilisées côté HBS et revérifiées côté JS.
 
 ---
 
-## 30. Fondations communes à préparer progressivement
+## 33. Fondations communes à préparer progressivement
 
 Ne pas créer immédiatement un gros framework commun.
 
@@ -1271,27 +1102,28 @@ Préparer progressivement des helpers communs pour :
 - sessions par acteur ;
 - calcul des quantités réservées ;
 - disponibilité réelle ;
-- transferts d’Items entre acteur source et acteur destination ;
-- fusion intelligente des Items ;
+- transferts d’Items ;
+- fusion intelligente ;
 - respect de la quantité max seulement à la livraison ;
 - catégories ;
 - drag & drop vers catégorie ;
 - menus contextuels ;
 - journalisation ;
-- dialogues de validation/refus ;
-- recherche/filtre/tri.
+- dialogues ;
+- recherche/filtre/tri ;
+- mémorisation de scroll.
 
 Principe :
 
 ```text
-Consolider le marchand d’abord.
-Créer le stockage ensuite.
-Extraire les helpers communs quand les deux usages justifient réellement l’extraction.
+Le marchand fonctionne : ne pas le casser.
+Le stockage arrive : réutiliser ce qui existe quand c’est pertinent.
+Extraire en commun seulement quand les deux usages le justifient vraiment.
 ```
 
 ---
 
-## 31. Relation avec Chroniques Oubliées 2
+## 34. Relation avec Chroniques Oubliées 2
 
 CO2 est le premier environnement de test et le futur premier preset.
 
@@ -1299,23 +1131,13 @@ Le cœur MTT doit rester générique.
 
 Les règles spécifiques CO2 doivent rester isolées plus tard dans un preset CO2.
 
-Le preset CO2 pourra gérer :
-
-- monnaies PO / PA / PC ;
-- chemins de prix ;
-- chemins de quantité ;
-- types d’Items vendables ;
-- types d’acteurs acheteurs ;
-- règles de transfert d’objets ;
-- règles de transfert de monnaie.
-
-Ne pas coder ces éléments en dur dans le cœur MTT.
+Le cœur MTT ne doit pas coder CO2 en dur.
 
 Ne pas ajouter de migration MTT pour corriger des données internes CO2.
 
 ---
 
-## 32. Dialogues et notifications
+## 35. Dialogues et notifications
 
 Les dialogues MTT doivent utiliser une structure stylable propre au module, avec des classes `mtt-dialog`.
 
@@ -1331,15 +1153,6 @@ Supprimer les doubles confirmations inutiles.
 
 Les notifications info pour actions normales doivent être évitées.
 
-Ne pas afficher de notification info pour :
-
-- session créée ;
-- acteur autorisé ;
-- session sélectionnée ;
-- produit ajouté si l’interface le montre ;
-- quantité mise à jour ;
-- catégorie changée.
-
 Conserver les notifications pour :
 
 - erreurs ;
@@ -1348,22 +1161,20 @@ Conserver les notifications pour :
 - blocages de sécurité ;
 - drop invalide ;
 - quantité invalide ;
-- verrou global ;
 - stock insuffisant ;
 - monnaie insuffisante ;
-- absence de client/session ;
 - configuration manquante.
 
 ---
 
-## 33. Presets système
+## 36. Presets système
 
 Les presets système sont une direction future.
 
 Un preset CO2 pourra configurer automatiquement :
 
 - devises ;
-- chemins prix/monnaie via le tableau des devises ;
+- chemins prix/monnaie ;
 - chemins quantité ;
 - chemins catégorie/sous-catégorie ;
 - types autorisés ;
@@ -1373,7 +1184,7 @@ Le cœur MTT ne doit pas coder CO2 en dur.
 
 ---
 
-## 34. Instructions pour Codex / Claude Code
+## 37. Instructions pour Codex / Claude Code
 
 Les instructions destinées à Codex ou Claude Code doivent mentionner :
 
@@ -1388,12 +1199,12 @@ Quand l’utilisateur demande un bloc pour Codex ou Claude Code, fournir toutes 
 
 Ne pas mettre de consignes importantes hors du bloc copiable.
 
-Si une étape demande un rapport, le rapport doit être créé en `.md` à la racine du module.
-
 Quand Codex ou Claude Code modifie les fichiers :
 
 - lire `agents.md` avant de modifier ;
-- travailler en respectant l’état actuel du repo ;
+- vérifier la roadmap et l’état actuel avant de changer une logique ;
+- respecter le fait que la partie marchand fonctionne ;
+- ne pas casser une fonction marchand validée ;
 - éviter les gros changements non demandés ;
 - ne pas ajouter de fonctionnalités avancées sans demande explicite ;
 - respecter le style sans point-virgule ;
@@ -1404,49 +1215,10 @@ Quand Codex ou Claude Code modifie les fichiers :
 - ne pas refactoriser massivement sans demande explicite ;
 - préserver les corrections CSS locales ;
 - préserver le rail client et ne pas casser le layout global Foundry ;
-- respecter la séparation entre `merchant-sheet.mjs`, `merchant-catalog.mjs`, `merchant-trade.mjs`, `merchant-dialogs.mjs` et `merchant-utils.mjs` ;
+- respecter la séparation entre fichiers marchand actuels ;
 - ne pas réintroduire de compatibilité legacy supprimée ;
 - ne pas réintroduire d’anciens settings supprimés ;
 - ne pas réintroduire l’ancien modèle produits plain objects dans les flags ;
 - ne pas réintroduire de type d’acteur marchand dédié ;
 - ne pas utiliser les globals Foundry dépréciés ;
-- créer un rapport `.md` à la racine quand l’utilisateur le demande ou quand une étape de nettoyage l’exige.
-
----
-
-## 35. Ordre de développement recommandé
-
-Phase 1 — Clarification marchand actuel :
-
-1. Clarifier et supprimer si nécessaire le reliquat `documentTypes.Actor.merchant` dans `module.json`.
-2. Vérifier que la conversion marchand repose uniquement sur les flags.
-3. Vérifier que l’ouverture boutique/gérant ne modifie pas `actor.name` ou `actor.img`.
-
-Phase 2 — Consolidation marchand :
-
-4. Introduire une vraie table de permissions marchand par profils.
-5. Corriger le calcul des quantités disponibles avec réservations de sessions.
-6. Nettoyer la logique de réservation/libération/validation des sessions.
-7. Identifier les helpers communs utiles sans refactor massif.
-
-Phase 3 — Architecture multi-types :
-
-8. Introduire la notion de type MTT logique : `merchant` / `storage`.
-9. Remplacer la conversion directe par “Conversion MTT” + dialogue de choix.
-10. Ajouter les types d’acteurs convertibles en stockage dans la configuration.
-
-Phase 4 — Base stockage :
-
-11. Ajouter les helpers de flags storage.
-12. Créer la feuille `storage-sheet.mjs`.
-13. Créer les templates stockage.
-14. Ajouter une palette CSS distincte et un layout inversé.
-
-Phase 5 — Stockage fonctionnel :
-
-15. Afficher le contenu.
-16. Gérer catégories, tags, statuts.
-17. Créer les sessions d’échange.
-18. Exécuter dépôt/retrait avec revérification finale.
-19. Journaliser tous les mouvements.
-20. Ajouter demandes/votes/répartition monnaie plus tard.
+- ne pas créer de rapport `.md` sauf demande explicite de l’utilisateur.

@@ -244,6 +244,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return context
   }
 
+  async _preRender(context, options) {
+    await super._preRender(context, options)
+    this.#saveScrollPositions()
+  }
+
   _onRender(context, options) {
     super._onRender(context, options)
 
@@ -494,7 +499,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     for (const [selector, scrollTop] of Object.entries(this.#scrollPositions ?? {})) {
       const element = this.element?.querySelector(selector)
       if (!element) continue
-      element.scrollTop = scrollTop
+      const maxScrollTop = Math.max(0, element.scrollHeight - element.clientHeight)
+      element.scrollTop = Math.min(scrollTop, maxScrollTop)
     }
   }
 
@@ -1305,10 +1311,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async #updateCatalogItemSecretData(catalogItem, secrets) {
     if (!this.isEditable) return
 
-    this.#saveScrollPositions()
-
     if (catalogItem.kind === "product") {
-      this.#saveScrollPositions()
       const hasSecrets = Boolean(
         secrets.secretName || secrets.secretPrice || secrets.secretCurrency || secrets.secretDescription
       )

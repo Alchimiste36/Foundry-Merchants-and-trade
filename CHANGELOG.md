@@ -1,0 +1,91 @@
+# Module MTT - Merchants, Trades and Transactions
+
+# Version 0.8.0 - juin 2026
+
+Fonctionnalités actuelles :
+
+- Conversion d’un acteur système en marchand MTT.
+- Ouverture d’une boutique marchand depuis la fiche de l’acteur support.
+- Conservation indépendante du nom et de l’image de la boutique et du gérant.
+- Verrouillage et déverrouillage de la feuille marchand.
+- Gestion d’un catalogue de produits basé sur les Items de l’acteur support.
+- Gestion de services marchands.
+- Ajout de produits et de services au catalogue par glisser-déposer.
+- Création de services libres.
+- Copie de produits et de services.
+- Suppression de produits et de services.
+- Modification du nom commercial d’un produit et d'un service.
+- Modification du prix d’un produit et d'un service.
+- Modification de la monnaie d’un produit et d'un service.
+- Modification de la quantité d’un produit et d'un service.
+- Modification de la description d’un service.
+- Gestion de produits et de services avec stock limité ou illimité.
+- Affichage des quantités disponibles des produits selon les sessions en cours.
+- Catégories personnalisées de produits.
+- Catégories automatiques basées sur les chemins système configurés.
+- Sous-catégories automatiques basées sur les chemins système configurés.
+- Déplacement de produits entre catégories.
+- Masquage et affichage de produits, de services et de catégories.
+- Changement de visibilité Limited / Observer sur un produit.
+- Changement de visibilité Limited / Observer sur tous les produits d’une catégorie.
+- Demande d’approbation MJ sur un produit.
+- Retrait de demande d’approbation MJ sur un produit.
+- Demande d’approbation MJ sur tous les produits d’une catégorie.
+- Retrait de demande d’approbation MJ sur tous les produits d’une catégorie.
+- Gestion d’informations secrètes sur les produits et les services.
+- Ajout d’un bloc d’information visible lors de la livraison d’un objet.
+- Ajout d’un bloc d’information secrète lors de la livraison d’un objet.
+- Prix libre sur les produits et les services.
+- Prix minimum MJ pour les prix libres.
+- Propositions de négociation.
+- Acceptation, refus ou contre-proposition de négociation.
+- Formule de négociation configurable.
+- Gestion des pourcentages de vente des produits, des services et du rachat du marchand.
+- Gestion de taux personnalisés par client.
+- Rail d’acteurs autorisés.
+- Ajout d’acteurs au marchand via le rail.
+- Retrait d’autorisation d’un acteur.
+- Suppression d’un acteur du rail marchand.
+- Sessions de transaction par acteur.
+- Ajout de produits et de services à une session.
+- Vente ou don d’Items d’un acteur au marchand.
+- Modification des quantités dans une session.
+- Retrait de lignes d’une session.
+- Vidage d’une session.
+- Envoi d’une session pour validation.
+- Prévisualisation d’une transaction.
+- Validation d’une transaction.
+- Refus d’une transaction.
+- Transfert réel des produits achetés vers l’acteur client.
+- Décrément du stock marchand lors de la validation.
+- Décrément des services limités lors de la validation.
+- Transfert des objets vendus ou donnés par le client au marchand.
+- Gestion de l’ajustement monétaire automatique.
+- Conversion automatique entre monnaies configurées.
+- Gestion de la fortune du marchand.
+- Vérification de la monnaie disponible côté acheteur.
+- Vérification de la monnaie disponible côté marchand.
+- Vérification du stock disponible avant validation.
+- Fusion intelligente des Items livrés sur l’acteur client.
+- Respect des quantités maximales uniquement lors de la livraison sur l’acteur client.
+- Conservation de la provenance des Items livrés.
+- Journal des transactions du marchand.
+- Journal global MTT.
+- Filtrage de visibilité des journaux selon les droits.
+- Indicateurs de secrets dans les journaux pour les utilisateurs autorisés.
+- Matrice configurable de permissions marchand.
+- Permissions configurables pour les droits Limited, Observer et Owner.
+- Configuration des types d’acteurs convertibles en marchand.
+- Configuration des types d’Items autorisés comme produits et comme services.
+- Configuration des chemins de quantité.
+- Configuration des chemins de quantité maximale.
+- Configuration des chemins de description visible.
+- Configuration des chemins de description secrète.
+- Configuration des chemins de catégories et sous-catégories automatiques.
+- Configuration des libellés de catégories.
+- Configuration des devises.
+- Import de configuration MTT.
+- Export de configuration MTT.
+- Enregistrement d’un état de référence du marchand.
+- Restauration de l’état de référence du marchand.
+- Retrait de la conversion marchand d’un acteur.

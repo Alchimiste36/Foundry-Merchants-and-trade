@@ -33,7 +33,8 @@ import {
   productHasSecretInfo,
   readItemReferencePrice,
   normalizeEffectiveDeliveryQuantityPerLot,
-  formatProductNameWithLotQuantity
+  formatProductNameWithLotQuantity,
+  buildProductAvailabilityMap
 } from "./merchant-utils.mjs"
 
 export function adjustPriceValue(priceValue, sellPercent) {
@@ -108,10 +109,12 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
 
 export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
   const products = getCatalogProducts(actor)
+  const availabilityByProductId = buildProductAvailabilityMap(products, getMerchantData(actor)?.sessions?.entries ?? [])
 
   const items = products
     .map((product) => {
       const quantity = product.quantity
+      const availability = availabilityByProductId.get(product.id) ?? null
       const effectiveDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(product.deliveryQuantityPerLot)
       const hasDeliveryQuantityPerLot = effectiveDeliveryQuantityPerLot > 1
       const displayName = formatProductNameWithLotQuantity(product.name, product.deliveryQuantityPerLot)
@@ -145,6 +148,12 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
         type: product.type,
         img: product.img,
         quantity,
+        stockQuantity: availability?.stockQuantity ?? null,
+        reservedQuantity: availability?.reservedQuantity ?? 0,
+        availableQuantity: availability?.availableQuantity ?? null,
+        hasReservedQuantity: Boolean(availability?.hasReservedQuantity),
+        quantityDisplay: availability?.quantityDisplay ?? "",
+        quantityTooltip: availability?.quantityTooltip ?? "",
         deliveryQuantityPerLot: hasDeliveryQuantityPerLot ? effectiveDeliveryQuantityPerLot : "",
         effectiveDeliveryQuantityPerLot,
         hasQuantity: !isUnlimitedQuantity(quantity),
@@ -372,8 +381,8 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     }))
 
   sortedCategories.sort((a, b) => {
-    if (a.isSystemCategory && !b.isSystemCategory) return -1
-    if (!a.isSystemCategory && b.isSystemCategory) return 1
+    if (a.isSystemCategory && !b.isSystemCategory) return 1
+    if (!a.isSystemCategory && b.isSystemCategory) return -1
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   })
 

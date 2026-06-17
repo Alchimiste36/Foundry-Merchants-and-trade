@@ -39,6 +39,74 @@ export function normalizeFiniteQuantity(value) {
   return Number.isFinite(quantity) && quantity >= 0 ? quantity : null
 }
 
+const PRODUCT_STOCK_RESERVING_SESSION_STATUSES = new Set(["active", "pending", "submitted"])
+
+export function buildProductAvailabilityMap(products = [], sessions = [], options = {}) {
+  const excludeSessionId = String(options.excludeSessionId ?? "").trim()
+  const excludeSessionItemId = String(options.excludeSessionItemId ?? "").trim()
+  const availabilityByProductId = new Map()
+
+  for (const product of products) {
+    const productId = String(product?.id ?? "").trim()
+    if (!productId) continue
+
+    const stockQuantity = normalizeFiniteQuantity(product.quantity)
+    const hasLimitedQuantity = !isUnlimitedQuantity(product.quantity) && stockQuantity !== null
+
+    availabilityByProductId.set(productId, {
+      productId,
+      stockQuantity: hasLimitedQuantity ? stockQuantity : null,
+      reservedQuantity: 0,
+      availableQuantity: hasLimitedQuantity ? stockQuantity : null,
+      hasLimitedQuantity,
+      hasReservedQuantity: false,
+      quantityDisplay: hasLimitedQuantity ? `${stockQuantity}x` : "",
+      quantityTooltip: hasLimitedQuantity ? `${stockQuantity}/${stockQuantity}` : ""
+    })
+  }
+
+  for (const session of sessions) {
+    const sessionStatus = session?.isSubmitted ? "submitted" : String(session?.status ?? "").trim()
+    if (!PRODUCT_STOCK_RESERVING_SESSION_STATUSES.has(sessionStatus)) continue
+
+    const sessionId = String(session?.id ?? "").trim()
+    for (const item of session?.buyerItems ?? []) {
+      if (String(item?.type ?? "") !== "product") continue
+      if (
+        excludeSessionId &&
+        excludeSessionItemId &&
+        sessionId === excludeSessionId &&
+        String(item?.id ?? "").trim() === excludeSessionItemId
+      ) {
+        continue
+      }
+
+      const productId = String(item?.sourceId ?? "").trim()
+      const availability = availabilityByProductId.get(productId)
+      if (!availability?.hasLimitedQuantity) continue
+
+      const quantity = Number(item?.quantity)
+      if (!Number.isFinite(quantity) || quantity <= 0) continue
+
+      availability.reservedQuantity = Number((availability.reservedQuantity + quantity).toFixed(2))
+    }
+  }
+
+  for (const availability of availabilityByProductId.values()) {
+    if (!availability.hasLimitedQuantity) continue
+
+    availability.availableQuantity = Math.max(
+      0,
+      Number((availability.stockQuantity - availability.reservedQuantity).toFixed(2))
+    )
+    availability.hasReservedQuantity = availability.reservedQuantity > 0
+    availability.quantityDisplay = `${availability.availableQuantity}x${availability.hasReservedQuantity ? "!" : ""}`
+    availability.quantityTooltip = `${availability.availableQuantity}/${availability.stockQuantity}`
+  }
+
+  return availabilityByProductId
+}
+
 export function getConfiguredItemQuantity(itemOrData, quantityPath) {
   if (!quantityPath) return undefined
   return foundry.utils.getProperty(itemOrData, quantityPath)

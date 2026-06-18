@@ -139,3 +139,76 @@ Le marchand conserve les mêmes blocs via `isShop`. Le stockage reçoit seulemen
 - `npm run lint` passe.
 - Les HBS modifiés passent un contrôle Prettier ciblé.
 - Aucun fichier `storage-sheet`, template `storage-*`, style `storage-sheet.less` ou fichier `shop-*` n’a été créé.
+
+# Étape 5.2 — Correction du branchement des éléments communs stockage
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de l’étape 5.2.
+- [x] Réafficher les onglets `Journal` et `Configuration` côté storage.
+- [x] Brancher les contenus `storage-configuration.hbs` et `storage-journal.hbs` dans la structure commune.
+- [x] Rendre `mtt.isEditable` disponible côté storage pour le verrouillage.
+- [x] Adapter le verrouillage pour écrire dans les flags du type MTT actif.
+- [x] Réafficher le bouton d’ajout à une session côté storage sans implémenter encore la session storage.
+- [x] Préparer le rail côté storage avec un contexte neutre réutilisant le rail existant.
+- [x] Nettoyer les contenus storage temporaires pour éviter les champs commerciaux.
+- [x] Mettre à jour `fr.json` et `en.json` pour les placeholders visibles.
+
+## Résumé
+
+L’étape 5.2 corrige le masquage trop large introduit à l’étape 5. La navigation de feuille reste commune : le stockage peut maintenant accéder aux onglets `Journal` et `Configuration`, tout en gardant des contenus spécifiques sobres.
+
+Le verrouillage est redevenu une mécanique `MTT base` et écrit désormais dans `flags.mtt-merchants.storage.sheet.isLocked` pour un stockage, sans toucher au verrouillage marchand. Le bouton d’ajout à une session reste visible côté storage, mais son action métier est volontairement neutralisée jusqu’à l’étape dédiée aux échanges.
+
+## Non créé volontairement
+
+- Aucune feuille storage indépendante.
+- Aucun header, main ou contenu complet storage parallèle.
+- Aucun CSS storage.
+- Aucun nouveau rail storage autonome.
+- Aucune ligne Item storage différente.
+- Aucune icône d’ouverture Item.
+- Aucun badge type.
+- Aucune vraie session dépôt/retrait.
+- Aucun tag, statut ou journal fonctionnel de mouvements.
+- Aucun fichier `shop-*`.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont valides.
+- `npm run lint` passe.
+- Les HBS modifiés passent un contrôle Prettier ciblé.
+- `git diff --check` ne signale pas d’erreur de whitespace.
+- Aucun fichier `storage-sheet`, `storage-content`, `storage-exchange`, template de feuille storage ou fichier `shop-*` n’a été créé.
+
+# Correction 5.3 — Partials storage et édition commune de feuille
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de correction 5.3.
+- [x] Ajouter les partials `storage-configuration.hbs` et `storage-journal.hbs` dans `MTT.TEMPLATES`.
+- [x] Supprimer l’alias inutile `isMttEditable`.
+- [x] Corriger `canEditMerchant` pour qu’il reste commun à la feuille historique `merchant-*`.
+- [x] Conserver le verrouillage commun selon le type MTT actif.
+- [x] Vérifier que les corrections ne créent pas de feuille storage autonome.
+
+## Résumé
+
+Les deux partials storage existants sont maintenant déclarés dans `MTT.TEMPLATES`, ce qui permet à Foundry de les charger avec les autres templates du module. Les onglets `Journal` et `Configuration` côté storage ne devraient donc plus provoquer d’erreur de partial introuvable.
+
+Le contexte d’édition a aussi été nettoyé : `isMttEditable` a été supprimé, et `canEditMerchant` désigne de nouveau l’édition de la feuille commune `merchant-*`, sans être limité à `isShop`.
+
+## Non créé volontairement
+
+- Aucune feuille storage indépendante.
+- Aucun template de feuille storage complet.
+- Aucun CSS storage.
+- Aucun nouveau système de permissions.
+- Aucune matrice de permissions storage.
+- Aucun fichier `shop-*`.
+- Aucune fonctionnalité métier storage nouvelle.
+
+## Vérifications simples
+
+- `constants.mjs` passe `node --check`.
+- `merchant-sheet.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont valides.
+- `npm run lint` passe.
+- `git diff --check` ne signale pas d’erreur de whitespace.

@@ -6,7 +6,7 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import { getMTTEntityType, getStorageData } from "../../documents/storage-flags.mjs"
+import { getMTTEntityType, getStorageData, getStorageFlagPath } from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -204,17 +204,26 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const storageData = isStorage ? getStorageData(this.actor) : null
     const merchantContext = isStorage ? this.#buildStorageMerchantContext(storageData) : getMerchantData(this.actor)
 
-    if (isStorage && this.#activeTab !== "products") this.#activeTab = "products"
-
+    // MTT base — édition de la feuille commune merchant-* selon verrouillage et droits Foundry
     const isEditable = this.isEditable
-    const isMttEditable = isShop && isEditable
-    const isLocked = isStorage ? storageData?.sheet?.isLocked === true : getMerchantSheetLockedState(this.actor)
+    const isLocked = isStorage
+      ? storageData?.sheet?.isLocked === true
+      : getMerchantSheetLockedState(this.actor)
     const isUnlocked = !isLocked
-    const canEditMerchant = isMttEditable && isUnlocked
+    const canEditMerchant = isEditable && isUnlocked
     const isLimited = getMerchantLimitedState(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
+    const sheetPermissions = isStorage
+      ? {
+          ...permissions,
+          canViewConfigTab: true,
+          canOpenProduct: true,
+          canInteractWithSession: true
+        }
+      : permissions
 
-    if (this.#activeTab === "configuration" && !permissions.canViewConfigTab) this.#activeTab = "products"
+    if (this.#activeTab === "services" && !isShop) this.#activeTab = "products"
+    if (this.#activeTab === "configuration" && !sheetPermissions.canViewConfigTab) this.#activeTab = "products"
 
     context.mtt = {
       css: MTT.CSS,
@@ -223,13 +232,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isStorage,
       mttAccent,
       activeTab: this.#activeTab,
-      isEditable: isMttEditable,
+      isEditable,
       isLocked,
       isUnlocked,
       canEditMerchant,
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
-      configurablePermissions: permissions,
+      configurablePermissions: sheetPermissions,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         lock: "mtt.sheet.lock",
@@ -244,7 +253,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mttAccent = mttAccent
     context.actor = this.actor
     context.merchant = merchantContext
-    context.permissions = permissions
+    context.permissions = sheetPermissions
 
     const activeSession = this.#getActiveSession()
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
@@ -265,7 +274,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       : prepareMerchantJournalContext(this.actor, {
           user: game.user,
           sort: this.#journalSort,
-          permissions
+          permissions: sheetPermissions
         })
 
     return context
@@ -324,6 +333,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareNeutralAccessContext() {
+    // MTT base — rail d’acteurs autorisés partagé par les types MTT
     return {
       clients: [],
       hasClients: false,
@@ -2670,7 +2680,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #canModifyMerchant() {
     if (!this.isEditable) return false
 
-    if (getMerchantSheetLockedState(this.actor)) {
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const isLocked = isStorage
+      ? getStorageData(this.actor)?.sheet?.isLocked === true
+      : getMerchantSheetLockedState(this.actor)
+
+    if (isLocked) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return false
     }
@@ -2759,11 +2775,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onAddProductToSession(event, target) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
     const productId =
       target.closest("[data-product-id]")?.dataset.productId ?? target.closest("[data-item-id]")?.dataset.itemId
     if (!productId) return
+
+    if (getMTTEntityType(this.actor) === MTT.ENTITY_TYPES.STORAGE) {
+      // MTT storage — action de session storage à brancher dans une étape suivante
+      return
+    }
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     this.render()
     await new Promise((resolve) => requestAnimationFrame(resolve))
@@ -3367,15 +3388,21 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.isEditable) return
 
-    const isLocked = getMerchantSheetLockedState(this.actor)
+    // MTT base — verrouillage de feuille selon le type MTT actif
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const isLocked = isStorage
+      ? getStorageData(this.actor)?.sheet?.isLocked === true
+      : getMerchantSheetLockedState(this.actor)
 
-    if (!isLocked) {
+    if (!isLocked && !isStorage) {
       await this.#saveMerchantTextFieldsFromDom()
       await this.#saveMerchantConfigFieldsFromDom()
     }
 
     // Use updateSource to avoid triggering the full actor data-preparation cycle for actors converted by flags.
-    this.actor.updateSource({ [getMerchantFlagPath("sheet.isLocked")]: !isLocked })
+    const lockPath = isStorage ? getStorageFlagPath("sheet.isLocked") : getMerchantFlagPath("sheet.isLocked")
+    this.actor.updateSource({ [lockPath]: !isLocked })
     await this.render({ force: true })
   }
 
@@ -3479,7 +3506,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!tab || tab === "sessions") return
 
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    if (tab === "configuration" && !permissions.canViewConfigTab) return
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    if (tab === "services" && isStorage) return
+    if (tab === "configuration" && !isStorage && !permissions.canViewConfigTab) return
 
     this.#activeTab = tab
     this.render()

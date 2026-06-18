@@ -123,6 +123,8 @@ export const MTT = {
     MERCHANT_JOURNAL: "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs",
     MERCHANT_SESSION: "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs",
     MERCHANT_ACCESS_RAIL: "modules/mtt-merchants/templates/actors/parts/merchant-access-rail.hbs",
+    STORAGE_CONFIGURATION: "modules/mtt-merchants/templates/actors/parts/storage-configuration.hbs",
+    STORAGE_JOURNAL: "modules/mtt-merchants/templates/actors/parts/storage-journal.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",
     MTT_GLOBAL_JOURNAL: "modules/mtt-merchants/templates/apps/mtt-global-journal.hbs",
     MTT_DIALOG: "modules/mtt-merchants/templates/apps/mtt-dialog.hbs",

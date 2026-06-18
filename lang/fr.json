@@ -196,7 +196,10 @@
       "placeholder": {
         "contentTitle": "Contenu du stockage",
         "contentText": "Le contenu du stockage sera affiché ici.",
-        "session": "Les échanges de dépôt et retrait seront affichés ici."
+        "session": "Les échanges de dépôt et retrait seront affichés ici.",
+        "configurationTitle": "Configuration du stockage",
+        "configuration": "Les réglages propres au stockage seront ajoutés ici.",
+        "journal": "Le journal des mouvements du stockage sera affiché ici."
       }
     },
     "actions": {

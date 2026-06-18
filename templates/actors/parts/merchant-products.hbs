@@ -285,6 +285,7 @@
                         {{#if @root.permissions.canInteractWithSession}}
                           {{#if item.isVisible}}
                           {{#unless @root.mtt.session.isSubmitted}}
+                            {{!-- MTT base — bouton d’ajout à une session MTT --}}
                             <button
                               class="mtt-merchant-product-action"
                               type="button"

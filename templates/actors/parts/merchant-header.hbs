@@ -31,9 +31,8 @@
       {{else}}
         <h1 class="mtt-merchant-name">{{merchant.shop.name}}</h1>
       {{/if}}
-      
-
       <div class="mtt-merchant-state-row">
+        {{!-- MTT base — bouton de verrouillage commun aux types MTT --}}
         {{#if mtt.isEditable}}
           <button
             class="mtt-merchant-lock-button"
@@ -52,6 +51,7 @@
       </div>
 
       <div class="mtt-merchant-nav-row">
+        {{!-- MTT base — navigation commune de feuille MTT --}}
         <nav class="mtt-merchant-tab-nav" aria-label="{{localize 'mtt.navigation.label'}}">
           <button
             class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'products')}}mtt-merchant-tab-nav-btn-active{{/if}}"
@@ -76,27 +76,27 @@
             </button>
           {{/if}}
 
+          <button
+            class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'journal')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+            type="button"
+            data-action="selectTab"
+            data-tab="journal"
+            data-tooltip="{{localize 'mtt.tabs.journal'}}"
+          >
+            <i class="fas fa-book"></i>
+          </button>
+
+          {{#if permissions.canViewConfigTab}}
             <button
-              class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'journal')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+              class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
               type="button"
               data-action="selectTab"
-              data-tab="journal"
-              data-tooltip="{{localize 'mtt.tabs.journal'}}"
+              data-tab="configuration"
+              data-tooltip="{{localize 'mtt.tabs.configuration'}}"
             >
-              <i class="fas fa-book"></i>
+              <i class="fas fa-gear"></i>
             </button>
-
-            {{#if permissions.canViewConfigTab}}
-              <button
-                class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-                type="button"
-                data-action="selectTab"
-                data-tab="configuration"
-                data-tooltip="{{localize 'mtt.tabs.configuration'}}"
-              >
-                <i class="fas fa-gear"></i>
-              </button>
-            {{/if}}
+          {{/if}}
         </nav>
       </div>
 
@@ -111,14 +111,14 @@
               <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.services"}}</h2>
             {{/if}}
           {{/if}}
-            {{#if permissions.canViewConfigTab}}
-              {{#if (eq mtt.activeTab "configuration")}}
-                <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.configuration"}}</h2>
-              {{/if}}
+          {{#if permissions.canViewConfigTab}}
+            {{#if (eq mtt.activeTab "configuration")}}
+              <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.configuration"}}</h2>
             {{/if}}
-            {{#if (eq mtt.activeTab "journal")}}
-              <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.journal"}}</h2>
-            {{/if}}
+          {{/if}}
+          {{#if (eq mtt.activeTab "journal")}}
+            <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.journal"}}</h2>
+          {{/if}}
         </div>
       </div>
     </div>
@@ -131,7 +131,6 @@
         <div class="mtt-merchant-header-manager">
           {{#if mtt.canEditMerchant}}
             <div class="mtt-merchant-manager-fields">
-
               <label class="mtt-merchant-field">
                 <input
                   class="mtt-merchant-field-input"
@@ -148,18 +147,18 @@
               <span class="mtt-merchant-manager-name">{{merchant.manager.displayName}}</span>
               {{#if mtt.isEditable}}
                 <button
-                class="mtt-merchant-header-action"
-                type="button"
-                data-action="rollNegotiation"
-                data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
-              >
-                <i class="fas fa-dice-d20"></i>
-              </button>
-            {{/if}}
+                  class="mtt-merchant-header-action"
+                  type="button"
+                  data-action="rollNegotiation"
+                  data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
+                >
+                  <i class="fas fa-dice-d20"></i>
+                </button>
+              {{/if}}
             </div>
           {{/if}}
         </div>
-  {{/if}}
+
         {{#if mtt.isEditable}}
           <div class="mtt-merchant-header-wallet-summary">
             {{#if mtt.hasHeaderCurrencies}}
@@ -178,7 +177,6 @@
         {{/if}}
       </div>
 
-    {{#if isShop}}
       <button
         class="mtt-merchant-manager-img-button"
         type="button"
@@ -195,7 +193,7 @@
           alt="{{merchant.manager.displayName}}"
         />
       </button>
-    {{/if}}
     </div>
+  {{/if}}
 
 </header>

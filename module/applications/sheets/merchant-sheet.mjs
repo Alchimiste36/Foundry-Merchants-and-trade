@@ -6,7 +6,7 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import { getMTTEntityType } from "../../documents/storage-flags.mjs"
+import { getMTTEntityType, getStorageData } from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -108,6 +108,7 @@ import { requestMerchantSessionUpdate } from "./merchant-session-socket.mjs"
 const { ActorSheetV2 } = foundry.applications.sheets
 const { HandlebarsApplicationMixin } = foundry.applications.api
 
+// MTT base — feuille historique commune utilisée par les types MTT basés sur merchant-*
 export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #activeTab = "products"
   #activeSessionId = null
@@ -182,7 +183,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   get title() {
-    return game.i18n.format("mtt.sheets.merchantTitle", {
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const titleKey =
+      entityType === MTT.ENTITY_TYPES.STORAGE ? "mtt.sheets.storageTitle" : "mtt.sheets.merchantTitle"
+    return game.i18n.format(titleKey, {
       name: this.actor?.name ?? ""
     })
   }
@@ -197,11 +201,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
     const isShop = entityType === MTT.ENTITY_TYPES.MERCHANT
     const mttAccent = isStorage ? "#5ba3bf" : "#c79a48"
+    const storageData = isStorage ? getStorageData(this.actor) : null
+    const merchantContext = isStorage ? this.#buildStorageMerchantContext(storageData) : getMerchantData(this.actor)
 
     const isEditable = this.isEditable
-    const isLocked = getMerchantSheetLockedState(this.actor)
+    const isMttEditable = isShop && isEditable
+    const isLocked = isStorage ? storageData?.sheet?.isLocked === true : getMerchantSheetLockedState(this.actor)
     const isUnlocked = !isLocked
-    const canEditMerchant = isEditable && isUnlocked
+    const canEditMerchant = isMttEditable && isUnlocked
     const isLimited = getMerchantLimitedState(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
 
@@ -214,7 +221,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isStorage,
       mttAccent,
       activeTab: this.#activeTab,
-      isEditable,
+      isEditable: isMttEditable,
       isLocked,
       isUnlocked,
       canEditMerchant,
@@ -234,7 +241,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.isStorage = isStorage
     context.mttAccent = mttAccent
     context.actor = this.actor
-    context.merchant = getMerchantData(this.actor)
+    context.merchant = merchantContext
     context.permissions = permissions
 
     const activeSession = this.#getActiveSession()
@@ -248,16 +255,100 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.headerCurrencies = context.mtt.walletCurrencies
     context.mtt.hasHeaderCurrencies = context.mtt.headerCurrencies.length > 0
     context.mtt.currencyOptions = prepareCurrencyOptions()
-    context.mtt.access = this.#prepareAccessContext()
-    context.mtt.session = this.#prepareSessionContext()
+    context.mtt.access = isStorage ? this.#prepareNeutralAccessContext() : this.#prepareAccessContext()
+    context.mtt.session = isStorage ? this.#prepareNeutralSessionContext() : this.#prepareSessionContext()
     context.mtt.referenceState = this.#prepareReferenceStateContext()
-    context.mtt.journal = prepareMerchantJournalContext(this.actor, {
-      user: game.user,
-      sort: this.#journalSort,
-      permissions
-    })
+    context.mtt.journal = isStorage
+      ? this.#prepareNeutralJournalContext()
+      : prepareMerchantJournalContext(this.actor, {
+          user: game.user,
+          sort: this.#journalSort,
+          permissions
+        })
 
     return context
+  }
+
+  #buildStorageMerchantContext(storageData = null) {
+    const storage = storageData?.storage ?? {}
+    const name = String(storage.name ?? "").trim() || (this.actor?.name ?? "")
+    const img = String(storage.img ?? "").trim() || (this.actor?.img ?? "")
+
+    return {
+      enabled: true,
+      sheet: {
+        isLocked: storageData?.sheet?.isLocked === true
+      },
+      shop: {
+        name,
+        img,
+        description: storage.description ?? ""
+      },
+      manager: {
+        mode: "actor",
+        actorUuid: this.actor?.uuid ?? null,
+        displayName: "",
+        img
+      },
+      trade: {
+        buyPercent: 50,
+        sellPercent: 100,
+        serviceSellPercent: 100,
+        negotiationFormula: ""
+      },
+      wallet: {
+        currencies: {}
+      },
+      referenceState: null,
+      journal: {
+        nextTransactionNumber: 1,
+        transactions: []
+      },
+      access: {
+        clients: []
+      },
+      catalog: {
+        keepEmptyItems: true,
+        collapsedCategories: {},
+        hiddenCategories: {},
+        productCategories: [],
+        products: [],
+        services: []
+      },
+      sessions: {
+        entries: []
+      }
+    }
+  }
+
+  #prepareNeutralAccessContext() {
+    return {
+      clients: [],
+      hasClients: false,
+      canSeeAccessDropZone: false,
+      dropZoneTooltip: "",
+      railAriaLabel: game.i18n.localize("mtt.access.title")
+    }
+  }
+
+  #prepareNeutralSessionContext() {
+    return prepareSessionContext(this.actor, {
+      session: null,
+      selectedClient: null,
+      sessionCheckResult: null,
+      accessClients: [],
+      buyerActor: null
+    })
+  }
+
+  #prepareNeutralJournalContext() {
+    return {
+      canSeeAll: Boolean(game.user?.isGM),
+      canSeeSecretIndicators: Boolean(game.user?.isGM),
+      hasTransactions: false,
+      transactions: [],
+      sort: this.#journalSort
+    }
   }
 
   async _preRender(context, options) {

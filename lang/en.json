@@ -7,7 +7,9 @@
     },
     "sheets": {
       "merchant": "Merchant Sheet",
-      "merchantTitle": "MTT - Merchant: {name}"
+      "storage": "MTT storage",
+      "merchantTitle": "MTT - Merchant: {name}",
+      "storageTitle": "MTT - Storage: {name}"
     },
     "settings": {
       "debug": {
@@ -242,6 +244,7 @@
       "convertToMerchant": "Convert to MTT merchant",
       "convertToStorage": "Convert to MTT storage",
       "openMerchant": "Open MTT shop",
+      "openStorage": "Open MTT storage",
       "openManager": "Open manager",
       "removeMerchant": "Remove MTT shop",
       "removeStorage": "Remove MTT storage"

@@ -65,3 +65,40 @@ Les variables sont disponibles à la racine du contexte et dans `mtt`, afin de p
 - `merchant-sheet.mjs` passe `node --check`.
 - Les occurrences `isMerchant` restantes correspondent à des fonctions/noms historiques ou à `negotiation.isMerchantTurn`.
 - Aucun fichier `storage-sheet`, `storage-content`, `storage-exchange`, template `storage-*` ou style `storage-sheet.less` n’a été créé.
+
+# Étape 4 — Ouverture storage sur la base de feuille `merchant-*`
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de l’étape 4.
+- [x] Réutiliser directement `MerchantSheet` comme feuille MTT commune.
+- [x] Ne pas créer de classe `StorageSheet`.
+- [x] Ajouter l’ouverture `openStorageSheet(actor)` basée sur `MerchantSheet`.
+- [x] Ajouter le contrôle “Ouvrir le stockage MTT” pour les acteurs storage.
+- [x] Ajouter la redirection automatique storage dans les hooks AppV1/AppV2 existants.
+- [x] Fournir un contexte storage compatible minimal pour l’en-tête, les accès, la session et le journal.
+- [x] Ajouter uniquement les clés de langue visibles nécessaires.
+- [x] Vérifier qu’aucun template ou style storage n’a été créé.
+
+## Résumé
+
+Un acteur converti en stockage peut maintenant ouvrir une feuille MTT en utilisant la base historique `merchant-*`. La même classe `MerchantSheet` sert de point d’entrée commun, sans copie de template ni nouvelle ergonomie.
+
+Pour le stockage, les zones métier encore non développées reçoivent des données neutres afin que la feuille s’ouvre sans écrire dans les flags marchand.
+
+## Non créé volontairement
+
+- Aucune classe `StorageSheet`.
+- Aucun template HBS stockage.
+- Aucun CSS stockage.
+- Aucun rail stockage interne.
+- Aucune session stockage fonctionnelle.
+- Aucun contenu storage réel.
+- Aucun tag, statut ou journal storage.
+- Aucun fichier `shop-*`.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `merchant-conversion.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont valides.
+- `npm run lint` passe.
+- Aucun fichier `storage-sheet`, template `storage-*` ou style `storage-sheet.less` n’a été créé.

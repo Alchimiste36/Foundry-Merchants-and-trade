@@ -7,7 +7,9 @@
     },
     "sheets": {
       "merchant": "Feuille de marchand",
-      "merchantTitle": "MTT - Marchand : {name}"
+      "storage": "Stockage MTT",
+      "merchantTitle": "MTT - Marchand : {name}",
+      "storageTitle": "MTT - Stockage : {name}"
     },
     "settings": {
       "debug": {
@@ -242,6 +244,7 @@
       "convertToMerchant": "Convertir en marchand MTT",
       "convertToStorage": "Convertir en stockage MTT",
       "openMerchant": "Ouvrir la boutique MTT",
+      "openStorage": "Ouvrir le stockage MTT",
       "openManager": "Ouvrir le gérant",
       "removeMerchant": "Retirer la boutique MTT",
       "removeStorage": "Retirer le stockage MTT"

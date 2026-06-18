@@ -85,6 +85,12 @@ export async function convertActorToStorage(actor) {
 
 export function openMerchantSheet(actor) {
   if (!actor || !isMTTMerchant(actor)) return
+  openMTTBaseSheet(actor)
+}
+
+// MTT base — ouverture de feuille commune aux types MTT basés sur merchant-*
+function openMTTBaseSheet(actor) {
+  if (!actor) return
   // Ramener au premier plan si déjà ouverte
   try {
     for (const app of foundry.applications.instances.values()) {
@@ -97,6 +103,11 @@ export function openMerchantSheet(actor) {
     // L'itération des applications peut échouer pendant certains cycles de rendu Foundry.
   }
   new MerchantSheet({ document: actor }).render(true)
+}
+
+export function openStorageSheet(actor) {
+  if (!actor || !isMTTStorage(actor)) return
+  openMTTBaseSheet(actor)
 }
 
 export function openManagerActorSheet(actor) {
@@ -281,13 +292,23 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
     }
   }
 
-  if (isMTTStorage(actor) && game.user.isGM) {
-    controls.push({
-      icon: "fa-solid fa-trash",
-      label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
-      action: "mtt-remove-storage",
-      onClick: () => removeStorageFromActor(actor)
-    })
+  if (isMTTStorage(actor)) {
+    if (!isOnMerchantSheet) {
+      controls.push({
+        icon: "fa-solid fa-box-archive",
+        label: game.i18n.localize("mtt.actorDirectory.openStorage"),
+        action: "mtt-open-storage",
+        onClick: () => openStorageSheet(actor)
+      })
+    }
+    if (game.user.isGM) {
+      controls.push({
+        icon: "fa-solid fa-trash",
+        label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
+        action: "mtt-remove-storage",
+        onClick: () => removeStorageFromActor(actor)
+      })
+    }
   }
 
   return controls
@@ -332,13 +353,23 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
     }
   }
 
-  if (isMTTStorage(actor) && game.user.isGM) {
-    buttons.push({
-      label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
-      class: "mtt-remove-storage",
-      icon: "fas fa-trash",
-      onclick: () => removeStorageFromActor(actor)
-    })
+  if (isMTTStorage(actor)) {
+    if (!isOnMerchantSheet) {
+      buttons.push({
+        label: game.i18n.localize("mtt.actorDirectory.openStorage"),
+        class: "mtt-open-storage",
+        icon: "fas fa-box-archive",
+        onclick: () => openStorageSheet(actor)
+      })
+    }
+    if (game.user.isGM) {
+      buttons.push({
+        label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
+        class: "mtt-remove-storage",
+        icon: "fas fa-trash",
+        onclick: () => removeStorageFromActor(actor)
+      })
+    }
   }
 
   return buttons
@@ -362,7 +393,7 @@ export function registerActorSheetHeaderHooks() {
   })
 }
 
-// ─── Redirection automatique vers la feuille boutique MTT ───────────────────
+// ─── Redirection automatique vers la feuille MTT commune ────────────────────
 
 export function registerMerchantSheetOpenHooks() {
   // ApplicationV2 — hook générique pour toutes les fiches AppV2
@@ -375,7 +406,7 @@ export function registerMerchantSheetOpenHooks() {
 
     // Ne rediriger que si le document principal est directement un Actor (pas un Item embedded)
     const actor = getDirectActorForRedirect(app)
-    if (!actor || !isMTTMerchant(actor)) return
+    if (!actor || (!isMTTMerchant(actor) && !isMTTStorage(actor))) return
 
     // Bypass ponctuel au premier render → mémoriser l'instance pour tous ses rerenders futurs
     if (_managerBypassActorIds.has(actor.id)) {
@@ -386,7 +417,8 @@ export function registerMerchantSheetOpenHooks() {
 
     queueMicrotask(() => {
       app.close({ animate: false })
-      openMerchantSheet(actor)
+      if (isMTTStorage(actor)) openStorageSheet(actor)
+      else openMerchantSheet(actor)
     })
   })
 
@@ -399,7 +431,7 @@ export function registerMerchantSheetOpenHooks() {
 
     // Ne remonte jamais vers item.parent pour décider une redirection
     const actor = getDirectActorForRedirect(app)
-    if (!actor || !isMTTMerchant(actor)) return
+    if (!actor || (!isMTTMerchant(actor) && !isMTTStorage(actor))) return
 
     if (_managerBypassActorIds.has(actor.id)) {
       _managerBypassActorIds.delete(actor.id)
@@ -409,7 +441,8 @@ export function registerMerchantSheetOpenHooks() {
 
     queueMicrotask(() => {
       app.close()
-      openMerchantSheet(actor)
+      if (isMTTStorage(actor)) openStorageSheet(actor)
+      else openMerchantSheet(actor)
     })
   })
 }
@@ -436,6 +469,18 @@ export function registerActorDirectoryHooks() {
         callback: (li) => {
           const actor = getActorFromLi(li)
           if (actor) openMTTConversionDialog(actor)
+        }
+      },
+      {
+        name: "mtt.actorDirectory.openStorage",
+        icon: '<i class="fas fa-box-archive"></i>',
+        condition: (li) => {
+          const actor = getActorFromLi(li)
+          return Boolean(actor && isMTTStorage(actor))
+        },
+        callback: (li) => {
+          const actor = getActorFromLi(li)
+          if (actor) openStorageSheet(actor)
         }
       },
       {

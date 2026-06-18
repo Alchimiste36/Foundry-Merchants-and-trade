@@ -6,6 +6,7 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
+import { getMTTEntityType } from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -191,6 +192,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (this.#activeTab === "sessions") this.#activeTab = "products"
 
+    // MTT base — utilisé par les types MTT partageant la feuille
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const isShop = entityType === MTT.ENTITY_TYPES.MERCHANT
+    const mttAccent = isStorage ? "#5ba3bf" : "#c79a48"
+
     const isEditable = this.isEditable
     const isLocked = getMerchantSheetLockedState(this.actor)
     const isUnlocked = !isLocked
@@ -202,6 +209,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     context.mtt = {
       css: MTT.CSS,
+      entityType,
+      isShop,
+      isStorage,
+      mttAccent,
       activeTab: this.#activeTab,
       isEditable,
       isLocked,
@@ -218,6 +229,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    context.entityType = entityType
+    context.isShop = isShop
+    context.isStorage = isStorage
+    context.mttAccent = mttAccent
     context.actor = this.actor
     context.merchant = getMerchantData(this.actor)
     context.permissions = permissions

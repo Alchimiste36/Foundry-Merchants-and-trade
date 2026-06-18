@@ -200,6 +200,19 @@
         "configurationTitle": "Configuration du stockage",
         "configuration": "Les réglages propres au stockage seront ajoutés ici.",
         "journal": "Le journal des mouvements du stockage sera affiché ici."
+      },
+      "rail": {
+        "title": "Acteurs autorisés",
+        "actor": "Acteur",
+        "authorized": "Autorisé au stockage",
+        "noSession": "Aucune session stockage",
+        "dropTooltip": "Déposer un acteur pour l’ajouter au stockage",
+        "leftClickSelect": "Clic gauche : sélectionner",
+        "onlyActorsCanBeAdded": "Seuls les acteurs peuvent être ajoutés au stockage.",
+        "removeActor": "Supprimer l’acteur du stockage",
+        "removeActorTitle": "Supprimer l’acteur du stockage",
+        "removeActorContent": "L’acteur Foundry ne sera pas supprimé. Seule son entrée sur ce stockage sera retirée.",
+        "removeActorConfirm": "Supprimer du stockage"
       }
     },
     "actions": {

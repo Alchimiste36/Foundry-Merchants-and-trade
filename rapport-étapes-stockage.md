@@ -212,3 +212,77 @@ Le contexte d’édition a aussi été nettoyé : `isMttEditable` a été suppri
 - `lang/fr.json` et `lang/en.json` sont valides.
 - `npm run lint` passe.
 - `git diff --check` ne signale pas d’erreur de whitespace.
+
+# Étape 7 — Rail d’acteurs sur la feuille stockage
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de l’étape 7.
+- [x] Analyser le rendu hybride MJS/HBS du rail existant.
+- [x] Réutiliser `merchant-access-rail.hbs` sans créer de rail storage parallèle.
+- [x] Brancher le contexte rail côté storage sur `flags.mtt-merchants.storage.access.actors`.
+- [x] Permettre l’ajout d’un acteur au rail storage par drag/drop.
+- [x] Permettre la sélection locale d’une carte storage sans ouvrir de session commerciale.
+- [x] Permettre le retrait d’un acteur du rail storage sans supprimer l’acteur Foundry.
+- [x] Garder les écritures marchand sur `merchant.access.clients` et les écritures storage sur `storage.access.actors`.
+- [x] Ajouter uniquement les clés de langue visibles nécessaires au rail storage.
+
+## Résumé
+
+Le rail d’acteurs est maintenant branché côté stockage en réutilisant le rail historique `merchant-*`. La feuille storage prépare un contexte compatible avec le template existant, affiche les acteurs liés au stockage et permet d’en ajouter ou d’en retirer sans écrire dans les flags marchand.
+
+Le clic gauche sur une carte storage sélectionne simplement l’acteur dans la feuille. Il ne crée pas de session commerciale et ne déclenche pas de transaction marchand.
+
+## Non créé volontairement
+
+- Aucun template `storage-access-rail.hbs`.
+- Aucun fichier JS de rail storage autonome.
+- Aucun CSS storage dédié au rail.
+- Aucune session dépôt/retrait.
+- Aucun système de votes.
+- Aucune matrice de permissions storage.
+- Aucune modification des lignes d’Items ou catégories.
+- Aucun fichier `shop-*`.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont valides.
+- `npm run lint` passe.
+- `git diff --check` ne signale pas d’erreur de whitespace.
+- Le partial `merchant-access-rail.hbs` passe un contrôle Prettier ciblé.
+- Aucun rail storage parallèle ni fichier `shop-*` n’a été créé.
+
+# Correction 7.2 — Rail storage : ajout hors verrouillage et position gauche
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de correction 7.2.
+- [x] Corriger l’ajout d’acteurs au rail storage pour ne plus dépendre du verrouillage de la feuille.
+- [x] Conserver le comportement marchand existant pour l’ajout au rail.
+- [x] Afficher dynamiquement les acteurs liés aux joueurs dans le rail storage, sans les persister automatiquement.
+- [x] Positionner le rail storage à gauche avec une classe de variante sur le rail commun.
+- [x] Compiler le LESS vers `css/mtt.css`.
+- [x] Vérifier qu’aucun rail storage parallèle n’a été créé.
+
+## Résumé
+
+Le rail storage peut maintenant recevoir un acteur même lorsque la feuille est verrouillée, tant que l’utilisateur courant dispose des droits d’édition nécessaires. Cette correction évite d’utiliser le verrouillage de contenu comme condition d’ajout au rail.
+
+Comme côté marchand, les acteurs liés aux joueurs sont ajoutés dynamiquement au rendu du rail storage sans écriture automatique dans les flags. Le rail storage reste basé sur le partial commun `merchant-access-rail.hbs`, avec une classe de variante qui le positionne à gauche de la feuille.
+
+## Non créé volontairement
+
+- Aucun template `storage-access-rail.hbs`.
+- Aucun fichier LESS storage séparé pour le rail.
+- Aucun nouveau fichier JS de rail storage.
+- Aucune session dépôt/retrait.
+- Aucun tag, statut ou vote storage.
+- Aucune modification des lignes d’Items ou catégories.
+- Aucun fichier `shop-*`.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont valides.
+- `npm run compile` passe.
+- `npm run lint` passe.
+- `git diff --check` ne signale pas d’erreur de whitespace.
+- `merchant-access-rail.hbs` et `merchant-access-rail.less` passent un contrôle Prettier ciblé.
+- Aucun rail storage parallèle ni fichier `shop-*` n’a été créé.

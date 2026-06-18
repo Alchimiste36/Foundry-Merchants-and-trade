@@ -6,7 +6,7 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import { getMTTEntityType, getStorageData, getStorageFlagPath } from "../../documents/storage-flags.mjs"
+import { getMTTEntityType, getStorageData, getStorageFlagPath, updateStorageData } from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -266,7 +266,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.headerCurrencies = context.mtt.walletCurrencies
     context.mtt.hasHeaderCurrencies = context.mtt.headerCurrencies.length > 0
     context.mtt.currencyOptions = prepareCurrencyOptions()
-    context.mtt.access = isStorage ? this.#prepareNeutralAccessContext() : this.#prepareAccessContext()
+    context.mtt.access = this.#prepareAccessContext()
     context.mtt.session = isStorage ? this.#prepareNeutralSessionContext() : this.#prepareSessionContext()
     context.mtt.referenceState = this.#prepareReferenceStateContext()
     context.mtt.journal = isStorage
@@ -329,17 +329,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       sessions: {
         entries: []
       }
-    }
-  }
-
-  #prepareNeutralAccessContext() {
-    // MTT base — rail d’acteurs autorisés partagé par les types MTT
-    return {
-      clients: [],
-      hasClients: false,
-      canSeeAccessDropZone: false,
-      dropZoneTooltip: "",
-      railAriaLabel: game.i18n.localize("mtt.access.title")
     }
   }
 
@@ -1104,6 +1093,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Client drag/drop and context menu ───────────────────────────────────
 
   #onClientDragOver(event) {
+    if (this.#isStorageEntity()) {
+      if (!this.#canModifyStorageRail({ notify: false })) return
+
+      event.preventDefault()
+      event.dataTransfer.dropEffect = "copy"
+      return
+    }
+
     if (!this.#requireMerchantPermission("canAddActorToMerchantRail", { notify: false })) return
 
     event.preventDefault()
@@ -1114,13 +1111,24 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
     event.stopPropagation()
 
-    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
-
     const actor = await this.#getDroppedActorDocument(event)
     if (!actor) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyActorsCanBeClients"))
+      const key = this.#isStorageEntity()
+        ? "mtt.storage.rail.onlyActorsCanBeAdded"
+        : "mtt.notifications.onlyActorsCanBeClients"
+      ui.notifications.warn(game.i18n.localize(key))
       return
     }
+
+    if (this.#isStorageEntity()) {
+      if (!this.#canModifyStorageRail()) return
+
+      await this.#upsertStorageAccessActor(buildAccessClientFromActor(actor, { isAuthorized: true }))
+      this.render()
+      return
+    }
+
+    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
 
     await this.#upsertAccessClient(buildAccessClientFromActor(actor, { isAuthorized: true }))
     this.render()
@@ -1162,6 +1170,32 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this.#closeAccessContextMenu()
       await this.#openAccessClientActor(client)
     })
+
+    if (this.#isStorageEntity()) {
+      const removeActor = document.createElement("button")
+      removeActor.type = "button"
+      removeActor.classList.add("mtt-merchant-access-context-menu-button")
+      const removeActorIcon = document.createElement("i")
+      removeActorIcon.classList.add("fas", "fa-trash")
+      const removeActorLabel = document.createElement("span")
+      removeActorLabel.textContent = game.i18n.localize("mtt.storage.rail.removeActor")
+      removeActor.append(removeActorIcon, removeActorLabel)
+      removeActor.addEventListener("click", async () => {
+        this.#closeAccessContextMenu()
+        await this.#removeStorageAccessActor(client)
+      })
+
+      menu.append(openActor, removeActor)
+      applicationElement.append(menu)
+      window.setTimeout(() => {
+        const closeMenu = (closeEvent) => {
+          if (!menu.contains(closeEvent.target)) this.#closeAccessContextMenu()
+          document.removeEventListener("click", closeMenu, true)
+        }
+        document.addEventListener("click", closeMenu, true)
+      }, 0)
+      return
+    }
 
     const removeAuthorization = document.createElement("button")
     removeAuthorization.type = "button"
@@ -1809,6 +1843,100 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return actor.testUserPermission(game.user, "OWNER")
   }
 
+  #isStorageEntity() {
+    return getMTTEntityType(this.actor) === MTT.ENTITY_TYPES.STORAGE
+  }
+
+  #normalizeStorageAccessActor(entry = {}) {
+    const normalized = normalizeAccessClient({
+      ...entry,
+      isAuthorized: entry.isAuthorized ?? true
+    })
+    if (!normalized.actorUuid) return null
+
+    const actor = this.#getClientActor(normalized.actorUuid)
+    if (!actor) return normalized
+
+    return normalizeAccessClient({
+      ...normalized,
+      actorId: actor.id ?? normalized.actorId,
+      actorName: actor.name ?? normalized.actorName,
+      actorImg: actor.img ?? normalized.actorImg,
+      actorType: actor.type ?? normalized.actorType
+    })
+  }
+
+  #getStoredStorageAccessActors() {
+    const actors = getStorageData(this.actor)?.access?.actors ?? []
+    const actorsByUuid = new Map()
+
+    actors.forEach((entry) => {
+      const normalized = this.#normalizeStorageAccessActor(entry)
+      if (!normalized?.actorUuid) return
+      actorsByUuid.set(normalized.actorUuid, normalized)
+    })
+
+    return Array.from(actorsByUuid.values())
+  }
+
+  #prepareStorageAccessClients() {
+    // MTT base — le rail réutilise encore le nom historique clients pour les acteurs liés
+    const clientsByUuid = new Map()
+
+    this.#getStoredStorageAccessActors().forEach((client) => {
+      if (!client.actorUuid) return
+      clientsByUuid.set(client.actorUuid, client)
+    })
+
+    game.users.forEach((user) => {
+      const userActor = user.character
+      if (!userActor?.uuid) return
+
+      const existing = clientsByUuid.get(userActor.uuid)
+      const playerClient = buildAccessClientFromActor(userActor, {
+        user,
+        isAuthorized: existing?.isAuthorized ?? true,
+        isFromPlayerCharacter: true
+      })
+
+      clientsByUuid.set(userActor.uuid, {
+        ...playerClient,
+        ...existing,
+        actorName: userActor.name ?? existing?.actorName ?? "",
+        actorImg: userActor.img ?? existing?.actorImg ?? "",
+        actorType: userActor.type ?? existing?.actorType ?? "",
+        userId: user.id ?? existing?.userId ?? "",
+        userName: user.name ?? existing?.userName ?? "",
+        isAuthorized: existing?.isAuthorized ?? true,
+        isFromPlayerCharacter: true
+      })
+    })
+
+    return Array.from(clientsByUuid.values())
+      .map((client) => ({
+        ...client,
+        hasCustomRates: false,
+        canShowCustomRates: false,
+        customRatesTooltip: "",
+        statusLabel: game.i18n.localize("mtt.storage.rail.authorized"),
+        sourceLabel: game.i18n.localize("mtt.storage.rail.actor"),
+        hasSession: false,
+        sessionId: "",
+        sessionStatus: "",
+        sessionLabel: game.i18n.localize("mtt.storage.rail.noSession"),
+        sessionBadgeIcon: "",
+        isSelected: this.#selectedClientActorUuid === client.actorUuid,
+        tooltip: [
+          client.actorName,
+          game.i18n.localize("mtt.storage.rail.authorized"),
+          game.i18n.localize("mtt.storage.rail.leftClickSelect")
+        ]
+          .filter(Boolean)
+          .join(" - ")
+      }))
+      .sort((a, b) => a.actorName.localeCompare(b.actorName, undefined, { sensitivity: "base" }))
+  }
+
   #userCanViewSession(session) {
     if (!session) return false
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
@@ -1827,6 +1955,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareAccessContext() {
+    if (this.#isStorageEntity()) return this.#prepareStorageAccessContext()
+
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
     const canSeeAccessDropZone = permissions.canAddActorToMerchantRail
 
@@ -1862,6 +1992,42 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
+  #prepareStorageAccessContext() {
+    // MTT base — rail d’acteurs autorisés partagé par les types MTT
+    const canManageRail = this.isEditable
+    const clients = this.#prepareStorageAccessClients()
+      .map((client) => {
+        const canSeeCard = true
+        const canClickCard = true
+        const cardClasses = [
+          "mtt-merchant-access-card",
+          "mtt-merchant-access-card-authorized",
+          client.isSelected ? "mtt-merchant-access-card-selected" : null,
+          !canClickCard ? "mtt-merchant-access-card-readonly" : null
+        ]
+          .filter(Boolean)
+          .join(" ")
+
+        return {
+          ...client,
+          canSeeCard,
+          canClickCard,
+          cardClasses,
+          sessionBadgeClasses: ""
+        }
+      })
+      .filter((client) => client.canSeeCard)
+
+    return {
+      clients,
+      hasClients: clients.length > 0,
+      canSeeAccessDropZone: canManageRail,
+      isStorage: true,
+      railAriaLabel: game.i18n.localize("mtt.storage.rail.title"),
+      dropZoneTooltip: game.i18n.localize("mtt.storage.rail.dropTooltip")
+    }
+  }
+
   #getAccessClientForSession(session) {
     const actorUuid = String(session?.actorUuid ?? "").trim()
     if (!actorUuid) return null
@@ -1881,6 +2047,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #getAccessClientCandidate(actorUuid) {
     const normalizedActorUuid = String(actorUuid ?? "").trim()
     if (!normalizedActorUuid) return null
+
+    if (this.#isStorageEntity()) {
+      return this.#prepareStorageAccessClients().find((client) => client.actorUuid === normalizedActorUuid) ?? null
+    }
 
     return this.#prepareAccessClients().find((client) => client.actorUuid === normalizedActorUuid) ?? null
   }
@@ -1906,6 +2076,76 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await updateMerchantData(this.actor, { access: { clients } })
 
     return normalizedClient
+  }
+
+  #canModifyStorageRail({ notify = true } = {}) {
+    if (!this.isEditable) {
+      if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+      return false
+    }
+
+    return true
+  }
+
+  async #upsertStorageAccessActor(client) {
+    // MTT base — ajout d’un acteur au rail selon le type MTT actif
+    const normalizedClient = this.#normalizeStorageAccessActor(client)
+    if (!normalizedClient?.actorUuid) return null
+
+    const actors = this.#getStoredStorageAccessActors()
+    const index = actors.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid)
+
+    if (index === -1) {
+      actors.push(normalizedClient)
+    } else {
+      actors[index] = {
+        ...actors[index],
+        ...normalizedClient,
+        isAuthorized: true
+      }
+    }
+
+    await updateStorageData(this.actor, { access: { actors } })
+    return normalizedClient
+  }
+
+  async #removeStorageAccessActor(client) {
+    if (!this.#canModifyStorageRail()) return false
+
+    const normalizedActorUuid = String(client?.actorUuid ?? "").trim()
+    if (!normalizedActorUuid) return false
+
+    const content = await this.#renderMttDialogContent({
+      icon: "fa-trash",
+      title: game.i18n.localize("mtt.storage.rail.removeActorTitle"),
+      message: game.i18n.localize("mtt.storage.rail.removeActorContent"),
+      variant: "danger",
+      entity: {
+        name: client.actorName,
+        img: client.actorImg,
+        meta: client.userName || client.sourceLabel || ""
+      }
+    })
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: {
+        title: game.i18n.localize("mtt.storage.rail.removeActorTitle")
+      },
+      content,
+      yes: {
+        label: game.i18n.localize("mtt.storage.rail.removeActorConfirm")
+      },
+      no: {
+        label: game.i18n.localize("mtt.dialog.cancel")
+      }
+    })
+    if (!confirmed) return false
+
+    const actors = this.#getStoredStorageAccessActors().filter((entry) => entry.actorUuid !== normalizedActorUuid)
+    if (this.#selectedClientActorUuid === normalizedActorUuid) this.#selectedClientActorUuid = ""
+
+    await updateStorageData(this.actor, { access: { actors } })
+    this.render()
+    return true
   }
 
   async #setClientAuthorization(client, isAuthorized, { removeOpenSessions = false } = {}) {
@@ -3109,6 +3349,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const client = this.#getAccessClientCandidate(actorUuid)
     if (!client) return
+
+    if (this.#isStorageEntity()) {
+      this.#selectedClientActorUuid = client.actorUuid
+      this.#activeSessionId = null
+      this.#sessionCheckResult = null
+      this.render()
+      return
+    }
 
     if (!client.isAuthorized) {
       if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return

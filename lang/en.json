@@ -200,6 +200,19 @@
         "configurationTitle": "Storage configuration",
         "configuration": "Storage-specific settings will be added here.",
         "journal": "The storage movement journal will be displayed here."
+      },
+      "rail": {
+        "title": "Authorized actors",
+        "actor": "Actor",
+        "authorized": "Authorized for storage",
+        "noSession": "No storage session",
+        "dropTooltip": "Drop an actor to add them to storage",
+        "leftClickSelect": "Left click: select",
+        "onlyActorsCanBeAdded": "Only actors can be added to storage.",
+        "removeActor": "Remove actor from storage",
+        "removeActorTitle": "Remove actor from storage",
+        "removeActorContent": "The Foundry actor will not be deleted. Only their entry on this storage will be removed.",
+        "removeActorConfirm": "Remove from storage"
       }
     },
     "actions": {

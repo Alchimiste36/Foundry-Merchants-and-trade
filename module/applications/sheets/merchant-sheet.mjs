@@ -9,7 +9,6 @@ import {
 import {
   getMTTEntityType,
   getStorageData,
-  getStorageFlagPath,
   updateStorageData
 } from "../../documents/storage-flags.mjs"
 import {
@@ -122,6 +121,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #journalSort = { key: "date", direction: "desc" }
   #scrollPositions = {}
   #scrollRestorePending = false
+  #storageSheetLocked = true
 
   static DEFAULT_OPTIONS = {
     classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET, "mtt-merchant-window"],
@@ -209,7 +209,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     // MTT base — édition de la feuille commune merchant-* selon verrouillage et droits Foundry
     const isEditable = this.isEditable
-    const isLocked = isStorage ? storageData?.sheet?.isLocked === true : getMerchantSheetLockedState(this.actor)
+    const isLocked = this.#getSheetLockedState(entityType)
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
     const isLimited = getMerchantLimitedState(this.actor)
@@ -279,6 +279,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return context
   }
 
+  #getSheetLockedState(entityType) {
+    // MTT base — lecture du verrouillage actif selon le type de feuille MTT
+    if (entityType === MTT.ENTITY_TYPES.STORAGE) return this.#storageSheetLocked
+    return getMerchantSheetLockedState(this.actor)
+  }
+
   #buildStorageMerchantContext(storageData = null) {
     const storage = storageData?.storage ?? {}
     const name = String(storage.name ?? "").trim() || (this.actor?.name ?? "")
@@ -287,7 +293,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return {
       enabled: true,
       sheet: {
-        isLocked: storageData?.sheet?.isLocked === true
+        isLocked: this.#storageSheetLocked
       },
       shop: {
         name,
@@ -2924,10 +2930,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!this.isEditable) return false
 
     const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
-    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
-    const isLocked = isStorage
-      ? getStorageData(this.actor)?.sheet?.isLocked === true
-      : getMerchantSheetLockedState(this.actor)
+    const isLocked = this.#getSheetLockedState(entityType)
 
     if (isLocked) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
@@ -3642,18 +3645,20 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // MTT base — verrouillage de feuille selon le type MTT actif
     const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
     const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
-    const isLocked = isStorage
-      ? getStorageData(this.actor)?.sheet?.isLocked === true
-      : getMerchantSheetLockedState(this.actor)
+    const isLocked = this.#getSheetLockedState(entityType)
 
     if (!isLocked && !isStorage) {
       await this.#saveMerchantTextFieldsFromDom()
       await this.#saveMerchantConfigFieldsFromDom()
     }
 
-    // Use updateSource to avoid triggering the full actor data-preparation cycle for actors converted by flags.
-    const lockPath = isStorage ? getStorageFlagPath("sheet.isLocked") : getMerchantFlagPath("sheet.isLocked")
-    this.actor.updateSource({ [lockPath]: !isLocked })
+    if (isStorage) {
+      this.#storageSheetLocked = !isLocked
+    } else {
+      // Use updateSource to avoid triggering the full actor data-preparation cycle for actors converted by flags.
+      const lockPath = getMerchantFlagPath("sheet.isLocked")
+      this.actor.updateSource({ [lockPath]: !isLocked })
+    }
     await this.render({ force: true })
   }
 

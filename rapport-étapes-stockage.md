@@ -314,3 +314,66 @@ Le défaut storage est maintenant aligné sur le comportement attendu de la feui
 - `storage-flags.mjs` passe `node --check`.
 - `merchant-conversion.mjs` passe `node --check`.
 - `merchant-sheet.mjs` passe `node --check`.
+
+# Correction — Position d’ouverture différente shop / stockage
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de correction.
+- [x] Identifier le point commun d’ouverture des feuilles MTT.
+- [x] Conserver la taille commune dans `MerchantSheet.DEFAULT_OPTIONS`.
+- [x] Appliquer un `left` par défaut différent selon le type MTT ouvert.
+- [x] Respecter une position `left` explicite déjà fournie à l’ouverture.
+- [x] Ne pas modifier les templates HBS ni les styles LESS.
+
+## Résumé
+
+La feuille commune MTT conserve sa taille actuelle de `820 x 750`. Le décalage horizontal est maintenant appliqué au point d’ouverture commun : une boutique/marchand s’ouvre par défaut à `left: 380`, tandis qu’un stockage s’ouvre par défaut à `left: 50`.
+
+La correction ne force pas la position si une valeur `position.left` explicite est déjà transmise à l’ouverture.
+
+## Non créé volontairement
+
+- Aucune classe `StorageSheet`.
+- Aucun CSS de positionnement de fenêtre.
+- Aucun style inline.
+- Aucun changement HBS.
+- Aucun setting Foundry.
+- Aucune modification du rail, des sessions ou des lignes d’Items.
+
+## Vérifications simples
+
+- `merchant-conversion.mjs` passe `node --check`.
+- `merchant-sheet.mjs` passe `node --check`.
+- Le diff de correction ne modifie aucun HBS ni LESS.
+
+# Correction — Verrouillage storage local à la fenêtre
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les nouvelles instructions de correction.
+- [x] Vérifier l’état actuel après suppression manuelle de la correction précédente.
+- [x] Ajouter un verrouillage storage local à l’instance de fenêtre.
+- [x] Faire lire le contexte storage depuis l’état local de fenêtre.
+- [x] Faire basculer le bouton de verrouillage storage sans persister `sheet.isLocked: false`.
+- [x] Conserver le comportement de verrouillage marchand existant.
+- [x] Neutraliser les anciens `sheet.isLocked: false` storage lors de la normalisation future.
+
+## Résumé
+
+Le verrouillage de la feuille storage n’est plus piloté par `flags.mtt-merchants.storage.sheet.isLocked` pendant l’ouverture de la fenêtre. Chaque nouvelle instance de feuille storage démarre verrouillée via un état local de fenêtre.
+
+Le bouton déverrouiller/verrouiller fonctionne toujours tant que la fenêtre est ouverte, mais côté storage il ne persiste plus l’état déverrouillé avec `actor.update`. Le marchand conserve son comportement existant.
+
+## Non créé volontairement
+
+- Aucun helper externe de lock storage.
+- Aucune feuille storage séparée.
+- Aucun template storage supplémentaire.
+- Aucun changement du rail.
+- Aucun changement des lignes d’Items, catégories ou sessions.
+- Aucun nouveau système de permissions.
+- Aucune migration complexe.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `storage-flags.mjs` passe `node --check`.
+- `npm run lint` passe.
+- `git diff --check` ne signale pas d’erreur de whitespace.

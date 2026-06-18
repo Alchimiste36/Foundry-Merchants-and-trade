@@ -17,6 +17,9 @@ const _managerBypassActorIds = new Set()
 // WeakSet = pas de fuite mémoire quand l'app est détruite.
 const _managerBypassApps = new WeakSet()
 
+const SHOP_WINDOW_LEFT = 380
+const STORAGE_WINDOW_LEFT = 50
+
 // ─── Actions de conversion ───────────────────────────────────────────────────
 
 // MTT shop — conversion boutique / marchand commercial
@@ -83,13 +86,13 @@ export async function convertActorToStorage(actor) {
   ui.notifications.info(game.i18n.format("mtt.notifications.storageConversion.success", { name: actor.name }))
 }
 
-export function openMerchantSheet(actor) {
+export function openMerchantSheet(actor, options = {}) {
   if (!actor || !isMTTMerchant(actor)) return
-  openMTTBaseSheet(actor)
+  openMTTBaseSheet(actor, options)
 }
 
 // MTT base — ouverture de feuille commune aux types MTT basés sur merchant-*
-function openMTTBaseSheet(actor) {
+function openMTTBaseSheet(actor, options = {}) {
   if (!actor) return
   // Ramener au premier plan si déjà ouverte
   try {
@@ -102,12 +105,18 @@ function openMTTBaseSheet(actor) {
   } catch {
     // L'itération des applications peut échouer pendant certains cycles de rendu Foundry.
   }
-  new MerchantSheet({ document: actor }).render(true)
+
+  const position = { ...(options.position ?? {}) }
+  if (position.left == null) {
+    position.left = isMTTStorage(actor) ? STORAGE_WINDOW_LEFT : SHOP_WINDOW_LEFT
+  }
+
+  new MerchantSheet({ ...options, document: actor, position }).render(true)
 }
 
-export function openStorageSheet(actor) {
+export function openStorageSheet(actor, options = {}) {
   if (!actor || !isMTTStorage(actor)) return
-  openMTTBaseSheet(actor)
+  openMTTBaseSheet(actor, options)
 }
 
 export function openManagerActorSheet(actor) {

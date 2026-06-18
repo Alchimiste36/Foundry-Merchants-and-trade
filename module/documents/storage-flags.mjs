@@ -54,7 +54,7 @@ export function normalizeStorageData(data = {}, actor = null) {
   if (!String(merged.storage.img ?? "").trim()) merged.storage.img = actor?.img ?? ""
   merged.storage.description ??= ""
   merged.sheet ??= {}
-  merged.sheet.isLocked = merged.sheet.isLocked === true
+  merged.sheet.isLocked = true
   merged.access ??= {}
   merged.access.actors ??= []
   merged.sessions ??= {}

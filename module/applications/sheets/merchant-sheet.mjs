@@ -6,7 +6,12 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import { getMTTEntityType, getStorageData, getStorageFlagPath, updateStorageData } from "../../documents/storage-flags.mjs"
+import {
+  getMTTEntityType,
+  getStorageData,
+  getStorageFlagPath,
+  updateStorageData
+} from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -121,8 +126,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static DEFAULT_OPTIONS = {
     classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET, "mtt-merchant-window"],
     position: {
-      width: 900,
-      height: 700
+      width: 820,
+      height: 750
     },
     form: {
       submitOnChange: true
@@ -184,8 +189,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   get title() {
     const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
-    const titleKey =
-      entityType === MTT.ENTITY_TYPES.STORAGE ? "mtt.sheets.storageTitle" : "mtt.sheets.merchantTitle"
+    const titleKey = entityType === MTT.ENTITY_TYPES.STORAGE ? "mtt.sheets.storageTitle" : "mtt.sheets.merchantTitle"
     return game.i18n.format(titleKey, {
       name: this.actor?.name ?? ""
     })
@@ -200,15 +204,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
     const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
     const isShop = entityType === MTT.ENTITY_TYPES.MERCHANT
-    const mttAccent = isStorage ? "#5ba3bf" : "#c79a48"
     const storageData = isStorage ? getStorageData(this.actor) : null
     const merchantContext = isStorage ? this.#buildStorageMerchantContext(storageData) : getMerchantData(this.actor)
 
     // MTT base — édition de la feuille commune merchant-* selon verrouillage et droits Foundry
     const isEditable = this.isEditable
-    const isLocked = isStorage
-      ? storageData?.sheet?.isLocked === true
-      : getMerchantSheetLockedState(this.actor)
+    const isLocked = isStorage ? storageData?.sheet?.isLocked === true : getMerchantSheetLockedState(this.actor)
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
     const isLimited = getMerchantLimitedState(this.actor)
@@ -230,7 +231,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       entityType,
       isShop,
       isStorage,
-      mttAccent,
       activeTab: this.#activeTab,
       isEditable,
       isLocked,
@@ -250,7 +250,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.entityType = entityType
     context.isShop = isShop
     context.isStorage = isStorage
-    context.mttAccent = mttAccent
     context.actor = this.actor
     context.merchant = merchantContext
     context.permissions = sheetPermissions
@@ -706,7 +705,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return removeSessionItemById(session, itemId, side)
   }
   #getProductAvailability(productId, options = {}) {
-    return buildProductAvailabilityMap(getCatalogProducts(this.actor), this.#getSessions(), options).get(productId) ?? null
+    return (
+      buildProductAvailabilityMap(getCatalogProducts(this.actor), this.#getSessions(), options).get(productId) ?? null
+    )
   }
   #getProductSessionItemQuantityLimit(item, session) {
     if (!item || item.type !== "product") return null
@@ -2635,7 +2636,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (existingItem) {
       const existingQuantityLimit =
-        type === "product" ? this.#getProductSessionItemQuantityLimit(existingItem, session) : normalizedAvailableQuantity
+        type === "product"
+          ? this.#getProductSessionItemQuantityLimit(existingItem, session)
+          : normalizedAvailableQuantity
       const hasExistingQuantityLimit = Number.isFinite(existingQuantityLimit) && existingQuantityLimit >= 0
 
       existingItem.availableQuantity = hasExistingQuantityLimit ? existingQuantityLimit : null

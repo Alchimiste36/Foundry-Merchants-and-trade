@@ -286,3 +286,31 @@ Comme côté marchand, les acteurs liés aux joueurs sont ajoutés dynamiquement
 - `git diff --check` ne signale pas d’erreur de whitespace.
 - `merchant-access-rail.hbs` et `merchant-access-rail.less` passent un contrôle Prettier ciblé.
 - Aucun rail storage parallèle ni fichier `shop-*` n’a été créé.
+
+# Correction — Verrouillage initial de la feuille stockage
+
+- [x] Lire `agents.md` et rechercher la logique existante de verrouillage.
+- [x] Vérifier le contexte de feuille `merchant-sheet.mjs`.
+- [x] Vérifier la conversion en stockage.
+- [x] Identifier la cause dans les données par défaut storage.
+- [x] Corriger le verrouillage initial sans créer de logique parallèle.
+
+## Résumé
+
+La feuille storage était déverrouillée dès sa création parce que `buildDefaultStorageData()` initialisait `sheet.isLocked` à `false`. La conversion en stockage persistait ensuite directement cette valeur dans `flags.mtt-merchants.storage.sheet.isLocked`.
+
+Le défaut storage est maintenant aligné sur le comportement attendu de la feuille commune : un nouveau stockage s’ouvre verrouillé par défaut, puis le bouton de verrouillage commun permet toujours de le déverrouiller volontairement.
+
+## Non créé volontairement
+
+- Aucun nouveau helper de verrouillage storage.
+- Aucun template storage séparé.
+- Aucun changement du bouton commun de verrouillage.
+- Aucune migration legacy.
+- Aucun fichier `shop-*`.
+
+## Vérifications simples
+
+- `storage-flags.mjs` passe `node --check`.
+- `merchant-conversion.mjs` passe `node --check`.
+- `merchant-sheet.mjs` passe `node --check`.

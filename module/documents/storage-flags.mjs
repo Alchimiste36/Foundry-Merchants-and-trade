@@ -21,7 +21,7 @@ export function buildDefaultStorageData(actor = null) {
       description: ""
     },
     sheet: {
-      isLocked: false
+      isLocked: true
     },
     access: {
       actors: []

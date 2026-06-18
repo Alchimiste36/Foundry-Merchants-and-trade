@@ -1,7 +1,6 @@
 /* MTT — Variables partagées */
 :root {
   --mtt-bg-main: #202225;
-  --mtt-bg-panel: #2a2d31;
   --mtt-bg-panel-soft: #32363b;
   --mtt-bg-field: #1f2125;
   --mtt-bg-hover: #383d44;
@@ -10,12 +9,19 @@
   --mtt-text: #e5e0d6;
   --mtt-text-muted: #b6afa3;
   --mtt-text-soft: #948d82;
-  --mtt-accent: #c79a48;
   --mtt-accent-soft: rgba(199, 154, 72, 0.18);
   --mtt-danger: #d36b5f;
   --mtt-warning: #d6a84f;
   --mtt-secret: #8f75c9;
   --mtt-secret-soft: rgba(143, 117, 201, 0.18);
+}
+:root .mtt-merchant-form.mtt-merchant-form-shop {
+  --mtt-accent: #c79a48;
+  --mtt-bg-panel: #2a2d31;
+}
+:root .mtt-merchant-form.mtt-merchant-form-storage {
+  --mtt-accent: #5ba3bf;
+  --mtt-bg-panel: #161100;
 }
 .mtt-sheet {
   font-family: var(--font-family);
@@ -240,7 +246,7 @@
 /* ─── En-tête ─────────────────────────────────────────────────────────────── */
 .mtt-merchant-header {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 2fr) 310px;
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.5rem;
@@ -267,6 +273,13 @@
 }
 .mtt-merchant-header-manager {
   flex: 1;
+}
+.mtt-merchant-header-storage {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem;
 }
 .mtt-merchant-manager-img-button {
   width: 5rem;
@@ -335,6 +348,14 @@
   align-items: center;
   width: 100%;
 }
+.mtt-merchant-header-title-area-storage {
+  display: grid;
+  grid-template-columns: 310px 0.5fr 1fr;
+  min-width: 0;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
 .mtt-merchant-title-block {
   flex: 1;
   min-width: 0;
@@ -361,9 +382,13 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  justify-content: flex-end;
 }
 .mtt-nav-info {
   grid-column: 2 / 4;
+}
+.mtt-nav-info-storage {
+  grid-column: auto;
 }
 .mtt-merchant-header-wallet-summary {
   display: flex;
@@ -375,6 +400,7 @@
   background: var(--mtt-bg-field);
   color: var(--mtt-text-muted);
   font-size: 0.82rem;
+  width: 220px;
 }
 .mtt-merchant-header-wallet-currency {
   display: inline-flex;
@@ -2026,9 +2052,8 @@
 }
 /* MTT — Session de transaction */
 .mtt-merchant-session-sidebar {
-  width: 340px;
-  flex: 0 0 340px;
-  max-width: 45%;
+  width: 320px;
+  flex: 0 0 320px;
   padding: 0.3rem;
   overflow: auto;
   display: flex;

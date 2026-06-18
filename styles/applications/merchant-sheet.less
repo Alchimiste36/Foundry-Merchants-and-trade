@@ -54,7 +54,7 @@
 
 .mtt-merchant-header {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 2fr) 310px;
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.5rem;
@@ -85,6 +85,14 @@
 
 .mtt-merchant-header-manager {
   flex: 1;
+}
+
+.mtt-merchant-header-storage {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem;
 }
 
 .mtt-merchant-manager-img-button {
@@ -167,6 +175,15 @@
   width: 100%;
 }
 
+.mtt-merchant-header-title-area-storage {
+  display: grid;
+  grid-template-columns: 310px 0.5fr 1fr;
+  min-width: 0;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+
 .mtt-merchant-title-block {
   flex: 1;
   min-width: 0;
@@ -196,10 +213,15 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  justify-content: flex-end;
 }
 
 .mtt-nav-info {
   grid-column: 2 / 4;
+}
+
+.mtt-nav-info-storage {
+  grid-column: auto;
 }
 
 .mtt-merchant-header-wallet-summary {
@@ -212,6 +234,7 @@
   background: var(--mtt-bg-field);
   color: var(--mtt-text-muted);
   font-size: 0.82rem;
+  width: 220px;
 }
 
 .mtt-merchant-header-wallet-currency {

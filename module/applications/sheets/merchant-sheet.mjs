@@ -204,6 +204,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const storageData = isStorage ? getStorageData(this.actor) : null
     const merchantContext = isStorage ? this.#buildStorageMerchantContext(storageData) : getMerchantData(this.actor)
 
+    if (isStorage && this.#activeTab !== "products") this.#activeTab = "products"
+
     const isEditable = this.isEditable
     const isMttEditable = isShop && isEditable
     const isLocked = isStorage ? storageData?.sheet?.isLocked === true : getMerchantSheetLockedState(this.actor)

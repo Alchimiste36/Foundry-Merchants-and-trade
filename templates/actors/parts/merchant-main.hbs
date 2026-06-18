@@ -7,24 +7,33 @@
       </section>
     {{/if}}
 
-    {{#if (eq mtt.activeTab "services")}}
-      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs"}}
-      </section>
-    {{/if}}
-
-    {{#if permissions.canViewConfigTab}}
-      {{#if (eq mtt.activeTab "configuration")}}
-        <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-configuration" data-tab="configuration">
-          {{> "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs"}}
+    {{!-- MTT shop — services vendus par la boutique --}}
+    {{#if isShop}}
+      {{#if (eq mtt.activeTab "services")}}
+        <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs"}}
         </section>
       {{/if}}
     {{/if}}
 
-    {{#if (eq mtt.activeTab "journal")}}
-      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-journal" data-tab="journal">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs"}}
-      </section>
+    {{!-- MTT shop — configuration commerciale --}}
+    {{#if isShop}}
+      {{#if permissions.canViewConfigTab}}
+        {{#if (eq mtt.activeTab "configuration")}}
+          <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-configuration" data-tab="configuration">
+            {{> "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs"}}
+          </section>
+        {{/if}}
+      {{/if}}
+    {{/if}}
+
+    {{!-- MTT shop — journal commercial --}}
+    {{#if isShop}}
+      {{#if (eq mtt.activeTab "journal")}}
+        <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-journal" data-tab="journal">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs"}}
+        </section>
+      {{/if}}
     {{/if}}
   </section>
 </section>

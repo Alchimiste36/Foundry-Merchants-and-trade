@@ -1,3 +1,4 @@
+{{!-- MTT base — header commun aux types MTT --}}
 <header class="mtt-merchant-header">
   <div class="mtt-merchant-header-left">
     <button
@@ -62,36 +63,39 @@
             <i class="fas fa-box"></i>
           </button>
 
-          <button
-            class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'services')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-            type="button"
-            data-action="selectTab"
-            data-tab="services"
-            data-tooltip="{{localize 'mtt.tabs.services'}}"
-          >
-            <i class="fas fa-handshake"></i>
-          </button>
-
-          <button
-            class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'journal')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-            type="button"
-            data-action="selectTab"
-            data-tab="journal"
-            data-tooltip="{{localize 'mtt.tabs.journal'}}"
-          >
-            <i class="fas fa-book"></i>
-          </button>
-
-          {{#if permissions.canViewConfigTab}}
+          {{!-- MTT shop — onglets propres à la boutique / marchand commercial --}}
+          {{#if isShop}}
             <button
-              class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+              class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'services')}}mtt-merchant-tab-nav-btn-active{{/if}}"
               type="button"
               data-action="selectTab"
-              data-tab="configuration"
-              data-tooltip="{{localize 'mtt.tabs.configuration'}}"
+              data-tab="services"
+              data-tooltip="{{localize 'mtt.tabs.services'}}"
             >
-              <i class="fas fa-gear"></i>
+              <i class="fas fa-handshake"></i>
             </button>
+
+            <button
+              class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'journal')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+              type="button"
+              data-action="selectTab"
+              data-tab="journal"
+              data-tooltip="{{localize 'mtt.tabs.journal'}}"
+            >
+              <i class="fas fa-book"></i>
+            </button>
+
+            {{#if permissions.canViewConfigTab}}
+              <button
+                class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'configuration')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+                type="button"
+                data-action="selectTab"
+                data-tab="configuration"
+                data-tooltip="{{localize 'mtt.tabs.configuration'}}"
+              >
+                <i class="fas fa-gear"></i>
+              </button>
+            {{/if}}
           {{/if}}
         </nav>
       </div>
@@ -101,89 +105,95 @@
           {{#if (eq mtt.activeTab "products")}}
             <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.products"}}</h2>
           {{/if}}
-          {{#if (eq mtt.activeTab "services")}}
-            <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.services"}}</h2>
-          {{/if}}
-          {{#if permissions.canViewConfigTab}}
-            {{#if (eq mtt.activeTab "configuration")}}
-              <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.configuration"}}</h2>
+          {{!-- MTT shop — titres d’onglets commerciaux --}}
+          {{#if isShop}}
+            {{#if (eq mtt.activeTab "services")}}
+              <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.services"}}</h2>
             {{/if}}
-          {{/if}}
-          {{#if (eq mtt.activeTab "journal")}}
-            <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.journal"}}</h2>
+            {{#if permissions.canViewConfigTab}}
+              {{#if (eq mtt.activeTab "configuration")}}
+                <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.configuration"}}</h2>
+              {{/if}}
+            {{/if}}
+            {{#if (eq mtt.activeTab "journal")}}
+              <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.journal"}}</h2>
+            {{/if}}
           {{/if}}
         </div>
       </div>
     </div>
   </div>
 
-  <div class="mtt-merchant-header-right">
-    <div class="mtt-merchant-header-right-main">
-      <div class="mtt-merchant-header-manager">
-        {{#if mtt.canEditMerchant}}
-          <div class="mtt-merchant-manager-fields">
+  {{!-- MTT shop — informations propres à la boutique / marchand commercial --}}
+  {{#if isShop}}
+    <div class="mtt-merchant-header-right">
+      <div class="mtt-merchant-header-right-main">
+        <div class="mtt-merchant-header-manager">
+          {{#if mtt.canEditMerchant}}
+            <div class="mtt-merchant-manager-fields">
 
-            <label class="mtt-merchant-field">
-              <input
-                class="mtt-merchant-field-input"
-                type="text"
-                name="flags.mtt-merchants.merchant.manager.displayName"
-                value="{{merchant.manager.displayName}}"
-                data-mtt-merchant-field="manager.displayName"
-                placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
-              />
-            </label>
-          </div>
-        {{else}}
-          <div class="mtt-merchant-manager-summary">
-            <span class="mtt-merchant-manager-name">{{merchant.manager.displayName}}</span>
-            {{#if mtt.isEditable}}
-              <button
-              class="mtt-merchant-header-action"
-              type="button"
-              data-action="rollNegotiation"
-              data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
-            >
-              <i class="fas fa-dice-d20"></i>
-            </button>
+              <label class="mtt-merchant-field">
+                <input
+                  class="mtt-merchant-field-input"
+                  type="text"
+                  name="flags.mtt-merchants.merchant.manager.displayName"
+                  value="{{merchant.manager.displayName}}"
+                  data-mtt-merchant-field="manager.displayName"
+                  placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
+                />
+              </label>
+            </div>
+          {{else}}
+            <div class="mtt-merchant-manager-summary">
+              <span class="mtt-merchant-manager-name">{{merchant.manager.displayName}}</span>
+              {{#if mtt.isEditable}}
+                <button
+                class="mtt-merchant-header-action"
+                type="button"
+                data-action="rollNegotiation"
+                data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
+              >
+                <i class="fas fa-dice-d20"></i>
+              </button>
+            {{/if}}
+            </div>
           {{/if}}
+        </div>
+
+        {{#if mtt.isEditable}}
+          <div class="mtt-merchant-header-wallet-summary">
+            {{#if mtt.hasHeaderCurrencies}}
+              {{#each mtt.headerCurrencies as |currency|}}
+                <span class="mtt-merchant-header-wallet-currency">
+                  <strong>{{currency.label}}</strong>
+                  {{currency.amount}}
+                </span>
+              {{/each}}
+            {{else}}
+              <span class="mtt-merchant-header-wallet-empty">
+                {{localize "mtt.configuration.walletSummaryEmpty"}}
+              </span>
+            {{/if}}
           </div>
         {{/if}}
       </div>
 
-      {{#if mtt.isEditable}}
-        <div class="mtt-merchant-header-wallet-summary">
-          {{#if mtt.hasHeaderCurrencies}}
-            {{#each mtt.headerCurrencies as |currency|}}
-              <span class="mtt-merchant-header-wallet-currency">
-                <strong>{{currency.label}}</strong>
-                {{currency.amount}}
-              </span>
-            {{/each}}
-          {{else}}
-            <span class="mtt-merchant-header-wallet-empty">
-              {{localize "mtt.configuration.walletSummaryEmpty"}}
-            </span>
-          {{/if}}
-        </div>
-      {{/if}}
+      <button
+        class="mtt-merchant-manager-img-button"
+        type="button"
+        {{#if mtt.canEditMerchant}}
+          data-action="editManagerImage"
+          data-tooltip="{{localize 'mtt.manager.image.edit'}}"
+        {{else}}
+          disabled
+        {{/if}}
+      >
+        <img
+          class="mtt-merchant-manager-img"
+          src="{{merchant.manager.img}}"
+          alt="{{merchant.manager.displayName}}"
+        />
+      </button>
     </div>
-
-    <button
-      class="mtt-merchant-manager-img-button"
-      type="button"
-      {{#if mtt.canEditMerchant}}
-        data-action="editManagerImage"
-        data-tooltip="{{localize 'mtt.manager.image.edit'}}"
-      {{else}}
-        disabled
-      {{/if}}
-    >
-      <img
-        class="mtt-merchant-manager-img"
-        src="{{merchant.manager.img}}"
-        alt="{{merchant.manager.displayName}}"
-      />
-    </button>
-  </div>
+  {{/if}}
 </header>

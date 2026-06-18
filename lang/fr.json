@@ -192,6 +192,13 @@
       },
       "empty": "Aucun gérant renseigné"
     },
+    "storage": {
+      "placeholder": {
+        "contentTitle": "Contenu du stockage",
+        "contentText": "Le contenu du stockage sera affiché ici.",
+        "session": "Les échanges de dépôt et retrait seront affichés ici."
+      }
+    },
     "actions": {
       "createItem": "Créer un objet",
       "edit": "Modifier",

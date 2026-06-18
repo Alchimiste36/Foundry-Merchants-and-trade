@@ -192,6 +192,13 @@
       },
       "empty": "No manager defined"
     },
+    "storage": {
+      "placeholder": {
+        "contentTitle": "Storage content",
+        "contentText": "Storage content will be displayed here.",
+        "session": "Deposit and withdrawal exchanges will be displayed here."
+      }
+    },
     "actions": {
       "createItem": "Create item",
       "edit": "Edit",

@@ -102,3 +102,40 @@ Pour le stockage, les zones métier encore non développées reçoivent des donn
 - `lang/fr.json` et `lang/en.json` sont valides.
 - `npm run lint` passe.
 - Aucun fichier `storage-sheet`, template `storage-*` ou style `storage-sheet.less` n’a été créé.
+
+# Étape 5 — Neutralisation des blocs shop incompatibles avec le stockage
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions de l’étape 5.
+- [x] Conserver la base `merchant-*` sans créer d’interface storage séparée.
+- [x] Masquer les onglets services, configuration et journal côté storage.
+- [x] Masquer le gérant et le portefeuille commercial dans le header storage.
+- [x] Masquer les prix, monnaies, secrets, approbations et actions commerciales dans les lignes d’Items.
+- [x] Neutraliser la sidebar de transaction commerciale côté storage avec un placeholder minimal.
+- [x] Ajouter uniquement les clés de langue nécessaires aux placeholders temporaires.
+- [x] Vérifier qu’aucun template, CSS ou fichier métier storage séparé n’a été créé.
+
+## Résumé
+
+La feuille storage utilise toujours la base `merchant-*`, mais les blocs strictement commerciaux ne sont plus affichés côté stockage. La structure commune reste en place : header, navigation de base, zone principale, liste d’Items et sidebar.
+
+Le marchand conserve les mêmes blocs via `isShop`. Le stockage reçoit seulement des placeholders sobres pour les zones dont la logique métier viendra plus tard.
+
+## Non créé volontairement
+
+- Aucun template HBS storage.
+- Aucun CSS storage.
+- Aucune ligne Item storage différente.
+- Aucune icône d’ouverture Item.
+- Aucun badge de type.
+- Aucun rail storage séparé.
+- Aucune session dépôt/retrait fonctionnelle.
+- Aucun tag, statut ou journal storage.
+- Aucun fichier `shop-*`.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont valides.
+- `npm run lint` passe.
+- Les HBS modifiés passent un contrôle Prettier ciblé.
+- Aucun fichier `storage-sheet`, template `storage-*`, style `storage-sheet.less` ou fichier `shop-*` n’a été créé.

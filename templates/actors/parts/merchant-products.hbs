@@ -161,6 +161,7 @@
                                   aria-hidden="true"
                                 ></i>
                               {{/if}}
+                            {{/if}}
                               {{#if @root.permissions.canViewApprovalStatus}}
                                 {{#if item.requiresApproval}}
                                   <i
@@ -170,7 +171,7 @@
                                   ></i>
                                 {{/if}}
                               {{/if}}
-                            {{/if}}
+                            
                           <input
                             class="mtt-merchant-product-name-input"
                             type="text"
@@ -201,6 +202,7 @@
                                   ></i>
                                 {{/if}}
                               {{/if}}
+                            {{/if}}
                               {{#if @root.permissions.canViewApprovalStatus}}
                                 {{#if item.requiresApproval}}
                                   <i
@@ -210,7 +212,7 @@
                                   ></i>
                                 {{/if}}
                               {{/if}}
-                            {{/if}}
+                            
                             <span
                               class="mtt-merchant-product-name"
                             >
@@ -280,8 +282,6 @@
                     {{/if}}
 
                     <div class="mtt-merchant-product-actions">
-                      {{!-- MTT shop — ajout à la session commerciale --}}
-                      {{#if @root.isShop}}
                         {{#if @root.permissions.canInteractWithSession}}
                           {{#if item.isVisible}}
                           {{#unless @root.mtt.session.isSubmitted}}
@@ -296,7 +296,6 @@
                           {{/unless}}
                           {{/if}}
                         {{/if}}
-                      {{/if}}
 
                       {{#if @root.mtt.isEditable}}
                         <button

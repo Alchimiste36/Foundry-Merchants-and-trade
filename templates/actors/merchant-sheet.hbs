@@ -4,11 +4,21 @@
     {{> "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs"}}
 
     <section class="mtt-merchant-body">
-      <main class="mtt-merchant-main">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
-      </main>
+      {{#if @root.isShop}}
+        <main class="mtt-merchant-main">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
+        </main>
 
-      {{> "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs"}}
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs"}}
+      {{/if}}
+      
+      {{#if @root.isStorage}}
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs"}}
+
+        <main class="mtt-merchant-main">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
+        </main>      
+      {{/if}}
     </section>
 
   </section>

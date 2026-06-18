@@ -1,11 +1,20 @@
+export const MTT_ENTITY_TYPES = {
+  MERCHANT: "merchant",
+  STORAGE: "storage"
+}
+
 export const MTT = {
   ID: "mtt-merchants",
   NAME: "Merchants, Trades and Transactions",
 
   FLAGS: {
+    TYPE: "type",
     PRODUCT: "product",
-    MERCHANT: "merchant"
+    MERCHANT: "merchant",
+    STORAGE: "storage"
   },
+
+  ENTITY_TYPES: MTT_ENTITY_TYPES,
 
   PRODUCT_DEFAULTS: {
     quantity: 1,

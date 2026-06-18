@@ -92,6 +92,10 @@
         "name": "Types d'acteurs convertibles en marchand MTT",
         "hint": "JSON interne géré via la fenêtre de configuration MTT."
       },
+      "allowedStorageActorTypes": {
+        "name": "Types d'acteurs convertibles en stockage MTT",
+        "hint": "JSON interne géré via la fenêtre de configuration MTT."
+      },
       "merchantPermissionProfiles": {
         "name": "Profils de permissions marchand",
         "hint": "JSON interne des permissions configurables par niveau de droit marchand."
@@ -234,16 +238,29 @@
       }
     },
     "actorDirectory": {
+      "convertMTT": "Conversion MTT",
       "convertToMerchant": "Convertir en marchand MTT",
+      "convertToStorage": "Convertir en stockage MTT",
       "openMerchant": "Ouvrir la boutique MTT",
       "openManager": "Ouvrir le gérant",
-      "removeMerchant": "Retirer la boutique MTT"
+      "removeMerchant": "Retirer la boutique MTT",
+      "removeStorage": "Retirer le stockage MTT"
     },
     "dialogs": {
+      "mttConversion": {
+        "title": "Conversion MTT",
+        "content": "Choisissez le type MTT à appliquer à {name}."
+      },
       "removeMerchant": {
         "title": "Retirer la boutique MTT",
         "content": "Cette action supprimera la boutique MTT attachée à cet acteur : catalogue, services, sessions, journal, état de référence et configuration commerciale. L’acteur système, sa fiche native et son inventaire personnel ne seront pas supprimés. Continuer ?",
         "confirm": "Retirer la boutique",
+        "cancel": "Annuler"
+      },
+      "removeStorage": {
+        "title": "Retirer le stockage MTT",
+        "content": "Cette action supprimera les données de stockage MTT attachées à cet acteur. L’acteur système, sa fiche native et ses objets ne seront pas supprimés. Continuer ?",
+        "confirm": "Retirer le stockage",
         "cancel": "Annuler"
       }
     },
@@ -352,8 +369,21 @@
         "success": "{name} possède maintenant une boutique MTT.",
         "noMerchant": "Cet acteur ne possède pas de boutique MTT."
       },
+      "storageConversion": {
+        "gmOnly": "Seul le MJ peut convertir un acteur en stockage MTT.",
+        "alreadyStorage": "Cet acteur possède déjà un stockage MTT.",
+        "typeNotAllowed": "Le type d'acteur '{type}' n'est pas autorisé pour les stockages MTT.",
+        "success": "{name} possède maintenant un stockage MTT.",
+        "noStorage": "Cet acteur ne possède pas de stockage MTT."
+      },
+      "mttConversion": {
+        "noTypeAllowed": "Le type d'acteur '{type}' n'est autorisé pour aucun type MTT."
+      },
       "merchantRemoval": {
         "success": "La boutique MTT de {name} a été retirée."
+      },
+      "storageRemoval": {
+        "success": "Le stockage MTT de {name} a été retiré."
       }
     },
     "defaults": {
@@ -984,6 +1014,12 @@
         "hint": "Sélectionnez les types d'acteurs du système actif qui pourront recevoir une boutique MTT. MTT ne crée pas d'acteur automatiquement : le MJ crée un acteur normal puis le convertit en boutique MTT.",
         "noneAvailable": "Aucun type d'acteur n'a été détecté pour ce système.",
         "noneSelected": "Aucun type d'acteur n'est actuellement autorisé pour la conversion en marchand MTT."
+      },
+      "storageActorTypes": {
+        "title": "Types d'acteurs convertibles en stockage MTT",
+        "hint": "Sélectionnez les types d'acteurs du système actif qui pourront recevoir un stockage MTT. MTT ne crée pas d'acteur automatiquement : le MJ crée un acteur normal puis le convertit en stockage MTT.",
+        "noneAvailable": "Aucun type d'acteur n'a été détecté pour ce système.",
+        "noneSelected": "Aucun type d'acteur n'est actuellement autorisé pour la conversion en stockage MTT."
       }
     }
   }

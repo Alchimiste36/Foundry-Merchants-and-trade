@@ -186,6 +186,15 @@ export function registerSettings() {
     default: "[]"
   })
 
+  game.settings.register(MTT.ID, "allowedStorageActorTypes", {
+    name: "mtt.settings.allowedStorageActorTypes.name",
+    hint: "mtt.settings.allowedStorageActorTypes.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "[]"
+  })
+
   game.settings.register(MTT.ID, "merchantPermissionProfiles", {
     name: "mtt.settings.merchantPermissionProfiles.name",
     hint: "mtt.settings.merchantPermissionProfiles.hint",

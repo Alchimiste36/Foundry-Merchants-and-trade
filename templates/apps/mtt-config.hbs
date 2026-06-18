@@ -41,6 +41,32 @@
       {{/if}}
     </section>
 
+    <section class="mtt-config-section">
+      <h2 class="mtt-config-section-title">{{localize "mtt.config.storageActorTypes.title"}}</h2>
+      <p class="mtt-config-section-hint">{{localize "mtt.config.storageActorTypes.hint"}}</p>
+
+      {{#if availableStorageActorTypes.length}}
+        <div class="mtt-config-actor-types">
+          {{#each availableStorageActorTypes as |actorType|}}
+            <label class="mtt-config-checkbox-field">
+              <input
+                type="checkbox"
+                name="allowedStorageActorTypes"
+                value="{{actorType.value}}"
+                {{#if actorType.checked}}checked{{/if}}
+              />
+              <span>{{actorType.label}}</span>
+            </label>
+          {{/each}}
+        </div>
+        {{#unless hasAllowedStorageActorTypes}}
+          <p class="notification warning">{{localize "mtt.config.storageActorTypes.noneSelected"}}</p>
+        {{/unless}}
+      {{else}}
+        <p class="mtt-config-section-hint">{{localize "mtt.config.storageActorTypes.noneAvailable"}}</p>
+      {{/if}}
+    </section>
+
     <section class="mtt-config-section mtt-config-permissions">
       <h2 class="mtt-config-section-title">{{localize "mtt.permissions.merchant.config.title"}}</h2>
       <p class="mtt-config-section-hint">{{localize "mtt.permissions.merchant.config.hint"}}</p>

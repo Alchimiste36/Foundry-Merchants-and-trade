@@ -92,6 +92,10 @@
         "name": "Actor types convertible to MTT merchants",
         "hint": "Internal JSON managed through the MTT configuration window."
       },
+      "allowedStorageActorTypes": {
+        "name": "Actor types convertible to MTT storage",
+        "hint": "Internal JSON managed through the MTT configuration window."
+      },
       "merchantPermissionProfiles": {
         "name": "Merchant permission profiles",
         "hint": "Internal JSON for configurable permissions by merchant ownership level."
@@ -234,16 +238,29 @@
       }
     },
     "actorDirectory": {
+      "convertMTT": "MTT conversion",
       "convertToMerchant": "Convert to MTT merchant",
+      "convertToStorage": "Convert to MTT storage",
       "openMerchant": "Open MTT shop",
       "openManager": "Open manager",
-      "removeMerchant": "Remove MTT shop"
+      "removeMerchant": "Remove MTT shop",
+      "removeStorage": "Remove MTT storage"
     },
     "dialogs": {
+      "mttConversion": {
+        "title": "MTT conversion",
+        "content": "Choose the MTT type to apply to {name}."
+      },
       "removeMerchant": {
         "title": "Remove MTT shop",
         "content": "This action will delete the MTT shop attached to this actor: catalog, services, sessions, journal, reference state, and trade configuration. The system actor, its native sheet, and its personal inventory will not be deleted. Continue?",
         "confirm": "Remove shop",
+        "cancel": "Cancel"
+      },
+      "removeStorage": {
+        "title": "Remove MTT storage",
+        "content": "This action will delete the MTT storage data attached to this actor. The system actor, its native sheet, and its items will not be deleted. Continue?",
+        "confirm": "Remove storage",
         "cancel": "Cancel"
       }
     },
@@ -352,8 +369,21 @@
         "success": "{name} now has an MTT shop.",
         "noMerchant": "This actor does not have an MTT shop."
       },
+      "storageConversion": {
+        "gmOnly": "Only the GM can convert an actor into MTT storage.",
+        "alreadyStorage": "This actor already has MTT storage.",
+        "typeNotAllowed": "Actor type '{type}' is not allowed for MTT storage.",
+        "success": "{name} now has MTT storage.",
+        "noStorage": "This actor does not have MTT storage."
+      },
+      "mttConversion": {
+        "noTypeAllowed": "Actor type '{type}' is not allowed for any MTT type."
+      },
       "merchantRemoval": {
         "success": "The MTT shop attached to {name} has been removed."
+      },
+      "storageRemoval": {
+        "success": "The MTT storage attached to {name} has been removed."
       }
     },
     "defaults": {
@@ -984,6 +1014,12 @@
         "hint": "Select which actor types from the active system may receive an MTT shop. MTT does not create actors automatically: the GM creates a normal actor and then converts it into an MTT shop.",
         "noneAvailable": "No actor type was detected for this system.",
         "noneSelected": "No actor type is currently allowed for conversion into an MTT merchant."
+      },
+      "storageActorTypes": {
+        "title": "Actor types convertible to MTT storage",
+        "hint": "Select which actor types from the active system may receive MTT storage. MTT does not create actors automatically: the GM creates a normal actor and then converts it into MTT storage.",
+        "noneAvailable": "No actor type was detected for this system.",
+        "noneSelected": "No actor type is currently allowed for conversion into MTT storage."
       }
     }
   }

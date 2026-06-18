@@ -3,7 +3,9 @@ import { MTT_EXPORTABLE_CONFIG_SETTINGS, buildModuleConfigurationExport } from "
 import {
   getAvailableActorTypes,
   getAllowedMerchantActorTypes,
-  setAllowedMerchantActorTypes
+  getAllowedStorageActorTypes,
+  setAllowedMerchantActorTypes,
+  setAllowedStorageActorTypes
 } from "../config/actor-types.mjs"
 import {
   MERCHANT_CONFIGURABLE_PERMISSIONS,
@@ -54,14 +56,17 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
     const availableTypes = getAvailableActorTypes()
-    const allowedTypes = getAllowedMerchantActorTypes()
+    const allowedMerchantTypes = getAllowedMerchantActorTypes()
+    const allowedStorageTypes = getAllowedStorageActorTypes()
     const merchantPermissionProfiles = normalizeMerchantPermissionProfiles(
       game.settings.get(MTT.ID, "merchantPermissionProfiles")
     )
     return {
       ...context,
-      availableActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedTypes.includes(t.value) })),
-      hasAllowedActorTypes: allowedTypes.length > 0,
+      availableActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedMerchantTypes.includes(t.value) })),
+      availableStorageActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedStorageTypes.includes(t.value) })),
+      hasAllowedActorTypes: allowedMerchantTypes.length > 0,
+      hasAllowedStorageActorTypes: allowedStorageTypes.length > 0,
       merchantPermissionProfiles,
       merchantPermissionRows: MERCHANT_CONFIGURABLE_PERMISSIONS.map((key) => ({
         key,
@@ -142,6 +147,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.element.querySelectorAll("input[name='allowedMerchantActorTypes']:checked")
     ).map((cb) => cb.value)
     await setAllowedMerchantActorTypes(allowedActorTypes)
+    const allowedStorageActorTypes = Array.from(
+      this.element.querySelectorAll("input[name='allowedStorageActorTypes']:checked")
+    ).map((cb) => cb.value)
+    await setAllowedStorageActorTypes(allowedStorageActorTypes)
     await game.settings.set(MTT.ID, "merchantPermissionProfiles", JSON.stringify(this.#collectMerchantPermissionProfiles()))
     this.close()
   }
@@ -275,6 +284,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
         try {
           if (key === "allowedMerchantActorTypes") {
             await setAllowedMerchantActorTypes(data.settings[key])
+            continue
+          }
+          if (key === "allowedStorageActorTypes") {
+            await setAllowedStorageActorTypes(data.settings[key])
             continue
           }
           if (key === "merchantPermissionProfiles") {

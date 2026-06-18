@@ -1,5 +1,11 @@
 import { isMTTMerchant, buildDefaultMerchantData, setMerchantData, unsetMerchantData } from "./merchant-flags.mjs"
-import { isActorTypeAllowedForMerchant } from "../config/actor-types.mjs"
+import {
+  buildDefaultStorageData,
+  isMTTStorage,
+  setStorageData,
+  unsetStorageData
+} from "./storage-flags.mjs"
+import { isActorTypeAllowedForMerchant, isActorTypeAllowedForStorage } from "../config/actor-types.mjs"
 import { MerchantSheet } from "../applications/sheets/merchant-sheet.mjs"
 import { rehydrateMerchantItemsOnConversion } from "../applications/sheets/merchant-catalog.mjs"
 import { MTT } from "../config/constants.mjs"
@@ -13,6 +19,7 @@ const _managerBypassApps = new WeakSet()
 
 // ─── Actions de conversion ───────────────────────────────────────────────────
 
+// MTT shop — conversion boutique / marchand commercial
 export async function convertActorToMerchant(actor) {
   if (!actor) return
   if (!game.user.isGM) {
@@ -21,6 +28,10 @@ export async function convertActorToMerchant(actor) {
   }
   if (isMTTMerchant(actor)) {
     ui.notifications.info(game.i18n.localize("mtt.notifications.merchantConversion.alreadyMerchant"))
+    return
+  }
+  if (isMTTStorage(actor)) {
+    ui.notifications.warn(game.i18n.localize("mtt.notifications.storageConversion.alreadyStorage"))
     return
   }
   if (!isActorTypeAllowedForMerchant(actor)) {
@@ -38,6 +49,7 @@ export async function convertActorToMerchant(actor) {
       includeInitialGlobalCategories: !hasExistingProductItems
     })
   )
+  await actor.setFlag(MTT.ID, MTT.FLAGS.TYPE, MTT.ENTITY_TYPES.MERCHANT)
 
   if (hasExistingProductItems) {
     await rehydrateMerchantItemsOnConversion(actor)
@@ -45,6 +57,30 @@ export async function convertActorToMerchant(actor) {
 
   ui.notifications.info(game.i18n.format("mtt.notifications.merchantConversion.success", { name: actor.name }))
   openMerchantSheet(actor)
+}
+
+// MTT storage — conversion stockage
+export async function convertActorToStorage(actor) {
+  if (!actor) return
+  if (!game.user.isGM) {
+    ui.notifications.warn(game.i18n.localize("mtt.notifications.storageConversion.gmOnly"))
+    return
+  }
+  if (isMTTStorage(actor)) {
+    ui.notifications.info(game.i18n.localize("mtt.notifications.storageConversion.alreadyStorage"))
+    return
+  }
+  if (isMTTMerchant(actor)) {
+    ui.notifications.warn(game.i18n.localize("mtt.notifications.merchantConversion.alreadyMerchant"))
+    return
+  }
+  if (!isActorTypeAllowedForStorage(actor)) {
+    ui.notifications.warn(game.i18n.format("mtt.notifications.storageConversion.typeNotAllowed", { type: actor.type }))
+    return
+  }
+
+  await setStorageData(actor, buildDefaultStorageData(actor))
+  ui.notifications.info(game.i18n.format("mtt.notifications.storageConversion.success", { name: actor.name }))
 }
 
 export function openMerchantSheet(actor) {
@@ -92,7 +128,34 @@ export async function removeMerchantFromActor(actor) {
   if (!confirmed) return
 
   await unsetMerchantData(actor)
+  if (actor.getFlag(MTT.ID, MTT.FLAGS.TYPE) === MTT.ENTITY_TYPES.MERCHANT) {
+    await actor.unsetFlag(MTT.ID, MTT.FLAGS.TYPE)
+  }
   ui.notifications.info(game.i18n.format("mtt.notifications.merchantRemoval.success", { name: actor.name }))
+}
+
+export async function removeStorageFromActor(actor) {
+  if (!game.user.isGM) {
+    ui.notifications.warn(game.i18n.localize("mtt.notifications.storageConversion.gmOnly"))
+    return
+  }
+  if (!actor) return
+  if (!isMTTStorage(actor)) {
+    ui.notifications.warn(game.i18n.localize("mtt.notifications.storageConversion.noStorage"))
+    return
+  }
+
+  const confirmed = await foundry.applications.api.DialogV2.confirm({
+    window: { title: game.i18n.localize("mtt.dialogs.removeStorage.title") },
+    content: `<p>${game.i18n.localize("mtt.dialogs.removeStorage.content")}</p>`,
+    rejectClose: false,
+    yes: { label: game.i18n.localize("mtt.dialogs.removeStorage.confirm") },
+    no: { label: game.i18n.localize("mtt.dialogs.removeStorage.cancel") }
+  })
+  if (!confirmed) return
+
+  await unsetStorageData(actor)
+  ui.notifications.info(game.i18n.format("mtt.notifications.storageRemoval.success", { name: actor.name }))
 }
 
 // ─── Helpers de résolution d'acteur ──────────────────────────────────────────
@@ -128,15 +191,64 @@ function isFoundryConfigApplication(app) {
   return ["DocumentOwnershipConfig", "DocumentSheetConfig", "DocumentDirectoryConfig"].includes(name)
 }
 
+function canConvertToAnyMTTType(actor) {
+  return isActorTypeAllowedForMerchant(actor) || isActorTypeAllowedForStorage(actor)
+}
+
+// MTT base — conversion commune vers les types MTT
+export async function openMTTConversionDialog(actor) {
+  if (!actor || !game.user.isGM) return
+  if (isMTTMerchant(actor) || isMTTStorage(actor)) return
+
+  const buttons = []
+  if (isActorTypeAllowedForMerchant(actor)) {
+    buttons.push({
+      action: MTT.ENTITY_TYPES.MERCHANT,
+      icon: "fa-solid fa-store",
+      label: game.i18n.localize("mtt.actorDirectory.convertToMerchant"),
+      callback: () => MTT.ENTITY_TYPES.MERCHANT
+    })
+  }
+  if (isActorTypeAllowedForStorage(actor)) {
+    buttons.push({
+      action: MTT.ENTITY_TYPES.STORAGE,
+      icon: "fa-solid fa-box-archive",
+      label: game.i18n.localize("mtt.actorDirectory.convertToStorage"),
+      callback: () => MTT.ENTITY_TYPES.STORAGE
+    })
+  }
+
+  if (buttons.length === 0) {
+    ui.notifications.warn(game.i18n.format("mtt.notifications.mttConversion.noTypeAllowed", { type: actor.type }))
+    return
+  }
+
+  buttons.push({
+    action: "cancel",
+    label: game.i18n.localize("mtt.dialog.cancel"),
+    callback: () => null
+  })
+
+  const choice = await foundry.applications.api.DialogV2.wait({
+    window: { title: game.i18n.localize("mtt.dialogs.mttConversion.title") },
+    content: `<p>${game.i18n.format("mtt.dialogs.mttConversion.content", { name: actor.name })}</p>`,
+    rejectClose: false,
+    buttons
+  })
+
+  if (choice === MTT.ENTITY_TYPES.MERCHANT) return convertActorToMerchant(actor)
+  if (choice === MTT.ENTITY_TYPES.STORAGE) return convertActorToStorage(actor)
+}
+
 function buildMTTControlsV2(actor, isOnMerchantSheet) {
   const controls = []
 
-  if (!isMTTMerchant(actor) && isActorTypeAllowedForMerchant(actor) && game.user.isGM) {
+  if (!isMTTMerchant(actor) && !isMTTStorage(actor) && canConvertToAnyMTTType(actor) && game.user.isGM) {
     controls.push({
-      icon: "fa-solid fa-store",
-      label: game.i18n.localize("mtt.actorDirectory.convertToMerchant"),
+      icon: "fa-solid fa-shuffle",
+      label: game.i18n.localize("mtt.actorDirectory.convertMTT"),
       action: "mtt-convert",
-      onClick: () => convertActorToMerchant(actor)
+      onClick: () => openMTTConversionDialog(actor)
     })
   }
 
@@ -169,18 +281,27 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
     }
   }
 
+  if (isMTTStorage(actor) && game.user.isGM) {
+    controls.push({
+      icon: "fa-solid fa-trash",
+      label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
+      action: "mtt-remove-storage",
+      onClick: () => removeStorageFromActor(actor)
+    })
+  }
+
   return controls
 }
 
 function buildMTTButtonsV1(actor, isOnMerchantSheet) {
   const buttons = []
 
-  if (!isMTTMerchant(actor) && isActorTypeAllowedForMerchant(actor) && game.user.isGM) {
+  if (!isMTTMerchant(actor) && !isMTTStorage(actor) && canConvertToAnyMTTType(actor) && game.user.isGM) {
     buttons.push({
-      label: game.i18n.localize("mtt.actorDirectory.convertToMerchant"),
+      label: game.i18n.localize("mtt.actorDirectory.convertMTT"),
       class: "mtt-convert",
-      icon: "fas fa-store",
-      onclick: () => convertActorToMerchant(actor)
+      icon: "fas fa-shuffle",
+      onclick: () => openMTTConversionDialog(actor)
     })
   }
 
@@ -209,6 +330,15 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
         onclick: () => removeMerchantFromActor(actor)
       })
     }
+  }
+
+  if (isMTTStorage(actor) && game.user.isGM) {
+    buttons.push({
+      label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
+      class: "mtt-remove-storage",
+      icon: "fas fa-trash",
+      onclick: () => removeStorageFromActor(actor)
+    })
   }
 
   return buttons
@@ -296,16 +426,29 @@ export function registerActorDirectoryHooks() {
   Hooks.on("getActorDirectoryEntryContext", (_html, options) => {
     options.push(
       {
-        name: "mtt.actorDirectory.convertToMerchant",
-        icon: '<i class="fas fa-shop"></i>',
+        name: "mtt.actorDirectory.convertMTT",
+        icon: '<i class="fas fa-shuffle"></i>',
         condition: (li) => {
           if (!game.user.isGM) return false
           const actor = getActorFromLi(li)
-          return Boolean(actor && !isMTTMerchant(actor) && isActorTypeAllowedForMerchant(actor))
+          return Boolean(actor && !isMTTMerchant(actor) && !isMTTStorage(actor) && canConvertToAnyMTTType(actor))
         },
         callback: (li) => {
           const actor = getActorFromLi(li)
-          if (actor) convertActorToMerchant(actor)
+          if (actor) openMTTConversionDialog(actor)
+        }
+      },
+      {
+        name: "mtt.actorDirectory.removeStorage",
+        icon: '<i class="fas fa-trash"></i>',
+        condition: (li) => {
+          if (!game.user.isGM) return false
+          const actor = getActorFromLi(li)
+          return Boolean(actor && isMTTStorage(actor))
+        },
+        callback: (li) => {
+          const actor = getActorFromLi(li)
+          if (actor) removeStorageFromActor(actor)
         }
       },
       {

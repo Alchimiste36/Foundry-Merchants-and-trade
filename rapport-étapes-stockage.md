@@ -26,12 +26,7 @@ La configuration MTT affiche une section dédiée aux types d’acteurs converti
 - Aucun tag, statut ou journal de stockage avancé.
 - Aucun bouton “Ouvrir le stockage MTT”.
 
-## Vérifications simples
-
-- Les fichiers JavaScript modifiés passent `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- Le marchand existant conserve ses contrôles d’ouverture, de gérant et de retrait.
-- Un stockage MTT ne propose que le retrait à cette étape.
+---
 
 # Étape 2 — Préparation des variables communes de feuille MTT
 
@@ -60,11 +55,7 @@ Les variables sont disponibles à la racine du contexte et dans `mtt`, afin de p
 - Aucun bouton “Ouvrir le stockage MTT”.
 - Aucune variable globale `isMerchant` de variante boutique.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- Les occurrences `isMerchant` restantes correspondent à des fonctions/noms historiques ou à `negotiation.isMerchantTurn`.
-- Aucun fichier `storage-sheet`, `storage-content`, `storage-exchange`, template `storage-*` ou style `storage-sheet.less` n’a été créé.
+---
 
 # Étape 4 — Ouverture storage sur la base de feuille `merchant-*`
 
@@ -95,13 +86,7 @@ Pour le stockage, les zones métier encore non développées reçoivent des donn
 - Aucun tag, statut ou journal storage.
 - Aucun fichier `shop-*`.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `merchant-conversion.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- `npm run lint` passe.
-- Aucun fichier `storage-sheet`, template `storage-*` ou style `storage-sheet.less` n’a été créé.
+---
 
 # Étape 5 — Neutralisation des blocs shop incompatibles avec le stockage
 
@@ -132,13 +117,7 @@ Le marchand conserve les mêmes blocs via `isShop`. Le stockage reçoit seulemen
 - Aucun tag, statut ou journal storage.
 - Aucun fichier `shop-*`.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- `npm run lint` passe.
-- Les HBS modifiés passent un contrôle Prettier ciblé.
-- Aucun fichier `storage-sheet`, template `storage-*`, style `storage-sheet.less` ou fichier `shop-*` n’a été créé.
+---
 
 # Étape 5.2 — Correction du branchement des éléments communs stockage
 
@@ -171,14 +150,7 @@ Le verrouillage est redevenu une mécanique `MTT base` et écrit désormais dans
 - Aucun tag, statut ou journal fonctionnel de mouvements.
 - Aucun fichier `shop-*`.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- `npm run lint` passe.
-- Les HBS modifiés passent un contrôle Prettier ciblé.
-- `git diff --check` ne signale pas d’erreur de whitespace.
-- Aucun fichier `storage-sheet`, `storage-content`, `storage-exchange`, template de feuille storage ou fichier `shop-*` n’a été créé.
+---
 
 # Correction 5.3 — Partials storage et édition commune de feuille
 
@@ -205,13 +177,7 @@ Le contexte d’édition a aussi été nettoyé : `isMttEditable` a été suppri
 - Aucun fichier `shop-*`.
 - Aucune fonctionnalité métier storage nouvelle.
 
-## Vérifications simples
-
-- `constants.mjs` passe `node --check`.
-- `merchant-sheet.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- `npm run lint` passe.
-- `git diff --check` ne signale pas d’erreur de whitespace.
+---
 
 # Étape 7 — Rail d’acteurs sur la feuille stockage
 
@@ -242,14 +208,7 @@ Le clic gauche sur une carte storage sélectionne simplement l’acteur dans la 
 - Aucune modification des lignes d’Items ou catégories.
 - Aucun fichier `shop-*`.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- `npm run lint` passe.
-- `git diff --check` ne signale pas d’erreur de whitespace.
-- Le partial `merchant-access-rail.hbs` passe un contrôle Prettier ciblé.
-- Aucun rail storage parallèle ni fichier `shop-*` n’a été créé.
+---
 
 # Correction 7.2 — Rail storage : ajout hors verrouillage et position gauche
 
@@ -277,15 +236,7 @@ Comme côté marchand, les acteurs liés aux joueurs sont ajoutés dynamiquement
 - Aucune modification des lignes d’Items ou catégories.
 - Aucun fichier `shop-*`.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont valides.
-- `npm run compile` passe.
-- `npm run lint` passe.
-- `git diff --check` ne signale pas d’erreur de whitespace.
-- `merchant-access-rail.hbs` et `merchant-access-rail.less` passent un contrôle Prettier ciblé.
-- Aucun rail storage parallèle ni fichier `shop-*` n’a été créé.
+---
 
 # Correction — Verrouillage initial de la feuille stockage
 
@@ -309,11 +260,7 @@ Le défaut storage est maintenant aligné sur le comportement attendu de la feui
 - Aucune migration legacy.
 - Aucun fichier `shop-*`.
 
-## Vérifications simples
-
-- `storage-flags.mjs` passe `node --check`.
-- `merchant-conversion.mjs` passe `node --check`.
-- `merchant-sheet.mjs` passe `node --check`.
+---
 
 # Correction — Position d’ouverture différente shop / stockage
 
@@ -339,11 +286,7 @@ La correction ne force pas la position si une valeur `position.left` explicite e
 - Aucun setting Foundry.
 - Aucune modification du rail, des sessions ou des lignes d’Items.
 
-## Vérifications simples
-
-- `merchant-conversion.mjs` passe `node --check`.
-- `merchant-sheet.mjs` passe `node --check`.
-- Le diff de correction ne modifie aucun HBS ni LESS.
+---
 
 # Correction — Verrouillage storage local à la fenêtre
 
@@ -371,12 +314,7 @@ Le bouton déverrouiller/verrouiller fonctionne toujours tant que la fenêtre es
 - Aucun nouveau système de permissions.
 - Aucune migration complexe.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `storage-flags.mjs` passe `node --check`.
-- `npm run lint` passe.
-- `git diff --check` ne signale pas d’erreur de whitespace.
+---
 
 # Étape 8.1 — Session d’échange storage : affichage et quantités
 
@@ -409,15 +347,7 @@ Les quantités restent pilotées par les fonctions communes de session. Les vali
 - Aucun nouveau système de permissions.
 - Aucun duplicat des helpers de quantité ou des helpers de session existants.
 
-## Vérifications simples
-
-- `merchant-sheet.mjs` passe `node --check`.
-- `merchant-catalog.mjs` passe `node --check`.
-- `constants.mjs` passe `node --check`.
-- `lang/fr.json` et `lang/en.json` sont du JSON valide.
-- `npm run lint` passe.
-- `npx.cmd prettier --check` passe sur les fichiers touchés.
-- `git diff --check` ne signale pas d’erreur de whitespace.
+---
 
 # Étape 8.2 — Session d’échange storage : validation et transferts
 
@@ -458,14 +388,7 @@ Le refus storage nettoie la session sans déplacer d’Item. La validation stora
 - Aucune classe CSS ou modification du template de session.
 - Aucun nouveau système de permissions.
 
-## Vérifications simples
-
-- `merchant-trade.mjs` passe `node --check`.
-- `merchant-sheet.mjs` passe `node --check`.
-- `npm run lint` passe.
-- `npx.cmd prettier --check` passe sur les fichiers touchés.
-- `git diff --check` ne signale pas d’erreur de whitespace.
-- Vérification manuelle Foundry non effectuée dans cette passe.
+---
 
 # Correction 8.2A — Transferts storage sans écriture commerciale
 
@@ -495,13 +418,47 @@ Le flux dépôt acteur → stockage (`sellerTransfers`) n’appelle jamais `addD
 - Aucune modification des fonctions `buildDeliveredItemOriginHtml`, `buildDeliveredItemSecretHtml`, `addDeliveredItemDescriptionBlock`.
 - Aucun changement du modèle de session, du rail, des lignes HBS ou du CSS.
 
+---
+
+# Correction — Ouverture persistante de la feuille stockage et options d'entête
+
+- [x] Lire `agents.md` et `rapport-étapes-stockage.md`.
+- [x] Identifier la cause réelle de l'ouverture persistante de la feuille système.
+- [x] Corriger `isMTTMerchant` pour utiliser `flags.mtt-merchants.type` comme source de vérité.
+- [x] Nettoyer le bypass WeakSet à la fermeture des feuilles système.
+- [x] Ajouter "Ouvrir la feuille de l'acteur" pour storage sur la feuille MTT (AppV2 et AppV1).
+- [x] Mettre à jour `fr.json` et `en.json`.
+- [x] Vérifier `node --check` et JSON valide.
+
+## Résumé
+
+**Problème 1 — Ouverture persistante :** Le bypass `_managerBypassApps` (WeakSet) ajoutait la feuille système de manière durable. Foundry réutilise la même instance JS après fermeture → le hook de redirection ne se déclenchait plus → la feuille système restait l'ouverture par défaut jusqu'au prochain refresh navigateur.
+
+Correction : deux hooks `closeApplicationV2` et `closeApplication` retirent désormais l'instance du WeakSet dès sa fermeture. La prochaine ouverture de l'acteur déclenche donc bien la redirection vers la feuille stockage.
+
+**Problème 2 — Options d'entête :** `isMTTMerchant(actor)` testait uniquement `flags.mtt-merchants.merchant.enabled`, sans vérifier `flags.mtt-merchants.type`. Un acteur converti en storage conservant des flags merchant anciens était donc aussi détecté comme marchand, ce qui affichait "Retirer la boutique MTT" et "Ouvrir le gérant" sur la feuille storage.
+
+Correction : `isMTTMerchant` vérifie maintenant que `flags.mtt-merchants.type === "merchant"` avant de tester les données merchant. Symétrique avec `isMTTStorage` qui vérifiait déjà le type.
+
+**Option manquante :** Sur la feuille MTT storage, il n'existait aucune option pour ouvrir temporairement la feuille système (l'option n'était visible que via le bug merchant). Ajout de "Ouvrir la feuille de l'acteur" (`mtt-open-actor-sheet`) dans `buildMTTControlsV2` et `buildMTTButtonsV1` pour le cas `isOnMerchantSheet = true` côté storage. La même fonction `openManagerActorSheet` est réutilisée — elle ouvre la feuille système via bypass ponctuel sans modifier les flags.
+
+## Non créé volontairement
+
+- Aucune classe `StorageSheet`.
+- Aucun template HBS ni style LESS modifié.
+- Aucune modification des flags de conversion.
+- Aucune migration des acteurs existants.
+- Aucune modification des sessions, du rail, des lignes d'Items ou de la logique commerciale.
+- Aucun nouveau système de permissions.
+
 ## Vérifications manuelles
 
-1. Charger Foundry sans erreur.
-2. Ouvrir un stockage, sélectionner un acteur dans le rail.
-3. Ajouter un Item du stockage dans `Le PJ prend / récupère`, valider.
-4. Vérifier l’Item reçu par l’acteur : pas de texte "Objet acheté chez...", pas d’information secrète injectée.
-5. Déposer un Item de l’acteur dans `Le PJ dépose / stock`, valider.
-6. Vérifier l’Item arrivé dans le stockage : description non enrichie.
-7. Tester un achat marchand normal : les informations commerciales sont toujours écrites si configurées.
-8. Vérifier qu’aucune erreur console n’apparaît.
+1. Ouvrir un acteur storage → feuille stockage MTT.
+2. Cliquer "Ouvrir la feuille de l'acteur" dans le menu `...` → feuille système s'ouvre en parallèle.
+3. La feuille stockage reste ouverte.
+4. Fermer la feuille système → fermer la feuille stockage → rouvrir l'acteur → feuille stockage (pas la feuille système).
+5. Refresh navigateur → rouvrir l'acteur → feuille stockage.
+6. Menu `...` storage : pas de "Retirer la boutique MTT", présence de "Retirer le stockage MTT".
+7. Ouvrir un acteur shop/marchand → options shop correctes, pas d'option storage.
+
+---

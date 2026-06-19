@@ -290,6 +290,7 @@
       "openMerchant": "Open MTT shop",
       "openStorage": "Open MTT storage",
       "openManager": "Open manager",
+      "openActorSheet": "Open actor sheet",
       "removeMerchant": "Remove MTT shop",
       "removeStorage": "Remove MTT storage"
     },

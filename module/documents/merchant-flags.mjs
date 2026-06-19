@@ -1,4 +1,5 @@
 import { MTT } from "../config/constants.mjs"
+import { getMTTEntityType } from "./storage-flags.mjs"
 
 const DEFAULT_SHOP_IMAGE = "icons/svg/hanging-sign.svg"
 const DEFAULT_MANAGER_IMAGE = "icons/svg/mystery-man.svg"
@@ -251,7 +252,7 @@ export function getMerchantDataForUpdate(actor) {
  * @returns {boolean}
  */
 export function isMTTMerchant(actor) {
-  return getMerchantData(actor)?.enabled === true
+  return getMTTEntityType(actor) === MTT.ENTITY_TYPES.MERCHANT && getMerchantData(actor)?.enabled === true
 }
 
 /**

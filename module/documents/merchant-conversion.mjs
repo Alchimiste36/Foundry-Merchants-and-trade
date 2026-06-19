@@ -310,6 +310,15 @@ function buildMTTControlsV2(actor, isOnMerchantSheet) {
         onClick: () => openStorageSheet(actor)
       })
     }
+    if (isOnMerchantSheet) {
+      // MTT storage — ouvrir temporairement la feuille système sans changer l'ouverture par défaut
+      controls.push({
+        icon: "fa-solid fa-user",
+        label: game.i18n.localize("mtt.actorDirectory.openActorSheet"),
+        action: "mtt-open-actor-sheet",
+        onClick: () => openManagerActorSheet(actor)
+      })
+    }
     if (game.user.isGM) {
       controls.push({
         icon: "fa-solid fa-trash",
@@ -371,6 +380,15 @@ function buildMTTButtonsV1(actor, isOnMerchantSheet) {
         onclick: () => openStorageSheet(actor)
       })
     }
+    if (isOnMerchantSheet) {
+      // MTT storage — ouvrir temporairement la feuille système sans changer l'ouverture par défaut
+      buttons.push({
+        label: game.i18n.localize("mtt.actorDirectory.openActorSheet"),
+        class: "mtt-open-actor-sheet",
+        icon: "fas fa-user",
+        onclick: () => openManagerActorSheet(actor)
+      })
+    }
     if (game.user.isGM) {
       buttons.push({
         label: game.i18n.localize("mtt.actorDirectory.removeStorage"),
@@ -405,6 +423,15 @@ export function registerActorSheetHeaderHooks() {
 // ─── Redirection automatique vers la feuille MTT commune ────────────────────
 
 export function registerMerchantSheetOpenHooks() {
+  // MTT base — nettoyage du bypass durable quand une feuille système se ferme,
+  // afin que la prochaine ouverture de l'acteur redirige correctement vers la feuille MTT
+  Hooks.on("closeApplicationV2", (app) => {
+    _managerBypassApps.delete(app)
+  })
+  Hooks.on("closeApplication", (app) => {
+    _managerBypassApps.delete(app)
+  })
+
   // ApplicationV2 — hook générique pour toutes les fiches AppV2
   Hooks.on("renderApplicationV2", (app, _element, _context, _options) => {
     if (app instanceof MerchantSheet) return

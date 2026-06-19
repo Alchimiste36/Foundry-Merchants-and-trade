@@ -2101,6 +2101,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       clients,
       hasClients: clients.length > 0,
       canSeeAccessDropZone,
+      isStorage,
       railAriaLabel: game.i18n.localize("mtt.access.title"),
       dropZoneTooltip: game.i18n.localize("mtt.access.dropTooltip")
     }

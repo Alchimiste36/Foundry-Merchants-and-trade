@@ -654,3 +654,33 @@ Le rail commun reçoit aussi les sessions lues par la feuille active. Le marchan
 8. Vérifier que `Retirer l’acteur de la feuille` reste présent sur les deux types.
 
 ---
+
+# Correction 11.1D — Exposition de `isStorage` dans le contexte du rail commun
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.1D.
+- [x] Vérifier le contexte utilisé par le partial du rail commun.
+- [x] Ajouter `isStorage` au retour de `#prepareAccessContext()`.
+- [x] Corriger la condition HBS du rail pour utiliser `isStorage`.
+- [x] Vérifier `node --check` sur `merchant-sheet.mjs`.
+
+## Résumé
+
+Le partial `merchant-access-rail.hbs` reçoit maintenant directement `isStorage` dans son contexte de rendu. La classe `mtt-storage-access-rail` peut donc être appliquée correctement quand la feuille active est un stockage.
+
+## Non modifié volontairement
+
+- Aucune logique de rail.
+- Aucun clic gauche.
+- Aucun menu contextuel.
+- Aucun badge, session, tag ou pourcentage personnalisé.
+- Aucun CSS ni fichier de langue.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage et vérifier que `<aside>` contient `mtt-storage-access-rail`.
+2. Ouvrir un marchand et vérifier que `<aside>` ne contient pas `mtt-storage-access-rail`.
+3. Vérifier que le rail fonctionne toujours comme avant.
+
+---

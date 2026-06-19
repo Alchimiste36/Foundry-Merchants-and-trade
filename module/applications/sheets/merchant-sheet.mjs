@@ -6,11 +6,7 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import {
-  getMTTEntityType,
-  getStorageData,
-  updateStorageData
-} from "../../documents/storage-flags.mjs"
+import { getMTTEntityType, getStorageData, updateStorageData } from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -256,7 +252,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const activeSession = this.#getActiveSession()
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
-    context.items = prepareItems(this.actor, effectiveRates.productSellPercent, { includeHidden: isEditable })
+    context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
+      includeHidden: isEditable,
+      sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null
+    })
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable })
     context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable })
     context.trade = prepareTrade(this.actor)
@@ -266,7 +265,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.hasHeaderCurrencies = context.mtt.headerCurrencies.length > 0
     context.mtt.currencyOptions = prepareCurrencyOptions()
     context.mtt.access = this.#prepareAccessContext()
-    context.mtt.session = isStorage ? this.#prepareNeutralSessionContext() : this.#prepareSessionContext()
+    context.mtt.session = isStorage ? this.#prepareStorageSessionContext() : this.#prepareSessionContext()
     context.mtt.referenceState = this.#prepareReferenceStateContext()
     context.mtt.journal = isStorage
       ? this.#prepareNeutralJournalContext()
@@ -337,13 +336,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
-  #prepareNeutralSessionContext() {
+  #prepareStorageSessionContext() {
+    // MTT base — la session storage réutilise le contexte de session commun sans logique commerciale dans le HBS
+    const accessClients = this.#prepareStorageAccessClients()
+    const session = this.#getActiveSession()
+    const buyerActor = session?.actorUuid ? game.actors.find((actor) => actor.uuid === session.actorUuid) : null
+
     return prepareSessionContext(this.actor, {
-      session: null,
-      selectedClient: null,
-      sessionCheckResult: null,
-      accessClients: [],
-      buyerActor: null
+      session,
+      selectedClient: this.#getSelectedClient(),
+      sessionCheckResult: this.#sessionCheckResult,
+      accessClients,
+      buyerActor
     })
   }
 
@@ -699,6 +703,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Wrappers for imported trade functions ────────────────────────────────
 
   #getSessions() {
+    if (this.#isStorageEntity()) return foundry.utils.deepClone(getStorageData(this.actor)?.sessions?.entries ?? [])
     return getSessions(this.actor)
   }
   #setSessionItemQuantity(item, quantity) {
@@ -1014,11 +1019,34 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // not a JSON payload, continue
     }
 
-    if (!this.#requireSelectedSessionForItemAddition()) return
+    if (!this.#isStorageEntity() && !this.#requireSelectedSessionForItemAddition()) return
 
     const item = await this.#getDroppedItemDocument(event)
     if (!item) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeSold"))
+      return
+    }
+
+    if (this.#isStorageEntity()) {
+      const session = await this.#getOrCreateStorageSessionForAddingItem()
+      if (!session) return
+
+      if (session.actorUuid && item.parent?.uuid !== session.actorUuid) {
+        ui.notifications.warn(game.i18n.localize("mtt.storage.session.dropSelectedActorOnly"))
+        return
+      }
+
+      const sellerData = prepareSellerItemDropData(this.actor, item, { buyPercent: 100 })
+      const sessionItem = await this.#addSessionSellerItem({
+        ...sellerData,
+        quantity: 1,
+        unitPriceValue: 0,
+        priceCurrency: "",
+        sourceLabel: game.i18n.localize("mtt.storage.session.item.actor")
+      })
+      if (!sessionItem) return
+
+      this.render()
       return
     }
 
@@ -2450,8 +2478,30 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return null
   }
 
-  #getOrCreateActiveSession() {
+  async #getOrCreateActiveSession() {
+    if (this.#isStorageEntity()) return this.#getOrCreateStorageSessionForAddingItem()
     return this.#getSessionForAddingItem()
+  }
+
+  async #getOrCreateStorageSessionForAddingItem() {
+    const selectedSession = this.#getSelectedSession()
+    if (selectedSession) return selectedSession
+
+    const client = this.#getSelectedClient()
+    if (!client?.actorUuid) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.session.selectActorBeforeAdding"))
+      return null
+    }
+
+    return this.#createSessionForClient(
+      {
+        ...client,
+        isAuthorized: true
+      },
+      {
+        skipExternalSessionCheck: true
+      }
+    )
   }
 
   #getSessionForAddingItem() {
@@ -2477,6 +2527,20 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #requireSelectedSessionForItemAddition() {
     return Boolean(this.#getSessionForAddingItem())
+  }
+
+  #getBestSessionForClientActor(actorUuid) {
+    const normalizedActorUuid = String(actorUuid ?? "").trim()
+    if (!normalizedActorUuid) return null
+
+    const sessions = this.#getSessions()
+      .filter((session) => session.actorUuid === normalizedActorUuid)
+      .map((session) => normalizeSession(session))
+    if (sessions.length === 0) return null
+
+    const statusOrder = ["active", "pending", "validated", "refused", "submitted"]
+    sessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
+    return sessions[0]
   }
 
   // ─── Session quantity helpers ─────────────────────────────────────────────
@@ -2851,7 +2915,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    const existingSession = getBestSessionForClient(this.actor, client.actorUuid)
+    const existingSession = this.#getBestSessionForClientActor(client.actorUuid)
     if (existingSession) {
       this.#selectSession(existingSession.id)
       return existingSession
@@ -2902,6 +2966,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #updateSessionEntries(sessions) {
+    if (this.#isStorageEntity()) {
+      await updateStorageData(this.actor, { sessions: { entries: sessions } })
+      return
+    }
+
     const updateData = {
       [getMerchantFlagPath("sessions.entries")]: sessions
     }
@@ -3026,7 +3095,36 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!productId) return
 
     if (getMTTEntityType(this.actor) === MTT.ENTITY_TYPES.STORAGE) {
-      // MTT storage — action de session storage à brancher dans une étape suivante
+      // MTT storage — ajout direct d’un exemplaire à la session d’échange
+      if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
+      const product = getCatalogProduct(this.actor, productId)
+      if (!product || product.isHidden) return
+
+      const availability = this.#getProductAvailability(product.id)
+      const hasLimitedAvailableQuantity = Boolean(availability?.hasLimitedQuantity)
+      const availableQuantity = hasLimitedAvailableQuantity ? availability.availableQuantity : null
+
+      if (hasLimitedAvailableQuantity && availableQuantity <= 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.productUnavailableQuantity"))
+        return
+      }
+
+      const sessionItem = await this.#addSessionBuyerItem({
+        type: "product",
+        sourceId: product.id,
+        name: product.name,
+        img: product.img,
+        quantity: 1,
+        availableQuantity,
+        hasLimitedQuantity: !isUnlimitedQuantity(product.quantity) && availableQuantity !== null,
+        unitPriceValue: 0,
+        priceCurrency: "",
+        sourceLabel: game.i18n.localize("mtt.storage.session.item.storage")
+      })
+      if (!sessionItem) return
+
+      this.render()
       return
     }
 
@@ -3358,7 +3456,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (this.#isStorageEntity()) {
       this.#selectedClientActorUuid = client.actorUuid
-      this.#activeSessionId = null
+      const session = this.#getBestSessionForClientActor(client.actorUuid)
+      this.#activeSessionId = session?.id ?? null
       this.#sessionCheckResult = null
       this.render()
       return
@@ -3392,7 +3491,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     this.#selectedClientActorUuid = client.actorUuid
-    const session = getBestSessionForClient(this.actor, client.actorUuid)
+    const session = this.#getBestSessionForClientActor(client.actorUuid)
     if (session) {
       if (!this.#userCanViewSession(session)) {
         this.#activeSessionId = null
@@ -3520,6 +3619,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
+    if (this.#isStorageEntity()) {
+      // MTT storage — validation réelle des transferts reportée à l’étape 8.2
+      session.status = "validated"
+      session.isSubmitted = false
+      await this.#saveSession(session)
+      this.render()
+      return
+    }
+
     const preview = await buildSessionItemExecutionPlan(this.actor, session)
 
     this.#sessionCheckResult = {
@@ -3613,6 +3721,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const session = this.#getActiveSession()
     if (!session) return
+
+    if (this.#isStorageEntity()) {
+      // MTT storage — refus préparatoire sans journal ni transfert définitif
+      session.status = "refused"
+      session.isSubmitted = false
+      await this.#saveSession(session)
+      this.render()
+      return
+    }
 
     const confirmed = await openRefuseConfirmDialog()
     if (!confirmed) return

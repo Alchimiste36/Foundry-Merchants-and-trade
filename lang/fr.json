@@ -213,6 +213,27 @@
         "removeActorTitle": "Supprimer l’acteur du stockage",
         "removeActorContent": "L’acteur Foundry ne sera pas supprimé. Seule son entrée sur ce stockage sera retirée.",
         "removeActorConfirm": "Supprimer du stockage"
+      },
+      "session": {
+        "title": "Session d'Échange",
+        "take": "Le PJ prend / récupère",
+        "deposit": "Le PJ dépose / stock",
+        "emptyTake": "Aucun objet à récupérer pour le moment.",
+        "emptyDeposit": "Aucun objet déposé pour le moment.",
+        "selectActor": "Sélectionnez un acteur autorisé pour ouvrir un échange.",
+        "noSessionForActor": "Ajoutez un objet à l’échange pour créer la session.",
+        "clear": "Vider la session",
+        "lock": "Bloquer la session",
+        "unlock": "Débloquer la session",
+        "validate": "Valider",
+        "reject": "Refuser",
+        "submittedMessage": "Cet échange est bloqué et attend une décision.",
+        "selectActorBeforeAdding": "Sélectionnez un acteur autorisé avant d’ajouter un objet à l’échange.",
+        "dropSelectedActorOnly": "Déposez un objet appartenant à l’acteur sélectionné.",
+        "item": {
+          "storage": "Stockage",
+          "actor": "Acteur"
+        }
       }
     },
     "actions": {

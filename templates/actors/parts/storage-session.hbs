@@ -1,0 +1,210 @@
+{{! MTT storage — session d’échange basée sur la session commune sans logique commerciale }}
+<aside class="mtt-merchant-session-sidebar">
+<section class="mtt-merchant-session mtt-storage-session">
+  <header class="mtt-merchant-session-header">
+    <div class="mtt-merchant-session-title-block">
+      {{#if mtt.session.client.actorImg}}
+        <div>
+          <img class="mtt-merchant-session-actor-image" src="{{mtt.session.client.actorImg}}" alt="{{mtt.session.client.actorName}}" />
+        </div>
+      {{/if}}
+      <div>
+        <h2 class="mtt-merchant-session-title">{{localize "mtt.storage.session.title"}}</h2>
+        <div class="mtt-merchant-session-actor-name">{{mtt.session.client.actorName}}</div>
+        {{#if mtt.session.buyerFortune.length}}
+          <div class="mtt-merchant-session-buyer-fortune">
+            <span>{{localize "mtt.sessions.buyerFortune"}}</span>
+            <span class="mtt-merchant-session-buyer-fortune-values">
+              {{#each mtt.session.buyerFortune as |currency|}}
+                <span>{{currency.value}} {{currency.abbreviation}}</span>
+              {{/each}}
+            </span>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+  </header>
+
+  {{#if mtt.session.hasSession}}
+    <section class="mtt-merchant-session-section mtt-merchant-session-side-buyer">
+      <header class="mtt-merchant-session-section-header">
+        <i class="fas fa-hand-holding"></i>
+        <h3 class="mtt-merchant-session-section-title">{{localize "mtt.storage.session.take"}}</h3>
+      </header>
+
+      <ol class="mtt-merchant-session-list">
+        {{#if mtt.session.hasBuyerItems}}
+          {{#each mtt.session.buyerItems as |item|}}
+            <li class="mtt-merchant-session-item" data-session-side="buyer" data-session-item-id="{{item.id}}">
+              <div>
+                <img class="mtt-merchant-session-item-image" src="{{item.img}}" alt="{{item.name}}" />
+              </div>
+
+              <div class="mtt-merchant-session-item-name">
+                <strong>{{item.name}}</strong>
+              </div>
+
+              <div class="mtt-merchant-session-item-quantity">
+                <span>
+                  {{#if @root.permissions.canInteractWithSession}}
+                    {{#unless @root.mtt.session.isSubmitted}}
+                      <span class="mtt-merchant-session-item-controls">
+                        <button
+                          class="mtt-merchant-session-action"
+                          type="button"
+                          data-action="decreaseSessionItemQuantity"
+                          data-tooltip="{{localize 'mtt.sessions.decreaseQuantity'}}"
+                        ><i class="fas fa-minus"></i></button>
+                        <input
+                          class="mtt-merchant-session-quantity"
+                          type="number"
+                          min="0"
+                          step="1"
+                          value="{{item.quantity}}"
+                          data-mtt-session-field="quantity"
+                          data-session-side="buyer"
+                          data-session-item-id="{{item.id}}"
+                          data-tooltip="{{localize 'mtt.sessions.editQuantity'}}"
+                        />
+                        <button
+                          class="mtt-merchant-session-action"
+                          type="button"
+                          data-action="increaseSessionItemQuantity"
+                          data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
+                        ><i class="fas fa-plus"></i></button>
+                      </span>
+                    {{else}}
+                      <span>x {{item.quantity}}</span>
+                    {{/unless}}
+                  {{else}}
+                    <span>x {{item.quantity}}</span>
+                  {{/if}}
+                </span>
+              </div>
+            </li>
+          {{/each}}
+        {{else}}
+          <li class="mtt-merchant-session-empty">{{localize "mtt.storage.session.emptyTake"}}</li>
+        {{/if}}
+      </ol>
+    </section>
+
+    <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if @root.permissions.canInteractWithSession}}{{#if mtt.session.canEdit}}{{#unless @root.mtt.session.isSubmitted}}data-mtt-session-seller-drop{{/unless}}{{/if}}{{/if}}>
+      <header class="mtt-merchant-session-section-header">
+        <i class="fas fa-handshake-angle"></i>
+        <h3 class="mtt-merchant-session-section-title">{{localize "mtt.storage.session.deposit"}}</h3>
+      </header>
+
+      <ol class="mtt-merchant-session-list">
+        {{#if mtt.session.hasSellerItems}}
+          {{#each mtt.session.sellerItems as |item|}}
+            <li class="mtt-merchant-session-item mtt-merchant-session-item-object" data-session-side="seller" data-session-item-id="{{item.id}}">
+              <div>
+                <img class="mtt-merchant-session-item-image" src="{{item.img}}" alt="{{item.name}}" />
+              </div>
+
+              <div class="mtt-merchant-session-item-main">
+                <strong>{{item.name}}</strong>
+              </div>
+
+              <div class="mtt-merchant-session-item-quantity">
+                <span>
+                  {{#if @root.permissions.canInteractWithSession}}
+                    {{#unless @root.mtt.session.isSubmitted}}
+                      <span class="mtt-merchant-session-item-controls">
+                        <button
+                          class="mtt-merchant-session-action"
+                          type="button"
+                          data-action="decreaseSessionItemQuantity"
+                          data-tooltip="{{localize 'mtt.sessions.decreaseQuantity'}}"
+                        ><i class="fas fa-minus"></i></button>
+                        <input
+                          class="mtt-merchant-session-quantity"
+                          type="number"
+                          min="0"
+                          step="1"
+                          value="{{item.quantity}}"
+                          data-mtt-session-field="quantity"
+                          data-session-side="seller"
+                          data-session-item-id="{{item.id}}"
+                          data-tooltip="{{localize 'mtt.sessions.editQuantity'}}"
+                        />
+                        <button
+                          class="mtt-merchant-session-action"
+                          type="button"
+                          data-action="increaseSessionItemQuantity"
+                          data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
+                        ><i class="fas fa-plus"></i></button>
+                      </span>
+                    {{else}}
+                      <span>x {{item.quantity}}</span>
+                    {{/unless}}
+                  {{else}}
+                    <span>x {{item.quantity}}</span>
+                  {{/if}}
+                </span>
+              </div>
+            </li>
+          {{/each}}
+        {{else}}
+          <li class="mtt-merchant-session-empty">{{localize "mtt.storage.session.emptyDeposit"}}</li>
+        {{/if}}
+      </ol>
+    </section>
+  {{else}}
+    <section class="mtt-merchant-session-empty-state">
+      <i class="fas fa-box-archive"></i>
+      <p>
+        {{#if mtt.session.client.actorUuid}}
+          {{localize "mtt.storage.session.noSessionForActor"}}
+        {{else}}
+          {{localize "mtt.storage.session.selectActor"}}
+        {{/if}}
+      </p>
+    </section>
+  {{/if}}
+
+  <section class="mtt-merchant-session-actions">
+    {{#if mtt.session.hasSession}}
+      {{#if mtt.session.isSubmitted}}
+        <p class="mtt-merchant-session-submitted-message">{{localize "mtt.storage.session.submittedMessage"}}</p>
+      {{/if}}
+      {{#if mtt.session.hasAnyItems}}
+        {{#if @root.permissions.canInteractWithSession}}
+          {{#unless mtt.session.isSubmitted}}
+            <button
+              class="mtt-merchant-session-final-action delete"
+              type="button"
+              data-action="clearSessionDraft"
+              data-tooltip="{{localize 'mtt.storage.session.clear'}}"
+            >
+              <i class="fas fa-rotate-left"></i>
+            </button>
+          {{/unless}}
+        {{/if}}
+        {{#if @root.permissions.canValidateOrRefuseSessions}}
+          {{#if mtt.session.isSubmitted}}
+            <button class="mtt-merchant-session-final-action" type="button" data-action="unlockSubmittedSession" data-tooltip="{{localize 'mtt.storage.session.unlock'}}">
+              <i class="fas fa-thumbs-down"></i>
+            </button>
+          {{/if}}
+          <button class="mtt-merchant-session-final-action valide" type="button" data-action="validateSessionTransaction" data-tooltip="{{localize 'mtt.storage.session.validate'}}">
+            <i class="fas fa-check"></i>
+          </button>
+          <button class="mtt-merchant-session-final-action refuse" type="button" data-action="refuseSessionTransaction" data-tooltip="{{localize 'mtt.storage.session.reject'}}">
+            <i class="fas fa-xmark"></i>
+          </button>
+        {{else}}
+          {{#if @root.permissions.canInteractWithSession}}
+            {{#unless mtt.session.isSubmitted}}
+              <button class="mtt-merchant-session-final-action" type="button" data-action="submitSession" data-tooltip="{{localize 'mtt.storage.session.lock'}}">
+                <i class="fas fa-thumbs-up"></i>
+              </button>
+            {{/unless}}
+          {{/if}}
+        {{/if}}
+      {{/if}}
+    {{/if}}
+  </section>
+</section>
+</aside>

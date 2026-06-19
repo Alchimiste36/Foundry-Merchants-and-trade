@@ -2068,7 +2068,7 @@
 .mtt-merchant-session-header {
   display: flex;
   align-items: center;
-  margin-left: 20px;
+  margin-left: 0px;
   margin-bottom: -10px;
 }
 .mtt-merchant-session-title-block {

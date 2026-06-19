@@ -377,3 +377,44 @@ Le bouton déverrouiller/verrouiller fonctionne toujours tant que la fenêtre es
 - `storage-flags.mjs` passe `node --check`.
 - `npm run lint` passe.
 - `git diff --check` ne signale pas d’erreur de whitespace.
+
+# Étape 8.1 — Session d’échange storage : affichage et quantités
+
+- [x] Lire `agents.md`, le rapport stockage et les instructions de l’étape 8.1.
+- [x] Réutiliser la base de session existante au lieu de créer une logique parallèle.
+- [x] Ajouter un partial `storage-session.hbs` branché depuis `merchant-session.hbs`.
+- [x] Afficher une session storage dédiée avec les zones récupération et dépôt.
+- [x] Brancher l’ajout direct d’un objet du stockage vers `buyerItems`.
+- [x] Brancher le dépôt par drop d’un Item de l’acteur sélectionné vers `sellerItems`.
+- [x] Conserver les contrôles de quantité communs : plus, moins, saisie directe et suppression à zéro.
+- [x] Conserver les actions communes de vidage, soumission, déblocage, validation et refus.
+- [x] Mettre à jour les localisations FR/EN.
+- [x] Ne pas implémenter les transferts réels, réservés à l’étape 8.2.
+
+## Résumé
+
+La feuille storage utilise maintenant une vraie session d’échange affichée dans le rail de session commun. Le titre affiché est `Échange`, avec l’acteur sélectionné, son image et sa fortune quand elle est disponible.
+
+La zone `Le PJ prend / récupère` ajoute directement un exemplaire depuis le stockage dans `buyerItems`, sans dialogue et sans prix. La zone `Le PJ dépose / stock` accepte le drop d’un Item appartenant à l’acteur sélectionné et l’ajoute dans `sellerItems`, là aussi sans prix.
+
+Les quantités restent pilotées par les fonctions communes de session. Les validations et refus storage sont préparatoires : ils changent seulement l’état de session, sans transfert d’Items, sans journal et sans prévisualisation commerciale.
+
+## Non créé volontairement
+
+- Aucun fichier `storage-session.mjs`.
+- Aucun fichier LESS spécifique storage session.
+- Aucun nouveau modèle de données `takenItems` ou `depositedItems`.
+- Aucun prix, monnaie, négociation, ajustement monétaire ou prévisualisation commerciale dans la session storage.
+- Aucun transfert réel entre acteurs.
+- Aucun nouveau système de permissions.
+- Aucun duplicat des helpers de quantité ou des helpers de session existants.
+
+## Vérifications simples
+
+- `merchant-sheet.mjs` passe `node --check`.
+- `merchant-catalog.mjs` passe `node --check`.
+- `constants.mjs` passe `node --check`.
+- `lang/fr.json` et `lang/en.json` sont du JSON valide.
+- `npm run lint` passe.
+- `npx.cmd prettier --check` passe sur les fichiers touchés.
+- `git diff --check` ne signale pas d’erreur de whitespace.

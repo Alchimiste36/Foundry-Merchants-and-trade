@@ -107,9 +107,12 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
   return lines.join("\n")
 }
 
-export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
+export function prepareItems(actor, sellPercent, { includeHidden = false, sessionEntries = null } = {}) {
   const products = getCatalogProducts(actor)
-  const availabilityByProductId = buildProductAvailabilityMap(products, getMerchantData(actor)?.sessions?.entries ?? [])
+  const availabilityByProductId = buildProductAvailabilityMap(
+    products,
+    Array.isArray(sessionEntries) ? sessionEntries : (getMerchantData(actor)?.sessions?.entries ?? [])
+  )
 
   const items = products
     .map((product) => {

@@ -213,6 +213,27 @@
         "removeActorTitle": "Remove actor from storage",
         "removeActorContent": "The Foundry actor will not be deleted. Only their entry on this storage will be removed.",
         "removeActorConfirm": "Remove from storage"
+      },
+      "session": {
+        "title": "Exchange session",
+        "take": "The player takes / retrieves",
+        "deposit": "The player deposits / stores",
+        "emptyTake": "No item to retrieve yet.",
+        "emptyDeposit": "No deposited item yet.",
+        "selectActor": "Select an authorized actor to open an exchange.",
+        "noSessionForActor": "Add an item to the exchange to create the session.",
+        "clear": "Clear session",
+        "lock": "Lock exchange",
+        "unlock": "Unlock exchange",
+        "validate": "Validate",
+        "reject": "Reject",
+        "submittedMessage": "This exchange is locked and awaits a decision.",
+        "selectActorBeforeAdding": "Select an authorized actor before adding an item to the exchange.",
+        "dropSelectedActorOnly": "Drop an item owned by the selected actor.",
+        "item": {
+          "storage": "Storage",
+          "actor": "Actor"
+        }
       }
     },
     "actions": {

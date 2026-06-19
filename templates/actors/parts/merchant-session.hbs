@@ -1,6 +1,5 @@
-<aside class="mtt-merchant-session-sidebar">
   {{!-- MTT shop — session de transaction commerciale --}}
-  {{#if isShop}}
+<aside class="mtt-merchant-session-sidebar">
     <section class="mtt-merchant-session">
     <header class="mtt-merchant-session-header">
       <div class="mtt-merchant-session-title-block">
@@ -605,15 +604,4 @@
       </section>
     {{/if}}
     </section>
-  {{/if}}
-
-  {{!-- MTT storage — emplacement futur de la session dépôt/retrait --}}
-  {{#if isStorage}}
-    <section class="mtt-merchant-session">
-      <section class="mtt-merchant-session-empty-state">
-        <i class="fas fa-box-archive"></i>
-        <p>{{localize "mtt.storage.placeholder.session"}}</p>
-      </section>
-    </section>
-  {{/if}}
 </aside>

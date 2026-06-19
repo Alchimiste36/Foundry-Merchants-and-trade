@@ -15,8 +15,7 @@ import {
 import {
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
-  getStorageItemTagForActor,
-  hasStorageSessionClaimedProduct
+  getStorageItemTagForActor
 } from "../../documents/storage-flags.mjs"
 import {
   parseQuantityValue,
@@ -199,19 +198,19 @@ export function prepareItems(
         canEditActiveSession,
         voterActorUuid
       })
-      const storageIntentState = buildStorageItemIntentState({
-        rawTags: rawStorageTags,
-        sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
-        activeSessionActorUuid: voterActorUuid,
-        availableQuantity: availability?.availableQuantity ?? 0
-      })
       const activeSession = Array.isArray(sessionEntries)
         ? sessionEntries.find((session) => String(session?.id ?? "") === String(activeSessionId ?? ""))
         : null
-      const activeActorAlreadyClaimedStorageItem = hasStorageSessionClaimedProduct(activeSession, product)
+      const storageIntentState = buildStorageItemIntentState({
+        rawTags: rawStorageTags,
+        sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
+        activeSession,
+        activeSessionActorUuid: voterActorUuid,
+        availableQuantity: availability?.availableQuantity ?? 0,
+        product
+      })
       const storageAddIntentBlockState = buildStorageAddIntentBlockState(storageIntentState, {
-        canOverride: game.user?.isGM === true,
-        activeActorAlreadyClaimedOne: activeActorAlreadyClaimedStorageItem
+        canOverride: game.user?.isGM === true
       })
       const storageAddBlockReasonLabel = storageAddIntentBlockState.storageAddBlockReasonKey
         ? game.i18n.localize(storageAddIntentBlockState.storageAddBlockReasonKey)
@@ -280,13 +279,7 @@ export function prepareItems(
         isStorageIntentPending: storageIntentState.hasWant && !storageIntentState.canResolveWithoutConflict,
         isStorageIntentResolved: storageIntentState.canResolveWithoutConflict,
         activeActorCanClaimStorageItem: storageIntentState.activeActorCanClaimOne,
-        activeActorAlreadyClaimedStorageItem,
         activeActorCanStillClaimStorageItem: storageAddIntentBlockState.activeActorCanStillClaimOne,
-        isStorageAddBlockedBecauseAlreadyClaimed:
-          storageIntentState.hasWant &&
-          storageIntentState.canResolveWithoutConflict &&
-          storageIntentState.activeActorTag === "want" &&
-          activeActorAlreadyClaimedStorageItem,
         isStorageBlockedByIntent: storageAddIntentBlockState.isStorageBlockedByIntent,
         isStorageAddBlockedForCurrentUser: storageAddIntentBlockState.isStorageAddBlockedForCurrentUser,
         storageAddBlockReasonKey: storageAddIntentBlockState.storageAddBlockReasonKey,

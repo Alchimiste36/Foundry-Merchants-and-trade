@@ -250,11 +250,11 @@
       },
       "intent": {
         "block": {
-          "alreadyClaimed": "Cet acteur a déjà récupéré son exemplaire de cet objet.",
           "activeActorIgnored": "Cet acteur a indiqué que cet objet ne l’intéresse pas. Changez son tag pour le récupérer.",
           "activeActorMustWant": "Cet objet est demandé. Cet acteur doit choisir « Je le veux » pour le récupérer.",
           "missingVotes": "Cet objet est demandé. Tous les acteurs activés sur ce stockage doivent choisir « Je le veux » ou « Sans intérêt pour moi ».",
           "notEnoughQuantity": "Cet objet est demandé par plus d’acteurs qu’il n’y a d’exemplaires disponibles.",
+          "claimLimitReached": "Cet acteur a atteint sa quantité maximale pour cet objet.",
           "generic": "Cet objet est en cours de décision et ne peut pas être ajouté librement."
         }
       }

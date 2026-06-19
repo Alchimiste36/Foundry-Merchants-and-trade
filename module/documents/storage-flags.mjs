@@ -205,23 +205,52 @@ export function getStorageItemTagForActor(rawTags, actorUuid) {
   return STORAGE_TAG_VALID_TYPES.has(tag) ? tag : ""
 }
 
+function isSameStorageSessionProduct(entry, product) {
+  if (String(entry?.type ?? "") !== "product") return false
+
+  const productId = String(product?.id ?? "").trim()
+  const productSourceUuid = String(product?.sourceUuid ?? "").trim()
+  const entrySourceId = String(entry?.sourceId ?? "").trim()
+  const entrySourceUuid = String(entry?.sourceUuid ?? "").trim()
+
+  if (productId && entrySourceId === productId) return true
+  return Boolean(productSourceUuid && entrySourceUuid === productSourceUuid)
+}
+
+export function getStorageSessionClaimQuantityForItem(session, product) {
+  const buyerItems = Array.isArray(session?.buyerItems) ? session.buyerItems : []
+  return buyerItems.reduce((total, entry) => {
+    if (!isSameStorageSessionProduct(entry, product)) return total
+
+    const quantity = Number(entry?.quantity)
+    return Number.isFinite(quantity) && quantity > 0 ? total + quantity : total
+  }, 0)
+}
+
 export function buildStorageItemIntentState({
   rawTags = {},
   sessions = [],
+  activeSession = null,
   activeSessionActorUuid = "",
-  availableQuantity = 0
+  availableQuantity = 0,
+  product = null
 } = {}) {
   const actorVotes = []
+  let wantedClaimQuantity = 0
 
   for (const session of sessions ?? []) {
     const actorUuid = String(session?.actorUuid ?? "").trim()
     if (!actorUuid) continue
 
     const tag = getStorageItemTagForActor(rawTags, actorUuid)
+    const claimQuantity = product ? getStorageSessionClaimQuantityForItem(session, product) : 0
+    if (tag === "want") wantedClaimQuantity += claimQuantity
+
     actorVotes.push({
       actorUuid,
       sessionId: String(session?.id ?? ""),
       tag,
+      claimQuantity,
       wantsItem: tag === "want",
       ignoresItem: tag === "ignore",
       hasAnswered: tag === "want" || tag === "ignore"
@@ -238,7 +267,23 @@ export function buildStorageItemIntentState({
     Number.isFinite(numericAvailableQuantity) && numericAvailableQuantity > 0 ? numericAvailableQuantity : 0
   const hasWant = wantCount > 0
   const allAnswered = totalVotingSlots > 0 && missingCount === 0
-  const canResolveWithoutConflict = hasWant && allAnswered && normalizedAvailableQuantity >= wantCount
+  const claimBaseQuantity = Number((normalizedAvailableQuantity + wantedClaimQuantity).toFixed(2))
+  const claimLimitPerWantActor = wantCount > 0 ? Math.floor(claimBaseQuantity / wantCount) : 0
+  const activeSessionForClaim =
+    activeSession ??
+    (Array.isArray(sessions)
+      ? sessions.find((session) => String(session?.actorUuid ?? "").trim() === String(activeSessionActorUuid ?? "").trim())
+      : null)
+  const activeActorCurrentClaimQuantity = product
+    ? getStorageSessionClaimQuantityForItem(activeSessionForClaim, product)
+    : 0
+  const activeActorRemainingClaimQuantity = Math.max(
+    0,
+    Number((claimLimitPerWantActor - activeActorCurrentClaimQuantity).toFixed(2))
+  )
+  const canResolveWithoutConflict = hasWant && allAnswered && claimBaseQuantity >= wantCount
+  const activeActorCanClaimMore =
+    canResolveWithoutConflict && activeActorTag === "want" && activeActorRemainingClaimQuantity > 0
 
   return {
     actorVotes,
@@ -249,50 +294,51 @@ export function buildStorageItemIntentState({
     hasWant,
     allAnswered,
     availableQuantity: normalizedAvailableQuantity,
+    claimBaseQuantity,
+    claimLimitPerWantActor,
+    activeActorCurrentClaimQuantity,
+    activeActorRemainingClaimQuantity,
     canResolveWithoutConflict,
     activeActorTag,
-    activeActorCanClaimOne: canResolveWithoutConflict && activeActorTag === "want"
+    activeActorCanClaimMore,
+    activeActorCanClaimOne: activeActorCanClaimMore
   }
 }
 
-export function hasStorageSessionClaimedProduct(activeSession, product) {
-  const productId = String(product?.id ?? "").trim()
-  const productSourceUuid = String(product?.sourceUuid ?? "").trim()
-  if (!productId && !productSourceUuid) return false
-
-  const buyerItems = Array.isArray(activeSession?.buyerItems) ? activeSession.buyerItems : []
-  return buyerItems.some((entry) => {
-    if (String(entry?.type ?? "") !== "product") return false
-    if (productId && String(entry?.sourceId ?? "").trim() === productId) return true
-    return productSourceUuid && String(entry?.sourceUuid ?? "").trim() === productSourceUuid
-  })
-}
-
-export function getStorageAddBlockReasonKey(intentState, { activeActorAlreadyClaimedOne = false } = {}) {
+export function getStorageClaimQuantityBlockReasonKey(intentState, requestedQuantity = 0) {
   if (!intentState?.hasWant) return ""
 
-  if (activeActorAlreadyClaimedOne) return "mtt.storage.intent.block.alreadyClaimed"
   if (intentState.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
   if (intentState.activeActorTag !== "want") return "mtt.storage.intent.block.activeActorMustWant"
   if (!intentState.allAnswered) return "mtt.storage.intent.block.missingVotes"
-  if (intentState.availableQuantity < intentState.wantCount) return "mtt.storage.intent.block.notEnoughQuantity"
+  if (!intentState.canResolveWithoutConflict) return "mtt.storage.intent.block.notEnoughQuantity"
+  if (Number(requestedQuantity) > intentState.claimLimitPerWantActor) {
+    return "mtt.storage.intent.block.claimLimitReached"
+  }
+
+  return ""
+}
+
+export function getStorageAddBlockReasonKey(intentState) {
+  if (!intentState?.hasWant) return ""
+
+  const quantityReason = getStorageClaimQuantityBlockReasonKey(
+    intentState,
+    Number(intentState.activeActorCurrentClaimQuantity ?? 0) + 1
+  )
+  if (quantityReason) return quantityReason
 
   return "mtt.storage.intent.block.generic"
 }
 
-export function buildStorageAddIntentBlockState(
-  intentState,
-  { canOverride = false, activeActorAlreadyClaimedOne = false } = {}
-) {
-  const activeActorCanStillClaimOne =
-    intentState?.activeActorCanClaimOne === true && activeActorAlreadyClaimedOne !== true
+export function buildStorageAddIntentBlockState(intentState, { canOverride = false } = {}) {
+  const activeActorCanStillClaimOne = intentState?.activeActorCanClaimMore === true
   const isStorageBlockedByIntent = intentState?.hasWant === true && activeActorCanStillClaimOne !== true
   const storageAddBlockReasonKey = isStorageBlockedByIntent
-    ? getStorageAddBlockReasonKey(intentState, { activeActorAlreadyClaimedOne })
+    ? getStorageAddBlockReasonKey(intentState)
     : ""
 
   return {
-    activeActorAlreadyClaimedOne: Boolean(activeActorAlreadyClaimedOne),
     activeActorCanStillClaimOne,
     isStorageBlockedByIntent,
     isStorageAddBlockedForCurrentUser: isStorageBlockedByIntent && canOverride !== true,

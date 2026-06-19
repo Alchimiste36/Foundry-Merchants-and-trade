@@ -15,7 +15,7 @@ import {
   setStorageItemBlocked,
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
-  hasStorageSessionClaimedProduct,
+  getStorageClaimQuantityBlockReasonKey,
   toggleStorageItemTag
 } from "../../documents/storage-flags.mjs"
 import {
@@ -825,9 +825,101 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!availability?.hasLimitedQuantity) return null
     return availability.availableQuantity
   }
-  #canAcceptSessionQuantity(item, quantity) {
+  #getStorageSessionItemClaimState(item, session, requestedQuantity) {
+    // MTT storage — limite temporaire de récupération par acteur want
+    if (!this.#isStorageEntity() || item?.type !== "product" || !session) {
+      return {
+        applies: false,
+        canAccept: true,
+        reasonKey: "",
+        limit: null,
+        acceptedQuantity: requestedQuantity
+      }
+    }
+
+    const product = getCatalogProduct(this.actor, item.sourceId)
+    if (!product) {
+      return {
+        applies: false,
+        canAccept: true,
+        reasonKey: "",
+        limit: null,
+        acceptedQuantity: requestedQuantity
+      }
+    }
+
+    const availability = this.#getProductAvailability(product.id)
+    const storageIntentState = buildStorageItemIntentState({
+      rawTags: product.rawStorageTags ?? {},
+      sessions: this.#getSessions(),
+      activeSession: session,
+      activeSessionActorUuid: session.actorUuid ?? "",
+      availableQuantity: availability?.availableQuantity ?? 0,
+      product
+    })
+    const reasonKey = getStorageClaimQuantityBlockReasonKey(storageIntentState, requestedQuantity)
+    const limit = storageIntentState.claimLimitPerWantActor
+    const requested = Number(requestedQuantity)
+    const acceptedQuantity =
+      storageIntentState.hasWant && Number.isFinite(requested) && Number.isFinite(limit)
+        ? Math.min(requested, limit)
+        : requestedQuantity
+
+    return {
+      applies: storageIntentState.hasWant,
+      canAccept: !reasonKey || game.user?.isGM === true,
+      reasonKey,
+      limit,
+      acceptedQuantity,
+      intentState: storageIntentState
+    }
+  }
+  #getStorageSessionClaimLimitErrors(session) {
+    // MTT storage — sécurité finale avant transfert réel
+    if (!this.#isStorageEntity() || game.user?.isGM === true || !session) return []
+
+    const errors = []
+    const checkedProductIds = new Set()
+    for (const item of session.buyerItems ?? []) {
+      if (item?.type !== "product" || checkedProductIds.has(item.sourceId)) continue
+
+      checkedProductIds.add(item.sourceId)
+      const totalClaimQuantity = (session.buyerItems ?? []).reduce((total, entry) => {
+        if (entry?.type !== "product" || entry.sourceId !== item.sourceId) return total
+
+        const quantity = Number(entry.quantity)
+        return Number.isFinite(quantity) && quantity > 0 ? total + quantity : total
+      }, 0)
+      const storageClaimState = this.#getStorageSessionItemClaimState(item, session, totalClaimQuantity)
+      if (!storageClaimState.applies || storageClaimState.canAccept) continue
+
+      errors.push(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
+    }
+
+    return [...new Set(errors)]
+  }
+  #canAcceptSessionQuantity(item, quantity, { session = null, side = "" } = {}) {
+    if (side === "buyer") {
+      const requestedQuantity = Number(quantity)
+      const currentQuantity = Number(item?.quantity ?? 0)
+      const storageClaimState = this.#getStorageSessionItemClaimState(
+        item,
+        session ?? this.#getActiveSession(),
+        quantity
+      )
+      if (
+        storageClaimState.applies &&
+        Number.isFinite(requestedQuantity) &&
+        Number.isFinite(currentQuantity) &&
+        requestedQuantity > currentQuantity &&
+        !storageClaimState.canAccept
+      ) {
+        return false
+      }
+    }
+
     if (item?.type === "product") {
-      const session = this.#getActiveSession()
+      session = session ?? this.#getActiveSession()
       const quantityLimit = this.#getProductSessionItemQuantityLimit(item, session)
       const requestedQuantity = Number(quantity)
 
@@ -928,7 +1020,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!this.#canAcceptSessionQuantity(item, requested)) {
+    const storageClaimState =
+      side === "buyer" && requested > Number(item.quantity)
+        ? this.#getStorageSessionItemClaimState(item, session, requested)
+        : null
+    if (storageClaimState?.applies && !storageClaimState.canAccept) {
+      ui.notifications.warn(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
+      const acceptedQuantity = Number(storageClaimState.acceptedQuantity)
+      if (Number.isFinite(acceptedQuantity) && acceptedQuantity > 0 && acceptedQuantity !== Number(item.quantity)) {
+        this.#setSessionItemQuantity(item, acceptedQuantity)
+        await this.#saveSession(session)
+        this.render()
+        return
+      }
+
+      input.value = item.quantity
+      return
+    }
+
+    if (!this.#canAcceptSessionQuantity(item, requested, { session, side })) {
       ui.notifications.warn(
         game.i18n.localize(
           side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity"
@@ -2832,7 +2942,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       existingItem.availableQuantity = hasExistingQuantityLimit ? existingQuantityLimit : null
       existingItem.hasLimitedQuantity = type === "product" ? hasExistingQuantityLimit : hasLimitedStock
-      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
+      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, { session, side: "buyer" })) {
+        return null
+      }
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
       recalculateSessionItemTotal(existingItem)
@@ -2996,7 +3108,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (existingItem) {
       existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
       existingItem.hasLimitedQuantity = hasLimitedStock
-      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
+      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, { session, side: "seller" })) {
+        return null
+      }
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
       recalculateSessionItemTotal(existingItem)
@@ -3238,13 +3352,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const storageIntentState = buildStorageItemIntentState({
         rawTags: product.rawStorageTags ?? {},
         sessions: this.#getSessions(),
+        activeSession,
         activeSessionActorUuid: activeSession?.actorUuid ?? "",
-        availableQuantity: availability?.availableQuantity ?? 0
+        availableQuantity: availability?.availableQuantity ?? 0,
+        product
       })
-      const activeActorAlreadyClaimedStorageItem = hasStorageSessionClaimedProduct(activeSession, product)
       const storageAddIntentBlockState = buildStorageAddIntentBlockState(storageIntentState, {
-        canOverride: game.user?.isGM === true,
-        activeActorAlreadyClaimedOne: activeActorAlreadyClaimedStorageItem
+        canOverride: game.user?.isGM === true
       })
 
       if (storageAddIntentBlockState.isStorageAddBlockedForCurrentUser) {
@@ -3504,7 +3618,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = getSessionItemsForSide(session, side).find((it) => it.id === itemId)
     if (!item) return
 
-    if (!this.#canAcceptSessionQuantity(item, item.quantity + 1)) {
+    const storageClaimState =
+      side === "buyer" ? this.#getStorageSessionItemClaimState(item, session, item.quantity + 1) : null
+    if (storageClaimState?.applies && !storageClaimState.canAccept) {
+      ui.notifications.warn(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
+      return
+    }
+
+    if (!this.#canAcceptSessionQuantity(item, item.quantity + 1, { session, side })) {
       ui.notifications.warn(
         game.i18n.localize(
           side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity"
@@ -3754,6 +3875,30 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         includeCurrencyTransfers: false,
         skipCommercialDeliveryText: true
       }
+      const storageClaimErrors = this.#getStorageSessionClaimLimitErrors(session)
+      if (storageClaimErrors.length > 0) {
+        const blockedPreview = {
+          canExecute: false,
+          warnings: [],
+          errors: storageClaimErrors
+        }
+        this.#sessionCheckResult = {
+          checked: true,
+          canProceed: false,
+          infos: [],
+          warnings: [],
+          errors: storageClaimErrors.map((error, i) => ({
+            id: `storage-claim-limit-err-${i}`,
+            level: "error",
+            text: error,
+            icon: "fa-circle-xmark"
+          }))
+        }
+        this.render()
+        await openSessionExecutionErrorsDialog(blockedPreview)
+        return
+      }
+
       const preview = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
 
       this.#sessionCheckResult = {

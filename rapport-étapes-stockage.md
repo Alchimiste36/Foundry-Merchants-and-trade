@@ -600,6 +600,77 @@ Le stockage lit et écrit toujours ses acteurs dans `flags.mtt-merchants.storage
 
 ---
 
+# Correction 12.E.1 — Limite de quantité par acteur want
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.E.1.
+- [x] Remplacer la logique “1 exemplaire par acteur want” par une limite de quantité calculée.
+- [x] Calculer une base de partage stable depuis la quantité disponible et les quantités déjà engagées par les acteurs `want`.
+- [x] Exposer la limite par acteur `want`, la quantité déjà prise et la quantité restante.
+- [x] Sécuriser le bouton “Ajouter à la session”.
+- [x] Sécuriser le bouton `+` des lignes de session.
+- [x] Sécuriser la saisie directe de quantité.
+- [x] Ajouter une vérification finale avant validation storage.
+- [x] Conserver le bypass MJ.
+- [x] Ne persister aucune donnée dérivée de répartition.
+- [x] Mettre à jour les messages FR/EN.
+- [x] Vérifier la syntaxe JS, les JSON, le lint et le diff.
+
+## Cause de la correction
+
+La correction 12.E bloquait surtout le bouton d’ajout, mais une quantité pouvait encore être augmentée ensuite depuis la session avec `+` ou par saisie directe.
+
+## Nouvelle règle de partage
+
+Quand au moins un acteur a choisi `want`, que tous les acteurs concernés ont voté et que la quantité couvre les demandes, la quantité disponible pour la décision est répartie équitablement entre les acteurs `want`.
+
+La base de partage reste stable :
+
+```text
+quantité de partage =
+  quantité disponible actuelle
+  + quantités déjà engagées par les sessions des acteurs want pour cet Item
+```
+
+La limite par acteur est :
+
+```text
+floor(quantité de partage / nombre d’acteurs want)
+```
+
+Le reliquat reste dans le stockage et n’est pas redistribué automatiquement.
+
+## Handlers sécurisés
+
+Le bouton “Ajouter à la session”, le bouton `+` et la saisie directe recalculent maintenant la limite temporaire au moment de l’action.
+
+Les diminutions restent autorisées pour permettre à un acteur de corriger ou retirer une ligne.
+
+## Validation finale
+
+Avant un transfert storage réel, la session est revérifiée pour les utilisateurs non MJ. Si une ligne dépasse la limite calculée, la validation est refusée et aucun transfert n’est exécuté.
+
+Le MJ conserve la possibilité d’outrepasser.
+
+## Non-persistance
+
+Aucune allocation, limite, décision ou quantité calculée n’est enregistrée dans les flags.
+
+La règle est recalculée depuis les tags, les sessions et les `buyerItems`.
+
+## Vérifications manuelles simples
+
+1. Tester 85 flèches avec 2 acteurs `want` et vérifier une limite de 42 chacun.
+2. Vérifier que le bouton `+` refuse 43 pour un joueur.
+3. Saisir 50 directement et vérifier le plafonnement/refus à la limite.
+4. Vérifier qu’un acteur `ignore` ou sans tag ne peut pas augmenter.
+5. Vérifier que le reliquat reste dans le stockage.
+6. Vérifier que le MJ peut outrepasser.
+7. Vérifier qu’un marchand n’est pas impacté.
+
+---
+
 # Correction 11.1C — Ajustements du rail commun et variante storage
 
 ## Todo

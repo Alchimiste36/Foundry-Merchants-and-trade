@@ -126,6 +126,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #selectedClientActorUuid = ""
   #sessionCheckResult = null
   #journalSort = { key: "date", direction: "desc" }
+  #localProductCategoryCollapseState = new Map()
   #scrollPositions = {}
   #scrollRestorePending = false
   #storageSheetLocked = true
@@ -273,7 +274,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       canEditActiveSession,
       voterActorUuid: canEditActiveSession ? activeSession.actorUuid : ""
     })
-    context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable })
+    context.productCategories = prepareProductCategories(this.actor, context.items, {
+      includeHidden: isEditable,
+      collapsedCategories: Object.fromEntries(this.#localProductCategoryCollapseState)
+    })
     context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable })
     context.trade = prepareTrade(this.actor)
     context.wallet = context.merchant?.wallet ?? {}
@@ -2108,15 +2112,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onToggleProductCategory(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable) return
-
     const categoryValue = target.dataset.category ?? ""
-    const collapsedCategories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.collapsedCategories ?? {})
-    collapsedCategories[categoryValue] = !collapsedCategories[categoryValue]
+    const isCollapsed = this.#localProductCategoryCollapseState.get(categoryValue) === true
+    this.#localProductCategoryCollapseState.set(categoryValue, !isCollapsed)
 
     this.#saveScrollPositions()
-    await updateMerchantData(this.actor, { catalog: { collapsedCategories } })
-
     this.render()
   }
 

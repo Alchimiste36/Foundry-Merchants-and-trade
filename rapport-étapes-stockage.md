@@ -600,6 +600,53 @@ Le stockage lit et écrit toujours ses acteurs dans `flags.mtt-merchants.storage
 
 ---
 
+# Correction commune — Pliage local des catégories produits
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction commune.
+- [x] Identifier l’écriture globale de pliage dans `catalog.collapsedCategories`.
+- [x] Ajouter un état local de pliage sur l’instance de feuille commune.
+- [x] Brancher cet état local dans la préparation des catégories produits.
+- [x] Neutraliser l’écriture globale du handler de pliage.
+- [x] Garder le bouton de pliage utilisable sans droit d’édition.
+- [x] Ne pas toucher aux sous-catégories ni aux services.
+- [x] Vérifier la syntaxe JS, le lint et le diff.
+
+## Cause de la correction
+
+Le pliage d’une catégorie produit était enregistré dans les flags de l’acteur. Un utilisateur pouvait donc replier une catégorie pour tous les autres.
+
+## Nouvelle règle locale
+
+Le pliage / dépliage des catégories produits est maintenant local à l’instance de feuille ouverte.
+
+L’état est conservé pendant les renders de cette fenêtre, puis naturellement réinitialisé à la fermeture / réouverture.
+
+## Écriture globale neutralisée
+
+Le handler de pliage ne fait plus d’`updateMerchantData` et n’écrit plus dans `catalog.collapsedCategories`.
+
+Les anciens flags éventuels ne sont plus utilisés comme source de rendu pour le pliage.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `rapport-étapes-stockage.md`
+
+## Vérifications manuelles simples
+
+1. Replier une catégorie produit sur un stockage côté joueur.
+2. Vérifier qu’elle reste repliée après un render de cette fenêtre.
+3. Vérifier que le MJ ne voit pas ce pliage local.
+4. Répéter sur un marchand.
+5. Verrouiller la feuille et vérifier que le pliage reste utilisable.
+6. Fermer puis rouvrir la feuille et vérifier que l’état est réinitialisé.
+7. Vérifier qu’aucune donnée de collapse n’est écrite dans les flags.
+
+---
+
 # Correction 12.F.1 — Catégorie ignore en bas du catalogue
 
 ## Todo

@@ -426,11 +426,10 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
     .filter((service) => includeHidden || service.isVisible)
 }
 
-export function prepareProductCategories(actor, items, { includeHidden = false } = {}) {
+export function prepareProductCategories(actor, items, { includeHidden = false, collapsedCategories = {} } = {}) {
   const merchantCatalog = getMerchantData(actor)?.catalog
   const definedCategories = merchantCatalog?.productCategories ?? []
   const hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
-  const collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
 
   const categories = new Map()
 

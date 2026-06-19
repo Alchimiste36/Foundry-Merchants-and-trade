@@ -13,6 +13,12 @@ import {
   sanitizeItemDataForMerchantProductCopy
 } from "../../documents/merchant-products.mjs"
 import {
+  buildStorageAddIntentBlockState,
+  buildStorageItemIntentState,
+  getStorageItemTagForActor,
+  hasStorageSessionClaimedProduct
+} from "../../documents/storage-flags.mjs"
+import {
   parseQuantityValue,
   isUnlimitedQuantity,
   FREE_PRICE_CURRENCY_KEY,
@@ -129,8 +135,7 @@ function buildStorageTagsContext(rawTags, { canEditActiveSession = false, voterA
 function getStorageActiveTag(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
   if (!canEditActiveSession || !voterActorUuid) return ""
 
-  const activeTag = foundry.utils.getProperty(rawTags, voterActorUuid)
-  return STORAGE_TAG_TYPES.has(activeTag) ? activeTag : ""
+  return getStorageItemTagForActor(rawTags, voterActorUuid)
 }
 
 function sortStorageIgnoredItemsLast(items) {
@@ -146,7 +151,13 @@ function sortStorageIgnoredItemsLast(items) {
 export function prepareItems(
   actor,
   sellPercent,
-  { includeHidden = false, sessionEntries = null, canEditActiveSession = false, voterActorUuid = "" } = {}
+  {
+    includeHidden = false,
+    sessionEntries = null,
+    activeSessionId = "",
+    canEditActiveSession = false,
+    voterActorUuid = ""
+  } = {}
 ) {
   const products = getCatalogProducts(actor)
   const availabilityByProductId = buildProductAvailabilityMap(
@@ -183,10 +194,28 @@ export function prepareItems(
       const secretCurrency = product.secretCurrency
       const secretDescription = product.secretDescription
       const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
-      const storageActiveTag = getStorageActiveTag(product.rawStorageTags ?? {}, {
+      const rawStorageTags = product.rawStorageTags ?? {}
+      const storageActiveTag = getStorageActiveTag(rawStorageTags, {
         canEditActiveSession,
         voterActorUuid
       })
+      const storageIntentState = buildStorageItemIntentState({
+        rawTags: rawStorageTags,
+        sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
+        activeSessionActorUuid: voterActorUuid,
+        availableQuantity: availability?.availableQuantity ?? 0
+      })
+      const activeSession = Array.isArray(sessionEntries)
+        ? sessionEntries.find((session) => String(session?.id ?? "") === String(activeSessionId ?? ""))
+        : null
+      const activeActorAlreadyClaimedStorageItem = hasStorageSessionClaimedProduct(activeSession, product)
+      const storageAddIntentBlockState = buildStorageAddIntentBlockState(storageIntentState, {
+        canOverride: game.user?.isGM === true,
+        activeActorAlreadyClaimedOne: activeActorAlreadyClaimedStorageItem
+      })
+      const storageAddBlockReasonLabel = storageAddIntentBlockState.storageAddBlockReasonKey
+        ? game.i18n.localize(storageAddIntentBlockState.storageAddBlockReasonKey)
+        : ""
 
       return {
         id: product.id,
@@ -247,7 +276,22 @@ export function prepareItems(
         storageActiveTag,
         isStorageWantedByActiveActor: storageActiveTag === "want",
         isStorageIgnoredByActiveActor: storageActiveTag === "ignore",
-        storageTags: buildStorageTagsContext(product.rawStorageTags ?? {}, { canEditActiveSession, voterActorUuid })
+        storageIntentState,
+        isStorageIntentPending: storageIntentState.hasWant && !storageIntentState.canResolveWithoutConflict,
+        isStorageIntentResolved: storageIntentState.canResolveWithoutConflict,
+        activeActorCanClaimStorageItem: storageIntentState.activeActorCanClaimOne,
+        activeActorAlreadyClaimedStorageItem,
+        activeActorCanStillClaimStorageItem: storageAddIntentBlockState.activeActorCanStillClaimOne,
+        isStorageAddBlockedBecauseAlreadyClaimed:
+          storageIntentState.hasWant &&
+          storageIntentState.canResolveWithoutConflict &&
+          storageIntentState.activeActorTag === "want" &&
+          activeActorAlreadyClaimedStorageItem,
+        isStorageBlockedByIntent: storageAddIntentBlockState.isStorageBlockedByIntent,
+        isStorageAddBlockedForCurrentUser: storageAddIntentBlockState.isStorageAddBlockedForCurrentUser,
+        storageAddBlockReasonKey: storageAddIntentBlockState.storageAddBlockReasonKey,
+        storageAddBlockReasonLabel,
+        storageTags: buildStorageTagsContext(rawStorageTags, { canEditActiveSession, voterActorUuid })
       }
     })
     .filter((item) => includeHidden || item.isVisible)

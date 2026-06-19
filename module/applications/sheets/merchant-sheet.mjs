@@ -13,6 +13,9 @@ import {
   updateStorageData,
   setStorageItemWarningGM,
   setStorageItemBlocked,
+  buildStorageAddIntentBlockState,
+  buildStorageItemIntentState,
+  hasStorageSessionClaimedProduct,
   toggleStorageItemTag
 } from "../../documents/storage-flags.mjs"
 import {
@@ -265,6 +268,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
       includeHidden: isEditable,
       sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null,
+      activeSessionId: isStorage ? (activeSession?.id ?? "") : "",
       canEditActiveSession,
       voterActorUuid: canEditActiveSession ? activeSession.actorUuid : ""
     })
@@ -3229,6 +3233,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const availability = this.#getProductAvailability(product.id)
       const hasLimitedAvailableQuantity = Boolean(availability?.hasLimitedQuantity)
       const availableQuantity = hasLimitedAvailableQuantity ? availability.availableQuantity : null
+      const activeSession = this.#getActiveSession()
+
+      const storageIntentState = buildStorageItemIntentState({
+        rawTags: product.rawStorageTags ?? {},
+        sessions: this.#getSessions(),
+        activeSessionActorUuid: activeSession?.actorUuid ?? "",
+        availableQuantity: availability?.availableQuantity ?? 0
+      })
+      const activeActorAlreadyClaimedStorageItem = hasStorageSessionClaimedProduct(activeSession, product)
+      const storageAddIntentBlockState = buildStorageAddIntentBlockState(storageIntentState, {
+        canOverride: game.user?.isGM === true,
+        activeActorAlreadyClaimedOne: activeActorAlreadyClaimedStorageItem
+      })
+
+      if (storageAddIntentBlockState.isStorageAddBlockedForCurrentUser) {
+        const reasonKey = storageAddIntentBlockState.storageAddBlockReasonKey || "mtt.storage.intent.block.generic"
+        ui.notifications.warn(game.i18n.localize(reasonKey))
+        return
+      }
 
       if (hasLimitedAvailableQuantity && availableQuantity <= 0) {
         ui.notifications.warn(game.i18n.localize("mtt.notifications.productUnavailableQuantity"))

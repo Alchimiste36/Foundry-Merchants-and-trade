@@ -346,10 +346,10 @@
                           {{#unless @root.mtt.session.isSubmitted}}
                             {{!-- MTT base — bouton d’ajout à une session MTT --}}
                             <button
-                              class="mtt-merchant-product-action"
+                              class="mtt-merchant-product-action{{#if item.isStorageAddBlockedForCurrentUser}} mtt-storage-add-blocked{{/if}}"
                               type="button"
                               data-action="addProductToSession"
-                              data-tooltip="{{localize 'mtt.sessions.actions.addProduct'}}"
+                              data-tooltip="{{#if item.isStorageAddBlockedForCurrentUser}}{{item.storageAddBlockReasonLabel}}{{else}}{{localize 'mtt.sessions.actions.addProduct'}}{{/if}}"
                             >
                               <i class="fas fa-cart-plus"></i>
                             </button>

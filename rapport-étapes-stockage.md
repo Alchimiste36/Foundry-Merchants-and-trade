@@ -1240,3 +1240,230 @@ Ce tri ne modifie pas :
 10. Vérifier qu’aucun compteur de tag n’est affiché.
 
 ---
+
+# Étape 12.C — Base de calcul temporaire des intentions want/ignore
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.C.
+- [x] Ajouter un helper de lecture compatible avec les UUID imbriqués Foundry.
+- [x] Ajouter un helper de calcul temporaire des intentions `want` / `ignore`.
+- [x] Brancher le calcul au contexte catalogue storage.
+- [x] Utiliser les sessions du stockage comme voix potentielles.
+- [x] Réutiliser la quantité disponible déjà préparée pour le catalogue.
+- [x] Ne pas modifier le bouton d’ajout à la session.
+- [x] Ne persister aucune donnée dérivée.
+- [x] Vérifier la syntaxe JS et le lint.
+
+## Helper de lecture ajouté
+
+Le helper `getStorageItemTagForActor` lit le tag d’un acteur avec `foundry.utils.getProperty`, ce qui conserve la compatibilité avec la structure imbriquée des UUID Foundry.
+
+Il retourne uniquement :
+
+- `want`
+- `ignore`
+- une chaîne vide
+
+Les anciennes valeurs éventuelles comme `keep`, `sell` ou `question` sont traitées comme une absence d’avis.
+
+## Helper de calcul ajouté
+
+Le helper `buildStorageItemIntentState` calcule un état temporaire pour un Item à partir des tags, des sessions du stockage, de l’acteur actif et de la quantité disponible.
+
+Il prépare notamment :
+
+- `actorVotes`
+- `wantCount`
+- `ignoreCount`
+- `missingCount`
+- `totalVotingSlots`
+- `allAnswered`
+- `canResolveWithoutConflict`
+- `activeActorCanClaimOne`
+
+## Règle des sessions comptées
+
+Chaque session storage possédant un `actorUuid` compte comme une voix potentielle.
+
+Les acteurs ne sont pas dédupliqués, et les sessions ne sont pas filtrées selon leur statut dans cette étape.
+
+## Règle de non-persistance
+
+Le calcul est reconstruit au rendu et n’est jamais écrit dans les flags.
+
+Aucune donnée dérivée de type `intentState`, `voteState`, `claims`, `allocations`, décision ou historique de vote n’a été ajoutée.
+
+## Non implémenté volontairement
+
+- Aucun blocage de bouton.
+- Aucune autorisation conditionnelle d’ajout.
+- Aucune réservation technique.
+- Aucune modification de quantité.
+- Aucune décision commune.
+- Aucun journal.
+- Aucune notification.
+- Aucun nouveau tag.
+- Aucun compteur visible.
+- Aucune modification du rail, des sessions, des transferts ou du marchand.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec plusieurs sessions ayant un `actorUuid`.
+2. Mettre `want` sur un Item avec un acteur.
+3. Mettre `ignore` sur le même Item avec un autre acteur.
+4. Vérifier par inspection de contexte que `wantCount`, `ignoreCount` et `missingCount` correspondent aux sessions.
+5. Vérifier qu’un même acteur présent dans deux sessions compte deux fois.
+6. Vérifier que `allAnswered` devient vrai seulement si toutes les sessions ont `want` ou `ignore`.
+7. Vérifier que `canResolveWithoutConflict` devient vrai seulement si la quantité disponible couvre les `want`.
+8. Exporter ou inspecter l’acteur et vérifier qu’aucune donnée dérivée n’a été écrite.
+9. Vérifier que les boutons want/ignore, les effets visuels de 12.B et la désélection continuent de fonctionner.
+10. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
+
+---
+
+# Étape 12.D — Blocage d’ajout selon les intentions want/ignore
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.D.
+- [x] Ajouter une règle temporaire de blocage d’ajout fondée sur l’état d’intention 12.C.
+- [x] Ajouter les raisons de blocage FR/EN.
+- [x] Marquer visuellement le bouton d’ajout en danger pour les joueurs bloqués.
+- [x] Garder le bouton visible et cliquable pour afficher un message clair.
+- [x] Recalculer le blocage côté handler avant l’ajout réel.
+- [x] Conserver un bypass complet pour le MJ.
+- [x] Compiler le LESS vers `css/mtt.css`.
+- [x] Vérifier la syntaxe JS, les JSON et le lint.
+
+## Règle de blocage ajoutée
+
+Un Item storage avec au moins un `want` devient soumis à décision pour les joueurs.
+
+Le joueur est bloqué si l’acteur actif ne peut pas prendre un exemplaire sans conflit. Il n’est pas bloqué si tous les acteurs ayant une session ont répondu, si la quantité disponible couvre les `want`, et si son acteur actif a lui-même choisi `Je le veux`.
+
+## Raisons de blocage ajoutées
+
+- L’acteur actif a choisi `Sans intérêt pour moi`.
+- L’acteur actif n’a pas choisi `Je le veux` alors que l’objet est demandé.
+- Tous les acteurs activés n’ont pas encore donné leur avis.
+- La quantité disponible ne couvre pas tous les acteurs qui veulent l’objet.
+- Raison générique.
+
+## Bypass MJ
+
+Le MJ n’est jamais bloqué par cette règle temporaire et peut toujours ajouter l’Item à la session.
+
+## Règle de non-persistance
+
+Le blocage par intentions reste un calcul temporaire.
+
+Aucun flag de blocage, décision, claim, allocation ou raison persistée n’a été ajouté. Les seuls flags concernés restent les tags existants et les statuts storage déjà présents.
+
+## Non implémenté volontairement
+
+- Aucune décision persistante.
+- Aucune répartition avancée.
+- Aucune limitation à un exemplaire par acteur.
+- Aucune réservation automatique.
+- Aucun historique ou journal.
+- Aucune modification des transferts.
+- Aucune modification de la logique de sélection/désélection des tags.
+- Aucune modification du marchand.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Vérifier qu’un Item sans `want` reste ajoutable normalement.
+3. Mettre `want` avec un acteur et laisser un autre acteur sans avis.
+4. Vérifier que le bouton d’ajout est en danger pour un joueur non MJ.
+5. Cliquer et vérifier qu’un warning indique que tous les acteurs doivent donner leur avis.
+6. Mettre `ignore` avec l’acteur actif et vérifier que le warning demande de changer le tag.
+7. Créer un cas où tous les acteurs ont répondu et où la quantité disponible couvre les `want`.
+8. Vérifier qu’un acteur actif ayant `want` peut ajouter l’Item.
+9. Créer un cas où les `want` dépassent la quantité disponible et vérifier que le warning de quantité apparaît.
+10. Vérifier que le MJ peut toujours ajouter l’Item.
+11. Inspecter l’acteur et vérifier qu’aucune donnée dérivée n’a été écrite.
+12. Vérifier que le marchand n’est pas impacté.
+
+---
+
+# Étape 12.E — Récupération automatique sans conflit
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.E.
+- [x] Ajouter la détection temporaire “déjà récupéré” depuis la session active.
+- [x] Adapter la règle de blocage pour utiliser `activeActorCanStillClaimOne`.
+- [x] Ajouter la raison de blocage “déjà récupéré” FR/EN.
+- [x] Brancher la détection au contexte catalogue storage.
+- [x] Recalculer la même règle côté handler avant l’ajout réel.
+- [x] Conserver le bypass MJ.
+- [x] Ne persister aucune donnée de répartition.
+- [x] Vérifier la syntaxe JS, les JSON et le lint.
+
+## Règle d’autorisation ajoutée
+
+Quand un Item a au moins un `want`, un acteur joueur peut ajouter 1 exemplaire à sa session seulement si la situation est résolue sans conflit et si son acteur actif a lui-même choisi `Je le veux`.
+
+La règle reste :
+
+- tous les acteurs ayant une session doivent avoir répondu ;
+- la quantité disponible doit couvrir les `want` ;
+- l’acteur actif doit être en `want` ;
+- l’acteur actif ne doit pas déjà avoir récupéré cet Item dans sa session.
+
+## Détection “déjà récupéré”
+
+La détection se fait temporairement depuis `buyerItems` de la session active.
+
+L’identité existante réutilisée est celle des lignes de session :
+
+- `type: "product"` ;
+- `sourceId` égal à l’id du produit storage ;
+- `sourceUuid` en secours si disponible.
+
+## Limitation à 1 exemplaire par acteur want
+
+Un acteur `want` autorisé peut ajouter l’Item une première fois. Si l’Item est déjà présent dans `buyerItems` de sa session active, un second ajout joueur est bloqué avec un warning dédié.
+
+Le MJ conserve la possibilité d’outrepasser.
+
+## Bypass MJ
+
+Le MJ n’est pas bloqué par la règle de récupération automatique et peut toujours ajouter l’Item, y compris dans les cas de reliquat ou de conflit.
+
+## Règle de non-persistance
+
+Aucune allocation, décision, résolution ou liste d’acteurs autorisés n’est écrite dans les flags.
+
+Le droit à récupérer et le fait d’avoir déjà récupéré sont recalculés depuis les tags, les sessions et les `buyerItems`.
+
+## Non implémenté volontairement
+
+- Aucune allocation persistante.
+- Aucune décision persistante.
+- Aucune distribution automatique de reliquat.
+- Aucune déduplication des acteurs.
+- Aucun filtrage par statut de session.
+- Aucun journal de décision.
+- Aucune modification des tags eux-mêmes.
+- Aucune modification des transferts.
+- Aucune modification du marchand.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec plusieurs sessions ayant un acteur.
+2. Utiliser un Item avec quantité disponible suffisante.
+3. Mettre un acteur en `want` et les autres en `ignore`.
+4. Vérifier que l’acteur `want` peut ajouter 1 exemplaire à sa session.
+5. Cliquer une deuxième fois avec le même acteur et vérifier que l’ajout est refusé.
+6. Vérifier que le warning indique que l’acteur a déjà récupéré son exemplaire.
+7. Tester deux acteurs en `want` avec une quantité disponible suffisante et vérifier que chacun peut prendre 1 exemplaire.
+8. Vérifier qu’un acteur `ignore` ou sans tag reste bloqué.
+9. Vérifier que le MJ peut toujours ajouter l’Item.
+10. Inspecter l’acteur et vérifier qu’aucune donnée dérivée de répartition n’a été écrite.
+11. Vérifier que les effets visuels et le blocage de 12.D restent fonctionnels.
+12. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
+
+---

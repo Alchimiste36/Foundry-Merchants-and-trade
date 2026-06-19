@@ -198,6 +198,108 @@ export function getStorageItemTags(item) {
   return foundry.utils.getType(raw) === "Object" ? raw : {}
 }
 
+export function getStorageItemTagForActor(rawTags, actorUuid) {
+  if (!rawTags || !actorUuid) return ""
+
+  const tag = foundry.utils.getProperty(rawTags, actorUuid)
+  return STORAGE_TAG_VALID_TYPES.has(tag) ? tag : ""
+}
+
+export function buildStorageItemIntentState({
+  rawTags = {},
+  sessions = [],
+  activeSessionActorUuid = "",
+  availableQuantity = 0
+} = {}) {
+  const actorVotes = []
+
+  for (const session of sessions ?? []) {
+    const actorUuid = String(session?.actorUuid ?? "").trim()
+    if (!actorUuid) continue
+
+    const tag = getStorageItemTagForActor(rawTags, actorUuid)
+    actorVotes.push({
+      actorUuid,
+      sessionId: String(session?.id ?? ""),
+      tag,
+      wantsItem: tag === "want",
+      ignoresItem: tag === "ignore",
+      hasAnswered: tag === "want" || tag === "ignore"
+    })
+  }
+
+  const wantCount = actorVotes.filter((vote) => vote.wantsItem).length
+  const ignoreCount = actorVotes.filter((vote) => vote.ignoresItem).length
+  const missingCount = actorVotes.filter((vote) => !vote.hasAnswered).length
+  const totalVotingSlots = actorVotes.length
+  const activeActorTag = getStorageItemTagForActor(rawTags, activeSessionActorUuid)
+  const numericAvailableQuantity = Number(availableQuantity)
+  const normalizedAvailableQuantity =
+    Number.isFinite(numericAvailableQuantity) && numericAvailableQuantity > 0 ? numericAvailableQuantity : 0
+  const hasWant = wantCount > 0
+  const allAnswered = totalVotingSlots > 0 && missingCount === 0
+  const canResolveWithoutConflict = hasWant && allAnswered && normalizedAvailableQuantity >= wantCount
+
+  return {
+    actorVotes,
+    wantCount,
+    ignoreCount,
+    missingCount,
+    totalVotingSlots,
+    hasWant,
+    allAnswered,
+    availableQuantity: normalizedAvailableQuantity,
+    canResolveWithoutConflict,
+    activeActorTag,
+    activeActorCanClaimOne: canResolveWithoutConflict && activeActorTag === "want"
+  }
+}
+
+export function hasStorageSessionClaimedProduct(activeSession, product) {
+  const productId = String(product?.id ?? "").trim()
+  const productSourceUuid = String(product?.sourceUuid ?? "").trim()
+  if (!productId && !productSourceUuid) return false
+
+  const buyerItems = Array.isArray(activeSession?.buyerItems) ? activeSession.buyerItems : []
+  return buyerItems.some((entry) => {
+    if (String(entry?.type ?? "") !== "product") return false
+    if (productId && String(entry?.sourceId ?? "").trim() === productId) return true
+    return productSourceUuid && String(entry?.sourceUuid ?? "").trim() === productSourceUuid
+  })
+}
+
+export function getStorageAddBlockReasonKey(intentState, { activeActorAlreadyClaimedOne = false } = {}) {
+  if (!intentState?.hasWant) return ""
+
+  if (activeActorAlreadyClaimedOne) return "mtt.storage.intent.block.alreadyClaimed"
+  if (intentState.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
+  if (intentState.activeActorTag !== "want") return "mtt.storage.intent.block.activeActorMustWant"
+  if (!intentState.allAnswered) return "mtt.storage.intent.block.missingVotes"
+  if (intentState.availableQuantity < intentState.wantCount) return "mtt.storage.intent.block.notEnoughQuantity"
+
+  return "mtt.storage.intent.block.generic"
+}
+
+export function buildStorageAddIntentBlockState(
+  intentState,
+  { canOverride = false, activeActorAlreadyClaimedOne = false } = {}
+) {
+  const activeActorCanStillClaimOne =
+    intentState?.activeActorCanClaimOne === true && activeActorAlreadyClaimedOne !== true
+  const isStorageBlockedByIntent = intentState?.hasWant === true && activeActorCanStillClaimOne !== true
+  const storageAddBlockReasonKey = isStorageBlockedByIntent
+    ? getStorageAddBlockReasonKey(intentState, { activeActorAlreadyClaimedOne })
+    : ""
+
+  return {
+    activeActorAlreadyClaimedOne: Boolean(activeActorAlreadyClaimedOne),
+    activeActorCanStillClaimOne,
+    isStorageBlockedByIntent,
+    isStorageAddBlockedForCurrentUser: isStorageBlockedByIntent && canOverride !== true,
+    storageAddBlockReasonKey
+  }
+}
+
 export async function toggleStorageItemTag(item, actorUuid, tagType) {
   if (!item || !actorUuid || !STORAGE_TAG_VALID_TYPES.has(tagType)) return null
   const current = getStorageItemTags(item)

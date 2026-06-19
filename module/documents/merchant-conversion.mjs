@@ -82,7 +82,7 @@ export async function convertActorToStorage(actor) {
     return
   }
 
-  await setStorageData(actor, buildDefaultStorageData(actor))
+  await setStorageData(actor, buildDefaultStorageData(actor, { includeInitialGlobalCategories: true }))
   ui.notifications.info(game.i18n.format("mtt.notifications.storageConversion.success", { name: actor.name }))
 }
 

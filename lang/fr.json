@@ -72,6 +72,10 @@
         "name": "Catégories personnalisées par défaut",
         "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne."
       },
+      "defaultStorageCategories": {
+        "name": "Catégories de stockage par défaut",
+        "hint": "Liste des catégories à ajouter automatiquement aux nouveaux stockages. Écrire une catégorie par ligne."
+      },
       "itemSubcategoryPath": {
         "name": "Chemin de sous-catégorie produit",
         "hint": "Chemin lu sur l’Item source pour afficher une sous-catégorie discrète dans le catalogue. La sous-catégorie apparaît sous forme d’icône avec une info-bulle sur la ligne produit. Laisser vide pour désactiver cette fonction."
@@ -215,7 +219,7 @@
         "removeActorConfirm": "Supprimer du stockage"
       },
       "session": {
-        "title": "Session d'Échange",
+        "title": "Session d’Échange",
         "take": "Le PJ prend / récupère",
         "deposit": "Le PJ dépose / stock",
         "emptyTake": "Aucun objet à récupérer pour le moment.",
@@ -233,6 +237,16 @@
         "item": {
           "storage": "Stockage",
           "actor": "Acteur"
+        }
+      },
+      "statuses": {
+        "warningGM": {
+          "tooltip": "Avertissement MJ : cet objet déclenchera un message privé au MJ lors de son transfert.",
+          "chatMessage": "⚠️ Avertissement MJ — {clientName} a récupéré l’objet {itemName} depuis le stockage {storageName}.",
+          "speaker": "MTT Stockage"
+        },
+        "blocked": {
+          "tooltip": "Objet bloqué : ne peut pas être ajouté à une session."
         }
       }
     },
@@ -660,7 +674,15 @@
         "categorySetProductsLimited": "Passer tous les produits en Limité",
         "categorySetProductsObserver": "Passer tous les produits en Observateur",
         "categoryRequireApprovalForProducts": "Demander l'approbation MJ pour tous les produits",
-        "categoryRemoveApprovalForProducts": "Retirer l'approbation MJ pour tous les produits"
+        "categoryRemoveApprovalForProducts": "Retirer l'approbation MJ pour tous les produits",
+        "setWarningGM": "Avertir le MJ lors du transfert",
+        "removeWarningGM": "Retirer l'avertissement MJ",
+        "setBlocked": "Bloquer l'objet",
+        "removeBlocked": "Débloquer l'objet",
+        "categorySetWarningGM": "Avertir le MJ pour tous les objets",
+        "categoryRemoveWarningGM": "Retirer l'avertissement MJ pour tous les objets",
+        "categorySetBlocked": "Bloquer tous les objets",
+        "categoryRemoveBlocked": "Débloquer tous les objets"
       }
     },
     "secrets": {
@@ -1008,6 +1030,10 @@
         "defaultCustomCategories": {
           "label": "Catégories personnalisées par défaut",
           "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque marchand."
+        },
+        "defaultStorageCategories": {
+          "label": "Catégories de stockage par défaut",
+          "hint": "Liste des catégories à ajouter automatiquement aux nouveaux stockages. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque stockage."
         }
       },
       "importExport": {

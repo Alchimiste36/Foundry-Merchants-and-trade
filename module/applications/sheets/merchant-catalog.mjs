@@ -1,6 +1,7 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { isMTTStorage, getStorageData } from "../../documents/storage-flags.mjs"
 import {
   getCatalogProducts,
   isMerchantProductItem,
@@ -197,7 +198,9 @@ export function prepareItems(actor, sellPercent, { includeHidden = false, sessio
         isSecretExpanded: product.isSecretExpanded,
         hasFreePrice,
         minimumPriceValue: product.minimumPriceValue,
-        selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency
+        selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
+        isBlocked: product.isBlocked,
+        hasWarningGM: product.hasWarningGM
       }
     })
     .filter((item) => includeHidden || item.isVisible)
@@ -329,10 +332,21 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
 }
 
 export function prepareProductCategories(actor, items, { includeHidden = false } = {}) {
-  const merchantCatalog = getMerchantData(actor)?.catalog
-  const definedCategories = merchantCatalog?.productCategories ?? []
+  let definedCategories, hiddenCategories, collapsedCategories
+
+  if (isMTTStorage(actor)) {
+    const storageContent = getStorageData(actor)?.content
+    definedCategories = storageContent?.categories ?? []
+    hiddenCategories = storageContent?.hiddenCategories ?? {}
+    collapsedCategories = storageContent?.collapsedCategories ?? {}
+  } else {
+    const merchantCatalog = getMerchantData(actor)?.catalog
+    definedCategories = merchantCatalog?.productCategories ?? []
+    hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
+    collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
+  }
+
   const categories = new Map()
-  const hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
 
   const shouldShowSystemCategory = items.length > 0 || definedCategories.length > 0
   if (shouldShowSystemCategory) {
@@ -373,8 +387,6 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     group.items.push(item)
     group.count += 1
   })
-
-  const collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
 
   const sortedCategories = Array.from(categories.values())
     .filter((group) => includeHidden || group.isVisible)

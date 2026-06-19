@@ -12,7 +12,38 @@ export function getStorageFlagPath(path = "") {
   return suffix ? `${base}.${suffix}` : base
 }
 
-export function buildDefaultStorageData(actor = null) {
+// ─── Catégories initiales stockage ───────────────────────────────────────────
+
+function getConfiguredInitialStorageCategoryNames() {
+  try {
+    const raw = String(game.settings.get(MTT.ID, "defaultStorageCategories") ?? "")
+    const seen = new Set()
+    return raw
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .filter((name) => {
+        const key = name.toLowerCase()
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+  } catch {
+    return []
+  }
+}
+
+function buildInitialLocalStorageCategories() {
+  return getConfiguredInitialStorageCategoryNames().map((name, index) => ({
+    id: `category-${foundry.utils.randomID(6)}`,
+    name,
+    sort: index
+  }))
+}
+
+// ─── Structure de données stockage ───────────────────────────────────────────
+
+export function buildDefaultStorageData(actor = null, { includeInitialGlobalCategories = false } = {}) {
   return {
     enabled: true,
     storage: {
@@ -30,7 +61,9 @@ export function buildDefaultStorageData(actor = null) {
       entries: []
     },
     content: {
-      categories: []
+      categories: includeInitialGlobalCategories ? buildInitialLocalStorageCategories() : [],
+      hiddenCategories: {},
+      collapsedCategories: {}
     },
     journal: {
       entries: []
@@ -61,6 +94,8 @@ export function normalizeStorageData(data = {}, actor = null) {
   merged.sessions.entries ??= []
   merged.content ??= {}
   merged.content.categories ??= []
+  merged.content.hiddenCategories ??= {}
+  merged.content.collapsedCategories ??= {}
   merged.journal ??= {}
   merged.journal.entries ??= []
 
@@ -113,4 +148,34 @@ export async function unsetStorageData(actor) {
     return actor.unsetFlag(MTT.ID, MTT.FLAGS.TYPE)
   }
   return actor
+}
+
+// ─── Flags statuts stockage sur les Items ────────────────────────────────────
+
+export function getStorageItemFlags(item) {
+  const raw = item?.getFlag?.(MTT.ID, MTT.FLAGS.STORAGE) ?? {}
+  return {
+    warningGM: Boolean(raw.warningGM),
+    blocked: Boolean(raw.blocked)
+  }
+}
+
+export function isStorageItemBlocked(item) {
+  return getStorageItemFlags(item).blocked
+}
+
+export function isStorageItemWarningGM(item) {
+  return getStorageItemFlags(item).warningGM
+}
+
+export async function setStorageItemBlocked(item, blocked) {
+  if (!item) return null
+  const current = getStorageItemFlags(item)
+  return item.setFlag(MTT.ID, MTT.FLAGS.STORAGE, { ...current, blocked: Boolean(blocked) })
+}
+
+export async function setStorageItemWarningGM(item, warningGM) {
+  if (!item) return null
+  const current = getStorageItemFlags(item)
+  return item.setFlag(MTT.ID, MTT.FLAGS.STORAGE, { ...current, warningGM: Boolean(warningGM) })
 }

@@ -6,7 +6,13 @@ import {
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
-import { getMTTEntityType, getStorageData, updateStorageData } from "../../documents/storage-flags.mjs"
+import {
+  getMTTEntityType,
+  getStorageData,
+  updateStorageData,
+  setStorageItemWarningGM,
+  setStorageItemBlocked
+} from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
   getMerchantPermissions,
@@ -1331,6 +1337,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
         isObserverOwnership: product.ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+        isBlocked: Boolean(product.isBlocked),
+        hasWarningGM: Boolean(product.hasWarningGM),
         productId: product.id,
         data: product
       }
@@ -1370,6 +1378,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     menu.style.top = `${event.clientY}px`
     menu.setAttribute("aria-label", game.i18n.localize("mtt.catalog.context.title"))
 
+    const isStorage = this.#isStorageEntity()
+
     if (catalogItem.kind === "category") {
       const setLimited = this.#createCatalogContextButton({
         icon: "fa-eye-slash",
@@ -1381,17 +1391,44 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         label: game.i18n.localize("mtt.catalog.context.categorySetProductsObserver"),
         onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)
       })
-      const requireApproval = this.#createCatalogContextButton({
-        icon: "fa-user-check",
-        label: game.i18n.localize("mtt.catalog.context.categoryRequireApprovalForProducts"),
-        onClick: async () => this.#setCategoryProductsApproval(catalogItem, true)
-      })
-      const removeApproval = this.#createCatalogContextButton({
-        icon: "fa-user-minus",
-        label: game.i18n.localize("mtt.catalog.context.categoryRemoveApprovalForProducts"),
-        onClick: async () => this.#setCategoryProductsApproval(catalogItem, false)
-      })
-      menu.append(setLimited, setObserver, requireApproval, removeApproval)
+      menu.append(setLimited, setObserver)
+
+      if (isStorage) {
+        const setWarningGM = this.#createCatalogContextButton({
+          icon: "fa-triangle-exclamation",
+          label: game.i18n.localize("mtt.catalog.context.categorySetWarningGM"),
+          onClick: async () => this.#setCategoryItemsWarningGM(catalogItem, true)
+        })
+        const removeWarningGM = this.#createCatalogContextButton({
+          icon: "fa-triangle-exclamation",
+          label: game.i18n.localize("mtt.catalog.context.categoryRemoveWarningGM"),
+          onClick: async () => this.#setCategoryItemsWarningGM(catalogItem, false)
+        })
+        const setBlocked = this.#createCatalogContextButton({
+          icon: "fa-lock",
+          label: game.i18n.localize("mtt.catalog.context.categorySetBlocked"),
+          onClick: async () => this.#setCategoryItemsBlocked(catalogItem, true)
+        })
+        const removeBlocked = this.#createCatalogContextButton({
+          icon: "fa-lock-open",
+          label: game.i18n.localize("mtt.catalog.context.categoryRemoveBlocked"),
+          onClick: async () => this.#setCategoryItemsBlocked(catalogItem, false)
+        })
+        menu.append(setWarningGM, removeWarningGM, setBlocked, removeBlocked)
+      } else {
+        const requireApproval = this.#createCatalogContextButton({
+          icon: "fa-user-check",
+          label: game.i18n.localize("mtt.catalog.context.categoryRequireApprovalForProducts"),
+          onClick: async () => this.#setCategoryProductsApproval(catalogItem, true)
+        })
+        const removeApproval = this.#createCatalogContextButton({
+          icon: "fa-user-minus",
+          label: game.i18n.localize("mtt.catalog.context.categoryRemoveApprovalForProducts"),
+          onClick: async () => this.#setCategoryProductsApproval(catalogItem, false)
+        })
+        menu.append(requireApproval, removeApproval)
+      }
+
       applicationElement.append(menu)
       window.setTimeout(() => {
         const closeMenu = (closeEvent) => {
@@ -1403,54 +1440,89 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    const secretInfo = this.#createCatalogContextButton({
-      icon: "fa-mask",
-      label: game.i18n.localize("mtt.catalog.context.secretInfo"),
-      onClick: async () => this.#editCatalogItemSecrets(catalogItem)
-    })
-    menu.append(secretInfo)
-
-    if (catalogItem.hasSecrets) {
-      const deleteSecrets = this.#createCatalogContextButton({
-        icon: "fa-eraser",
-        label: game.i18n.localize("mtt.catalog.context.deleteSecretInfo"),
-        onClick: async () => this.#deleteCatalogItemSecrets(catalogItem)
+    if (isStorage) {
+      if (catalogItem.kind === "product") {
+        const warningGMLabel = catalogItem.hasWarningGM
+          ? game.i18n.localize("mtt.catalog.context.removeWarningGM")
+          : game.i18n.localize("mtt.catalog.context.setWarningGM")
+        const warningGM = this.#createCatalogContextButton({
+          icon: "fa-triangle-exclamation",
+          label: warningGMLabel,
+          onClick: async () => this.#toggleStorageItemWarningGM(catalogItem)
+        })
+        const blockedLabel = catalogItem.isBlocked
+          ? game.i18n.localize("mtt.catalog.context.removeBlocked")
+          : game.i18n.localize("mtt.catalog.context.setBlocked")
+        const blocked = this.#createCatalogContextButton({
+          icon: catalogItem.isBlocked ? "fa-lock-open" : "fa-lock",
+          label: blockedLabel,
+          onClick: async () => this.#toggleStorageItemBlocked(catalogItem)
+        })
+        const ownershipLabel = catalogItem.isObserverOwnership
+          ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
+          : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
+        const ownership = this.#createCatalogContextButton({
+          icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
+          label: ownershipLabel,
+          onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
+        })
+        const copy = this.#createCatalogContextButton({
+          icon: "fa-copy",
+          label: game.i18n.localize("mtt.catalog.context.copyProduct"),
+          onClick: async () => this.#copyCatalogItem(catalogItem)
+        })
+        menu.append(warningGM, blocked, ownership, copy)
+      }
+    } else {
+      const secretInfo = this.#createCatalogContextButton({
+        icon: "fa-mask",
+        label: game.i18n.localize("mtt.catalog.context.secretInfo"),
+        onClick: async () => this.#editCatalogItemSecrets(catalogItem)
       })
-      menu.append(deleteSecrets)
-    }
+      menu.append(secretInfo)
 
-    const approvalLabel = catalogItem.requiresApproval
-      ? game.i18n.localize("mtt.catalog.context.removeApproval")
-      : game.i18n.localize("mtt.catalog.context.requestApproval")
-    const approval = this.#createCatalogContextButton({
-      icon: catalogItem.requiresApproval ? "fa-user-minus" : "fa-user-check",
-      label: approvalLabel,
-      onClick: async () => this.#toggleCatalogItemApproval(catalogItem)
-    })
-    menu.append(approval)
+      if (catalogItem.hasSecrets) {
+        const deleteSecrets = this.#createCatalogContextButton({
+          icon: "fa-eraser",
+          label: game.i18n.localize("mtt.catalog.context.deleteSecretInfo"),
+          onClick: async () => this.#deleteCatalogItemSecrets(catalogItem)
+        })
+        menu.append(deleteSecrets)
+      }
 
-    if (catalogItem.kind === "product") {
-      const ownershipLabel = catalogItem.isObserverOwnership
-        ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
-        : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
-      const ownership = this.#createCatalogContextButton({
-        icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
-        label: ownershipLabel,
-        onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
+      const approvalLabel = catalogItem.requiresApproval
+        ? game.i18n.localize("mtt.catalog.context.removeApproval")
+        : game.i18n.localize("mtt.catalog.context.requestApproval")
+      const approval = this.#createCatalogContextButton({
+        icon: catalogItem.requiresApproval ? "fa-user-minus" : "fa-user-check",
+        label: approvalLabel,
+        onClick: async () => this.#toggleCatalogItemApproval(catalogItem)
       })
-      menu.append(ownership)
-    }
+      menu.append(approval)
 
-    const copyLabel =
-      catalogItem.kind === "product"
-        ? game.i18n.localize("mtt.catalog.context.copyProduct")
-        : game.i18n.localize("mtt.catalog.context.copyService")
-    const copy = this.#createCatalogContextButton({
-      icon: "fa-copy",
-      label: copyLabel,
-      onClick: async () => this.#copyCatalogItem(catalogItem)
-    })
-    menu.append(copy)
+      if (catalogItem.kind === "product") {
+        const ownershipLabel = catalogItem.isObserverOwnership
+          ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
+          : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
+        const ownership = this.#createCatalogContextButton({
+          icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
+          label: ownershipLabel,
+          onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
+        })
+        menu.append(ownership)
+      }
+
+      const copyLabel =
+        catalogItem.kind === "product"
+          ? game.i18n.localize("mtt.catalog.context.copyProduct")
+          : game.i18n.localize("mtt.catalog.context.copyService")
+      const copy = this.#createCatalogContextButton({
+        icon: "fa-copy",
+        label: copyLabel,
+        onClick: async () => this.#copyCatalogItem(catalogItem)
+      })
+      menu.append(copy)
+    }
 
     applicationElement.append(menu)
 
@@ -1667,6 +1739,56 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.requiresApproval`]: requiresApproval
     }))
     await this.actor.updateEmbeddedDocuments("Item", updates)
+    this.render()
+  }
+
+  // ─── Statuts stockage sur les items ──────────────────────────────────────
+
+  async #toggleStorageItemWarningGM(catalogItem) {
+    if (!this.isEditable || catalogItem.kind !== "product") return
+    const item = this.actor.items.get(catalogItem.productId)
+    if (!item) return
+    this.#saveScrollPositions()
+    await setStorageItemWarningGM(item, !catalogItem.hasWarningGM)
+    this.render()
+  }
+
+  async #toggleStorageItemBlocked(catalogItem) {
+    if (!this.isEditable || catalogItem.kind !== "product") return
+    const item = this.actor.items.get(catalogItem.productId)
+    if (!item) return
+    this.#saveScrollPositions()
+    await setStorageItemBlocked(item, !catalogItem.isBlocked)
+    this.render()
+  }
+
+  async #setCategoryItemsWarningGM(catalogItem, warningGM) {
+    if (!this.isEditable) return
+    const products = getCatalogProducts(this.actor).filter((p) => p.category === catalogItem.categoryValue)
+    if (!products.length) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.noProductsInCategory"))
+      return
+    }
+    this.#saveScrollPositions()
+    for (const product of products) {
+      const item = this.actor.items.get(product.id)
+      if (item) await setStorageItemWarningGM(item, warningGM)
+    }
+    this.render()
+  }
+
+  async #setCategoryItemsBlocked(catalogItem, blocked) {
+    if (!this.isEditable) return
+    const products = getCatalogProducts(this.actor).filter((p) => p.category === catalogItem.categoryValue)
+    if (!products.length) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.noProductsInCategory"))
+      return
+    }
+    this.#saveScrollPositions()
+    for (const product of products) {
+      const item = this.actor.items.get(product.id)
+      if (item) await setStorageItemBlocked(item, blocked)
+    }
     this.render()
   }
 

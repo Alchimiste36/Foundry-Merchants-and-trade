@@ -89,6 +89,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       useItemTypeAsCategoryFallback: game.settings.get(MTT.ID, "useItemTypeAsCategoryFallback"),
       categoryLabelMap: game.settings.get(MTT.ID, "categoryLabelMap"),
       defaultCustomCategories: game.settings.get(MTT.ID, "defaultCustomCategories"),
+      defaultStorageCategories: game.settings.get(MTT.ID, "defaultStorageCategories"),
       itemSubcategoryPath: game.settings.get(MTT.ID, "itemSubcategoryPath"),
       itemCategoryI18nPrefix: game.settings.get(MTT.ID, "itemCategoryI18nPrefix"),
       itemSubcategoryI18nPrefix: game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix"),
@@ -139,6 +140,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "useItemTypeAsCategoryFallback", fd.get("useItemTypeAsCategoryFallback") === "on")
     await game.settings.set(MTT.ID, "categoryLabelMap", fd.get("categoryLabelMap") ?? "")
     await game.settings.set(MTT.ID, "defaultCustomCategories", fd.get("defaultCustomCategories") ?? "")
+    await game.settings.set(MTT.ID, "defaultStorageCategories", fd.get("defaultStorageCategories") ?? "")
     await game.settings.set(MTT.ID, "itemSubcategoryPath", fd.get("itemSubcategoryPath") ?? "")
     await game.settings.set(MTT.ID, "itemCategoryI18nPrefix", fd.get("itemCategoryI18nPrefix") ?? "")
     await game.settings.set(MTT.ID, "itemSubcategoryI18nPrefix", fd.get("itemSubcategoryI18nPrefix") ?? "")

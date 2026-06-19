@@ -141,6 +141,15 @@ export function registerSettings() {
     default: ""
   })
 
+  game.settings.register(MTT.ID, "defaultStorageCategories", {
+    name: "mtt.settings.defaultStorageCategories.name",
+    hint: "mtt.settings.defaultStorageCategories.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: ""
+  })
+
   game.settings.register(MTT.ID, "itemSubcategoryPath", {
     name: "mtt.settings.itemSubcategoryPath.name",
     hint: "mtt.settings.itemSubcategoryPath.hint",

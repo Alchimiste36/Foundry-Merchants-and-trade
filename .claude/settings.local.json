@@ -47,7 +47,16 @@
       "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/documents/merchant-flags.mjs\")",
       "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/documents/merchant-conversion.mjs\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\)\")",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\)\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/config/settings.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/documents/storage-flags.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/documents/merchant-products.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/sheets/merchant-catalog.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/mtt-config-app.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/sheets/merchant-sheet.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/sheets/merchant-trade.mjs\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); console.log\\('fr.json OK'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('en.json OK'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp"

@@ -72,6 +72,10 @@
         "name": "Default custom categories",
         "hint": "List of custom categories automatically added to new merchants. One category per line."
       },
+      "defaultStorageCategories": {
+        "name": "Default storage categories",
+        "hint": "List of categories automatically added to new storage actors. One category per line."
+      },
       "itemSubcategoryPath": {
         "name": "Product subcategory path",
         "hint": "Path read from the Item to display a discrete subcategory icon in the catalog. Leave empty to disable this feature."
@@ -233,6 +237,16 @@
         "item": {
           "storage": "Storage",
           "actor": "Actor"
+        }
+      },
+      "statuses": {
+        "warningGM": {
+          "tooltip": "GM warning: this item will trigger a private GM message when transferred.",
+          "chatMessage": "⚠️ GM Warning — Item **{itemName}** was transferred from storage **{storageName}** to **{clientName}**.",
+          "speaker": "MTT Storage"
+        },
+        "blocked": {
+          "tooltip": "Blocked item: cannot be added to a session."
         }
       }
     },
@@ -660,7 +674,15 @@
         "categorySetProductsLimited": "Set all products to Limited",
         "categorySetProductsObserver": "Set all products to Observer",
         "categoryRequireApprovalForProducts": "Request GM approval for all products",
-        "categoryRemoveApprovalForProducts": "Remove GM approval for all products"
+        "categoryRemoveApprovalForProducts": "Remove GM approval for all products",
+        "setWarningGM": "Warn GM on transfer",
+        "removeWarningGM": "Remove GM warning",
+        "setBlocked": "Block item",
+        "removeBlocked": "Unblock item",
+        "categorySetWarningGM": "Warn GM for all items",
+        "categoryRemoveWarningGM": "Remove GM warning for all items",
+        "categorySetBlocked": "Block all items",
+        "categoryRemoveBlocked": "Unblock all items"
       }
     },
     "secrets": {
@@ -1008,6 +1030,10 @@
         "defaultCustomCategories": {
           "label": "Default custom categories",
           "hint": "List of custom categories automatically added to new merchants. One category per line. These categories remain editable and deletable on each merchant."
+        },
+        "defaultStorageCategories": {
+          "label": "Default storage categories",
+          "hint": "List of categories automatically added to new storage actors. One category per line. These categories remain editable and deletable on each storage."
         }
       },
       "importExport": {

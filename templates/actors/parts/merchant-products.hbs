@@ -162,16 +162,35 @@
                                 ></i>
                               {{/if}}
                             {{/if}}
-                              {{#if @root.permissions.canViewApprovalStatus}}
-                                {{#if item.requiresApproval}}
-                                  <i
-                                    class="fas fa-user-check mtt-merchant-approval-indicator"
-                                    data-tooltip="{{localize 'mtt.products.tags.requiresApproval'}}"
-                                    aria-hidden="true"
-                                  ></i>
+                              {{#unless @root.isStorage}}
+                                {{#if @root.permissions.canViewApprovalStatus}}
+                                  {{#if item.requiresApproval}}
+                                    <i
+                                      class="fas fa-user-check mtt-merchant-approval-indicator"
+                                      data-tooltip="{{localize 'mtt.products.tags.requiresApproval'}}"
+                                      aria-hidden="true"
+                                    ></i>
+                                  {{/if}}
                                 {{/if}}
+                              {{/unless}}
+                            {{!-- MTT storage — statuts spécifiques stockage --}}
+                            {{#if @root.isStorage}}
+                              {{#if item.hasWarningGM}}
+                                <i
+                                  class="fa-solid fa-triangle-exclamation mtt-storage-item-warning-gm"
+                                  data-tooltip="{{localize 'mtt.storage.statuses.warningGM.tooltip'}}"
+                                  aria-hidden="true"
+                                ></i>
                               {{/if}}
-                            
+                              {{#if item.isBlocked}}
+                                <i
+                                  class="fa-solid fa-lock mtt-storage-item-blocked"
+                                  data-tooltip="{{localize 'mtt.storage.statuses.blocked.tooltip'}}"
+                                  aria-hidden="true"
+                                ></i>
+                              {{/if}}
+                            {{/if}}
+
                           <input
                             class="mtt-merchant-product-name-input"
                             type="text"
@@ -203,16 +222,35 @@
                                 {{/if}}
                               {{/if}}
                             {{/if}}
-                              {{#if @root.permissions.canViewApprovalStatus}}
-                                {{#if item.requiresApproval}}
-                                  <i
-                                    class="fas fa-user-check mtt-merchant-approval-indicator"
-                                    data-tooltip="{{localize 'mtt.products.tags.requiresApproval'}}"
-                                    aria-hidden="true"
-                                  ></i>
+                              {{#unless @root.isStorage}}
+                                {{#if @root.permissions.canViewApprovalStatus}}
+                                  {{#if item.requiresApproval}}
+                                    <i
+                                      class="fas fa-user-check mtt-merchant-approval-indicator"
+                                      data-tooltip="{{localize 'mtt.products.tags.requiresApproval'}}"
+                                      aria-hidden="true"
+                                    ></i>
+                                  {{/if}}
                                 {{/if}}
+                              {{/unless}}
+                            {{!-- MTT storage — statuts spécifiques stockage --}}
+                            {{#if @root.isStorage}}
+                              {{#if item.hasWarningGM}}
+                                <i
+                                  class="fa-solid fa-triangle-exclamation mtt-storage-item-warning-gm"
+                                  data-tooltip="{{localize 'mtt.storage.statuses.warningGM.tooltip'}}"
+                                  aria-hidden="true"
+                                ></i>
                               {{/if}}
-                            
+                              {{#if item.isBlocked}}
+                                <i
+                                  class="fa-solid fa-lock mtt-storage-item-blocked"
+                                  data-tooltip="{{localize 'mtt.storage.statuses.blocked.tooltip'}}"
+                                  aria-hidden="true"
+                                ></i>
+                              {{/if}}
+                            {{/if}}
+
                             <span
                               class="mtt-merchant-product-name"
                             >
@@ -284,16 +322,18 @@
                     <div class="mtt-merchant-product-actions">
                         {{#if @root.permissions.canInteractWithSession}}
                           {{#if item.isVisible}}
+                          {{#unless item.isBlocked}}
                           {{#unless @root.mtt.session.isSubmitted}}
                             {{!-- MTT base — bouton d’ajout à une session MTT --}}
                             <button
                               class="mtt-merchant-product-action"
                               type="button"
                               data-action="addProductToSession"
-                              data-tooltip="{{localize 'mtt.sessions.actions.addProduct'}}"
+                              data-tooltip="{{localize ‘mtt.sessions.actions.addProduct’}}"
                             >
                               <i class="fas fa-cart-plus"></i>
                             </button>
+                          {{/unless}}
                           {{/unless}}
                           {{/if}}
                         {{/if}}

@@ -39,6 +39,7 @@ import {
   addCatalogProduct,
   buildCatalogProductFromItem
 } from "../../documents/merchant-products.mjs"
+import { isMTTStorage, getStorageItemFlags } from "../../documents/storage-flags.mjs"
 
 // ─── Session normalization ────────────────────────────────────────────────────
 
@@ -2368,6 +2369,24 @@ export async function executeSessionItemTransfers(actor, plan) {
       remainingQuantity: transfer.nextQuantity,
       hasLimitedQuantity: transfer.hasLimitedQuantity
     })
+  }
+
+  if (isMTTStorage(actor)) {
+    for (const transfer of plan.operations.productTransfers) {
+      const item = actor.items.get(transfer.catalogProduct.id)
+      if (!item) continue
+      const storageFlags = getStorageItemFlags(item)
+      if (!storageFlags.warningGM) continue
+      await ChatMessage.create({
+        content: game.i18n.format("mtt.storage.statuses.warningGM.chatMessage", {
+          itemName: transfer.catalogProduct.name,
+          storageName: actor.name,
+          clientName: clientActor.name
+        }),
+        whisper: ChatMessage.getWhisperRecipients("GM"),
+        speaker: { alias: game.i18n.localize("mtt.storage.statuses.warningGM.speaker") }
+      })
+    }
   }
 
   if (plan.operations.serviceTransfers.length > 0) {

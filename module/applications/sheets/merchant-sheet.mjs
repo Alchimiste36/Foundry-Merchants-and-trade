@@ -110,7 +110,7 @@ import {
   buildMerchantJournalEntryFromSession,
   appendMerchantJournalEntry
 } from "./merchant-journal.mjs"
-import { requestMerchantSessionUpdate } from "./merchant-session-socket.mjs"
+import { requestMerchantSessionUpdate, requestStorageTagUpdate } from "./merchant-session-socket.mjs"
 
 const { ActorSheetV2 } = foundry.applications.sheets
 const { HandlebarsApplicationMixin } = foundry.applications.api
@@ -259,11 +259,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.permissions = sheetPermissions
 
     const activeSession = this.#getActiveSession()
+    const canEditActiveSession = Boolean(isStorage && this.#canEditStorageTagsForSession(activeSession))
+    context.canEditActiveSession = canEditActiveSession
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
     context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
       includeHidden: isEditable,
       sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null,
-      selectedActorUuid: isStorage ? this.#selectedClientActorUuid : ""
+      canEditActiveSession,
+      voterActorUuid: canEditActiveSession ? activeSession.actorUuid : ""
     })
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable })
     context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable })
@@ -597,6 +600,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ...access,
       canEditActiveSession: access.canInteractWithOtherSession
     }
+  }
+
+  #canEditStorageTagsForSession(session) {
+    if (!session?.actorUuid) return false
+    if (["submitted", "validated", "refused"].includes(session.status)) return false
+    return this.#getSessionActorAccess(session).canInteractWithOtherSession
   }
 
   #canAnswerNegotiation(negotiation) {
@@ -1837,30 +1846,55 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#isStorageEntity()) return
 
+    const activeSession = this.#getActiveSession()
+    if (!this.#canEditStorageTagsForSession(activeSession)) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noEditableSession"))
+      return
+    }
+
+    const voterActorUuid = String(activeSession.actorUuid ?? "").trim()
+    if (!voterActorUuid) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noActiveActor"))
+      return
+    }
+
     const productId =
-      target.closest("[data-product-id]")?.dataset.productId ?? target.closest("[data-item-id]")?.dataset.itemId
+      target.dataset.itemId ??
+      target.closest("[data-product-id]")?.dataset.productId ??
+      target.closest("[data-item-id]")?.dataset.itemId
     if (!productId) return
 
     const tagType = String(target.dataset.tagType ?? "").trim()
     if (!tagType) return
 
-    const selectedActorUuid = this.#selectedClientActorUuid
-    if (!selectedActorUuid) {
-      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noActorSelected"))
-      return
-    }
-
-    const accessActors = this.#getStoredStorageAccessActors()
-    if (!accessActors.some((entry) => entry.actorUuid === selectedActorUuid)) {
-      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noActorSelected"))
-      return
-    }
-
     const item = this.actor.items.get(productId)
     if (!item) return
 
     this.#saveScrollPositions()
-    await toggleStorageItemTag(item, selectedActorUuid, tagType)
+    if (this.#canUserManageCurrentSheet()) {
+      const updatedTags = await toggleStorageItemTag(item, voterActorUuid, tagType)
+      if (updatedTags) {
+        item.updateSource?.({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: updatedTags })
+        this.render()
+      }
+      return
+    }
+
+    try {
+      const response = await requestStorageTagUpdate(this.actor, {
+        itemId: productId,
+        sessionId: activeSession.id,
+        voterActorUuid,
+        tagType
+      })
+      if (response?.ok && response.itemId && response.updatedTags) {
+        const updatedItem = this.actor.items.get(response.itemId)
+        updatedItem?.updateSource?.({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: response.updatedTags })
+        this.render()
+      }
+    } catch (error) {
+      ui.notifications.warn(error?.message ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    }
   }
 
   // ─── Dropped document helpers ─────────────────────────────────────────────

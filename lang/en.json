@@ -246,7 +246,8 @@
         "question": {
           "label": "What should we do?"
         },
-        "noActorSelected": "Select an actor in the rail to tag this item."
+        "noEditableSession": "You need an editable active session to vote.",
+        "noActiveActor": "The active session has no voting actor."
       }
     },
     "actions": {

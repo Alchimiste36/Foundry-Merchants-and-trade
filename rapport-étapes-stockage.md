@@ -799,3 +799,140 @@ Les cards ne sont pas seulement cachées en CSS : elles sont retirées du contex
 5. Vérifier que “Voir les autres sessions” ne contrôle pas l’affichage des cards.
 
 ---
+
+# Étape 11.2 — Tags storage branchés sur session active éditable
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.2.
+- [x] Vérifier l’implémentation existante des tags storage.
+- [x] Masquer entièrement le bloc tags/votes quand `canEditActiveSession` est faux.
+- [x] Construire les compteurs et le tag actif seulement pour une session active éditable.
+- [x] Enregistrer le vote avec `activeSession.actorUuid`.
+- [x] Bloquer le handler JS si la session active n’est pas modifiable.
+- [x] Ajouter une requête socket ciblée pour les joueurs qui ne peuvent pas écrire directement sur l’acteur storage.
+- [x] Vérifier la syntaxe JS, les fichiers de langue et le lint.
+
+## Résumé
+
+Les tags storage ne sont plus pilotés par l’acteur sélectionné du rail. Le rendu reçoit maintenant `canEditActiveSession` et l’acteur votant issu de `activeSession.actorUuid`.
+
+Si `canEditActiveSession` est faux, le bloc tags/votes est absent : aucun bouton, aucun compteur, aucun résultat. Si la session active est modifiable, les compteurs sont construits et le tag actif correspond au vote de l’acteur de la session active.
+
+Le handler vérifie aussi la même règle côté JS. Quand l’utilisateur ne peut pas écrire directement sur l’acteur storage, une demande socket dédiée est envoyée et revalidée côté processeur avant d’appeler `toggleStorageItemTag`.
+
+## Utilisation de `canEditActiveSession`
+
+`canEditActiveSession` est la seule condition utilisée pour afficher les tags/votes. Le contexte des tags retourne une liste vide si ce booléen est faux ou si la session active n’a pas d’acteur votant.
+
+## Non modifié volontairement
+
+- Aucun changement de design des tags.
+- Aucun tag côté marchand.
+- Aucune modification des catégories, transferts, prix, services ou statuts techniques.
+- Aucune refonte du rail ou des permissions.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage côté MJ avec une session active modifiable et vérifier que les tags sont visibles.
+2. Cliquer sur `keep`, `sell`, puis `question` et vérifier qu’un seul vote reste actif.
+3. Cliquer à nouveau sur le tag actif et vérifier que le vote est retiré.
+4. Ouvrir le stockage côté joueur propriétaire de l’acteur de session et vérifier que le vote fonctionne.
+5. Ouvrir une session visible mais non modifiable et vérifier que le bloc tags/votes est absent.
+6. Ouvrir un marchand et vérifier qu’aucun tag storage n’apparaît.
+
+---
+
+# Correction 11.2A — Fonctionnement réel des tags storage
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.2A.
+- [x] Vérifier `toggleStorageItemTag`.
+- [x] Faire retourner les tags mis à jour après écriture.
+- [x] Compléter la réponse socket avec `itemId` et `updatedTags`.
+- [x] Appliquer localement les tags reçus côté joueur.
+- [x] Forcer un render après chaque vote réussi.
+- [x] Aligner les datasets HBS/JS avec `data-tag-type` et `data-item-id`.
+- [x] Vérifier la syntaxe JS, les fichiers de langue et le lint.
+
+## Cause principale
+
+Le clic pouvait déclencher l’écriture, mais le code ne récupérait pas les tags mis à jour. La réponse socket renvoyait seulement `ok: true`, donc le joueur ne pouvait pas mettre à jour localement l’Item avant le render.
+
+## Résumé
+
+`toggleStorageItemTag` retourne maintenant l’objet `tags` mis à jour. Le socket de tags storage renvoie `itemId` et `updatedTags` au client demandeur. Le handler applique ces tags localement avec `updateSource` puis force un `render()` après un vote réussi.
+
+Le bouton de tag expose aussi directement `data-item-id`, et le handler lit ce champ avant de chercher un parent.
+
+## Fichiers modifiés
+
+- `module/documents/storage-flags.mjs`
+- `module/applications/sheets/merchant-session-socket.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/merchant-products.hbs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement de design.
+- Aucun tag côté marchand.
+- Aucune modification des catégories, transferts, droits du rail, prix ou services.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Cliquer sur `keep` et vérifier que le compteur passe à 1.
+3. Cliquer sur `sell` puis `question` et vérifier que le vote est remplacé.
+4. Cliquer à nouveau sur le tag actif et vérifier que le vote est retiré.
+5. Refaire le test côté joueur propriétaire de l’acteur de session.
+6. Vérifier qu’un marchand n’affiche aucun tag storage.
+
+---
+
+# Correction 11.2B — Lecture/écriture des tags imbriqués par UUID d’acteur
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.2B.
+- [x] Identifier la structure imbriquée réelle produite par Foundry pour les UUID d’acteur.
+- [x] Corriger `getStorageItemTags`.
+- [x] Corriger `toggleStorageItemTag` avec `foundry.utils.getProperty`, `setProperty` et `unsetProperty`.
+- [x] Corriger le calcul des compteurs avec une collecte récursive.
+- [x] Corriger la détection du tag actif avec `foundry.utils.getProperty`.
+- [x] Vérifier la syntaxe JS, les fichiers de langue et le lint.
+
+## Cause identifiée
+
+Les tags étaient lus comme une structure plate du type `{ "Actor.xxxxx": "keep" }`, alors que Foundry stocke les UUID avec points sous forme imbriquée : `{ Actor: { xxxxx: "keep" } }`.
+
+## Helpers modifiés
+
+- `getStorageItemTags`
+- `toggleStorageItemTag`
+- `buildStorageTagsContext`
+
+## Comportement corrigé
+
+Les votes déjà stockés sous forme imbriquée sont maintenant relus correctement. Les compteurs parcourent toute la structure de tags, le tag actif de l’acteur de session est trouvé via son UUID complet, et le clic sur le tag actif retire bien le vote.
+
+## Non modifié volontairement
+
+- Aucun log ajouté.
+- Aucun changement de design.
+- Aucune modification des permissions.
+- Aucune modification du rail, des sessions, des catégories ou du marchand.
+- Aucune conversion des flags vers une structure plate.
+
+## Vérifications manuelles
+
+1. Ouvrir un Item storage avec `flags.mtt-merchants.storage.tags.Actor.xxxxx`.
+2. Vérifier que le compteur du tag existant est correct.
+3. Vérifier que le tag actif est reconnu pour l’acteur de la session.
+4. Cliquer sur un autre tag et vérifier que le vote est remplacé.
+5. Cliquer sur le tag actif et vérifier que le vote est retiré.
+6. Fermer puis rouvrir la feuille et vérifier que les compteurs restent corrects.
+7. Ouvrir un marchand et vérifier qu’aucun tag storage n’apparaît.
+
+---

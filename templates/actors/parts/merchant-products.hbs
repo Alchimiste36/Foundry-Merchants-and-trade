@@ -320,12 +320,14 @@
                     {{/if}}
 
                     {{#if @root.isStorage}}
+                      {{#if @root.canEditActiveSession}}
                       <div class="mtt-storage-tags">
                         {{#each item.storageTags as |tag|}}
                           <button
                             type="button"
                             class="mtt-storage-tag-button{{#if tag.isActive}} mtt-storage-tag-active{{/if}}"
                             data-action="toggleStorageTag"
+                            data-item-id="{{../id}}"
                             data-tag-type="{{tag.type}}"
                             data-tooltip="{{tag.label}}"
                             aria-label="{{tag.label}}"
@@ -335,6 +337,7 @@
                           </button>
                         {{/each}}
                       </div>
+                      {{/if}}
                     {{/if}}
 
                     <div class="mtt-merchant-product-actions">

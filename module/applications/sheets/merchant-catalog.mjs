@@ -112,14 +112,29 @@ const STORAGE_TAG_DEFS = [
   { type: "sell", icon: "fa-recycle" },
   { type: "question", icon: "fa-message-question" }
 ]
+const STORAGE_TAG_TYPES = new Set(STORAGE_TAG_DEFS.map((def) => def.type))
 
-function buildStorageTagsContext(rawTags, selectedActorUuid) {
+function collectStorageTagVotes(tags, votes = []) {
+  if (!tags || typeof tags !== "object" || Array.isArray(tags)) return votes
+
+  for (const value of Object.values(tags)) {
+    if (STORAGE_TAG_TYPES.has(value)) {
+      votes.push(value)
+    } else if (value && typeof value === "object") {
+      collectStorageTagVotes(value, votes)
+    }
+  }
+
+  return votes
+}
+
+function buildStorageTagsContext(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
+  if (!canEditActiveSession || !voterActorUuid) return []
+
   const countByType = { keep: 0, sell: 0, question: 0 }
-  let activeTag = ""
-  for (const [uuid, tagType] of Object.entries(rawTags)) {
-    if (!(tagType in countByType)) continue
+  const activeTag = foundry.utils.getProperty(rawTags, voterActorUuid)
+  for (const tagType of collectStorageTagVotes(rawTags)) {
     countByType[tagType]++
-    if (selectedActorUuid && uuid === selectedActorUuid) activeTag = tagType
   }
   return STORAGE_TAG_DEFS.map((def) => ({
     type: def.type,
@@ -130,7 +145,11 @@ function buildStorageTagsContext(rawTags, selectedActorUuid) {
   }))
 }
 
-export function prepareItems(actor, sellPercent, { includeHidden = false, sessionEntries = null, selectedActorUuid = "" } = {}) {
+export function prepareItems(
+  actor,
+  sellPercent,
+  { includeHidden = false, sessionEntries = null, canEditActiveSession = false, voterActorUuid = "" } = {}
+) {
   const products = getCatalogProducts(actor)
   const availabilityByProductId = buildProductAvailabilityMap(
     products,
@@ -223,7 +242,7 @@ export function prepareItems(actor, sellPercent, { includeHidden = false, sessio
         selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
         isBlocked: product.isBlocked,
         hasWarningGM: product.hasWarningGM,
-        storageTags: buildStorageTagsContext(product.rawStorageTags ?? {}, selectedActorUuid)
+        storageTags: buildStorageTagsContext(product.rawStorageTags ?? {}, { canEditActiveSession, voterActorUuid })
       }
     })
     .filter((item) => includeHidden || item.isVisible)

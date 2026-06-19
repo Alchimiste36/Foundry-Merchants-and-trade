@@ -1,7 +1,12 @@
 import { MTT } from "../../config/constants.mjs"
 import { normalizeSession } from "./merchant-trade.mjs"
 import { getMerchantData, getMerchantFlagPath } from "../../documents/merchant-flags.mjs"
-import { getMTTEntityType, getStorageData, getStorageFlagPath } from "../../documents/storage-flags.mjs"
+import {
+  getMTTEntityType,
+  getStorageData,
+  getStorageFlagPath,
+  toggleStorageItemTag
+} from "../../documents/storage-flags.mjs"
 import { getMerchantPermissions } from "../../documents/merchant-access.mjs"
 
 const SOCKET_NAME = `module.${MTT.ID}`
@@ -56,6 +61,18 @@ function userOwnsSessionActor(user, session) {
   if (actor.testUserPermission?.(user, "OWNER")) return true
   const level = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
   return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+}
+
+function userCanEditSession(user, merchantActor, session) {
+  if (userCanUpdateMerchant(user, merchantActor)) return true
+  if (!getMerchantPermissions(merchantActor, { user }).canInteractWithSession) return false
+  return userOwnsSessionActor(user, session)
+}
+
+function canEditStorageTagsForSession(user, storageActor, session) {
+  if (!session?.actorUuid) return false
+  if (["submitted", "validated", "refused"].includes(session.status)) return false
+  return userCanEditSession(user, storageActor, session)
 }
 
 function getSessionUpdateProcessors(merchantActor) {
@@ -130,6 +147,22 @@ function buildSafeSessionUpdate(merchantActor, updateData, requestingUser) {
   return {
     [sessionEntriesPath]: mergedSessions
   }
+}
+
+function sendStorageTagUpdateResponse({ requestId, recipientUserId, ok, error = "", itemId = "", updatedTags = null }) {
+  const response = {
+    type: "storageTagUpdateResponse",
+    requestId,
+    recipientUserId,
+    ok
+  }
+
+  if (error) response.error = error
+  if (itemId) response.itemId = itemId
+  if (updatedTags) response.updatedTags = updatedTags
+
+  debugSessionSocket("storage tag response sent", response)
+  game.socket.emit(SOCKET_NAME, response)
 }
 
 async function handleSessionUpdateRequest(message) {
@@ -233,6 +266,62 @@ async function handleSessionUpdateRequest(message) {
   }
 }
 
+async function handleStorageTagUpdateRequest(message) {
+  const requestId = String(message.requestId ?? "")
+  const recipientUserId = String(message.userId ?? "")
+  const processorUserIds = Array.isArray(message.processorUserIds)
+    ? message.processorUserIds.map((id) => String(id ?? "")).filter(Boolean)
+    : []
+  const isProcessorTarget = processorUserIds.length > 0 ? processorUserIds.includes(game.user.id) : true
+
+  if (!isProcessorTarget) return
+
+  try {
+    const requestingUser = game.users.get(recipientUserId)
+    const storageActor = await fromUuid(message.actorUuid)
+
+    if (!requestingUser || storageActor?.documentName !== "Actor") {
+      throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    }
+    if (getMTTEntityType(storageActor) !== MTT.ENTITY_TYPES.STORAGE) {
+      throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    }
+    if (!userCanUpdateMerchant(game.user, storageActor)) {
+      throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    }
+
+    const sessionId = String(message.sessionId ?? "").trim()
+    const voterActorUuid = String(message.voterActorUuid ?? "").trim()
+    const itemId = String(message.itemId ?? "").trim()
+    const tagType = String(message.tagType ?? "").trim()
+    const session = getStoredSessionEntries(storageActor)
+      .map((entry) => normalizeSession(entry))
+      .find((entry) => entry.id === sessionId && entry.actorUuid === voterActorUuid)
+
+    if (!session || !canEditStorageTagsForSession(requestingUser, storageActor, session)) {
+      throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    }
+
+    const item = storageActor.items.get(itemId)
+    const updatedTags = await toggleStorageItemTag(item, voterActorUuid, tagType)
+    if (!updatedTags) throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+
+    sendStorageTagUpdateResponse({ requestId, recipientUserId, ok: true, itemId, updatedTags })
+  } catch (error) {
+    debugSessionSocket("storage tag request failed", {
+      requestId,
+      processorUserId: game.user.id,
+      error: error?.message ?? ""
+    })
+    sendStorageTagUpdateResponse({
+      requestId,
+      recipientUserId,
+      ok: false,
+      error: error?.message ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied")
+    })
+  }
+}
+
 function handleSessionUpdateResponse(message) {
   const requestId = String(message.requestId ?? "")
   const pending = pendingRequests.get(requestId)
@@ -247,6 +336,21 @@ function handleSessionUpdateResponse(message) {
   }
 
   debugSessionSocket("response received", message)
+  pendingRequests.delete(requestId)
+  window.clearTimeout(pending.timeout)
+
+  if (message.ok) {
+    pending.resolve(message)
+  } else {
+    pending.reject(new Error(message.error ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied")))
+  }
+}
+
+function handleStorageTagUpdateResponse(message) {
+  const requestId = String(message.requestId ?? "")
+  const pending = pendingRequests.get(requestId)
+  if (!pending || message.recipientUserId !== game.user.id) return
+
   pendingRequests.delete(requestId)
   window.clearTimeout(pending.timeout)
 
@@ -273,8 +377,18 @@ export function registerMerchantSessionSocket() {
       return
     }
 
+    if (message.type === "storageTagUpdateResponse") {
+      handleStorageTagUpdateResponse(message)
+      return
+    }
+
     if (message.type === "sessionUpdateRequest") {
       handleSessionUpdateRequest(message)
+      return
+    }
+
+    if (message.type === "storageTagUpdateRequest") {
+      handleStorageTagUpdateRequest(message)
     }
   })
 }
@@ -331,6 +445,39 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
         sessionCount: updateData?.[sessionEntriesPath]?.length ?? 0
       }
     })
+    game.socket.emit(SOCKET_NAME, payload)
+  })
+}
+
+export async function requestStorageTagUpdate(storageActor, { itemId, sessionId, voterActorUuid, tagType } = {}) {
+  if (!storageActor?.uuid) throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+
+  const processorUsers = getSessionUpdateProcessors(storageActor)
+  if (processorUsers.length === 0) {
+    throw new Error(game.i18n.localize("mtt.notifications.sessionSocketNoHandler"))
+  }
+
+  const requestId = foundry.utils.randomID()
+  const processorUserIds = processorUsers.map((user) => user.id)
+  const payload = {
+    type: "storageTagUpdateRequest",
+    requestId,
+    userId: game.user.id,
+    processorUserIds,
+    actorUuid: storageActor.uuid,
+    itemId: String(itemId ?? "").trim(),
+    sessionId: String(sessionId ?? "").trim(),
+    voterActorUuid: String(voterActorUuid ?? "").trim(),
+    tagType: String(tagType ?? "").trim()
+  }
+
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      pendingRequests.delete(requestId)
+      reject(new Error(game.i18n.localize("mtt.notifications.sessionSocketNoResponse")))
+    }, REQUEST_TIMEOUT)
+
+    pendingRequests.set(requestId, { resolve, reject, timeout })
     game.socket.emit(SOCKET_NAME, payload)
   })
 }

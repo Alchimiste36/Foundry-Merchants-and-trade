@@ -246,7 +246,8 @@
         "question": {
           "label": "On en fait quoi ?"
         },
-        "noActorSelected": "Sélectionnez un acteur dans le rail pour taguer cet objet."
+        "noEditableSession": "Vous devez avoir une session active modifiable pour voter.",
+        "noActiveActor": "La session active ne contient pas d’acteur votant."
       }
     },
     "actions": {

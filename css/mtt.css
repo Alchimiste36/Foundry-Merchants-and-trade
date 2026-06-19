@@ -124,6 +124,19 @@
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);
 }
+.mtt-merchant-access-context-menu-button .fa-triangle-exclamation,
+.mtt-merchant-access-context-menu-button .fa-user-check,
+.mtt-merchant-access-context-menu-button .fa-user-minus {
+  color: var(--mtt-warning);
+}
+.mtt-merchant-access-context-menu-button .fa-lock,
+.mtt-merchant-access-context-menu-button .fa-lock-open {
+  color: var(--mtt-danger);
+}
+.mtt-merchant-access-context-menu-button .fa-eye,
+.mtt-merchant-access-context-menu-button .fa-eye-slash {
+  color: var(--mtt-secret);
+}
 .mtt-merchant-catalog-context-menu {
   z-index: 135;
 }

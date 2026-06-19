@@ -15,12 +15,18 @@
   background: transparent;
   box-shadow: none;
   pointer-events: none;
+  --mtt-access-card-radius: 0 0.4rem 0.4rem 0;
+  --mtt-access-hover-shift: -0.2rem;
+  --mtt-access-selected-shift: -0.25rem;
 }
 
 /* MTT storage — position gauche du rail commun */
 .mtt-storage-access-rail {
   right: auto;
   left: -3.5rem;
+  --mtt-access-card-radius: 0.4rem 0 0 0.4rem;
+  --mtt-access-hover-shift: 0.2rem;
+  --mtt-access-selected-shift: 0.25rem;
 }
 
 .mtt-merchant-access-card,
@@ -30,7 +36,7 @@
   height: 3rem;
   padding: 0.25rem;
   border: 1px solid var(--mtt-border);
-  border-radius: 0 0.4rem 0.4rem 0;
+  border-radius: var(--mtt-access-card-radius);
   background: var(--mtt-bg-panel-soft);
   color: var(--mtt-text-muted);
   cursor: pointer;
@@ -53,17 +59,7 @@
 .mtt-merchant-access-drop-card:hover {
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);
-  transform: translateX(-0.2rem);
-}
-
-.mtt-storage-access-rail .mtt-merchant-access-card,
-.mtt-storage-access-rail .mtt-merchant-access-drop-card {
-  border-radius: 0.4rem 0 0 0.4rem;
-}
-
-.mtt-storage-access-rail .mtt-merchant-access-card:not(:disabled):not(.mtt-merchant-access-card-readonly):hover,
-.mtt-storage-access-rail .mtt-merchant-access-drop-card:hover {
-  transform: translateX(0.2rem);
+  transform: translateX(var(--mtt-access-hover-shift));
 }
 
 .mtt-merchant-access-context-menu {
@@ -126,13 +122,9 @@
   box-shadow:
     0 0 0 2px var(--mtt-accent-soft),
     0 0.35rem 1rem rgba(199, 154, 72, 0.28);
-  transform: translateX(-0.25rem);
+  transform: translateX(var(--mtt-access-selected-shift));
   width: 4rem;
   height: 4rem;
-}
-
-.mtt-storage-access-rail .mtt-merchant-access-card-selected {
-  transform: translateX(0.25rem);
 }
 
 .mtt-merchant-access-card-image {

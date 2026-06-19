@@ -813,11 +813,15 @@ export function getBestSessionForClient(actor, actorUuid) {
   return sessions[0]
 }
 
-export function prepareAccessClients(actor, { selectedSession, selectedClientActorUuid, isEditable }) {
+export function prepareAccessClients(
+  actor,
+  { selectedSession, selectedClientActorUuid, isEditable, accessClients = null, defaultPlayerAuthorization = false } = {}
+) {
   const clientsByUuid = new Map()
   const defaultRates = getMerchantDefaultClientRates(actor)
+  const storedClients = Array.isArray(accessClients) ? accessClients : getStoredAccessClients(actor)
 
-  getStoredAccessClients(actor).forEach((client) => {
+  storedClients.forEach((client) => {
     if (!client.actorUuid) return
     clientsByUuid.set(client.actorUuid, client)
   })
@@ -829,7 +833,7 @@ export function prepareAccessClients(actor, { selectedSession, selectedClientAct
     const existing = clientsByUuid.get(userActor.uuid)
     const playerClient = buildAccessClientFromActor(userActor, {
       user,
-      isAuthorized: existing?.isAuthorized ?? false,
+      isAuthorized: existing?.isAuthorized ?? defaultPlayerAuthorization,
       isFromPlayerCharacter: true
     })
 

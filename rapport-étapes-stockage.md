@@ -553,3 +553,51 @@ Le handler `#onToggleStorageTag` vérifie que la feuille est storage, que l'acte
 12. Vérifier que les statuts warningGM et blocked fonctionnent toujours après un tag posé (pas d'écrasement).
 
 ---
+
+# Correction 11.1B — Nettoyage du rail storage spécifique et rail commun
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.1B.
+- [x] Rechercher les reliquats de rail storage spécifique.
+- [x] Supprimer le contexte, le menu, le clic gauche et les écritures storage parallèles.
+- [x] Brancher le stockage sur `#prepareAccessClients` et `#prepareAccessContext`.
+- [x] Conserver les écritures marchand dans `merchant.access.clients`.
+- [x] Conserver les écritures stockage dans `storage.access.actors`.
+- [x] Renommer l’option commune en `Retirer l’acteur de la feuille`.
+- [x] Compiler le LESS vers `css/mtt.css`.
+- [x] Vérifier la syntaxe JS et JSON.
+
+## Résumé
+
+Le rail historique marchand est maintenant le rail commun MTT pour le marchand et le stockage. La feuille choisit seulement la source de données selon le type actif, puis le même pipeline prépare les cartes, les états visuels, les badges de session, la sélection, le drop et le menu contextuel.
+
+Le stockage lit et écrit toujours ses acteurs dans `flags.mtt-merchants.storage.access.actors`, tandis que le marchand conserve `flags.mtt-merchants.merchant.access.clients`.
+
+## Logique storage spécifique supprimée
+
+- Suppression de `#prepareStorageAccessClients`.
+- Suppression de `#prepareStorageAccessContext`.
+- Suppression de `#upsertStorageAccessActor`.
+- Suppression de `#removeStorageAccessActor`.
+- Suppression du menu contextuel storage dédié.
+- Suppression des clés i18n `storage.rail.*`.
+- Nettoyage du LESS pour garder seulement une variante de positionnement gauche du rail storage.
+
+## Non traité volontairement
+
+- Les pourcentages personnalisés du menu commun ne sont pas masqués côté stockage.
+- Aucun nouveau template de rail storage.
+- Aucun nouveau fichier JS ou LESS storage pour le rail.
+- Aucune modification des tags, catégories, statuts d’Items ou transferts hors branchement au rail commun.
+
+## Vérifications manuelles
+
+1. Ouvrir un marchand et vérifier que le rail fonctionne comme avant.
+2. Ouvrir un stockage et vérifier que le rail affiche les mêmes états visuels.
+3. Vérifier clic gauche sur acteur autorisé et non autorisé.
+4. Vérifier clic droit et le libellé `Retirer l’acteur de la feuille`.
+5. Vérifier retrait d’autorisation et retrait acteur de la feuille.
+6. Vérifier que les tags storage utilisent toujours l’acteur sélectionné.
+
+---

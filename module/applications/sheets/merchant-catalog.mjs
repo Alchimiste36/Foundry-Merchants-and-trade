@@ -108,40 +108,21 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
 }
 
 const STORAGE_TAG_DEFS = [
-  { type: "keep", icon: "fa-star-exclamation" },
-  { type: "sell", icon: "fa-recycle" },
-  { type: "question", icon: "fa-message-question" }
+  { type: "want", icon: "fa-hand" },
+  { type: "ignore", icon: "fa-ban" }
 ]
 const STORAGE_TAG_TYPES = new Set(STORAGE_TAG_DEFS.map((def) => def.type))
-
-function collectStorageTagVotes(tags, votes = []) {
-  if (!tags || typeof tags !== "object" || Array.isArray(tags)) return votes
-
-  for (const value of Object.values(tags)) {
-    if (STORAGE_TAG_TYPES.has(value)) {
-      votes.push(value)
-    } else if (value && typeof value === "object") {
-      collectStorageTagVotes(value, votes)
-    }
-  }
-
-  return votes
-}
 
 function buildStorageTagsContext(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
   if (!canEditActiveSession || !voterActorUuid) return []
 
-  const countByType = { keep: 0, sell: 0, question: 0 }
   const activeTag = foundry.utils.getProperty(rawTags, voterActorUuid)
-  for (const tagType of collectStorageTagVotes(rawTags)) {
-    countByType[tagType]++
-  }
   return STORAGE_TAG_DEFS.map((def) => ({
     type: def.type,
     icon: def.icon,
-    count: countByType[def.type],
-    isActive: activeTag === def.type,
-    label: game.i18n.localize(`mtt.storage.tags.${def.type}.label`)
+    isActive: activeTag === def.type && STORAGE_TAG_TYPES.has(activeTag),
+    label: game.i18n.localize(`mtt.storage.tags.${def.type}.label`),
+    tooltip: game.i18n.localize(`mtt.storage.tags.${def.type}.tooltip`)
   }))
 }
 

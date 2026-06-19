@@ -936,3 +936,242 @@ Les votes déjà stockés sous forme imbriquée sont maintenant relus correcteme
 7. Ouvrir un marchand et vérifier qu’aucun tag storage n’apparaît.
 
 ---
+
+# Étape 12.A — Remplacement des tags informatifs par deux tags actifs
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 12.A.
+- [x] Identifier les points actifs de l’ancien système `keep` / `sell` / `question`.
+- [x] Remplacer la liste des tags autorisés par `want` et `ignore`.
+- [x] Adapter le contexte HBS pour ne plus exposer de compteurs.
+- [x] Adapter les boutons storage pour afficher deux tags actifs simples.
+- [x] Mettre à jour les libellés et tooltips FR/EN.
+- [x] Nettoyer le LESS lié aux compteurs.
+- [x] Compiler le CSS.
+- [x] Vérifier la syntaxe JS, les fichiers de langue et le lint.
+
+## Résumé
+
+Les tags informatifs storage ont été remplacés par deux tags actifs de base. L’infrastructure existante est conservée : affichage uniquement côté stockage, condition `canEditActiveSession`, vote avec `activeSession.actorUuid`, gestion des UUID imbriqués Foundry, socket joueur et render après mise à jour.
+
+Les compteurs ne sont plus construits ni affichés. Les anciennes valeurs `keep`, `sell` et `question` ne sont plus des tags actifs ; si elles existent encore dans des flags, elles sont ignorées par l’affichage.
+
+## Tags supprimés
+
+- `keep`
+- `sell`
+- `question`
+
+## Tags ajoutés
+
+- `want` : Je le veux
+- `ignore` : Sans intérêt pour moi
+
+## Non implémenté volontairement
+
+- Aucune réservation réelle.
+- Aucun blocage d’objet.
+- Aucune décision commune.
+- Aucun vote collectif.
+- Aucun tri personnel ou grisage.
+- Aucun déplacement global d’objet.
+- Aucune modification des permissions, du rail, des sessions, des transferts ou du marchand.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session éditable.
+2. Vérifier que deux boutons sont visibles : `Je le veux` et `Sans intérêt pour moi`.
+3. Cliquer sur `Je le veux` et vérifier que le bouton devient actif.
+4. Cliquer sur `Sans intérêt pour moi` et vérifier que l’état actif est remplacé.
+5. Cliquer à nouveau sur le bouton actif et vérifier qu’aucun tag ne reste actif.
+6. Vérifier qu’aucun compteur n’est affiché.
+7. Vérifier qu’un marchand n’affiche aucun tag storage.
+
+---
+
+# Correction 12.A.1 — Désélection fonctionnelle des tags actifs
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 12.A.1.
+- [x] Identifier l’appel incompatible à `foundry.utils.unsetProperty`.
+- [x] Ajouter un helper local de suppression du chemin imbriqué d’un acteur.
+- [x] Adapter `toggleStorageItemTag` sans changer les tags actifs.
+- [x] Vérifier que le socket passe par `toggleStorageItemTag`.
+- [x] Vérifier qu’il ne reste plus d’appel à `unsetProperty`.
+- [x] Vérifier la syntaxe JS et le lint.
+
+## Cause de l’erreur
+
+La désélection d’un tag actif appelait `foundry.utils.unsetProperty`, qui n’est pas disponible dans l’environnement Foundry ciblé. Le clic sur un tag déjà actif déclenchait donc une erreur console au lieu de retirer le vote de l’acteur.
+
+## Fonction corrigée
+
+La fonction `toggleStorageItemTag` utilise maintenant un helper local pour supprimer uniquement la valeur finale correspondant à `activeSession.actorUuid` dans la structure imbriquée des tags.
+
+Les tags actifs restent limités à :
+
+- `want`
+- `ignore`
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Cliquer sur `Je le veux` et vérifier que le bouton devient actif.
+3. Cliquer à nouveau sur `Je le veux` et vérifier que le bouton n’est plus actif.
+4. Cliquer sur `Sans intérêt pour moi` et vérifier que le bouton devient actif.
+5. Cliquer à nouveau sur `Sans intérêt pour moi` et vérifier que le bouton n’est plus actif.
+6. Passer de `Je le veux` à `Sans intérêt pour moi`, puis l’inverse, et vérifier qu’un seul tag reste actif.
+7. Vérifier qu’aucune erreur console `unsetProperty is not a function` n’apparaît.
+8. Fermer puis rouvrir la feuille et vérifier que l’état affiché correspond au flag enregistré.
+9. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
+
+---
+
+# Correction 12.A.2 — Suppression réelle du tag actif avec `-=`
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 12.A.2.
+- [x] Identifier que la désélection locale ne supprimait pas forcément la clé profonde dans Foundry.
+- [x] Corriger uniquement la branche de désélection dans `toggleStorageItemTag`.
+- [x] Conserver les tags actifs `want` et `ignore`.
+- [x] Conserver le helper local de nettoyage de l’objet retourné.
+- [x] Vérifier qu’aucun appel à `foundry.utils.unsetProperty` n’est réintroduit.
+- [x] Vérifier la syntaxe JS et le lint.
+
+## Cause exacte du problème
+
+La correction précédente retirait bien le tag dans l’objet cloné, mais l’appel `item.update` sur l’objet complet `storage.tags` pouvait fusionner les objets imbriqués au lieu de supprimer réellement la clé profonde de l’acteur.
+
+Après render ou réouverture, Foundry pouvait donc relire l’ancien tag encore présent sous `flags.mtt-merchants.storage.tags.Actor.<idActeur>`.
+
+## Fonction corrigée
+
+La fonction `toggleStorageItemTag` utilise maintenant une suppression Foundry explicite quand l’acteur clique sur son tag déjà actif.
+
+## Syntaxe Foundry utilisée
+
+La correction utilise la syntaxe de suppression de clé :
+
+```text
+flags.mtt-merchants.storage.tags.Actor.-=<idActeur>
+```
+
+Cela supprime uniquement la clé finale de l’acteur concerné, sans effacer les tags des autres acteurs et sans supprimer tout l’objet `storage.tags`.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Cliquer sur `Je le veux` et vérifier que le bouton devient actif.
+3. Cliquer à nouveau sur `Je le veux` et vérifier que le bouton devient inactif.
+4. Fermer puis rouvrir la feuille et vérifier que `Je le veux` reste inactif.
+5. Cliquer sur `Sans intérêt pour moi` et vérifier que le bouton devient actif.
+6. Cliquer à nouveau sur `Sans intérêt pour moi` et vérifier que le bouton devient inactif.
+7. Fermer puis rouvrir la feuille et vérifier que `Sans intérêt pour moi` reste inactif.
+8. Passer de `Je le veux` à `Sans intérêt pour moi`, puis l’inverse, et vérifier qu’un seul tag reste actif.
+9. Inspecter ou exporter l’acteur et vérifier que la clé de l’acteur désélectionné n’est plus présente sous les tags de l’Item.
+10. Vérifier qu’aucune erreur console n’apparaît et que le marchand n’est pas impacté.
+
+---
+
+# Correction 12.A.3 — Suppression moderne des tags avec ForcedDeletion
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 12.A.3.
+- [x] Identifier la suppression legacy `-=`.
+- [x] Remplacer la suppression legacy par `foundry.data.operators.ForcedDeletion`.
+- [x] Conserver le comportement de sélection, remplacement et désélection.
+- [x] Conserver les tags actifs `want` et `ignore`.
+- [x] Vérifier qu’aucun appel à `foundry.utils.unsetProperty` n’est présent.
+- [x] Vérifier la syntaxe JS et le lint.
+
+## Cause du warning
+
+La désélection d’un tag actif utilisait la syntaxe Foundry legacy `-=clé`. Cette syntaxe supprimait bien la clé, mais Foundry v14 signale maintenant qu’elle doit être remplacée par l’opérateur moderne `ForcedDeletion`.
+
+## Fonction corrigée
+
+La fonction `toggleStorageItemTag` conserve la même logique fonctionnelle : un clic sur un tag actif retire uniquement le vote de l’acteur de la session active.
+
+## Syntaxe Foundry moderne utilisée
+
+La suppression passe maintenant par :
+
+```text
+foundry.data.operators.ForcedDeletion
+```
+
+sur le chemin complet du tag de l’acteur :
+
+```text
+flags.mtt-merchants.storage.tags.Actor.<idActeur>
+```
+
+Le helper local reste utilisé pour nettoyer l’objet retourné à la feuille après la mise à jour du document.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Cliquer sur `Je le veux`, puis recliquer dessus et vérifier que le tag est retiré.
+3. Cliquer sur `Sans intérêt pour moi`, puis recliquer dessus et vérifier que le tag est retiré.
+4. Passer de `Je le veux` à `Sans intérêt pour moi`, puis l’inverse, et vérifier qu’un seul tag reste actif.
+5. Fermer puis rouvrir la feuille et vérifier que le tag retiré ne réapparaît pas.
+6. Vérifier qu’aucun warning console legacy `-=...` n’apparaît.
+7. Vérifier qu’aucune erreur console n’apparaît.
+8. Inspecter ou exporter l’acteur et vérifier que la clé de l’acteur retiré n’est plus présente dans les tags de l’Item.
+9. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
+
+---
+
+# Correction 12.A.4 — Désélection définitive des tags avec unsetFlag
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 12.A.4.
+- [x] Identifier que `ForcedDeletion` ne supprimait pas correctement le tag dans ce cas précis.
+- [x] Remplacer la branche de désélection par `item.unsetFlag`.
+- [x] Retirer la logique devenue inutile autour de `ForcedDeletion`.
+- [x] Conserver le helper local pour nettoyer l’objet retourné.
+- [x] Vérifier que les tags actifs restent `want` et `ignore`.
+- [x] Vérifier la syntaxe JS et le lint.
+
+## Cause du problème
+
+La logique métier était correcte, mais la méthode de suppression ne l’était pas pour ce flag imbriqué. `ForcedDeletion` supprimait le warning legacy, mais ne retirait pas correctement le tag actif dans ce cas.
+
+## Fonction corrigée
+
+La fonction `toggleStorageItemTag` utilise maintenant l’API Foundry prévue pour supprimer un flag quand l’acteur clique sur son tag déjà actif.
+
+## Méthode utilisée
+
+La suppression réelle passe par :
+
+```text
+item.unsetFlag(MTT.ID, "storage.tags.Actor.<idActeur>")
+```
+
+Le helper `deleteStorageTagPath` reste utilisé uniquement pour nettoyer l’objet local retourné par la fonction.
+
+## Méthodes retirées pour cette désélection
+
+- `foundry.utils.unsetProperty`
+- syntaxe legacy `-=`
+- `foundry.data.operators.ForcedDeletion`
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Cliquer sur `Je le veux`, puis recliquer dessus et vérifier que le tag devient inactif.
+3. Cliquer sur `Sans intérêt pour moi`, puis recliquer dessus et vérifier que le tag devient inactif.
+4. Passer de `Je le veux` à `Sans intérêt pour moi`, puis l’inverse, et vérifier qu’un seul tag reste actif.
+5. Fermer puis rouvrir la feuille et vérifier que le tag retiré ne réapparaît pas.
+6. Inspecter ou exporter l’acteur et vérifier que la clé de l’acteur retiré n’est plus présente dans les tags de l’Item.
+7. Vérifier qu’aucun warning legacy `-=...` n’apparaît.
+8. Vérifier qu’aucune erreur console n’apparaît.
+9. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
+
+---

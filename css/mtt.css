@@ -881,14 +881,6 @@
   opacity: 1;
   transform: scale(1.1);
 }
-.mtt-storage-tag-count {
-  font-size: 0.68rem;
-  min-width: 0.8em;
-  text-align: right;
-}
-.mtt-storage-tag-count-empty {
-  opacity: 0;
-}
 #tooltip.mtt-secret-tooltip {
   white-space: pre-line;
   max-width: 320px;

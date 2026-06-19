@@ -237,14 +237,13 @@
         }
       },
       "tags": {
-        "keep": {
-          "label": "Important / keep"
+        "want": {
+          "label": "I want it",
+          "tooltip": "I want to claim this item"
         },
-        "sell": {
-          "label": "No interest / sell"
-        },
-        "question": {
-          "label": "What should we do?"
+        "ignore": {
+          "label": "Not interested",
+          "tooltip": "This item does not interest me"
         },
         "noEditableSession": "You need an editable active session to vote.",
         "noActiveActor": "The active session has no voting actor."

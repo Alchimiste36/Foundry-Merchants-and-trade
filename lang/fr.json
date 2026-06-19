@@ -237,14 +237,13 @@
         }
       },
       "tags": {
-        "keep": {
-          "label": "Important / à garder"
+        "want": {
+          "label": "Je le veux",
+          "tooltip": "Je souhaite récupérer cet objet"
         },
-        "sell": {
-          "label": "Sans intérêt / à vendre"
-        },
-        "question": {
-          "label": "On en fait quoi ?"
+        "ignore": {
+          "label": "Sans intérêt pour moi",
+          "tooltip": "Cet objet ne m’intéresse pas"
         },
         "noEditableSession": "Vous devez avoir une session active modifiable pour voter.",
         "noActiveActor": "La session active ne contient pas d’acteur votant."

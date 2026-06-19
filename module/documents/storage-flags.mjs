@@ -176,7 +176,22 @@ export async function setStorageItemWarningGM(item, warningGM) {
 
 // ─── Tags de vote rapides sur les Items ──────────────────────────────────────
 
-const STORAGE_TAG_VALID_TYPES = new Set(["keep", "sell", "question"])
+const STORAGE_TAG_VALID_TYPES = new Set(["want", "ignore"])
+
+function deleteStorageTagPath(source, path) {
+  if (!source || typeof source !== "object" || !path) return
+
+  const parts = String(path).split(".").filter(Boolean)
+  if (!parts.length) return
+
+  let target = source
+  for (const part of parts.slice(0, -1)) {
+    if (!target?.[part] || typeof target[part] !== "object") return
+    target = target[part]
+  }
+
+  delete target[parts[parts.length - 1]]
+}
 
 export function getStorageItemTags(item) {
   const raw = item?.getFlag?.(MTT.ID, MTT.FLAGS.STORAGE)?.tags ?? {}
@@ -189,10 +204,12 @@ export async function toggleStorageItemTag(item, actorUuid, tagType) {
   const updated = foundry.utils.deepClone(current)
   const currentTag = foundry.utils.getProperty(updated, actorUuid)
   if (currentTag === tagType) {
-    foundry.utils.unsetProperty(updated, actorUuid)
-  } else {
-    foundry.utils.setProperty(updated, actorUuid, tagType)
+    await item.unsetFlag(MTT.ID, `${MTT.FLAGS.STORAGE}.tags.${actorUuid}`)
+    deleteStorageTagPath(updated, actorUuid)
+    return updated
   }
+
+  foundry.utils.setProperty(updated, actorUuid, tagType)
   await item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: updated })
   return updated
 }

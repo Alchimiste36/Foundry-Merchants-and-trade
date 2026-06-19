@@ -329,10 +329,9 @@
                             data-action="toggleStorageTag"
                             data-item-id="{{../id}}"
                             data-tag-type="{{tag.type}}"
-                            data-tooltip="{{tag.label}}"
+                            data-tooltip="{{tag.tooltip}}"
                             aria-label="{{tag.label}}"
                           >
-                            <span class="mtt-storage-tag-count{{#unless tag.count}} mtt-storage-tag-count-empty{{/unless}}">{{tag.count}}</span>
                             <i class="fa-solid {{tag.icon}}" aria-hidden="true"></i>
                           </button>
                         {{/each}}

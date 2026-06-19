@@ -600,6 +600,141 @@ Le stockage lit et écrit toujours ses acteurs dans `flags.mtt-merchants.storage
 
 ---
 
+# Correction 12.F.1 — Catégorie ignore en bas du catalogue
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.F.1.
+- [x] Réutiliser l’id technique stable `mtt-storage-ignore`.
+- [x] Corriger uniquement le tri d’affichage des catégories.
+- [x] Garder les catégories normales triées comme avant.
+- [x] Placer “A vendre / sans intérêt” après les catégories normales.
+- [x] Garder “Sans catégorie” tout en bas.
+- [x] Conserver le masquage de la catégorie spéciale quand elle est vide.
+- [x] Ne pas modifier l’ordre persistant des catégories.
+- [x] Vérifier la syntaxe JS, le lint et le diff.
+
+## Règle d’ordre ajoutée
+
+Le rendu des catégories utilise maintenant un rang d’affichage :
+
+```text
+0 — catégories normales
+1 — A vendre / sans intérêt
+2 — Sans catégorie
+```
+
+Ainsi, la catégorie automatique `ignore` n’est plus triée avec les catégories normales.
+
+## Masquage conservé
+
+La catégorie “A vendre / sans intérêt” reste absente du rendu si elle ne contient aucun Item.
+
+Aucune catégorie n’est supprimée ou réordonnée dans les flags pour cette correction.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-catalog.mjs`
+- `rapport-étapes-stockage.md`
+
+## Vérifications manuelles simples
+
+1. Ouvrir un stockage avec plusieurs catégories normales.
+2. Vérifier qu’un Item dans “A vendre / sans intérêt” affiche cette catégorie après les catégories normales.
+3. Vérifier que “Sans catégorie” reste tout en bas.
+4. Vérifier que “A vendre / sans intérêt” disparaît si elle est vide.
+5. Vérifier qu’un marchand conserve son tri habituel.
+
+---
+
+# Étape 12.F — Actions actives du tag ignore
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.F.
+- [x] Rendre le tag `ignore` bloquant même sans acteur `want`.
+- [x] Appliquer ce blocage au bouton “Ajouter à la session”.
+- [x] Appliquer ce blocage aux augmentations de quantité.
+- [x] Laisser les diminutions de quantité autorisées.
+- [x] Ajouter le message court de blocage FR/EN.
+- [x] Créer/récupérer une catégorie locale stable “A vendre / sans intérêt”.
+- [x] Déplacer automatiquement un Item quand tous les acteurs concernés ont `ignore`.
+- [x] Restaurer la catégorie d’origine quand la condition cesse.
+- [x] Masquer la catégorie spéciale quand elle est vide.
+- [x] Ne pas persister de calcul de vote.
+- [x] Vérifier la syntaxe JS, les JSON, le lint et le diff.
+
+## Règle de blocage du tag `ignore`
+
+Si l’acteur de la session active a mis `ignore`, l’ajout et les augmentations de quantité sont bloqués pour un utilisateur non MJ.
+
+Cette règle s’applique même si aucun acteur n’a mis `want`.
+
+Le bouton reste visible et utilise l’état bloqué existant.
+
+## Message ajouté
+
+Le message court utilisé pour le warning et le tooltip est :
+
+```text
+Retirez “Sans intérêt pour moi” pour récupérer cet objet.
+```
+
+La version anglaise est aussi ajoutée.
+
+## Déplacement automatique
+
+Quand tous les acteurs concernés ont mis `ignore`, l’Item est déplacé vers la catégorie locale :
+
+```text
+A vendre / sans intérêt
+```
+
+L’identifiant technique stable est :
+
+```text
+mtt-storage-ignore
+```
+
+La catégorie est créée seulement si un Item doit y être placé.
+
+## Restauration
+
+Avant le déplacement automatique, la catégorie d’origine est mémorisée dans un flag minimal sur l’Item :
+
+```text
+flags.mtt-merchants.storage.ignoreOriginalCategory
+```
+
+Quand la condition “tous ignore” cesse, l’Item revient dans sa catégorie d’origine. Si cette catégorie n’existe plus, il revient dans “Sans catégorie”, puis le flag temporaire est supprimé.
+
+## Affichage de la catégorie spéciale
+
+La catégorie “A vendre / sans intérêt” est masquée au rendu si elle ne contient aucun Item.
+
+Elle n’est pas supprimée automatiquement des catégories locales.
+
+## Non-persistance des calculs
+
+Aucune liste d’acteurs `ignore`, aucun historique de vote, aucune décision et aucun état calculé complet n’est persisté.
+
+Seule la catégorie d’origine est mémorisée pendant un déplacement automatique.
+
+## Vérifications manuelles simples
+
+1. Mettre `ignore` sur un Item avec l’acteur actif et vérifier que l’ajout est bloqué.
+2. Vérifier le tooltip et le warning court.
+3. Vérifier que `+` et une saisie directe supérieure sont bloqués.
+4. Vérifier que `-` reste possible.
+5. Mettre tous les acteurs concernés en `ignore` et vérifier le déplacement vers “A vendre / sans intérêt”.
+6. Retirer `ignore` ou passer en `want` et vérifier la restauration de catégorie.
+7. Vérifier que la catégorie spéciale disparaît quand elle est vide.
+8. Vérifier que le MJ peut toujours outrepasser le blocage d’action.
+9. Vérifier que `want` et sa limite de quantité fonctionnent toujours.
+10. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
+
+---
+
 # Correction 12.E.1 — Limite de quantité par acteur want
 
 ## Todo

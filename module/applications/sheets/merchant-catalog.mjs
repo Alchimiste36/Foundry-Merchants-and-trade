@@ -13,6 +13,7 @@ import {
   sanitizeItemDataForMerchantProductCopy
 } from "../../documents/merchant-products.mjs"
 import {
+  STORAGE_IGNORE_CATEGORY_ID,
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
   getStorageItemTagForActor
@@ -147,6 +148,13 @@ function sortStorageIgnoredItemsLast(items) {
   })
 }
 
+function getProductCategoryDisplayRank(category) {
+  // MTT storage — la catégorie automatique ignore reste groupée avec les catégories de fin
+  if (category?.categoryValue === STORAGE_IGNORE_CATEGORY_ID) return 1
+  if (category?.isSystemCategory) return 2
+  return 0
+}
+
 export function prepareItems(
   actor,
   sellPercent,
@@ -276,6 +284,9 @@ export function prepareItems(
         isStorageWantedByActiveActor: storageActiveTag === "want",
         isStorageIgnoredByActiveActor: storageActiveTag === "ignore",
         storageIntentState,
+        allActorsIgnoredStorageItem:
+          storageIntentState.totalVotingSlots > 0 &&
+          storageIntentState.ignoreCount === storageIntentState.totalVotingSlots,
         isStorageIntentPending: storageIntentState.hasWant && !storageIntentState.canResolveWithoutConflict,
         isStorageIntentResolved: storageIntentState.canResolveWithoutConflict,
         activeActorCanClaimStorageItem: storageIntentState.activeActorCanClaimOne,
@@ -468,6 +479,7 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
   })
 
   const sortedCategories = Array.from(categories.values())
+    .filter((group) => group.categoryValue !== STORAGE_IGNORE_CATEGORY_ID || group.count > 0)
     .filter((group) => includeHidden || group.isVisible)
     .map((group) => ({
       ...group,
@@ -475,8 +487,10 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     }))
 
   sortedCategories.sort((a, b) => {
-    if (a.isSystemCategory && !b.isSystemCategory) return 1
-    if (!a.isSystemCategory && b.isSystemCategory) return -1
+    const rankA = getProductCategoryDisplayRank(a)
+    const rankB = getProductCategoryDisplayRank(b)
+
+    if (rankA !== rankB) return rankA - rankB
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   })
 

@@ -13,6 +13,7 @@ import {
   updateStorageData,
   setStorageItemWarningGM,
   setStorageItemBlocked,
+  applyStorageIgnoreAutoCategory,
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
   getStorageClaimQuantityBlockReasonKey,
@@ -866,7 +867,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         : requestedQuantity
 
     return {
-      applies: storageIntentState.hasWant,
+      applies: storageIntentState.hasWant || storageIntentState.activeActorTag === "ignore",
       canAccept: !reasonKey || game.user?.isGM === true,
       reasonKey,
       limit,
@@ -1027,7 +1028,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (storageClaimState?.applies && !storageClaimState.canAccept) {
       ui.notifications.warn(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
       const acceptedQuantity = Number(storageClaimState.acceptedQuantity)
-      if (Number.isFinite(acceptedQuantity) && acceptedQuantity > 0 && acceptedQuantity !== Number(item.quantity)) {
+      if (
+        storageClaimState.reasonKey === "mtt.storage.intent.block.claimLimitReached" &&
+        Number.isFinite(acceptedQuantity) &&
+        acceptedQuantity > 0 &&
+        acceptedQuantity !== Number(item.quantity)
+      ) {
         this.#setSessionItemQuantity(item, acceptedQuantity)
         await this.#saveSession(session)
         this.render()
@@ -1989,6 +1995,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const updatedTags = await toggleStorageItemTag(item, voterActorUuid, tagType)
       if (updatedTags) {
         item.updateSource?.({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: updatedTags })
+        await applyStorageIgnoreAutoCategory(this.actor, item, {
+          sessions: this.#getSessions(),
+          activeSessionActorUuid: voterActorUuid
+        })
         this.render()
       }
       return

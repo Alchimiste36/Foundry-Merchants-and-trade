@@ -1,6 +1,9 @@
 import { MTT } from "../config/constants.mjs"
+import { getMerchantData, updateMerchantData } from "./merchant-flags.mjs"
 
 // MTT storage — helpers de flags propres au stockage
+
+export const STORAGE_IGNORE_CATEGORY_ID = "mtt-storage-ignore"
 
 export function getMTTEntityType(actor) {
   return String(actor?.getFlag?.(MTT.ID, MTT.FLAGS.TYPE) ?? "").trim()
@@ -152,7 +155,8 @@ export function getStorageItemFlags(item) {
   const raw = item?.getFlag?.(MTT.ID, MTT.FLAGS.STORAGE) ?? {}
   return {
     warningGM: Boolean(raw.warningGM),
-    blocked: Boolean(raw.blocked)
+    blocked: Boolean(raw.blocked),
+    ignoreOriginalCategory: String(raw.ignoreOriginalCategory ?? "").trim()
   }
 }
 
@@ -306,9 +310,8 @@ export function buildStorageItemIntentState({
 }
 
 export function getStorageClaimQuantityBlockReasonKey(intentState, requestedQuantity = 0) {
+  if (intentState?.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
   if (!intentState?.hasWant) return ""
-
-  if (intentState.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
   if (intentState.activeActorTag !== "want") return "mtt.storage.intent.block.activeActorMustWant"
   if (!intentState.allAnswered) return "mtt.storage.intent.block.missingVotes"
   if (!intentState.canResolveWithoutConflict) return "mtt.storage.intent.block.notEnoughQuantity"
@@ -320,6 +323,7 @@ export function getStorageClaimQuantityBlockReasonKey(intentState, requestedQuan
 }
 
 export function getStorageAddBlockReasonKey(intentState) {
+  if (intentState?.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
   if (!intentState?.hasWant) return ""
 
   const quantityReason = getStorageClaimQuantityBlockReasonKey(
@@ -332,13 +336,16 @@ export function getStorageAddBlockReasonKey(intentState) {
 }
 
 export function buildStorageAddIntentBlockState(intentState, { canOverride = false } = {}) {
+  const activeActorIgnored = intentState?.activeActorTag === "ignore"
   const activeActorCanStillClaimOne = intentState?.activeActorCanClaimMore === true
-  const isStorageBlockedByIntent = intentState?.hasWant === true && activeActorCanStillClaimOne !== true
+  const isStorageBlockedByIntent =
+    activeActorIgnored || (intentState?.hasWant === true && activeActorCanStillClaimOne !== true)
   const storageAddBlockReasonKey = isStorageBlockedByIntent
     ? getStorageAddBlockReasonKey(intentState)
     : ""
 
   return {
+    activeActorIgnored,
     activeActorCanStillClaimOne,
     isStorageBlockedByIntent,
     isStorageAddBlockedForCurrentUser: isStorageBlockedByIntent && canOverride !== true,
@@ -360,4 +367,92 @@ export async function toggleStorageItemTag(item, actorUuid, tagType) {
   foundry.utils.setProperty(updated, actorUuid, tagType)
   await item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: updated })
   return updated
+}
+
+function getStorageIgnoreCategoryName() {
+  return game.i18n.localize("mtt.storage.categories.ignoreSell")
+}
+
+async function getOrCreateStorageIgnoreCategory(actor) {
+  const merchantData = getMerchantData(actor)
+  const categories = foundry.utils.deepClone(merchantData?.catalog?.productCategories ?? [])
+  const existing = categories.find((category) => category?.id === STORAGE_IGNORE_CATEGORY_ID)
+  if (existing) return STORAGE_IGNORE_CATEGORY_ID
+
+  categories.push({
+    id: STORAGE_IGNORE_CATEGORY_ID,
+    name: getStorageIgnoreCategoryName()
+  })
+  await updateMerchantData(actor, { catalog: { productCategories: categories } }, { render: false })
+  return STORAGE_IGNORE_CATEGORY_ID
+}
+
+function getStorageItemProductCategory(item) {
+  return String(item?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.category ?? "").trim()
+}
+
+function getStorageIgnoreOriginalCategoryState(item) {
+  const raw = item?.getFlag?.(MTT.ID, MTT.FLAGS.STORAGE) ?? {}
+  return {
+    hasOriginalCategory: Object.hasOwn(raw, "ignoreOriginalCategory"),
+    originalCategory: String(raw.ignoreOriginalCategory ?? "").trim()
+  }
+}
+
+function buildStorageIgnoreIntentState(item, sessions, activeSessionActorUuid = "") {
+  return buildStorageItemIntentState({
+    rawTags: getStorageItemTags(item),
+    sessions,
+    activeSessionActorUuid,
+    product: {
+      id: item?.id ?? "",
+      sourceUuid: String(item?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.sourceUuid ?? "").trim()
+    }
+  })
+}
+
+function storageCategoryExists(actor, categoryId) {
+  const normalizedId = String(categoryId ?? "").trim()
+  if (!normalizedId) return true
+
+  return Boolean(
+    getMerchantData(actor)?.catalog?.productCategories?.some((category) => category?.id === normalizedId)
+  )
+}
+
+export async function applyStorageIgnoreAutoCategory(actor, item, { sessions = [], activeSessionActorUuid = "" } = {}) {
+  if (!actor || !item) return null
+  if (item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.enabled !== true) return null
+
+  const intentState = buildStorageIgnoreIntentState(item, sessions, activeSessionActorUuid)
+  const allActorsIgnoredStorageItem =
+    intentState.totalVotingSlots > 0 && intentState.ignoreCount === intentState.totalVotingSlots
+  const currentCategory = getStorageItemProductCategory(item)
+  const { hasOriginalCategory, originalCategory } = getStorageIgnoreOriginalCategoryState(item)
+
+  if (allActorsIgnoredStorageItem) {
+    if (currentCategory === STORAGE_IGNORE_CATEGORY_ID) return intentState
+
+    await getOrCreateStorageIgnoreCategory(actor)
+    const updateData = {
+      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`]: STORAGE_IGNORE_CATEGORY_ID
+    }
+    if (!hasOriginalCategory) {
+      updateData[`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.ignoreOriginalCategory`] = currentCategory
+    }
+    await item.update(updateData, { mtt: true })
+    return intentState
+  }
+
+  if (!hasOriginalCategory) return intentState
+
+  const restoredCategory = storageCategoryExists(actor, originalCategory) ? originalCategory : ""
+  await item.update(
+    {
+      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`]: restoredCategory,
+      [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.-=ignoreOriginalCategory`]: null
+    },
+    { mtt: true }
+  )
+  return intentState
 }

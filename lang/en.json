@@ -248,9 +248,12 @@
         "noEditableSession": "You need an editable active session to vote.",
         "noActiveActor": "The active session has no voting actor."
       },
+      "categories": {
+        "ignoreSell": "To sell / not interested"
+      },
       "intent": {
         "block": {
-          "activeActorIgnored": "This actor marked this item as not interesting. Change the tag to claim it.",
+          "activeActorIgnored": "Remove “Not interested” to claim this item.",
           "activeActorMustWant": "This item is claimed. This actor must choose “I want it” to take it.",
           "missingVotes": "This item is claimed. Every active actor on this storage must choose “I want it” or “Not interested”.",
           "notEnoughQuantity": "More actors want this item than there are available copies.",

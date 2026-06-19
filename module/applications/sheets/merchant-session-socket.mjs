@@ -5,6 +5,7 @@ import {
   getMTTEntityType,
   getStorageData,
   getStorageFlagPath,
+  applyStorageIgnoreAutoCategory,
   toggleStorageItemTag
 } from "../../documents/storage-flags.mjs"
 import { getMerchantPermissions } from "../../documents/merchant-access.mjs"
@@ -305,6 +306,10 @@ async function handleStorageTagUpdateRequest(message) {
     const item = storageActor.items.get(itemId)
     const updatedTags = await toggleStorageItemTag(item, voterActorUuid, tagType)
     if (!updatedTags) throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    await applyStorageIgnoreAutoCategory(storageActor, item, {
+      sessions: getStoredSessionEntries(storageActor).map((entry) => normalizeSession(entry)),
+      activeSessionActorUuid: voterActorUuid
+    })
 
     sendStorageTagUpdateResponse({ requestId, recipientUserId, ok: true, itemId, updatedTags })
   } catch (error) {

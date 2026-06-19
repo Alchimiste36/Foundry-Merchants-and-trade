@@ -601,3 +601,56 @@ Le stockage lit et écrit toujours ses acteurs dans `flags.mtt-merchants.storage
 6. Vérifier que les tags storage utilisent toujours l’acteur sélectionné.
 
 ---
+
+# Correction 11.1C — Ajustements du rail commun et variante storage
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.1C.
+- [x] Vérifier l’absence de rail storage parallèle après 11.1B.
+- [x] Corriger les badges utiles du rail commun.
+- [x] Faire utiliser les sessions du type MTT actif au rail commun.
+- [x] Aligner le clic gauche storage sur le comportement marchand pour un acteur non autorisé.
+- [x] Conserver le rail storage à gauche comme variante visuelle légère.
+- [x] Masquer les pourcentages personnalisés uniquement côté storage.
+- [x] Compiler le LESS vers `css/mtt.css`.
+- [x] Vérifier la syntaxe JS et l’absence de reliquats de rail storage.
+
+## Résumé
+
+Le rail commun affiche maintenant les badges uniquement pour les sessions utiles : `active`, `pending` et `submitted`. Les sessions `validated` et `refused` ne sont plus prioritaires pour le badge du rail.
+
+Le rail commun reçoit aussi les sessions lues par la feuille active. Le marchand continue donc à utiliser `merchant.sessions.entries`, tandis que le stockage utilise `storage.sessions.entries`.
+
+## Éléments communs modifiés
+
+- Priorité des sessions du rail : `active`, puis `pending`, puis `submitted`.
+- Icônes de badge conservées pour ces trois statuts utiles.
+- Clic gauche sur acteur non autorisé : autorisation puis création/récupération de session via le pipeline commun.
+
+## Variantes storage ajoutées
+
+- Le rail commun reste positionné à gauche sur une feuille storage via la classe de variante existante.
+- L’entrée `Pourcentages personnalisés` et sa réinitialisation sont masquées côté storage dans le menu commun.
+
+## Non créé volontairement
+
+- Aucun template de rail storage.
+- Aucun contexte `prepareStorageAccess*`.
+- Aucun menu contextuel storage séparé.
+- Aucun handler de clic storage séparé.
+- Aucune modification des tags, transferts, catégories, statuts d’Items ou sockets.
+- Aucune suppression des fonctions ou traductions de taux personnalisés, qui restent utiles au marchand.
+
+## Vérifications manuelles
+
+1. Ouvrir un marchand et vérifier que le rail reste à droite.
+2. Vérifier que les badges utiles de session s’affichent côté marchand.
+3. Vérifier que `Pourcentages personnalisés` reste présent côté marchand.
+4. Ouvrir un stockage et vérifier que le rail est à gauche.
+5. Vérifier que les badges utiles de session s’affichent côté stockage.
+6. Cliquer sur un acteur storage non autorisé et vérifier que la session est créée/activée.
+7. Vérifier que `Pourcentages personnalisés` est absent côté storage.
+8. Vérifier que `Retirer l’acteur de la feuille` reste présent sur les deux types.
+
+---

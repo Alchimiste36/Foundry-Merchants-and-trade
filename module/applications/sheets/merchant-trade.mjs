@@ -774,8 +774,6 @@ export function getStoredAccessClients(actor) {
 function getAccessSessionBadgeIcon(status) {
   if (status === "active") return "fa-hourglass-half"
   if (status === "pending") return "fa-triangle-exclamation"
-  if (status === "validated") return "fa-check"
-  if (status === "refused") return "fa-xmark"
   if (status === "submitted") return "fa-thumbs-up"
   return ""
 }
@@ -803,19 +801,34 @@ export function getBestSessionForClient(actor, actorUuid) {
   const normalizedActorUuid = String(actorUuid ?? "").trim()
   if (!normalizedActorUuid) return null
 
-  const sessions = getSessions(actor)
+  return getBestAccessSessionForClient(getSessions(actor), normalizedActorUuid)
+}
+
+function getBestAccessSessionForClient(sessions, actorUuid) {
+  const normalizedActorUuid = String(actorUuid ?? "").trim()
+  if (!normalizedActorUuid) return null
+
+  const relevantSessions = (sessions ?? [])
     .filter((session) => session.actorUuid === normalizedActorUuid)
     .map((session) => normalizeSession(session))
-  if (sessions.length === 0) return null
+    .filter((session) => ["active", "pending", "submitted"].includes(session.status))
+  if (relevantSessions.length === 0) return null
 
-  const statusOrder = ["active", "pending", "validated", "refused", "submitted"]
-  sessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
-  return sessions[0]
+  const statusOrder = ["active", "pending", "submitted"]
+  relevantSessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
+  return relevantSessions[0]
 }
 
 export function prepareAccessClients(
   actor,
-  { selectedSession, selectedClientActorUuid, isEditable, accessClients = null, defaultPlayerAuthorization = false } = {}
+  {
+    selectedSession,
+    selectedClientActorUuid,
+    isEditable,
+    accessClients = null,
+    sessions = null,
+    defaultPlayerAuthorization = false
+  } = {}
 ) {
   const clientsByUuid = new Map()
   const defaultRates = getMerchantDefaultClientRates(actor)
@@ -851,7 +864,9 @@ export function prepareAccessClients(
 
   return Array.from(clientsByUuid.values())
     .map((client) => {
-      const session = getBestSessionForClient(actor, client.actorUuid)
+      const session = Array.isArray(sessions)
+        ? getBestAccessSessionForClient(sessions, client.actorUuid)
+        : getBestSessionForClient(actor, client.actorUuid)
       const sessionStatus = session?.status ?? ""
       const hasCustomRates = Boolean(client.customRates)
       const customRates = normalizeClientCustomRates(client.customRates, defaultRates)

@@ -772,6 +772,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       selectedClientActorUuid: this.#selectedClientActorUuid,
       isEditable: this.isEditable,
       accessClients: this.#getAccessEntries(),
+      sessions: this.#getSessions(),
       defaultPlayerAuthorization: this.#isStorageEntity()
     })
   }
@@ -1254,8 +1255,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeAccessClient(client)
     })
 
-    menu.append(openActor, customRates)
-    if (resetCustomRates) menu.append(resetCustomRates)
+    menu.append(openActor)
+    if (!this.#isStorageEntity()) {
+      menu.append(customRates)
+      if (resetCustomRates) menu.append(resetCustomRates)
+    }
     menu.append(removeAuthorization, removeActor)
     applicationElement.append(menu)
 
@@ -2510,12 +2514,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedActorUuid = String(actorUuid ?? "").trim()
     if (!normalizedActorUuid) return null
 
-    const sessions = this.#getSessions()
+    let sessions = this.#getSessions()
       .filter((session) => session.actorUuid === normalizedActorUuid)
       .map((session) => normalizeSession(session))
     if (sessions.length === 0) return null
 
-    const statusOrder = ["active", "pending", "validated", "refused", "submitted"]
+    const statusOrder = ["active", "pending", "submitted"]
+    sessions = sessions.filter((session) => statusOrder.includes(session.status))
+    if (sessions.length === 0) return null
+
     sessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
     return sessions[0]
   }
@@ -3444,13 +3451,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       await this.#setClientAuthorization(client, true)
-      if (this.#isStorageEntity()) {
-        this.#selectedClientActorUuid = client.actorUuid
-        this.#sessionCheckResult = null
-        this.render()
-        return
-      }
-
       const session = await this.#createSessionForClient(
         {
           ...client,
@@ -3482,13 +3482,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (this.#isStorageEntity()) {
-      this.#activeSessionId = null
-      this.render()
-      return
-    }
-
-    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
+    if (!this.#canModifyAccessRail()) return
 
     const repairedSession = await this.#createSessionForClient(client)
     if (!repairedSession) return

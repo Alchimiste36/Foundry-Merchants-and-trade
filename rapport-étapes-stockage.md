@@ -1175,3 +1175,68 @@ Le helper `deleteStorageTagPath` reste utilisé uniquement pour nettoyer l’obj
 9. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
 
 ---
+
+# Étape 12.B — Effets visuels simples des tags actifs
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 12.B.
+- [x] Exposer le tag actif storage dans le contexte de chaque ligne Item.
+- [x] Ajouter les booléens de contexte pour `want` et `ignore`.
+- [x] Ajouter les classes HBS conditionnelles sur la ligne Item storage.
+- [x] Ajouter un effet visuel simple pour `want`.
+- [x] Ajouter un effet visuel simple pour `ignore`.
+- [x] Trier localement les Items ignorés en bas de leur catégorie.
+- [x] Compiler le LESS vers `css/mtt.css`.
+- [x] Vérifier la syntaxe JS, le lint et l’absence de compteurs réintroduits.
+
+## Effet ajouté pour `want`
+
+Quand l’acteur de la session active marque un Item avec `Je le veux`, la ligne reçoit une mise en avant légère : accent vertical discret et fond très léger.
+
+Le tag ne bloque pas l’objet, ne réserve aucune quantité et ne crée aucune décision.
+
+## Effet ajouté pour `ignore`
+
+Quand l’acteur de la session active marque un Item avec `Sans intérêt pour moi`, la ligne est visuellement minorée avec une opacité réduite, un léger grisage et un fond neutre.
+
+L’Item reste visible, lisible, consultable et ses actions restent accessibles.
+
+## Tri local des Items ignorés
+
+Les Items marqués `ignore` par l’acteur de la session active sont triés en bas de leur catégorie uniquement pour le rendu courant.
+
+Ce tri ne modifie pas :
+
+- les flags de catégorie ;
+- l’ordre réel des Items ;
+- le sort Foundry ;
+- les catégories globales ;
+- les données persistées du stockage.
+
+## Non implémenté volontairement
+
+- Aucune réservation technique.
+- Aucun blocage d’objet.
+- Aucune décision commune.
+- Aucun vote collectif.
+- Aucun compteur de tag.
+- Aucun déplacement global d’objet.
+- Aucune catégorie spéciale.
+- Aucune notification MJ.
+- Aucune modification des permissions, du rail, des sessions, des transferts ou du marchand.
+
+## Vérifications manuelles
+
+1. Ouvrir un stockage avec une session active éditable.
+2. Cliquer sur `Je le veux` et vérifier que la ligne est mise en avant.
+3. Recliquez sur `Je le veux` et vérifier que l’effet disparaît.
+4. Cliquer sur `Sans intérêt pour moi` et vérifier que la ligne est minorée.
+5. Vérifier que l’Item passe en bas de sa catégorie.
+6. Recliquez sur `Sans intérêt pour moi` et vérifier que l’effet disparaît au prochain render.
+7. Passer de `Je le veux` à `Sans intérêt pour moi`, puis l’inverse, et vérifier que l’effet change correctement.
+8. Tester avec deux acteurs différents et vérifier que les effets restent propres à l’acteur actif.
+9. Ouvrir un marchand et vérifier qu’aucun effet storage n’apparaît.
+10. Vérifier qu’aucun compteur de tag n’est affiché.
+
+---

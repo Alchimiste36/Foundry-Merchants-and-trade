@@ -94,7 +94,7 @@
               <ol class="mtt-merchant-product-category-item-list {{#unless category.isVisible}}mtt-merchant-product-category-item-list-hidden{{/unless}}">
                 {{#each category.items as |item|}}
                   <li
-                    class="mtt-merchant-product-row draggable {{#unless item.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}"
+                    class="mtt-merchant-product-row draggable {{#unless item.isVisible}}mtt-merchant-catalog-item-hidden{{/unless}}{{#if @root.isStorage}}{{#if item.isStorageWantedByActiveActor}} mtt-storage-item-wanted{{/if}}{{#if item.isStorageIgnoredByActiveActor}} mtt-storage-item-ignored{{/if}}{{/if}}"
                     data-product-id="{{item.id}}"
                     data-mtt-product-id="{{item.id}}"
                     {{#if @root.mtt.isEditable}}

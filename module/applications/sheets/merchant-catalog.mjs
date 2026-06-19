@@ -126,6 +126,23 @@ function buildStorageTagsContext(rawTags, { canEditActiveSession = false, voterA
   }))
 }
 
+function getStorageActiveTag(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
+  if (!canEditActiveSession || !voterActorUuid) return ""
+
+  const activeTag = foundry.utils.getProperty(rawTags, voterActorUuid)
+  return STORAGE_TAG_TYPES.has(activeTag) ? activeTag : ""
+}
+
+function sortStorageIgnoredItemsLast(items) {
+  items.sort((a, b) => {
+    const aIgnored = a.isStorageIgnoredByActiveActor === true
+    const bIgnored = b.isStorageIgnoredByActiveActor === true
+
+    if (aIgnored !== bIgnored) return aIgnored ? 1 : -1
+    return 0
+  })
+}
+
 export function prepareItems(
   actor,
   sellPercent,
@@ -166,6 +183,10 @@ export function prepareItems(
       const secretCurrency = product.secretCurrency
       const secretDescription = product.secretDescription
       const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
+      const storageActiveTag = getStorageActiveTag(product.rawStorageTags ?? {}, {
+        canEditActiveSession,
+        voterActorUuid
+      })
 
       return {
         id: product.id,
@@ -223,6 +244,9 @@ export function prepareItems(
         selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
         isBlocked: product.isBlocked,
         hasWarningGM: product.hasWarningGM,
+        storageActiveTag,
+        isStorageWantedByActiveActor: storageActiveTag === "want",
+        isStorageIgnoredByActiveActor: storageActiveTag === "ignore",
         storageTags: buildStorageTagsContext(product.rawStorageTags ?? {}, { canEditActiveSession, voterActorUuid })
       }
     })
@@ -400,6 +424,10 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     if (!group) return
     group.items.push(item)
     group.count += 1
+  })
+
+  categories.forEach((group) => {
+    sortStorageIgnoredItemsLast(group.items)
   })
 
   const sortedCategories = Array.from(categories.values())

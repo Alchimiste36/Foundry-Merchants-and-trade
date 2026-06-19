@@ -166,12 +166,32 @@ export function isStorageItemWarningGM(item) {
 
 export async function setStorageItemBlocked(item, blocked) {
   if (!item) return null
-  const current = getStorageItemFlags(item)
-  return item.setFlag(MTT.ID, MTT.FLAGS.STORAGE, { ...current, blocked: Boolean(blocked) })
+  return item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.blocked`]: Boolean(blocked) })
 }
 
 export async function setStorageItemWarningGM(item, warningGM) {
   if (!item) return null
-  const current = getStorageItemFlags(item)
-  return item.setFlag(MTT.ID, MTT.FLAGS.STORAGE, { ...current, warningGM: Boolean(warningGM) })
+  return item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.warningGM`]: Boolean(warningGM) })
+}
+
+// ─── Tags de vote rapides sur les Items ──────────────────────────────────────
+
+const STORAGE_TAG_VALID_TYPES = new Set(["keep", "sell", "question"])
+
+export function getStorageItemTags(item) {
+  const raw = item?.getFlag?.(MTT.ID, MTT.FLAGS.STORAGE)?.tags ?? {}
+  if (typeof raw !== "object" || Array.isArray(raw)) return {}
+  return raw
+}
+
+export async function toggleStorageItemTag(item, actorUuid, tagType) {
+  if (!item || !actorUuid || !STORAGE_TAG_VALID_TYPES.has(tagType)) return null
+  const current = getStorageItemTags(item)
+  const updated = { ...current }
+  if (updated[actorUuid] === tagType) {
+    delete updated[actorUuid]
+  } else {
+    updated[actorUuid] = tagType
+  }
+  return item.update({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: updated })
 }

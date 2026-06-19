@@ -498,3 +498,58 @@ Le bloc `else` (marchand) n'est pas touché : `copyProduct` / `copyService` rest
 5. Cliquer « Copier l'objet » côté marchand → copie fonctionnelle comme avant.
 
 ---
+
+# Étape 11.1 — Tags de vote rapides sur les Items du stockage
+
+## Todo
+
+- [x] Helpers flags tags dans `storage-flags.mjs` (`getStorageItemTags`, `toggleStorageItemTag`)
+- [x] Fix path-based pour `setStorageItemBlocked` et `setStorageItemWarningGM` (évite d'écraser les tags)
+- [x] Exposition de `rawStorageTags` dans `buildProductContextFromItem` (`merchant-products.mjs`)
+- [x] `buildStorageTagsContext` + option `selectedActorUuid` dans `prepareItems` (`merchant-catalog.mjs`)
+- [x] Import `toggleStorageItemTag`, action `toggleStorageTag`, passage de `selectedActorUuid`, handler `#onToggleStorageTag` (`merchant-sheet.mjs`)
+- [x] Bloc HBS tags dans `merchant-products.hbs` (inside `{{#if @root.isStorage}}`, avant actions)
+- [x] CSS `.mtt-storage-tags`, `.mtt-storage-tag-button`, `.mtt-storage-tag-active`, `.mtt-storage-tag-count-empty` (`merchant-catalog.less`)
+- [x] Clés i18n `storage.tags.*` dans `fr.json` et `en.json`
+- [x] `node --check` sur tous les JS modifiés, validation JSON
+- [x] Rapport ajouté
+
+## Résumé
+
+Les tags sont stockés sur chaque Item dans `flags.mtt-merchants.storage.tags` sous la forme `{ "Actor.uuid": "keep"|"sell"|"question" }`. Lecture via `getStorageItemTags(item)`, écriture/suppression via `toggleStorageItemTag(item, actorUuid, tagType)` (toggle : re-clic retire le tag).
+
+`buildProductContextFromItem` expose `rawStorageTags` (le dict brut). `prepareItems` calcule `storageTags` (tableau de 3 objets `{type, icon, count, isActive, label}`) en recevant `selectedActorUuid` depuis la feuille. Le HBS itère les 3 boutons pour chaque ligne Item uniquement si `@root.isStorage`.
+
+Le handler `#onToggleStorageTag` vérifie que la feuille est storage, que l'acteur sélectionné est valide et présent dans le rail, puis appelle `toggleStorageItemTag`. Foundry re-render automatiquement via le hook `updateEmbeddedDocuments`.
+
+`setStorageItemBlocked` et `setStorageItemWarningGM` utilisent désormais des mises à jour par chemin (`flags.mtt-merchants.storage.blocked` / `.warningGM`) pour éviter d'écraser les tags lors de la mise à jour d'un autre statut.
+
+**Icônes** : `fa-star-exclamation` (keep), `fa-recycle` (sell), `fa-message-question` (question). Ces icônes sont disponibles en Font Awesome 6 Pro, inclus dans Foundry VTT v14.
+
+## Non créé volontairement
+
+- Aucune nouvelle feuille storage.
+- Aucun template HBS storage dédié.
+- Aucun nouveau fichier LESS.
+- Aucune option de clic droit pour les tags.
+- Aucune modification du marchand.
+- Aucune modification des statuts existants (warningGM, blocked, invisible).
+- Aucune modification de la session d'échange ni des transferts.
+- Aucun système de vote majoritaire ni décision automatique.
+
+## Vérifications manuelles
+
+1. Charger Foundry sans erreur console.
+2. Ouvrir un marchand → aucune icône de tag visible.
+3. Ouvrir un stockage → chaque ligne Item affiche 3 boutons de tag.
+4. Compteurs à 0 : chiffres invisibles, icônes à opacité faible, alignement intact.
+5. Sélectionner un acteur dans le rail → cliquer « Important / à garder » → compteur passe à 1, icône mise en valeur.
+6. Cliquer « Sans intérêt / à vendre » → keep repasse à 0, sell passe à 1.
+7. Re-cliquer « Sans intérêt / à vendre » → tag retiré, sell repasse à 0.
+8. Tester avec deux acteurs → compteurs additionnent correctement.
+9. Fermer/rouvrir la feuille → tags persistants.
+10. Sans acteur sélectionné → clic sur tag → notification « Sélectionnez un acteur… ».
+11. Clic droit sur un Item storage → aucune option de tag.
+12. Vérifier que les statuts warningGM et blocked fonctionnent toujours après un tag posé (pas d'écrasement).
+
+---

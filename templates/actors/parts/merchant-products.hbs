@@ -319,6 +319,24 @@
                       </div>
                     {{/if}}
 
+                    {{#if @root.isStorage}}
+                      <div class="mtt-storage-tags">
+                        {{#each item.storageTags as |tag|}}
+                          <button
+                            type="button"
+                            class="mtt-storage-tag-button{{#if tag.isActive}} mtt-storage-tag-active{{/if}}"
+                            data-action="toggleStorageTag"
+                            data-tag-type="{{tag.type}}"
+                            data-tooltip="{{tag.label}}"
+                            aria-label="{{tag.label}}"
+                          >
+                            <span class="mtt-storage-tag-count{{#unless tag.count}} mtt-storage-tag-count-empty{{/unless}}">{{tag.count}}</span>
+                            <i class="fa-solid {{tag.icon}}" aria-hidden="true"></i>
+                          </button>
+                        {{/each}}
+                      </div>
+                    {{/if}}
+
                     <div class="mtt-merchant-product-actions">
                         {{#if @root.permissions.canInteractWithSession}}
                           {{#if item.isVisible}}

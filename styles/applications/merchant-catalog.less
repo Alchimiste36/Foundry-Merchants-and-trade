@@ -220,6 +220,46 @@
   color: var(--color-level-warning, #e69900);
 }
 
+.mtt-storage-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+}
+
+.mtt-storage-tag-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0 0.15rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.45;
+  font-size: 0.78rem;
+  line-height: 1;
+  transition: opacity 0.12s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.mtt-storage-tag-active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.mtt-storage-tag-count {
+  font-size: 0.68rem;
+  min-width: 0.8em;
+  text-align: right;
+}
+
+.mtt-storage-tag-count-empty {
+  opacity: 0;
+}
+
 #tooltip.mtt-secret-tooltip {
   white-space: pre-line;
   max-width: 320px;

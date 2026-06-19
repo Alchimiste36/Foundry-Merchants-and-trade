@@ -248,6 +248,18 @@
         "blocked": {
           "tooltip": "Blocked item: cannot be added to a session."
         }
+      },
+      "tags": {
+        "keep": {
+          "label": "Important / keep"
+        },
+        "sell": {
+          "label": "No interest / sell"
+        },
+        "question": {
+          "label": "What should we do?"
+        },
+        "noActorSelected": "Select an actor in the rail to tag this item."
       }
     },
     "actions": {

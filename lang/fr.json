@@ -248,6 +248,18 @@
         "blocked": {
           "tooltip": "Objet bloqué : ne peut pas être ajouté à une session."
         }
+      },
+      "tags": {
+        "keep": {
+          "label": "Important / à garder"
+        },
+        "sell": {
+          "label": "Sans intérêt / à vendre"
+        },
+        "question": {
+          "label": "On en fait quoi ?"
+        },
+        "noActorSelected": "Sélectionnez un acteur dans le rail pour taguer cet objet."
       }
     },
     "actions": {

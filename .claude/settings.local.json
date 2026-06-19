@@ -60,7 +60,8 @@
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-catalog.mjs\")",
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\storage-flags.mjs\")",
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\merchant-conversion.mjs\")",
-      "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-sheet.mjs\")"
+      "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-sheet.mjs\")",
+      "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\merchant-products.mjs\")"
     ],
     "additionalDirectories": [
       "\\tmp"

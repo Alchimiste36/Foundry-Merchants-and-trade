@@ -11,7 +11,8 @@ import {
   getStorageData,
   updateStorageData,
   setStorageItemWarningGM,
-  setStorageItemBlocked
+  setStorageItemBlocked,
+  toggleStorageItemTag
 } from "../../documents/storage-flags.mjs"
 import {
   getMerchantAccessContext,
@@ -179,7 +180,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       selectTab: MerchantSheet.#onSelectTab,
       sortJournal: MerchantSheet.#onSortJournal,
       saveReferenceState: MerchantSheet.#onSaveReferenceState,
-      restoreReferenceState: MerchantSheet.#onRestoreReferenceState
+      restoreReferenceState: MerchantSheet.#onRestoreReferenceState,
+      toggleStorageTag: MerchantSheet.#onToggleStorageTag
     }
   }
 
@@ -260,7 +262,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
     context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
       includeHidden: isEditable,
-      sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null
+      sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null,
+      selectedActorUuid: isStorage ? this.#selectedClientActorUuid : ""
     })
     context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable })
     context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable })
@@ -1785,6 +1788,39 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (item) await setStorageItemBlocked(item, blocked)
     }
     this.render()
+  }
+
+  // ─── Tags de vote rapides storage ────────────────────────────────────────
+
+  static async #onToggleStorageTag(event, target) {
+    event.preventDefault()
+
+    if (!this.#isStorageEntity()) return
+
+    const productId =
+      target.closest("[data-product-id]")?.dataset.productId ?? target.closest("[data-item-id]")?.dataset.itemId
+    if (!productId) return
+
+    const tagType = String(target.dataset.tagType ?? "").trim()
+    if (!tagType) return
+
+    const selectedActorUuid = this.#selectedClientActorUuid
+    if (!selectedActorUuid) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noActorSelected"))
+      return
+    }
+
+    const accessActors = this.#getStoredStorageAccessActors()
+    if (!accessActors.some((entry) => entry.actorUuid === selectedActorUuid)) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noActorSelected"))
+      return
+    }
+
+    const item = this.actor.items.get(productId)
+    if (!item) return
+
+    this.#saveScrollPositions()
+    await toggleStorageItemTag(item, selectedActorUuid, tagType)
   }
 
   // ─── Dropped document helpers ─────────────────────────────────────────────

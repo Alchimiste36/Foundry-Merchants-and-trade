@@ -107,7 +107,30 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
   return lines.join("\n")
 }
 
-export function prepareItems(actor, sellPercent, { includeHidden = false, sessionEntries = null } = {}) {
+const STORAGE_TAG_DEFS = [
+  { type: "keep", icon: "fa-star-exclamation" },
+  { type: "sell", icon: "fa-recycle" },
+  { type: "question", icon: "fa-message-question" }
+]
+
+function buildStorageTagsContext(rawTags, selectedActorUuid) {
+  const countByType = { keep: 0, sell: 0, question: 0 }
+  let activeTag = ""
+  for (const [uuid, tagType] of Object.entries(rawTags)) {
+    if (!(tagType in countByType)) continue
+    countByType[tagType]++
+    if (selectedActorUuid && uuid === selectedActorUuid) activeTag = tagType
+  }
+  return STORAGE_TAG_DEFS.map((def) => ({
+    type: def.type,
+    icon: def.icon,
+    count: countByType[def.type],
+    isActive: activeTag === def.type,
+    label: game.i18n.localize(`mtt.storage.tags.${def.type}.label`)
+  }))
+}
+
+export function prepareItems(actor, sellPercent, { includeHidden = false, sessionEntries = null, selectedActorUuid = "" } = {}) {
   const products = getCatalogProducts(actor)
   const availabilityByProductId = buildProductAvailabilityMap(
     products,
@@ -199,7 +222,8 @@ export function prepareItems(actor, sellPercent, { includeHidden = false, sessio
         minimumPriceValue: product.minimumPriceValue,
         selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
         isBlocked: product.isBlocked,
-        hasWarningGM: product.hasWarningGM
+        hasWarningGM: product.hasWarningGM,
+        storageTags: buildStorageTagsContext(product.rawStorageTags ?? {}, selectedActorUuid)
       }
     })
     .filter((item) => includeHidden || item.isVisible)

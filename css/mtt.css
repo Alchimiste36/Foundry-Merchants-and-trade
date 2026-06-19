@@ -133,8 +133,8 @@
 .mtt-merchant-access-context-menu-button .fa-lock-open {
   color: var(--mtt-danger);
 }
-.mtt-merchant-access-context-menu-button .fa-eye,
-.mtt-merchant-access-context-menu-button .fa-eye-slash {
+.mtt-merchant-access-context-menu-button .fa-file-slash,
+.mtt-merchant-access-context-menu-button .fa-file-plus {
   color: var(--mtt-secret);
 }
 .mtt-merchant-catalog-context-menu {

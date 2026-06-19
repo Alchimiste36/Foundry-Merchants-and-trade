@@ -33,7 +33,7 @@ function getConfiguredInitialStorageCategoryNames() {
   }
 }
 
-function buildInitialLocalStorageCategories() {
+export function buildInitialLocalStorageCategories() {
   return getConfiguredInitialStorageCategoryNames().map((name, index) => ({
     id: `category-${foundry.utils.randomID(6)}`,
     name,
@@ -43,7 +43,7 @@ function buildInitialLocalStorageCategories() {
 
 // ─── Structure de données stockage ───────────────────────────────────────────
 
-export function buildDefaultStorageData(actor = null, { includeInitialGlobalCategories = false } = {}) {
+export function buildDefaultStorageData(actor = null) {
   return {
     enabled: true,
     storage: {
@@ -61,9 +61,7 @@ export function buildDefaultStorageData(actor = null, { includeInitialGlobalCate
       entries: []
     },
     content: {
-      categories: includeInitialGlobalCategories ? buildInitialLocalStorageCategories() : [],
-      hiddenCategories: {},
-      collapsedCategories: {}
+      categories: []
     },
     journal: {
       entries: []
@@ -94,8 +92,6 @@ export function normalizeStorageData(data = {}, actor = null) {
   merged.sessions.entries ??= []
   merged.content ??= {}
   merged.content.categories ??= []
-  merged.content.hiddenCategories ??= {}
-  merged.content.collapsedCategories ??= {}
   merged.journal ??= {}
   merged.journal.entries ??= []
 

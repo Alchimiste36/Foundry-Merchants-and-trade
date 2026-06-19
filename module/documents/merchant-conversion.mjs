@@ -1,6 +1,7 @@
-import { isMTTMerchant, buildDefaultMerchantData, setMerchantData, unsetMerchantData } from "./merchant-flags.mjs"
+import { isMTTMerchant, getMerchantData, buildDefaultMerchantData, setMerchantData, unsetMerchantData, updateMerchantData } from "./merchant-flags.mjs"
 import {
   buildDefaultStorageData,
+  buildInitialLocalStorageCategories,
   isMTTStorage,
   setStorageData,
   unsetStorageData
@@ -82,7 +83,14 @@ export async function convertActorToStorage(actor) {
     return
   }
 
-  await setStorageData(actor, buildDefaultStorageData(actor, { includeInitialGlobalCategories: true }))
+  await setStorageData(actor, buildDefaultStorageData(actor))
+
+  const initialStorageCategories = buildInitialLocalStorageCategories()
+  const hasExistingCategories = getMerchantData(actor)?.catalog?.productCategories?.length > 0
+  if (initialStorageCategories.length > 0 && !hasExistingCategories) {
+    await updateMerchantData(actor, { catalog: { productCategories: initialStorageCategories } })
+  }
+
   ui.notifications.info(game.i18n.format("mtt.notifications.storageConversion.success", { name: actor.name }))
 }
 

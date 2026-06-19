@@ -1,7 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
-import { isMTTStorage, getStorageData } from "../../documents/storage-flags.mjs"
 import {
   getCatalogProducts,
   isMerchantProductItem,
@@ -332,19 +331,10 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
 }
 
 export function prepareProductCategories(actor, items, { includeHidden = false } = {}) {
-  let definedCategories, hiddenCategories, collapsedCategories
-
-  if (isMTTStorage(actor)) {
-    const storageContent = getStorageData(actor)?.content
-    definedCategories = storageContent?.categories ?? []
-    hiddenCategories = storageContent?.hiddenCategories ?? {}
-    collapsedCategories = storageContent?.collapsedCategories ?? {}
-  } else {
-    const merchantCatalog = getMerchantData(actor)?.catalog
-    definedCategories = merchantCatalog?.productCategories ?? []
-    hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
-    collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
-  }
+  const merchantCatalog = getMerchantData(actor)?.catalog
+  const definedCategories = merchantCatalog?.productCategories ?? []
+  const hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
+  const collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
 
   const categories = new Map()
 

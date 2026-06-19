@@ -1382,12 +1382,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (catalogItem.kind === "category") {
       const setLimited = this.#createCatalogContextButton({
-        icon: "fa-eye-slash",
+        icon: "fa-file-slash",
         label: game.i18n.localize("mtt.catalog.context.categorySetProductsLimited"),
         onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED)
       })
       const setObserver = this.#createCatalogContextButton({
-        icon: "fa-eye",
+        icon: "fa-file-plus",
         label: game.i18n.localize("mtt.catalog.context.categorySetProductsObserver"),
         onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)
       })
@@ -1462,7 +1462,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
           : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
         const ownership = this.#createCatalogContextButton({
-          icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
+          icon: catalogItem.isObserverOwnership ? "fa-file-slash" : "fa-file-plus",
           label: ownershipLabel,
           onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
         })
@@ -1505,7 +1505,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
           : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
         const ownership = this.#createCatalogContextButton({
-          icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
+          icon: catalogItem.isObserverOwnership ? "fa-file-slash" : "fa-file-plus",
           label: ownershipLabel,
           onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
         })

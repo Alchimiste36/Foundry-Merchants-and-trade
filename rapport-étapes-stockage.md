@@ -684,3 +684,40 @@ Le partial `merchant-access-rail.hbs` reçoit maintenant directement `isStorage`
 3. Vérifier que le rail fonctionne toujours comme avant.
 
 ---
+
+# Correction 11.1E — Sessions storage branchées sur le socket commun
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.1E.
+- [x] Identifier la branche `updateStorageData` directe dans `#updateSessionEntries`.
+- [x] Construire le chemin de sessions selon le type MTT actif.
+- [x] Faire passer les sessions storage par la même logique MJ/propriétaire/socket que le marchand.
+- [x] Adapter le socket de session existant aux chemins `merchant.sessions.entries` et `storage.sessions.entries`.
+- [x] Vérifier qu’aucun socket storage parallèle n’a été créé.
+- [x] Vérifier `node --check` sur les fichiers JS modifiés.
+
+## Résumé
+
+Les sessions storage ne sont plus sauvegardées par un `updateStorageData` direct depuis la feuille. `#updateSessionEntries()` construit maintenant un `updateData` avec le bon chemin de flags selon le type MTT actif, puis utilise la même chaîne que le marchand : mise à jour directe par MJ/propriétaire, sinon demande socket.
+
+Le socket existant reste unique. Il accepte uniquement le chemin `sessions.entries` du type MTT actif et lit les sessions existantes dans `merchant.sessions.entries` ou `storage.sessions.entries` selon l’acteur.
+
+## Non créé volontairement
+
+- Aucun `requestStorageSessionUpdate`.
+- Aucun `storageSessionUpdateRequest`.
+- Aucun `buildSafeStorageSessionUpdate`.
+- Aucun handler socket storage séparé.
+- Aucune modification du rail, des tags, des catégories, des statuts d’Items ou des transferts.
+
+## Vérifications manuelles
+
+1. Ouvrir un marchand côté joueur et vérifier ajout d’Item + changement de quantité en session.
+2. Ouvrir un stockage côté MJ et autoriser un acteur joueur.
+3. Ouvrir le stockage côté joueur et ajouter un Item à la session storage.
+4. Modifier la quantité de l’Item dans la session storage.
+5. Vérifier que l’erreur `User lacks permission to update Actor [...]` n’apparaît plus.
+6. Fermer/réouvrir la feuille storage et vérifier que la session persiste.
+
+---

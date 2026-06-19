@@ -1,6 +1,7 @@
 import { MTT } from "../../config/constants.mjs"
 import { normalizeSession } from "./merchant-trade.mjs"
 import { getMerchantData, getMerchantFlagPath } from "../../documents/merchant-flags.mjs"
+import { getMTTEntityType, getStorageData, getStorageFlagPath } from "../../documents/storage-flags.mjs"
 import { getMerchantPermissions } from "../../documents/merchant-access.mjs"
 
 const SOCKET_NAME = `module.${MTT.ID}`
@@ -42,6 +43,20 @@ function getSessionUpdateProcessors(merchantActor) {
   return game.users.filter((user) => user.active && userCanUpdateMerchant(user, merchantActor))
 }
 
+function getSessionEntriesFlagPath(actor) {
+  return getMTTEntityType(actor) === MTT.ENTITY_TYPES.STORAGE
+    ? getStorageFlagPath("sessions.entries")
+    : getMerchantFlagPath("sessions.entries")
+}
+
+function getStoredSessionEntries(actor) {
+  if (getMTTEntityType(actor) === MTT.ENTITY_TYPES.STORAGE) {
+    return getStorageData(actor)?.sessions?.entries ?? []
+  }
+
+  return getMerchantData(actor)?.sessions?.entries ?? []
+}
+
 function sendSessionUpdateResponse({ requestId, recipientUserId, ok, updateData = null, error = "" }) {
   const response = {
     type: "sessionUpdateResponse",
@@ -58,12 +73,11 @@ function sendSessionUpdateResponse({ requestId, recipientUserId, ok, updateData 
 }
 
 function buildSafeSessionUpdate(merchantActor, updateData) {
-  const requestedSessions = updateData?.[getMerchantFlagPath("sessions.entries")]
+  const sessionEntriesPath = getSessionEntriesFlagPath(merchantActor)
+  const requestedSessions = updateData?.[sessionEntriesPath]
   if (!Array.isArray(requestedSessions)) return null
 
-  const existingSessions = (getMerchantData(merchantActor)?.sessions?.entries ?? []).map((session) =>
-    normalizeSession(session)
-  )
+  const existingSessions = getStoredSessionEntries(merchantActor).map((session) => normalizeSession(session))
   const requestedById = new Map(
     requestedSessions
       .map((session) => normalizeSession(session))
@@ -85,7 +99,7 @@ function buildSafeSessionUpdate(merchantActor, updateData) {
   }
 
   return {
-    [getMerchantFlagPath("sessions.entries")]: mergedSessions
+    [sessionEntriesPath]: mergedSessions
   }
 }
 
@@ -250,9 +264,10 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
 
   const requestId = foundry.utils.randomID()
   const processorUserIds = processorUsers.map((user) => user.id)
+  const sessionEntriesPath = getSessionEntriesFlagPath(merchantActor)
   const sessionActorUuids = Array.from(
     new Set(
-      (updateData?.[getMerchantFlagPath("sessions.entries")] ?? [])
+      (updateData?.[sessionEntriesPath] ?? [])
         .map((session) => String(session.actorUuid ?? "").trim())
         .filter(Boolean)
     )
@@ -284,7 +299,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
     debugSessionSocket("request sent", {
       ...payload,
       updateData: {
-        sessionCount: updateData?.[getMerchantFlagPath("sessions.entries")]?.length ?? 0
+        sessionCount: updateData?.[sessionEntriesPath]?.length ?? 0
       }
     })
     game.socket.emit(SOCKET_NAME, payload)

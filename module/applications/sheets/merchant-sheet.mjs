@@ -9,6 +9,7 @@ import {
 import {
   getMTTEntityType,
   getStorageData,
+  getStorageFlagPath,
   updateStorageData,
   setStorageItemWarningGM,
   setStorageItemBlocked,
@@ -2951,13 +2952,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #updateSessionEntries(sessions) {
-    if (this.#isStorageEntity()) {
-      await updateStorageData(this.actor, { sessions: { entries: sessions } })
-      return
-    }
-
+    const sessionEntriesPath = this.#isStorageEntity()
+      ? getStorageFlagPath("sessions.entries")
+      : getMerchantFlagPath("sessions.entries")
     const updateData = {
-      [getMerchantFlagPath("sessions.entries")]: sessions
+      [sessionEntriesPath]: sessions
     }
 
     if (game.user?.isGM) {

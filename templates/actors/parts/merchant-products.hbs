@@ -338,7 +338,7 @@
                     {{/if}}
 
                     <div class="mtt-merchant-product-actions">
-                        {{#if @root.permissions.canInteractWithSession}}
+                        {{#if @root.mtt.session.canEditActiveSession}}
                           {{#if item.isVisible}}
                           {{#unless item.isBlocked}}
                           {{#unless @root.mtt.session.isSubmitted}}
@@ -347,7 +347,7 @@
                               class="mtt-merchant-product-action"
                               type="button"
                               data-action="addProductToSession"
-                              data-tooltip="{{localize ‘mtt.sessions.actions.addProduct’}}"
+                              data-tooltip="{{localize 'mtt.sessions.actions.addProduct'}}"
                             >
                               <i class="fas fa-cart-plus"></i>
                             </button>

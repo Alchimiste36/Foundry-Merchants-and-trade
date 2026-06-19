@@ -39,6 +39,25 @@ function userCanUpdateMerchant(user, merchantActor) {
   return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
 }
 
+function getActorByUuid(actorUuid) {
+  const uuid = String(actorUuid ?? "").trim()
+  if (!uuid) return null
+  return (
+    game.actors?.find?.((actor) => actor.uuid === uuid) ??
+    game.actors?.get?.(uuid) ??
+    game.actors?.get?.(uuid.replace(/^Actor\./, "")) ??
+    null
+  )
+}
+
+function userOwnsSessionActor(user, session) {
+  const actor = getActorByUuid(session?.actorUuid)
+  if (!user || !actor) return false
+  if (actor.testUserPermission?.(user, "OWNER")) return true
+  const level = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+  return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+}
+
 function getSessionUpdateProcessors(merchantActor) {
   return game.users.filter((user) => user.active && userCanUpdateMerchant(user, merchantActor))
 }
@@ -72,7 +91,7 @@ function sendSessionUpdateResponse({ requestId, recipientUserId, ok, updateData 
   game.socket.emit(SOCKET_NAME, response)
 }
 
-function buildSafeSessionUpdate(merchantActor, updateData) {
+function buildSafeSessionUpdate(merchantActor, updateData, requestingUser) {
   const sessionEntriesPath = getSessionEntriesFlagPath(merchantActor)
   const requestedSessions = updateData?.[sessionEntriesPath]
   if (!Array.isArray(requestedSessions)) return null
@@ -96,6 +115,16 @@ function buildSafeSessionUpdate(merchantActor, updateData) {
   for (const requestedSession of requestedById.values()) {
     if (existingIds.has(requestedSession.id)) continue
     mergedSessions.push(requestedSession)
+  }
+
+  if (!userCanUpdateMerchant(requestingUser, merchantActor)) {
+    const existingById = new Map(existingSessions.map((session) => [session.id, session]))
+    const modifiedSessions = Array.from(requestedById.values()).filter((requestedSession) => {
+      const existingSession = existingById.get(requestedSession.id)
+      return !existingSession || JSON.stringify(existingSession) !== JSON.stringify(requestedSession)
+    })
+
+    if (modifiedSessions.some((session) => !userOwnsSessionActor(requestingUser, session))) return null
   }
 
   return {
@@ -165,7 +194,7 @@ async function handleSessionUpdateRequest(message) {
       throw new Error(game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
     }
 
-    const safeUpdateData = buildSafeSessionUpdate(merchantActor, message.updateData)
+    const safeUpdateData = buildSafeSessionUpdate(merchantActor, message.updateData, requestingUser)
     if (!safeUpdateData) {
       debugSessionSocket("request denied: invalid or unauthorized session update", {
         requestId,

@@ -552,8 +552,6 @@ Le handler `#onToggleStorageTag` vérifie que la feuille est storage, que l'acte
 11. Clic droit sur un Item storage → aucune option de tag.
 12. Vérifier que les statuts warningGM et blocked fonctionnent toujours après un tag posé (pas d'écrasement).
 
----
-
 # Correction 11.1B — Nettoyage du rail storage spécifique et rail commun
 
 ## Todo
@@ -719,5 +717,85 @@ Le socket existant reste unique. Il accepte uniquement le chemin `sessions.entri
 4. Modifier la quantité de l’Item dans la session storage.
 5. Vérifier que l’erreur `User lacks permission to update Actor [...]` n’apparaît plus.
 6. Fermer/réouvrir la feuille storage et vérifier que la session persiste.
+
+---
+
+# Correction 11.1F — Sécurisation des sessions par droits d’acteur
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.1F.
+- [x] Ajouter un contrôle commun des droits de session basé sur l’acteur lié à la session.
+- [x] Exposer les booléens `canViewOtherSession`, `canSelectOtherSession` et `canInteractWithOtherSession`.
+- [x] Limiter la sélection/interaction des cards et sessions aux acteurs visibles ou possédés.
+- [x] Remplacer les actions visibles de session par le droit actif `canEditActiveSession`.
+- [x] Sécuriser les handlers de session avant modification.
+- [x] Sécuriser le socket commun contre les modifications de sessions d’autres acteurs.
+- [x] Vérifier `node --check` sur les fichiers JS modifiés.
+
+## Résumé
+
+Le rail commun et les sessions ne se basent plus uniquement sur le droit global `canInteractWithSession`. Une session est maintenant interactive seulement pour le MJ, un utilisateur qui possède la feuille MTT, ou le propriétaire de l’acteur lié à cette session avec le droit global d’interaction.
+
+Les observateurs peuvent consulter ou sélectionner une session si le droit de consultation le permet, mais les boutons, champs, drag/drop et actions de session passent par `canEditActiveSession`. Le socket commun refuse aussi les mises à jour envoyées par un utilisateur qui tente de modifier une session liée à un acteur qu’il ne possède pas.
+
+## Non créé volontairement
+
+- Aucun rail storage séparé.
+- Aucun socket storage séparé.
+- Aucun helper de permission storage parallèle.
+- Aucune modification des tags, catégories, prix, services ou transferts.
+
+## Vérifications manuelles
+
+1. Ouvrir une feuille MTT avec deux acteurs clients différents.
+2. Vérifier qu’un joueur propriétaire de l’acteur A peut interagir avec la session de A.
+3. Vérifier que ce joueur ne peut pas modifier la session de l’acteur B.
+4. Vérifier qu’un observateur peut consulter la session autorisée sans boutons d’action.
+5. Vérifier que le MJ peut toujours sélectionner, modifier, valider et refuser les sessions.
+6. Refaire le test sur une feuille stockage et vérifier qu’aucun rail storage séparé n’apparaît.
+
+---
+
+# Correction 11.1G — Permission Voir les autres acteurs du rail
+
+## Todo
+
+- [x] Lire `agents.md`, `rapport-étapes-stockage.md` et les instructions 11.1G.
+- [x] Identifier la permission existante `canViewOtherActorsInRail`.
+- [x] Vérifier que la permission est déjà exposée dans la configuration des profils.
+- [x] Appliquer cette permission au filtrage JS des cards du rail commun.
+- [x] Vérifier que `canViewObserverActorSessions` reste réservé aux sessions.
+- [x] Vérifier `node --check` sur le fichier JS modifié.
+
+## Clé technique existante
+
+`canViewOtherActorsInRail`
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Le rail commun filtre maintenant les cards avec la permission existante `canViewOtherActorsInRail`. Un joueur voit les cards s’il est MJ, s’il peut gérer la feuille MTT, s’il possède l’acteur de la card, ou si son profil MTT autorise “Voir les autres acteurs du rail”.
+
+Les cards ne sont pas seulement cachées en CSS : elles sont retirées du contexte envoyé au template. La règle est commune au marchand et au stockage, sans branche storage spécifique.
+
+## Non créé volontairement
+
+- Aucune nouvelle permission.
+- Aucun rail storage séparé.
+- Aucun filtre HBS ou CSS de remplacement.
+- Aucune modification des actions de session, tags, transferts, catégories, prix ou services.
+
+## Vérifications manuelles
+
+1. Ouvrir la configuration MTT et vérifier que “Voir les autres acteurs du rail” existe pour Limité, Observateur et Propriétaire.
+2. Sur un marchand, désactiver la permission pour un profil et vérifier que le joueur ne voit que ses acteurs.
+3. Réactiver la permission et vérifier que les autres cards réapparaissent.
+4. Refaire le même test sur un stockage.
+5. Vérifier que “Voir les autres sessions” ne contrôle pas l’affichage des cards.
 
 ---

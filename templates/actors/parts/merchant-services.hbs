@@ -103,7 +103,7 @@
 
 
               <div class="mtt-merchant-service-actions">
-                {{#if @root.permissions.canInteractWithSession}}
+                {{#if @root.mtt.session.canEditActiveSession}}
                   {{#if service.isVisible}}
                     {{#unless @root.mtt.session.isSubmitted}}
                       <button

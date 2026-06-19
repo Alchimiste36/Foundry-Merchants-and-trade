@@ -46,7 +46,7 @@
 
               <div class="mtt-merchant-session-item-quantity">
                 <span>
-                  {{#if @root.permissions.canInteractWithSession}}
+                  {{#if @root.mtt.session.canEditActiveSession}}
                     {{#unless @root.mtt.session.isSubmitted}}
                       <span class="mtt-merchant-session-item-controls">
                         <button
@@ -89,7 +89,7 @@
       </ol>
     </section>
 
-    <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if @root.permissions.canInteractWithSession}}{{#if mtt.session.canEdit}}{{#unless @root.mtt.session.isSubmitted}}data-mtt-session-seller-drop{{/unless}}{{/if}}{{/if}}>
+    <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if @root.mtt.session.canEditActiveSession}}{{#if mtt.session.canEdit}}{{#unless @root.mtt.session.isSubmitted}}data-mtt-session-seller-drop{{/unless}}{{/if}}{{/if}}>
       <header class="mtt-merchant-session-section-header">
         <i class="fas fa-handshake-angle"></i>
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.storage.session.deposit"}}</h3>
@@ -109,7 +109,7 @@
 
               <div class="mtt-merchant-session-item-quantity">
                 <span>
-                  {{#if @root.permissions.canInteractWithSession}}
+                  {{#if @root.mtt.session.canEditActiveSession}}
                     {{#unless @root.mtt.session.isSubmitted}}
                       <span class="mtt-merchant-session-item-controls">
                         <button
@@ -170,7 +170,7 @@
         <p class="mtt-merchant-session-submitted-message">{{localize "mtt.storage.session.submittedMessage"}}</p>
       {{/if}}
       {{#if mtt.session.hasAnyItems}}
-        {{#if @root.permissions.canInteractWithSession}}
+        {{#if @root.mtt.session.canEditActiveSession}}
           {{#unless mtt.session.isSubmitted}}
             <button
               class="mtt-merchant-session-final-action delete"
@@ -195,7 +195,7 @@
             <i class="fas fa-xmark"></i>
           </button>
         {{else}}
-          {{#if @root.permissions.canInteractWithSession}}
+          {{#if @root.mtt.session.canEditActiveSession}}
             {{#unless mtt.session.isSubmitted}}
               <button class="mtt-merchant-session-final-action" type="button" data-action="submitSession" data-tooltip="{{localize 'mtt.storage.session.lock'}}">
                 <i class="fas fa-thumbs-up"></i>

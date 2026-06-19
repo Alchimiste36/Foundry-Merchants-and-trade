@@ -59,7 +59,8 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('en.json OK'\\)\")",
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-catalog.mjs\")",
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\storage-flags.mjs\")",
-      "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\merchant-conversion.mjs\")"
+      "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\merchant-conversion.mjs\")",
+      "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-sheet.mjs\")"
     ],
     "additionalDirectories": [
       "\\tmp"

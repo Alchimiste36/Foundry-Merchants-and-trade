@@ -462,3 +462,39 @@ Correction : `isMTTMerchant` vérifie maintenant que `flags.mtt-merchants.type =
 7. Ouvrir un acteur shop/marchand → options shop correctes, pas d'option storage.
 
 ---
+
+# Correction 10.1B — Retrait de « Copier l'objet » côté storage
+
+## Todo
+
+- [x] Identifier l'entrée de menu « Copier l'objet » dans `merchant-sheet.mjs`
+- [x] Supprimer la création du bouton `copy` dans le bloc `isStorage` / `kind === "product"`
+- [x] Vérifier que le bloc marchand conserve son bouton `copy` intact
+- [x] `node --check` sur `merchant-sheet.mjs`
+- [x] Rapport ajouté
+
+## Résumé
+
+Dans `#openCatalogItemContextMenu`, le menu product storage appelait `#createCatalogContextButton` pour créer un bouton `copy` puis l'ajoutait à `menu.append(warningGM, blocked, ownership, copy)`. La correction retire uniquement cette création et réduit l'appel à `menu.append(warningGM, blocked, ownership)`.
+
+Le bloc `else` (marchand) n'est pas touché : `copyProduct` / `copyService` restent présents et fonctionnels.
+
+**Fichier modifié :** `module/applications/sheets/merchant-sheet.mjs` (2 lignes supprimées, 1 ligne simplifiée).
+
+## Non créé volontairement
+
+- Aucun nouveau fichier.
+- Aucune modification du handler `#copyCatalogItem` ni de `copyCatalogProduct` / `copyCatalogService`.
+- Aucune suppression de traduction (`mtt.catalog.context.copyProduct` conservé pour le marchand).
+- Aucune modification des autres entrées du menu contextuel storage ni marchand.
+- Aucune modification HBS.
+
+## Vérifications manuelles
+
+1. Charger Foundry sans erreur console.
+2. Ouvrir un stockage → clic droit sur un Item → « Copier l'objet » absent.
+3. Options storage présentes : Avertissement MJ, Bloquer/débloquer, Limité/Observateur.
+4. Ouvrir un marchand → clic droit sur un Item → « Copier l'objet » toujours présent.
+5. Cliquer « Copier l'objet » côté marchand → copie fonctionnelle comme avant.
+
+---

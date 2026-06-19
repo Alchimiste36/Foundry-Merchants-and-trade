@@ -1466,12 +1466,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           label: ownershipLabel,
           onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
         })
-        const copy = this.#createCatalogContextButton({
-          icon: "fa-copy",
-          label: game.i18n.localize("mtt.catalog.context.copyProduct"),
-          onClick: async () => this.#copyCatalogItem(catalogItem)
-        })
-        menu.append(warningGM, blocked, ownership, copy)
+        menu.append(warningGM, blocked, ownership)
       }
     } else {
       const secretInfo = this.#createCatalogContextButton({

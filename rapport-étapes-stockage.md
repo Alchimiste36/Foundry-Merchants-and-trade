@@ -466,3 +466,42 @@ Le refus storage nettoie la session sans déplacer d’Item. La validation stora
 - `npx.cmd prettier --check` passe sur les fichiers touchés.
 - `git diff --check` ne signale pas d’erreur de whitespace.
 - Vérification manuelle Foundry non effectuée dans cette passe.
+
+# Correction 8.2A — Transferts storage sans écriture commerciale
+
+- [x] Lire `agents.md` et `rapport-étapes-stockage.md`.
+- [x] Localiser la fonction qui écrit le texte commercial dans l’Item livré (`addDeliveredItemDescriptionBlock`).
+- [x] Localiser la construction de `deliveryProductData` dans `buildSessionItemExecutionPlan`.
+- [x] Ajouter l’option `skipCommercialDeliveryText` dans `storageExecutionOptions` côté `merchant-sheet.mjs`.
+- [x] Lire cette option dans `buildSessionItemExecutionPlan` et vider `merchantName` et les secrets pour storage.
+
+## Résumé
+
+La fonction `buildSessionItemExecutionPlan` dans `merchant-trade.mjs` construit un objet `deliveryProductData` contenant `merchantName`, `transactionNumber` et les champs secrets du produit catalogue. Ces données sont ensuite passées à `addDeliveredItemDescriptionBlock`, qui écrit dans la description de l’Item livré le texte d’origine commerciale et les informations secrètes.
+
+Un paramètre `skipCommercialDeliveryText: true` a été ajouté aux `storageExecutionOptions` dans `merchant-sheet.mjs`. Dans `buildSessionItemExecutionPlan`, ce flag est lu (`skipCommercial`) et force `merchantName` à `""`, `transactionNumber` à `undefined`, et tous les champs secrets à `""` lorsque `true`.
+
+Comme `buildDeliveredItemOriginHtml` retourne déjà `""` si `merchantName` est vide, et que `buildDeliveredItemSecretHtml` retourne déjà `""` si aucun secret n’est présent, la fonction `addDeliveredItemDescriptionBlock` ne trouve rien à écrire et retourne sans modifier la description de l’Item.
+
+Le flux marchand (shop) n’est pas affecté : sans `skipCommercialDeliveryText`, `skipCommercial` vaut `false` et toutes les valeurs sont lues depuis le produit catalogue comme avant.
+
+Le flux dépôt acteur → stockage (`sellerTransfers`) n’appelle jamais `addDeliveredItemDescriptionBlock` — il était déjà propre.
+
+## Non créé volontairement
+
+- Aucune nouvelle fonction de livraison storage.
+- Aucun fichier `storage-transfer.mjs`.
+- Aucune modification du flux de livraison shop.
+- Aucune modification des fonctions `buildDeliveredItemOriginHtml`, `buildDeliveredItemSecretHtml`, `addDeliveredItemDescriptionBlock`.
+- Aucun changement du modèle de session, du rail, des lignes HBS ou du CSS.
+
+## Vérifications manuelles
+
+1. Charger Foundry sans erreur.
+2. Ouvrir un stockage, sélectionner un acteur dans le rail.
+3. Ajouter un Item du stockage dans `Le PJ prend / récupère`, valider.
+4. Vérifier l’Item reçu par l’acteur : pas de texte "Objet acheté chez...", pas d’information secrète injectée.
+5. Déposer un Item de l’acteur dans `Le PJ dépose / stock`, valider.
+6. Vérifier l’Item arrivé dans le stockage : description non enrichie.
+7. Tester un achat marchand normal : les informations commerciales sont toujours écrites si configurées.
+8. Vérifier qu’aucune erreur console n’apparaît.

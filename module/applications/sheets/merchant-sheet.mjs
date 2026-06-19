@@ -3623,7 +3623,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       // MTT storage — transfert réel sans monnaie ni journal commercial
       const storageExecutionOptions = {
         accessClients: this.#prepareStorageAccessClients(),
-        includeCurrencyTransfers: false
+        includeCurrencyTransfers: false,
+        skipCommercialDeliveryText: true
       }
       const preview = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
 

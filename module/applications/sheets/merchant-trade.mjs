@@ -2173,16 +2173,18 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
 
     reservedMerchantQuantities.set(catalogProduct.id, totalRequestedQuantity)
 
+    // MTT base — skipCommercialDeliveryText: true pour le stockage (transfert brut sans enrichissement commercial)
+    const skipCommercial = Boolean(options.skipCommercialDeliveryText)
     const deliveryProductData = {
       id: catalogProduct.id,
       sourceUuid: catalogProduct.sourceUuid,
-      merchantName: actor?.name ?? "",
-      transactionNumber: options.transactionNumber,
+      merchantName: skipCommercial ? "" : (actor?.name ?? ""),
+      transactionNumber: skipCommercial ? undefined : options.transactionNumber,
       deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
-      secretName: catalogProduct.secretName ?? "",
-      secretPrice: catalogProduct.secretPrice ?? "",
-      secretCurrency: catalogProduct.secretCurrency ?? "",
-      secretDescription: catalogProduct.secretDescription ?? ""
+      secretName: skipCommercial ? "" : (catalogProduct.secretName ?? ""),
+      secretPrice: skipCommercial ? "" : (catalogProduct.secretPrice ?? ""),
+      secretCurrency: skipCommercial ? "" : (catalogProduct.secretCurrency ?? ""),
+      secretDescription: skipCommercial ? "" : (catalogProduct.secretDescription ?? "")
     }
     const deliveredItemData = buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantityToDeliver)
     const deliveryPlan = simulatePurchasedItemDeliveryToActor(

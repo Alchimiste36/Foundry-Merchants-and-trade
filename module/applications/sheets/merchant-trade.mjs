@@ -1474,7 +1474,11 @@ export function isMerchantSellerDropBlocked(payload, actorUuid) {
 
 // ─── Execution preview ────────────────────────────────────────────────────────
 
-export async function buildExecutionPreview(actor, session) {
+function getExecutionAccessClients(actor, options = {}) {
+  return Array.isArray(options.accessClients) ? options.accessClients : getStoredAccessClients(actor)
+}
+
+export async function buildExecutionPreview(actor, session, options = {}) {
   const preview = {
     canExecute: false,
     errors: [],
@@ -1521,7 +1525,7 @@ export async function buildExecutionPreview(actor, session) {
     return preview
   }
 
-  const storedClients = getStoredAccessClients(actor)
+  const storedClients = getExecutionAccessClients(actor, options)
   const accessClient = storedClients.find((c) => c.actorUuid === actorUuid)
   if (!accessClient?.isAuthorized) {
     preview.errors.push(game.i18n.localize("mtt.sessions.preview.clientNotAuthorized"))
@@ -1712,9 +1716,12 @@ export async function buildExecutionPreview(actor, session) {
   )
   const adjustments = prepareMoneyAdjustments(buyerTotals, sellerTotals)
 
-  const currencies = getCurrencies()
+  const includeCurrencyTransfers = options.includeCurrencyTransfers !== false
+  const currencies = includeCurrencyTransfers ? getCurrencies() : []
   const currencyTransferPlan =
-    clientActor && currencies.length > 0 ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies) : null
+    includeCurrencyTransfers && clientActor && currencies.length > 0
+      ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies)
+      : null
 
   preview.currencyTransferPlan = currencyTransferPlan ?? null
   preview.moneyTransfers = []
@@ -1757,7 +1764,7 @@ export async function buildExecutionPreview(actor, session) {
         })
       }
     }
-  } else if (adjustments.length > 0) {
+  } else if (includeCurrencyTransfers && adjustments.length > 0) {
     for (const adjustment of adjustments) {
       const adjustmentCurrency = adjustment.currency === "__none" ? "" : adjustment.currency
       preview.moneyTransfers.push({
@@ -2100,7 +2107,7 @@ async function getClientActor(session, errors) {
 }
 
 export async function buildSessionItemExecutionPlan(actor, session, options = {}) {
-  const preview = await buildExecutionPreview(actor, session)
+  const preview = await buildExecutionPreview(actor, session, options)
   const errors = [...(preview.errors ?? [])]
   const clientActor = await getClientActor(session, errors)
   const operations = {
@@ -2118,7 +2125,9 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     }
   }
 
-  const accessClient = getStoredAccessClients(actor).find((client) => client.actorUuid === session?.actorUuid)
+  const accessClient = getExecutionAccessClients(actor, options).find(
+    (client) => client.actorUuid === session?.actorUuid
+  )
   if (!accessClient?.isAuthorized) {
     errors.push(game.i18n.localize("mtt.sessions.errors.clientNotAuthorized"))
   }

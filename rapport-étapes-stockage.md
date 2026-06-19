@@ -418,3 +418,51 @@ Les quantités restent pilotées par les fonctions communes de session. Les vali
 - `npm run lint` passe.
 - `npx.cmd prettier --check` passe sur les fichiers touchés.
 - `git diff --check` ne signale pas d’erreur de whitespace.
+
+# Étape 8.2 — Session d’échange storage : validation et transferts
+
+- [x] Lire `agents.md`, le rapport stockage et les instructions de l’étape 8.2.
+- [x] Identifier la structure réelle de session storage issue de 8.1.
+- [x] Réutiliser `buyerItems` pour le flux stockage vers acteur.
+- [x] Réutiliser `sellerItems` pour le flux acteur vers stockage.
+- [x] Réutiliser le plan d’exécution marchand pour vérifier les quantités juste avant validation.
+- [x] Réutiliser la livraison/fusion existante pour les Items récupérés.
+- [x] Réutiliser l’ajout/fusion catalogue existant pour les Items déposés.
+- [x] Brancher la validation storage sur les transferts réels d’Items.
+- [x] Nettoyer la session après validation réussie.
+- [x] Faire refuser une session storage sans aucun transfert.
+- [x] Désactiver toute logique monétaire pour le plan storage.
+- [x] Ne pas ajouter de journal de mouvements storage avancé.
+
+## Résumé
+
+La validation storage utilise maintenant le même plan technique que la transaction marchand pour vérifier les quantités, livrer les Items et fusionner les piles compatibles.
+
+Le flux `Le PJ prend / récupère` applique un transfert stockage vers acteur : le stock du stockage est décrémenté via la logique catalogue existante, puis l’Item est livré à l’acteur avec la logique commune de livraison, fusion et quantité max.
+
+Le flux `Le PJ dépose / stock` applique un transfert acteur vers stockage : l’Item source de l’acteur est décrémenté, puis l’Item est ajouté ou fusionné dans le stockage avec la logique existante du catalogue MTT.
+
+Le refus storage nettoie la session sans déplacer d’Item. La validation storage n’appelle pas de paiement, ne crée pas d’ajustement monétaire et ne journalise pas de transaction commerciale.
+
+## Non créé volontairement
+
+- Aucun fichier `storage-session.mjs`.
+- Aucun fichier `storage-transfer.mjs`.
+- Aucune nouvelle mécanique de fusion.
+- Aucune nouvelle mécanique de livraison.
+- Aucune nouvelle structure `takenItems`, `depositItems` ou équivalente.
+- Aucun transfert de monnaie.
+- Aucun ajustement monétaire.
+- Aucun vote.
+- Aucun journal de mouvements storage avancé.
+- Aucune classe CSS ou modification du template de session.
+- Aucun nouveau système de permissions.
+
+## Vérifications simples
+
+- `merchant-trade.mjs` passe `node --check`.
+- `merchant-sheet.mjs` passe `node --check`.
+- `npm run lint` passe.
+- `npx.cmd prettier --check` passe sur les fichiers touchés.
+- `git diff --check` ne signale pas d’erreur de whitespace.
+- Vérification manuelle Foundry non effectuée dans cette passe.

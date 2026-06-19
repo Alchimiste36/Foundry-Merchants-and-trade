@@ -3620,11 +3620,79 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — validation réelle des transferts reportée à l’étape 8.2
-      session.status = "validated"
-      session.isSubmitted = false
-      await this.#saveSession(session)
-      this.render()
+      // MTT storage — transfert réel sans monnaie ni journal commercial
+      const storageExecutionOptions = {
+        accessClients: this.#prepareStorageAccessClients(),
+        includeCurrencyTransfers: false
+      }
+      const preview = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
+
+      this.#sessionCheckResult = {
+        checked: true,
+        canProceed: preview.canExecute,
+        infos: [],
+        warnings: preview.warnings.map((w, i) => ({
+          id: `storage-preview-warn-${i}`,
+          level: "warning",
+          text: w,
+          icon: "fa-triangle-exclamation"
+        })),
+        errors: preview.errors.map((e, i) => ({
+          id: `storage-preview-err-${i}`,
+          level: "error",
+          text: e,
+          icon: "fa-circle-xmark"
+        }))
+      }
+
+      if (!preview.canExecute) {
+        this.render()
+        await openSessionExecutionErrorsDialog(preview)
+        return
+      }
+
+      try {
+        const executionPlan = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
+        if (!executionPlan.canExecute) {
+          this.#sessionCheckResult = {
+            checked: true,
+            canProceed: false,
+            infos: [],
+            warnings: executionPlan.warnings.map((w, i) => ({
+              id: `storage-execution-warn-${i}`,
+              level: "warning",
+              text: w,
+              icon: "fa-triangle-exclamation"
+            })),
+            errors: executionPlan.errors.map((e, i) => ({
+              id: `storage-execution-err-${i}`,
+              level: "error",
+              text: e,
+              icon: "fa-circle-xmark"
+            }))
+          }
+          await openSessionExecutionErrorsDialog(executionPlan)
+          this.render()
+          return
+        }
+
+        await executeSessionItemTransfers(this.actor, executionPlan)
+        clearSessionAfterExecution(session)
+        await this.#saveSession(session)
+        this.#sessionCheckResult = null
+        this.render()
+      } catch (error) {
+        const failurePreview = {
+          ...preview,
+          canExecute: false,
+          errors: [
+            ...(preview.errors ?? []),
+            error?.message || game.i18n.localize("mtt.sessions.execution.executionErrorTitle")
+          ]
+        }
+        await openSessionExecutionErrorsDialog(failurePreview)
+        this.render()
+      }
       return
     }
 
@@ -3723,9 +3791,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — refus préparatoire sans journal ni transfert définitif
-      session.status = "refused"
-      session.isSubmitted = false
+      // MTT storage — refus sans transfert ni journal commercial
+      clearSessionAfterExecution(session)
       await this.#saveSession(session)
       this.render()
       return

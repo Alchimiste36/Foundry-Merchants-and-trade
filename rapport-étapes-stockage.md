@@ -2151,3 +2151,72 @@ canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || canTradeA
 10. Vérifier qu’aucun personnage joueur n’est ajouté automatiquement au rail.
 
 ---
+
+# Étape 3.1.D — Achat marchand livré dans le stockage
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de l’étape 3.1.D.
+- [x] Repérer la livraison actuelle des produits achetés dans `executeSessionItemTransfers()`.
+- [x] Réutiliser les helpers catalogue existants pour ajouter ou fusionner les produits.
+- [x] Détecter le cas où le client de session est un stockage MTT.
+- [x] Exempter le stockage de la simulation de livraison acteur classique.
+- [x] Livrer les produits achetés dans le contenu MTT du stockage.
+- [x] Conserver la décrémentation du stock marchand.
+- [x] Ne pas modifier les services, la monnaie, les ventes depuis stockage, le rail ou les droits.
+- [x] Vérifier la syntaxe, le lint ciblé et le format.
+
+## Résumé
+
+La validation d’une session marchand distingue maintenant le type du client réel de la session.
+
+Quand le client est un acteur classique, la livraison existante vers l’inventaire système reste utilisée. Quand le client est un stockage MTT, les produits achetés sont ajoutés ou fusionnés dans le contenu MTT du stockage, c’est-à-dire dans ses Items embedded avec les flags produit MTT.
+
+## Détection client storage
+
+La détection se fait dans `merchant-trade.mjs` avec `isMTTStorage(clientActor)`.
+
+Le marchand vendeur reste `actor`. Le stockage destinataire est uniquement `clientActor`.
+
+## Livraison / fusion storage
+
+La livraison storage utilise un helper local ciblé :
+
+- fusion par `sourceUuid` avec `findMergeableMerchantItemBySourceUuid()` ;
+- lecture de quantité depuis les flags produit MTT avec fallback à `0` ;
+- mise à jour via `updateCatalogProduct()` si une ligne compatible existe ;
+- création via `buildCatalogProductFromItem()` et `addCatalogProduct()` si aucune ligne compatible n’existe ;
+- quantité livrée réelle avec `quantityToDeliver`, y compris pour les lots.
+
+Le texte commercial de livraison n’est pas ajouté au stockage.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement du rail.
+- Aucun changement des droits ou responsables du marchandage.
+- Aucun changement des services.
+- Aucun changement des ventes depuis stockage vers marchand.
+- Aucun changement de monnaie, pourcentages ou trésorerie.
+- Aucun template.
+- Aucun style.
+- Aucun nouveau helper exporté.
+
+## Vérifications manuelles simples
+
+1. Ajouter un stockage au rail d’un marchand.
+2. Ouvrir une session marchand pour ce stockage.
+3. Acheter un produit puis valider la transaction.
+4. Vérifier que le produit apparaît dans le contenu MTT du stockage.
+5. Vérifier qu’il n’est pas livré comme simple Item système hors logique MTT.
+6. Acheter de nouveau le même produit et vérifier la fusion de quantité.
+7. Vérifier que le stock marchand diminue comme avant.
+8. Vérifier qu’un acteur classique reçoit encore les achats dans son inventaire système.
+9. Vérifier qu’un service acheté ne crée pas d’Item dans le stockage.
+10. Vérifier que la monnaie du stockage continue de fonctionner comme avant.
+
+---

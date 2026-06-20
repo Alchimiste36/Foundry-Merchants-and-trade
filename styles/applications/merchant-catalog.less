@@ -119,7 +119,7 @@
 
 .mtt-merchant-product-row {
   display: grid;
-  grid-template-columns: 1rem 0.3fr 3fr 1.1fr auto;
+  grid-template-columns: 1rem 0.3fr 3fr minmax(auto, 90px) minmax(65px, auto);
   align-items: center;
   align-content: center;
   margin: 0;
@@ -161,7 +161,7 @@
 
 .mtt-storage-item-ignored {
   opacity: 0.4;
-  filter: grayscale(1);
+  filter: grayscale(0.5);
 }
 
 .mtt-storage-item-ignored:hover {
@@ -240,6 +240,7 @@
   align-items: center;
   gap: 0.15rem;
   flex: 0 0 auto;
+  justify-content: flex-end;
 }
 
 .mtt-storage-tag-button {

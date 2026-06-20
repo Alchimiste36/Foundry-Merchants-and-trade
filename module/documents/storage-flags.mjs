@@ -276,7 +276,9 @@ export function buildStorageItemIntentState({
   const activeSessionForClaim =
     activeSession ??
     (Array.isArray(sessions)
-      ? sessions.find((session) => String(session?.actorUuid ?? "").trim() === String(activeSessionActorUuid ?? "").trim())
+      ? sessions.find(
+          (session) => String(session?.actorUuid ?? "").trim() === String(activeSessionActorUuid ?? "").trim()
+        )
       : null)
   const activeActorCurrentClaimQuantity = product
     ? getStorageSessionClaimQuantityForItem(activeSessionForClaim, product)
@@ -340,9 +342,7 @@ export function buildStorageAddIntentBlockState(intentState, { canOverride = fal
   const activeActorCanStillClaimOne = intentState?.activeActorCanClaimMore === true
   const isStorageBlockedByIntent =
     activeActorIgnored || (intentState?.hasWant === true && activeActorCanStillClaimOne !== true)
-  const storageAddBlockReasonKey = isStorageBlockedByIntent
-    ? getStorageAddBlockReasonKey(intentState)
-    : ""
+  const storageAddBlockReasonKey = isStorageBlockedByIntent ? getStorageAddBlockReasonKey(intentState) : ""
 
   return {
     activeActorIgnored,
@@ -415,9 +415,7 @@ function storageCategoryExists(actor, categoryId) {
   const normalizedId = String(categoryId ?? "").trim()
   if (!normalizedId) return true
 
-  return Boolean(
-    getMerchantData(actor)?.catalog?.productCategories?.some((category) => category?.id === normalizedId)
-  )
+  return Boolean(getMerchantData(actor)?.catalog?.productCategories?.some((category) => category?.id === normalizedId))
 }
 
 export async function applyStorageIgnoreAutoCategory(actor, item, { sessions = [], activeSessionActorUuid = "" } = {}) {
@@ -447,12 +445,15 @@ export async function applyStorageIgnoreAutoCategory(actor, item, { sessions = [
   if (!hasOriginalCategory) return intentState
 
   const restoredCategory = storageCategoryExists(actor, originalCategory) ? originalCategory : ""
+
   await item.update(
     {
-      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`]: restoredCategory,
-      [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.-=ignoreOriginalCategory`]: null
+      [`flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.category`]: restoredCategory
     },
     { mtt: true }
   )
+
+  await item.unsetFlag(MTT.ID, `${MTT.FLAGS.STORAGE}.ignoreOriginalCategory`)
+
   return intentState
 }

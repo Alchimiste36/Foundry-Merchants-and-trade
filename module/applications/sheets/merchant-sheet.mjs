@@ -11,6 +11,7 @@ import {
   getStorageFlagPath,
   updateStorageData,
   isMTTStorage,
+  getStorageAccessActorUuids,
   getStorageTradeResponsibleActorUuids,
   canActorTradeWithMerchantAsStorage,
   setStorageTradeResponsibleActorUuids,
@@ -625,6 +626,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
   }
 
+  #canUserViewStorageMerchantSession(storageActor, user = game.user) {
+    if (user?.isGM) return true
+    if (this.#canUserManageCurrentSheet(user)) return true
+
+    return getStorageAccessActorUuids(storageActor).some((actorUuid) => this.#userOwnsActorUuid(actorUuid, user))
+  }
+
   #canUserTradeWithMerchantAsStorage(storageActor, user = game.user) {
     if (user?.isGM) return true
     if (this.#canUserManageCurrentSheet(user)) return true
@@ -664,10 +672,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!isMTTStorage(actor)) return baseAccess
 
+    const canViewStorageSession = this.#canUserViewStorageMerchantSession(actor, user)
+    const canTradeAsStorage = this.#canUserTradeWithMerchantAsStorage(actor, user)
+
     return {
       ...baseAccess,
-      canInteractWithOtherSession:
-        baseAccess.canInteractWithOtherSession && this.#canUserTradeWithMerchantAsStorage(actor, user)
+      canViewOtherSession: baseAccess.canViewOtherSession || canViewStorageSession,
+      canSelectOtherSession: baseAccess.canSelectOtherSession || canViewStorageSession,
+      canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || canTradeAsStorage
     }
   }
 

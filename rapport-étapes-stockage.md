@@ -2088,3 +2088,66 @@ Pour un stockage, seule l’interaction peut être limitée par les responsables
 8. Vérifier que le MJ peut tout voir et tout faire.
 
 ---
+
+# Correction 3.1.C.2 — Droits responsables storage sur session marchand
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.C.2.
+- [x] Vérifier que le rail commun reste inchangé dans `#prepareAccessContext()`.
+- [x] Vérifier que `prepareAccessClients()` ne réintroduit aucun personnage joueur automatique.
+- [x] Réutiliser `getStorageAccessActorUuids()` pour la consultation storage.
+- [x] Conserver `#canUserTradeWithMerchantAsStorage()` pour l’interaction responsable.
+- [x] Corriger uniquement la branche storage de `#getSessionActorAccess()`.
+- [x] Vérifier la syntaxe, le lint ciblé et le format.
+
+## Bloc corrigé
+
+`#getSessionActorAccess()` sépare maintenant les droits storage :
+
+- consultation / sélection : droits communs ou possession d’un acteur explicitement présent dans le rail du stockage ;
+- interaction : droits communs ou possession d’un acteur responsable du marchandage du stockage.
+
+La branche storage utilise donc l’addition des sources de droits :
+
+```js
+canViewOtherSession: baseAccess.canViewOtherSession || canViewStorageSession,
+canSelectOtherSession: baseAccess.canSelectOtherSession || canViewStorageSession,
+canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || canTradeAsStorage
+```
+
+## Conservé volontairement
+
+- Le rail marchand reste commun : aucune branche `isStorageClient` n’a été ajoutée dans `#prepareAccessContext()`.
+- La card stockage reste visible selon les règles communes du rail marchand.
+- `prepareAccessClients()` ne réintroduit ni `game.users`, ni `user.character`, ni `defaultPlayerAuthorization`.
+- Les responsables storage ne doivent plus être propriétaires de l’acteur stockage pour interagir.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun flux d’achat, vente, drop, livraison ou validation.
+- Aucun changement de monnaie, journal, tags, catégories ou transferts storage.
+- Aucun template.
+- Aucun style.
+- Aucune nouvelle permission.
+- Aucun helper `storage-*` dupliqué.
+
+## Vérifications manuelles simples
+
+1. Ajouter un stockage au rail d’un marchand.
+2. Vérifier que sa card reste visible selon la permission commune du rail.
+3. Ajouter des acteurs explicitement dans le rail du stockage.
+4. Vérifier qu’un joueur possédant un acteur du rail storage peut voir et sélectionner la session storage chez le marchand.
+5. Vérifier qu’il ne peut pas interagir s’il n’est pas responsable.
+6. Marquer cet acteur comme responsable du marchandage.
+7. Vérifier qu’il peut alors interagir sans être propriétaire de l’acteur stockage.
+8. Vérifier qu’un acteur absent du rail du stockage ne gagne aucun accès.
+9. Vérifier qu’un client marchand classique fonctionne comme avant.
+10. Vérifier qu’aucun personnage joueur n’est ajouté automatiquement au rail.
+
+---

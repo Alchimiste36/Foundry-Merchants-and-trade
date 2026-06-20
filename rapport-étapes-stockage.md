@@ -1822,3 +1822,51 @@ La sélection est persistée dans les flags du stockage et l’état responsable
 7. Ouvrir un marchand et vérifier que le rail marchand et les transactions n’ont pas changé.
 
 ---
+
+# Correction 3.1.A.1 — Responsables storage : acteurs dynamiques et retrait rail
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.A.1.
+- [x] Remplacer la source de la liste des responsables par la source préparée du rail commun.
+- [x] Inclure les acteurs dynamiques liés aux joueurs.
+- [x] Dédupliquer les responsables proposés par `actorUuid`.
+- [x] Conserver l’écriture uniquement dans `storage.tradeWithMerchant.responsibleActorUuids`.
+- [x] Nettoyer `responsibleActorUuids` lors du retrait explicite d’un acteur du rail storage.
+- [x] Vérifier la syntaxe et le lint ciblé.
+
+## Résumé
+
+La configuration des responsables utilise maintenant la même préparation d’acteurs que le rail storage.
+
+Les acteurs persistés dans `storage.access.actors` et les acteurs dynamiques liés aux joueurs peuvent donc être proposés comme responsables du marchandage.
+
+Lorsqu’un acteur est retiré de la feuille storage via le menu du rail, son UUID est aussi retiré de `tradeWithMerchant.responsibleActorUuids` dans la même mise à jour storage.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune logique du rail marchand.
+- Aucun droit d’interaction marchand pour un stockage.
+- Aucun flux d’achat/vente.
+- Aucun nettoyage automatique des responsables au rendu.
+- Aucun forçage des acteurs dynamiques dans `storage.access.actors`.
+- Aucun template ou style.
+
+## Vérifications manuelles simples
+
+1. Ouvrir un stockage avec un personnage joueur visible dynamiquement dans le rail.
+2. Vérifier que ce personnage apparaît dans les responsables du marchandage.
+3. Sélectionner ce personnage comme responsable et vérifier que la sélection persiste après rendu.
+4. Ajouter un acteur manuel au rail storage.
+5. Le sélectionner comme responsable.
+6. Le retirer avec le menu “Retirer l’acteur de la feuille”.
+7. Ajouter à nouveau le même acteur et vérifier qu’il n’est plus responsable.
+8. Vérifier que les autres responsables restent sélectionnés.
+9. Ouvrir un marchand et vérifier que son comportement n’a pas changé.
+
+---

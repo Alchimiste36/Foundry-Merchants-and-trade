@@ -391,7 +391,21 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #prepareStorageTradeWithMerchantContext(storageData = null) {
     // MTT storage — configuration des responsables de marchandage du stockage
     const responsibleActorUuids = new Set(storageData?.tradeWithMerchant?.responsibleActorUuids ?? [])
-    const actors = this.#getStoredStorageAccessActors().map((actor) => {
+    const actorsByUuid = new Map()
+
+    for (const entry of this.#prepareAccessClients()) {
+      const actorUuid = String(entry.actorUuid ?? "").trim()
+      if (!actorUuid) continue
+
+      const existing = actorsByUuid.get(actorUuid)
+      actorsByUuid.set(actorUuid, {
+        ...entry,
+        actorName: String(entry.actorName ?? "").trim() || existing?.actorName || actorUuid,
+        actorImg: String(entry.actorImg ?? "").trim() || existing?.actorImg || "icons/svg/mystery-man.svg"
+      })
+    }
+
+    const actors = Array.from(actorsByUuid.values()).map((actor) => {
       const actorUuid = String(actor.actorUuid ?? "").trim()
       const actorName = String(actor.actorName ?? "").trim() || actorUuid
       const actorImg = String(actor.actorImg ?? "").trim() || "icons/svg/mystery-man.svg"
@@ -2598,16 +2612,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return false
 
-    const clients = this.#getAccessEntries().filter((entry) => entry.actorUuid !== client.actorUuid)
+    const removedActorUuid = String(client.actorUuid ?? "").trim()
+    const clients = this.#getAccessEntries().filter((entry) => entry.actorUuid !== removedActorUuid)
     const removedSessionIds = new Set(openSessions.map((session) => session.id))
     const sessions = this.#getSessions().filter((session) => !removedSessionIds.has(session.id))
     if (removedSessionIds.has(this.#activeSessionId)) this.#activeSessionId = null
-    if (this.#selectedClientActorUuid === client.actorUuid) this.#selectedClientActorUuid = ""
+    if (this.#selectedClientActorUuid === removedActorUuid) this.#selectedClientActorUuid = ""
     this.#sessionCheckResult = null
 
-    await this.#setAccessEntries(clients, {
+    const changes = {
       sessions: { entries: sessions }
-    })
+    }
+
+    if (this.#isStorageEntity()) {
+      changes.tradeWithMerchant = {
+        responsibleActorUuids: getStorageTradeResponsibleActorUuids(this.actor).filter(
+          (actorUuid) => actorUuid !== removedActorUuid
+        )
+      }
+    }
+
+    await this.#setAccessEntries(clients, changes)
 
     this.render()
     return true

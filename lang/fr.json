@@ -205,6 +205,13 @@
         "configuration": "Les réglages propres au stockage seront ajoutés ici.",
         "journal": "Le journal des mouvements du stockage sera affiché ici."
       },
+      "tradeWithMerchant": {
+        "title": "Responsables du marchandage",
+        "description": "Les acteurs liés au stockage peuvent voir la session de ce stockage chez un marchand. Les responsables sélectionnés peuvent acheter et vendre au nom du stockage.",
+        "noActors": "Aucun acteur n’est lié à ce stockage.",
+        "responsibleTooltip": "{actorName} peut marchander au nom du stockage.",
+        "notResponsibleTooltip": "{actorName} peut voir la session du stockage chez un marchand, mais ne peut pas encore marchander en son nom."
+      },
       "session": {
         "title": "Session d’Échange",
         "take": "Le PJ prend / récupère",

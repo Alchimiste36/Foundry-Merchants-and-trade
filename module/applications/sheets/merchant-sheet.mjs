@@ -10,6 +10,8 @@ import {
   getStorageData,
   getStorageFlagPath,
   updateStorageData,
+  getStorageTradeResponsibleActorUuids,
+  setStorageTradeResponsibleActorUuids,
   setStorageItemWarningGM,
   setStorageItemBlocked,
   applyStorageIgnoreAutoCategory,
@@ -160,6 +162,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleProductCategory: MerchantSheet.#onToggleProductCategory,
       toggleProductFreePrice: MerchantSheet.#onToggleProductFreePrice,
       toggleServiceFreePrice: MerchantSheet.#onToggleServiceFreePrice,
+      toggleStorageTradeResponsibleActor: MerchantSheet.#onToggleStorageTradeResponsibleActor,
       addProductToSession: MerchantSheet.#onAddProductToSession,
       addServiceToSession: MerchantSheet.#onAddServiceToSession,
       toggleClientAccess: MerchantSheet.#onToggleClientAccess,
@@ -260,6 +263,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.actor = this.actor
     context.merchant = merchantContext
     context.permissions = sheetPermissions
+    context.storageTradeWithMerchant = isStorage ? this.#prepareStorageTradeWithMerchantContext(storageData) : null
 
     const activeSession = this.#getActiveSession()
     const canEditActiveSession = Boolean(isStorage && this.#canEditStorageTagsForSession(activeSession))
@@ -381,6 +385,43 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       hasTransactions: false,
       transactions: [],
       sort: this.#journalSort
+    }
+  }
+
+  #prepareStorageTradeWithMerchantContext(storageData = null) {
+    // MTT storage — configuration des responsables de marchandage du stockage
+    const responsibleActorUuids = new Set(storageData?.tradeWithMerchant?.responsibleActorUuids ?? [])
+    const actors = this.#getStoredStorageAccessActors().map((actor) => {
+      const actorUuid = String(actor.actorUuid ?? "").trim()
+      const actorName = String(actor.actorName ?? "").trim() || actorUuid
+      const actorImg = String(actor.actorImg ?? "").trim() || "icons/svg/mystery-man.svg"
+      const isResponsible = responsibleActorUuids.has(actorUuid)
+
+      return {
+        actorUuid,
+        actorName,
+        actorImg,
+        isResponsible,
+        cardClasses: [
+          "mtt-storage-trade-responsible-card",
+          isResponsible ? "mtt-storage-trade-responsible-card-active" : ""
+        ]
+          .filter(Boolean)
+          .join(" "),
+        tooltip: game.i18n.format(
+          isResponsible
+            ? "mtt.storage.tradeWithMerchant.responsibleTooltip"
+            : "mtt.storage.tradeWithMerchant.notResponsibleTooltip",
+          { actorName }
+        )
+      }
+    })
+
+    return {
+      actors,
+      hasActors: actors.length > 0,
+      canConfigure: this.isEditable,
+      description: game.i18n.localize("mtt.storage.tradeWithMerchant.description")
     }
   }
 
@@ -2023,6 +2064,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
+  static async #onToggleStorageTradeResponsibleActor(event, target) {
+    event.preventDefault()
+
+    if (!this.#isStorageEntity()) return
+    if (!this.isEditable) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+      return
+    }
+
+    const actorUuid = String(target.dataset.actorUuid ?? "").trim()
+    if (!actorUuid) return
+
+    const current = getStorageTradeResponsibleActorUuids(this.actor)
+    const next = current.includes(actorUuid) ? current.filter((uuid) => uuid !== actorUuid) : [...current, actorUuid]
+
+    await setStorageTradeResponsibleActorUuids(this.actor, next)
+    this.render()
+  }
+
   // ─── Dropped document helpers ─────────────────────────────────────────────
 
   async #getDroppedActorDocument(event) {
@@ -2313,7 +2373,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const sessionActorAccess = this.#getSessionActorAccess(client.actorUuid)
         const isOwnClientCard = this.#userControlsActor(client.actorUuid)
         // MTT base — la permission "Voir les autres acteurs du rail" filtre les cards communes.
-        const canSeeCard = this.#canUserManageCurrentSheet() || canUserViewClientActor(clientActor, permissions, game.user)
+        const canSeeCard =
+          this.#canUserManageCurrentSheet() || canUserViewClientActor(clientActor, permissions, game.user)
         const canClickCard =
           (client.hasSession && sessionActorAccess.canSelectOtherSession) ||
           (!client.hasSession && sessionActorAccess.canInteractWithOtherSession) ||
@@ -2924,7 +2985,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
       existingItem.availableQuantity = hasExistingQuantityLimit ? existingQuantityLimit : null
       existingItem.hasLimitedQuantity = type === "product" ? hasExistingQuantityLimit : hasLimitedStock
-      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, { session, side: "buyer" })) {
+      if (
+        !this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, {
+          session,
+          side: "buyer"
+        })
+      ) {
         return null
       }
 
@@ -3090,7 +3156,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (existingItem) {
       existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
       existingItem.hasLimitedQuantity = hasLimitedStock
-      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, { session, side: "seller" })) {
+      if (
+        !this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, {
+          session,
+          side: "seller"
+        })
+      ) {
         return null
       }
 

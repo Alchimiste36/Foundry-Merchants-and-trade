@@ -66,10 +66,27 @@ export function buildDefaultStorageData(actor = null) {
     content: {
       categories: []
     },
+    tradeWithMerchant: {
+      responsibleActorUuids: []
+    },
     journal: {
       entries: []
     }
   }
+}
+
+function normalizeStorageResponsibleActorUuids(actorUuids = []) {
+  const source = Array.isArray(actorUuids) ? actorUuids : []
+  const seen = new Set()
+
+  return source
+    .map((actorUuid) => String(actorUuid ?? "").trim())
+    .filter(Boolean)
+    .filter((actorUuid) => {
+      if (seen.has(actorUuid)) return false
+      seen.add(actorUuid)
+      return true
+    })
 }
 
 export function normalizeStorageData(data = {}, actor = null) {
@@ -95,6 +112,10 @@ export function normalizeStorageData(data = {}, actor = null) {
   merged.sessions.entries ??= []
   merged.content ??= {}
   merged.content.categories ??= []
+  merged.tradeWithMerchant ??= {}
+  merged.tradeWithMerchant.responsibleActorUuids = normalizeStorageResponsibleActorUuids(
+    merged.tradeWithMerchant.responsibleActorUuids
+  )
   merged.journal ??= {}
   merged.journal.entries ??= []
 
@@ -147,6 +168,31 @@ export async function unsetStorageData(actor) {
     return actor.unsetFlag(MTT.ID, MTT.FLAGS.TYPE)
   }
   return actor
+}
+
+// MTT storage — responsables autorisés à marchander au nom du stockage
+
+export function getStorageTradeWithMerchantData(actor) {
+  const storageData = getStorageData(actor)
+  return storageData?.tradeWithMerchant ?? { responsibleActorUuids: [] }
+}
+
+export function getStorageTradeResponsibleActorUuids(actor) {
+  return getStorageTradeWithMerchantData(actor).responsibleActorUuids ?? []
+}
+
+export function isStorageTradeResponsibleActor(actor, actorUuid) {
+  const normalizedActorUuid = String(actorUuid ?? "").trim()
+  if (!normalizedActorUuid) return false
+  return getStorageTradeResponsibleActorUuids(actor).includes(normalizedActorUuid)
+}
+
+export async function setStorageTradeResponsibleActorUuids(actor, actorUuids = []) {
+  return updateStorageData(actor, {
+    tradeWithMerchant: {
+      responsibleActorUuids: normalizeStorageResponsibleActorUuids(actorUuids)
+    }
+  })
 }
 
 // ─── Flags statuts stockage sur les Items ────────────────────────────────────

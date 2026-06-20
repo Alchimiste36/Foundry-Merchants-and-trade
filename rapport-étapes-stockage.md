@@ -1766,3 +1766,59 @@ Les validations de transaction, de stock, de quantité, de transfert, de livrais
 5. Tenter une validation avec quantité incohérente et vérifier que les contrôles de stock restent actifs.
 
 ---
+
+# Étape 3.1.A — Responsables du marchandage stockage
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 3.1.A.
+- [x] Ajouter `tradeWithMerchant.responsibleActorUuids` aux données storage.
+- [x] Normaliser la liste des responsables sans valider l’existence des acteurs.
+- [x] Ajouter des helpers storage dédiés au marchandage via marchand.
+- [x] Préparer le contexte de configuration depuis les acteurs du rail stockage.
+- [x] Ajouter l’action de sélection/désélection des responsables.
+- [x] Remplacer le placeholder de configuration stockage par une section fonctionnelle.
+- [x] Ajouter les styles et traductions FR/EN.
+- [x] Compiler le CSS et vérifier la syntaxe.
+
+## Résumé
+
+Les données stockage contiennent maintenant `tradeWithMerchant.responsibleActorUuids`.
+
+La configuration du stockage affiche les acteurs liés au stockage et permet de sélectionner ceux qui pourront, dans une étape suivante, marchander au nom du stockage chez un marchand.
+
+La sélection est persistée dans les flags du stockage et l’état responsable est visible par une bordure et un halo.
+
+## Fichiers modifiés
+
+- `module/documents/storage-flags.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/storage-configuration.hbs`
+- `styles/applications/merchant-catalog.less`
+- `css/mtt.css`
+- `lang/fr.json`
+- `lang/en.json`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune logique du rail marchand.
+- Aucun droit de consultation ou d’interaction marchand pour un stockage.
+- Aucun flux d’achat/vente.
+- Aucun drop d’Item storage dans une session marchand.
+- Aucune livraison d’achat marchand dans le stockage.
+- Aucune validation croisée marchand / stockage.
+- Aucune option globale.
+- Aucun champ `commerce` ou `tradeWithShop`.
+
+## Vérifications manuelles simples
+
+1. Ouvrir un stockage avec au moins un acteur dans son rail.
+2. Ouvrir l’onglet Configuration.
+3. Vérifier que les acteurs du rail apparaissent en cards carrées.
+4. Cliquer sur un acteur et vérifier que la card devient responsable.
+5. Fermer / rouvrir la feuille et vérifier que la sélection est persistée.
+6. Cliquer à nouveau pour retirer le statut responsable.
+7. Ouvrir un marchand et vérifier que le rail marchand et les transactions n’ont pas changé.
+
+---

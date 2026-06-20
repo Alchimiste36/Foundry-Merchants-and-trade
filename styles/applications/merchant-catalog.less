@@ -609,6 +609,71 @@
   font-size: 0.86rem;
 }
 
+/* MTT storage — styles propres aux responsables de marchandage */
+.mtt-storage-trade-with-merchant {
+  gap: 0.7rem;
+}
+
+.mtt-storage-trade-responsibles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
+  gap: 0.55rem;
+}
+
+.mtt-storage-trade-responsible-card {
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+  justify-items: center;
+
+  &:hover {
+    border-color: var(--mtt-accent);
+    background: var(--mtt-bg-hover);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.58;
+  }
+}
+
+.mtt-storage-trade-responsible-card-active {
+  border-color: var(--mtt-accent);
+  box-shadow: 0 0 0 2px var(--mtt-accent-soft);
+  background: #375738ad;
+}
+
+.mtt-storage-trade-responsible-card-image {
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+}
+
+.mtt-storage-trade-responsible-card-name {
+  max-width: 100%;
+  min-width: 0;
+  color: var(--mtt-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mtt-merchant-wallet-currency-input {
   text-align: right;
 }

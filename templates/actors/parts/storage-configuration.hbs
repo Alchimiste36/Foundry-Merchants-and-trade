@@ -1,7 +1,32 @@
 {{!-- MTT storage — contenu de configuration propre au stockage --}}
 <section class="mtt-merchant-configuration">
-  <section class="mtt-merchant-configuration-section">
-    <h2 class="mtt-merchant-section-title">{{localize "mtt.storage.placeholder.configurationTitle"}}</h2>
-    <p class="mtt-merchant-configuration-empty">{{localize "mtt.storage.placeholder.configuration"}}</p>
+  <section class="mtt-merchant-configuration-section mtt-storage-trade-with-merchant">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.storage.tradeWithMerchant.title"}}</h2>
+    <p class="mtt-merchant-configuration-hint">{{localize "mtt.storage.tradeWithMerchant.description"}}</p>
+
+    {{#if storageTradeWithMerchant.hasActors}}
+      <div class="mtt-storage-trade-responsibles">
+        {{#each storageTradeWithMerchant.actors as |actor|}}
+          <button
+            type="button"
+            class="{{actor.cardClasses}}"
+            data-action="toggleStorageTradeResponsibleActor"
+            data-actor-uuid="{{actor.actorUuid}}"
+            data-tooltip="{{actor.tooltip}}"
+            data-tooltip-direction="UP"
+            {{#unless @root.storageTradeWithMerchant.canConfigure}}disabled{{/unless}}
+          >
+            <img
+              class="mtt-storage-trade-responsible-card-image"
+              src="{{actor.actorImg}}"
+              alt="{{actor.actorName}}"
+            />
+            <span class="mtt-storage-trade-responsible-card-name">{{actor.actorName}}</span>
+          </button>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="mtt-merchant-configuration-empty">{{localize "mtt.storage.tradeWithMerchant.noActors"}}</p>
+    {{/if}}
   </section>
 </section>

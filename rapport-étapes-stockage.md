@@ -2437,3 +2437,50 @@ Quand `clientIsMtt` est vrai, la simulation lit les quantités dans `flags.mtt-m
 7. Vérifier que le bloc `warningGM` d’un stockage source n’a pas changé.
 
 ---
+
+# Correction 3.1.E — Identité commerciale commune des transferts
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.E.
+- [x] Adapter la fusion stricte commune sans créer de helper storage/shop parallèle.
+- [x] Ajouter les données techniques temporaires `sourceItemUuid` et `sourceIsCommerciallyModified` aux plans de livraison.
+- [x] Conserver la comparaison avant mutation de l’identité livrée.
+- [x] Mettre à jour uniquement la quantité lors d’une fusion.
+- [x] Appliquer la nouvelle identité commerciale seulement lors de la création d’une ligne.
+- [x] Brancher les ventes vers marchand sur `getDeliveredItemMergeMode()`.
+- [x] Ne pas modifier le rail, les droits, le socket, les services, la monnaie, le journal, les templates, les styles ou les langues.
+
+## Résumé
+
+La fusion des Items livrés repose maintenant sur la fonction commune `getDeliveredItemMergeMode()`.
+
+Un Item non modifié conserve la règle principale `sourceUuid` entrant vers `sourceUuid` existant. La fusion stricte accepte aussi le cas utile où le `sourceUuid` entrant correspond à l’UUID réel de l’Item existant, pour permettre le retour vers l’Item qui a créé une identité commerciale.
+
+Un Item source modifié commercialement est comparé avec son UUID réel avant toute mutation. Si une fusion existe, seule la quantité augmente. Si aucune fusion n’existe, la nouvelle ligne reçoit cet UUID réel comme nouveau `sourceUuid` et repart avec `isCommerciallyModified: false`.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-utils.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement du rail marchand.
+- Aucun changement des droits ou responsables du marchandage.
+- Aucun changement du socket.
+- Aucun changement des services.
+- Aucun changement de monnaie ou pourcentages personnalisés.
+- Aucun changement du journal.
+- Aucun template, style ou fichier de langue.
+
+## Vérifications manuelles simples
+
+1. Acheter un objet non modifié et vérifier que les achats suivants fusionnent par `sourceUuid`.
+2. Modifier commercialement un produit marchand, l’acheter vers un stockage, puis vérifier que la ligne créée utilise l’UUID réel du produit vendeur comme `sourceUuid`.
+3. Revendre cette ligne vers le marchand initial et vérifier la fusion avec l’Item existant.
+4. Vérifier qu’une fusion ne change ni le nom, ni le `sourceUuid`, ni `isCommerciallyModified`, seulement la quantité.
+5. Vérifier qu’un produit avec secrets commerciaux actifs ne fusionne pas.
+
+---

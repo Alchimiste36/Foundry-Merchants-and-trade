@@ -29,8 +29,7 @@ import {
 import {
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
-  getItemAvailableQuantity,
-  findMergeableMerchantItemBySourceUuid
+  getItemAvailableQuantity
 } from "./merchant-catalog.mjs"
 import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
@@ -1566,6 +1565,8 @@ export async function buildExecutionPreview(actor, session, options = {}) {
       const deliveryProductData = {
         id: catalogProduct.id,
         sourceUuid: catalogProduct.sourceUuid,
+        sourceItemUuid: String(actor.items.get(catalogProduct.id)?.uuid ?? "").trim(),
+        sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
         deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
         isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
         secretName: catalogProduct.secretName ?? "",
@@ -2055,16 +2056,7 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
 
   try {
     for (const stack of simulation.updated) {
-      const updateData = { [quantityPath]: stack.afterQuantity }
-      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
-      const deliveredProductFlags = foundry.utils.getProperty(deliveredItemData, productFlagPath) ?? {}
-      const existingProductFlags = stack.item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-      updateData[productFlagPath] = {
-        ...deliveredProductFlags,
-        ...existingProductFlags,
-        sourceUuid: getMttSourceUuid(stack.item) || getMttSourceUuid(deliveredItemData, productData)
-      }
-      await stack.item.update(updateData)
+      await stack.item.update({ [quantityPath]: stack.afterQuantity })
       result.updated.push(stack)
       result.deliveredQuantity += stack.addedQuantity
     }
@@ -2073,6 +2065,17 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
       const itemData = foundry.utils.deepClone(deliveredItemData)
       foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
       addDeliveredItemDescriptionBlock(itemData, productData)
+      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
+      const productFlags = foundry.utils.getProperty(itemData, productFlagPath) ?? {}
+      const nextSourceUuid =
+        productData?.sourceIsCommerciallyModified === true
+          ? String(productData?.sourceItemUuid ?? "").trim()
+          : getMttSourceUuid(itemData, productData)
+      foundry.utils.setProperty(itemData, productFlagPath, {
+        ...productFlags,
+        sourceUuid: nextSourceUuid,
+        isCommerciallyModified: false
+      })
       const documents = await actor.createEmbeddedDocuments("Item", [itemData])
       const item = documents[0]
       if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
@@ -2118,11 +2121,10 @@ async function deliverPurchasedProductToMttDestination(destinationActor, transfe
   }
 
   try {
-    const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
-    const shouldMarkDeliveredStorageItemCommerciallyModified =
-      Boolean(transfer?.catalogProduct?.isCommerciallyModified) ||
-      productHasSecretInfo(transfer?.catalogProduct) ||
-      productHasSecretInfo(productData)
+    const nextSourceUuid =
+      productData?.sourceIsCommerciallyModified === true
+        ? String(productData?.sourceItemUuid ?? "").trim()
+        : getMttSourceUuid(deliveredItemData, productData)
 
     for (const stack of simulation.updated) {
       await updateCatalogProduct(destinationActor, stack.item.id, { quantity: stack.afterQuantity })
@@ -2140,12 +2142,12 @@ async function deliverPurchasedProductToMttDestination(destinationActor, transfe
         itemData,
         productFlags: {
           enabled: true,
-          sourceUuid,
+          sourceUuid: nextSourceUuid,
           quantity: stack.quantity,
           deliveryQuantityPerLot: productData?.deliveryQuantityPerLot ?? null,
           ownershipLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
           isHidden: false,
-          isCommerciallyModified: shouldMarkDeliveredStorageItemCommerciallyModified
+          isCommerciallyModified: false
         }
       })
       if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
@@ -2263,6 +2265,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     const deliveryProductData = {
       id: catalogProduct.id,
       sourceUuid: catalogProduct.sourceUuid,
+      sourceItemUuid: String(actor.items.get(catalogProduct.id)?.uuid ?? "").trim(),
+      sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
       merchantName: skipCommercial ? "" : (actor?.name ?? ""),
       transactionNumber: skipCommercial ? undefined : options.transactionNumber,
       deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
@@ -2520,8 +2524,19 @@ export async function executeSessionItemTransfers(actor, plan) {
   for (const transfer of plan.operations.sellerTransfers) {
     const automaticCategory = getAutomaticItemCategory(transfer.sourceItem)
     const categoryValue = await getOrCreateAutomaticProductCategory(actor, automaticCategory)
-    const sourceUuid = String(transfer.sourceItem.uuid ?? "").trim()
-    const existingMerchantItem = findMergeableMerchantItemBySourceUuid(actor, sourceUuid)
+    const sourceProductFlags = transfer.sourceItem.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    const sourceIsCommerciallyModified = Boolean(sourceProductFlags.isCommerciallyModified)
+    const sourceItemUuid = String(transfer.sourceItem.uuid ?? "").trim()
+    const deliveredItemData = transfer.sourceItem.toObject()
+    const productData = {
+      sourceUuid: String(sourceProductFlags.sourceUuid ?? "").trim(),
+      sourceItemUuid,
+      sourceIsCommerciallyModified
+    }
+    const existingMerchantItem =
+      Array.from(actor.items.values()).find((item) =>
+        Boolean(getDeliveredItemMergeMode(item, deliveredItemData, productData))
+      ) ?? null
 
     if (existingMerchantItem) {
       const existingFlags = existingMerchantItem.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
@@ -2534,14 +2549,17 @@ export async function executeSessionItemTransfers(actor, plan) {
         quantity: Number((currentQuantity + transfer.quantity).toFixed(2))
       })
     } else {
+      const nextSourceUuid = sourceIsCommerciallyModified
+        ? sourceItemUuid
+        : String(sourceProductFlags.sourceUuid ?? sourceItemUuid).trim()
       const { itemData, productFlags } = buildCatalogProductFromItem(transfer.sourceItem, {
         categoryValue,
         automaticCategory,
-        sourceUuid
+        sourceUuid: nextSourceUuid
       })
       await addCatalogProduct(actor, {
         itemData,
-        productFlags: { ...productFlags, quantity: transfer.quantity }
+        productFlags: { ...productFlags, quantity: transfer.quantity, isCommerciallyModified: false }
       })
     }
 

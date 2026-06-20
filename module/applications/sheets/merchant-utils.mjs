@@ -256,8 +256,23 @@ function canStrictMergeDeliveredItem(existingItem, deliveredItemData, productDat
 
   const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
   const existingSourceUuid = getMttSourceUuid(existingItem)
+  const existingItemUuid = String(existingItem?.uuid ?? "").trim()
+  const sourceItemUuid = String(productData?.sourceItemUuid ?? "").trim()
+  const sourceIsCommerciallyModified = Boolean(productData?.sourceIsCommerciallyModified)
 
-  return Boolean(sourceUuid && existingSourceUuid && sourceUuid === existingSourceUuid)
+  if (!sourceIsCommerciallyModified) {
+    return Boolean(
+      sourceUuid &&
+      ((existingSourceUuid && sourceUuid === existingSourceUuid) ||
+        (existingItemUuid && sourceUuid === existingItemUuid))
+    )
+  }
+
+  return Boolean(
+    sourceItemUuid &&
+    ((existingSourceUuid && sourceItemUuid === existingSourceUuid) ||
+      (existingItemUuid && sourceItemUuid === existingItemUuid))
+  )
 }
 
 function canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData = {}) {
@@ -292,14 +307,12 @@ export function getDeliveredItemMergeMode(existingItem, deliveredItemData, produ
   if (
     productHasSecretInfo(productData) ||
     productHasSecretInfo(deliveredProduct) ||
-    productHasSecretInfo(existingProduct) ||
-    productData?.isCommerciallyModified === true ||
-    deliveredProduct.isCommerciallyModified === true ||
-    existingProduct.isCommerciallyModified === true
+    productHasSecretInfo(existingProduct)
   )
     return null
 
   if (canStrictMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "strict"
+  if (productData?.sourceIsCommerciallyModified === true) return null
   if (!getModuleSetting("allowExtendedItemMerge")) return null
   if (canExtendedMergeDeliveredItem(existingItem, deliveredItemData, productData)) return "extended"
 

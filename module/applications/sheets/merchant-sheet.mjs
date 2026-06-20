@@ -1,6 +1,5 @@
 import { MTT } from "../../config/constants.mjs"
 import {
-  isMTTMerchant,
   getMerchantData,
   getMerchantFlagPath,
   updateMerchantData,
@@ -96,7 +95,6 @@ import {
   canAcceptSessionQuantity,
   prepareSessionContext,
   getStoredAccessClients,
-  getBestSessionForClient,
   getEffectiveClientRates,
   getMerchantDefaultClientRates,
   normalizeClientCustomRates,
@@ -2636,27 +2634,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return normalizeSession(session)
   }
 
-  #findExternalOpenSessionForClient(actorUuid) {
-    const normalizedActorUuid = String(actorUuid ?? "").trim()
-    if (!normalizedActorUuid) return null
-
-    return (
-      game.actors.find((actor) => {
-        if (actor.id === this.actor.id) return false
-        if (!this.#isMerchantActor(actor)) return false
-
-        return (getMerchantData(actor)?.sessions?.entries ?? []).some(
-          (session) =>
-            session.actorUuid === normalizedActorUuid && ["active", "pending", "submitted"].includes(session.status)
-        )
-      }) ?? null
-    )
-  }
-
-  #isMerchantActor(actor) {
-    return isMTTMerchant(actor)
-  }
-
   #getActiveSession() {
     const sessions = this.#getSessions()
 
@@ -2728,15 +2705,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    return this.#createSessionForClient(
-      {
-        ...client,
-        isAuthorized: true
-      },
-      {
-        skipExternalSessionCheck: true
-      }
-    )
+    return this.#createSessionForClient({
+      ...client,
+      isAuthorized: true
+    })
   }
 
   #getSessionForAddingItem() {
@@ -3152,7 +3124,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return sessionItem
   }
 
-  async #createSessionForClient(client, { skipExternalSessionCheck = false } = {}) {
+  async #createSessionForClient(client) {
     if (!client?.actorUuid || !client.isAuthorized) {
       ui.notifications.warn(game.i18n.localize("mtt.access.notAuthorizedForTrade"))
       return null
@@ -3162,14 +3134,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (existingSession) {
       this.#selectSession(existingSession.id)
       return existingSession
-    }
-
-    if (!skipExternalSessionCheck) {
-      const externalMerchant = this.#findExternalOpenSessionForClient(client.actorUuid)
-      if (externalMerchant) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.clientAlreadyTrading"))
-        return null
-      }
     }
 
     const sessions = this.#getSessions().map((session) => normalizeSession(session))
@@ -3725,25 +3689,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!client.isAuthorized) {
       if (!this.#canModifyAccessRail()) return
 
-      if (
-        !this.#isStorageEntity() &&
-        !getBestSessionForClient(this.actor, client.actorUuid) &&
-        this.#findExternalOpenSessionForClient(client.actorUuid)
-      ) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.clientAlreadyTrading"))
-        return
-      }
-
       await this.#setClientAuthorization(client, true)
-      const session = await this.#createSessionForClient(
-        {
-          ...client,
-          isAuthorized: true
-        },
-        {
-          skipExternalSessionCheck: true
-        }
-      )
+      const session = await this.#createSessionForClient({
+        ...client,
+        isAuthorized: true
+      })
       if (!session) return
 
       this.render()

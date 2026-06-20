@@ -1720,3 +1720,49 @@ Le droit à récupérer et le fait d’avoir déjà récupéré sont recalculés
 12. Ouvrir un marchand et vérifier qu’il n’est pas impacté.
 
 ---
+
+# Correction commune — Sessions multiples entre feuilles MTT
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction commune.
+- [x] Supprimer la recherche de session ouverte sur les autres feuilles MTT.
+- [x] Simplifier `#createSessionForClient`.
+- [x] Conserver la récupération de session existante sur la même feuille.
+- [x] Nettoyer le clic sur le rail acteur.
+- [x] Supprimer les traductions devenues inutiles.
+- [x] Vérifier la syntaxe JS et la validité des JSON.
+
+## Résumé
+
+Le blocage historique qui empêchait un même acteur d’ouvrir des sessions sur plusieurs feuilles MTT a été retiré de la feuille commune.
+
+La création de session vérifie toujours la feuille courante : si une session existe déjà pour cet acteur sur cette même feuille, elle est sélectionnée au lieu d’être dupliquée.
+
+Les validations de transaction, de stock, de quantité, de transfert, de livraison et de paiement n’ont pas été modifiées.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `lang/fr.json`
+- `lang/en.json`
+- `rapport-étapes-stockage.md`
+
+## Non créé volontairement
+
+- Aucun setting Foundry.
+- Aucune option de configuration MTT.
+- Aucun helper de session multiple.
+- Aucune logique différente marchand / stockage.
+- Aucun verrouillage supplémentaire.
+- Aucune migration.
+
+## Vérifications manuelles simples
+
+1. Ouvrir deux marchands et créer une session pour le même acteur sur chacun.
+2. Ouvrir deux stockages et créer une session pour le même acteur sur chacun.
+3. Ouvrir un marchand et un stockage puis créer une session pour le même acteur sur les deux.
+4. Sur une même feuille MTT, cliquer plusieurs fois sur le même acteur et vérifier que la session existante est récupérée.
+5. Tenter une validation avec quantité incohérente et vérifier que les contrôles de stock restent actifs.
+
+---

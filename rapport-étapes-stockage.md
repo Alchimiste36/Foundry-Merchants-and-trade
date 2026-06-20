@@ -2484,3 +2484,39 @@ Un Item source modifié commercialement est comparé avec son UUID réel avant t
 5. Vérifier qu’un produit avec secrets commerciaux actifs ne fusionne pas.
 
 ---
+
+# Correction 3.1.E.1 — Source UUID commercial sans acteur
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.E.1.
+- [x] Corriger uniquement le format de `sourceItemUuid`.
+- [x] Normaliser les UUID complets `Actor.xxx.Item.yyy` en `Item.yyy`.
+- [x] Appliquer la normalisation dans les plans d’achat et les ventes vers marchand.
+- [x] Normaliser aussi l’UUID réel de l’Item existant pendant la comparaison stricte.
+- [x] Ne pas refaire la logique de fusion.
+- [x] Ne pas réécrire l’identité d’une ligne fusionnée.
+
+## Résumé
+
+La nouvelle identité commerciale d’un Item modifié n’utilise plus l’UUID complet de l’acteur porteur.
+
+Quand un Item commercialement modifié crée une nouvelle ligne chez le receveur, le `sourceUuid` reçu utilise maintenant le format stable `Item.<id>` au lieu de `Actor.<actorId>.Item.<id>`.
+
+La logique de fusion existante n’a pas été refaite. La correction normalise seulement la valeur technique comparée et persistée lors d’une création.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-utils.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement des règles générales de fusion.
+- Aucun changement des `sourceUuid` historiques.
+- Aucune migration de données existantes.
+- Aucune réécriture de l’identité d’une ligne fusionnée.
+- Aucun changement du rail, des droits, du socket, des services, de la monnaie, du journal, des templates, des styles ou des langues.
+
+---

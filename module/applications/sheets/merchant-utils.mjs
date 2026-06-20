@@ -197,6 +197,13 @@ export function getMttSourceUuid(itemOrData, productData = null) {
   return String(product.sourceUuid ?? "").trim()
 }
 
+export function toItemOnlyUuid(uuid) {
+  const value = String(uuid ?? "").trim()
+  const match = value.match(/(?:^|\.)Item\.([^.]+)$/)
+  if (!match) return value.startsWith("Item.") ? value : ""
+  return `Item.${match[1]}`
+}
+
 function getMttProductFlags(itemOrData) {
   const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
   return (
@@ -256,8 +263,8 @@ function canStrictMergeDeliveredItem(existingItem, deliveredItemData, productDat
 
   const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
   const existingSourceUuid = getMttSourceUuid(existingItem)
-  const existingItemUuid = String(existingItem?.uuid ?? "").trim()
-  const sourceItemUuid = String(productData?.sourceItemUuid ?? "").trim()
+  const existingItemUuid = toItemOnlyUuid(existingItem?.uuid)
+  const sourceItemUuid = toItemOnlyUuid(productData?.sourceItemUuid)
   const sourceIsCommerciallyModified = Boolean(productData?.sourceIsCommerciallyModified)
 
   if (!sourceIsCommerciallyModified) {

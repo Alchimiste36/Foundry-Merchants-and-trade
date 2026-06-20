@@ -17,6 +17,7 @@ import {
   getAvailableStackSpace,
   getDeliveryStackingConfig,
   getMttSourceUuid,
+  toItemOnlyUuid,
   getDeliveredItemMergeMode,
   roundToSmallestCurrencyUnit,
   escapeHTML,
@@ -1565,7 +1566,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
       const deliveryProductData = {
         id: catalogProduct.id,
         sourceUuid: catalogProduct.sourceUuid,
-        sourceItemUuid: String(actor.items.get(catalogProduct.id)?.uuid ?? "").trim(),
+        sourceItemUuid: toItemOnlyUuid(actor.items.get(catalogProduct.id)?.uuid),
         sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
         deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
         isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
@@ -2265,7 +2266,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     const deliveryProductData = {
       id: catalogProduct.id,
       sourceUuid: catalogProduct.sourceUuid,
-      sourceItemUuid: String(actor.items.get(catalogProduct.id)?.uuid ?? "").trim(),
+      sourceItemUuid: toItemOnlyUuid(actor.items.get(catalogProduct.id)?.uuid),
       sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
       merchantName: skipCommercial ? "" : (actor?.name ?? ""),
       transactionNumber: skipCommercial ? undefined : options.transactionNumber,
@@ -2526,7 +2527,7 @@ export async function executeSessionItemTransfers(actor, plan) {
     const categoryValue = await getOrCreateAutomaticProductCategory(actor, automaticCategory)
     const sourceProductFlags = transfer.sourceItem.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
     const sourceIsCommerciallyModified = Boolean(sourceProductFlags.isCommerciallyModified)
-    const sourceItemUuid = String(transfer.sourceItem.uuid ?? "").trim()
+    const sourceItemUuid = toItemOnlyUuid(transfer.sourceItem.uuid)
     const deliveredItemData = transfer.sourceItem.toObject()
     const productData = {
       sourceUuid: String(sourceProductFlags.sourceUuid ?? "").trim(),

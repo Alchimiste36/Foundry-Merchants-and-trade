@@ -39,7 +39,7 @@ import {
   addCatalogProduct,
   buildCatalogProductFromItem
 } from "../../documents/merchant-products.mjs"
-import { isMTTStorage, getStorageItemFlags } from "../../documents/storage-flags.mjs"
+import { getMTTEntityType, isMTTStorage, getStorageItemFlags } from "../../documents/storage-flags.mjs"
 
 // ─── Session normalization ────────────────────────────────────────────────────
 
@@ -1526,7 +1526,8 @@ export async function buildExecutionPreview(actor, session, options = {}) {
     actorName: clientActor.name,
     actorImg: clientActor.img
   }
-  const clientIsStorage = isMTTStorage(clientActor)
+  const clientMttEntityType = getMTTEntityType(clientActor)
+  const clientIsMtt = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(clientMttEntityType)
 
   // Check buyer items (merchant → client)
   for (const item of buyerItems) {
@@ -1578,7 +1579,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
         deliveryProductData,
         deliveredItemData,
         quantityToDeliver,
-        clientIsStorage ? { quantityMode: "productFlag" } : {}
+        clientIsMtt ? { quantityMode: "productFlag" } : {}
       )
       preview.actorDeliverySimulations.push(deliverySimulation)
       for (const error of deliverySimulation.errors) {
@@ -1992,7 +1993,10 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
     if (remaining <= 0) break
 
     const currentQuantity = getDeliverySimulationQuantity(item, quantityPath, quantityMode)
-    const maxQuantity = normalizeMaxQuantity(getConfiguredItemMaxQuantity(item, config.maxQuantityPath))
+    const maxQuantity =
+      quantityMode === "productFlag"
+        ? Infinity
+        : normalizeMaxQuantity(getConfiguredItemMaxQuantity(item, config.maxQuantityPath))
     const availableSpace = getAvailableStackSpace(currentQuantity, maxQuantity)
     if (availableSpace <= 0) continue
 
@@ -2012,7 +2016,10 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
     remaining -= quantityToAdd
   }
 
-  const maxQuantity = normalizeMaxQuantity(getConfiguredItemMaxQuantity(deliveredItemData, config.maxQuantityPath))
+  const maxQuantity =
+    quantityMode === "productFlag"
+      ? Infinity
+      : normalizeMaxQuantity(getConfiguredItemMaxQuantity(deliveredItemData, config.maxQuantityPath))
 
   while (remaining > 0) {
     const quantity = maxQuantity === Infinity ? remaining : Math.min(remaining, maxQuantity)
@@ -2087,13 +2094,13 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
   return result
 }
 
-// MTT storage — livraison d'un achat marchand avec les règles communes de fusion
-async function deliverPurchasedProductToStorage(storageActor, transfer) {
+// MTT base — livraison d'un achat marchand vers une destination MTT avec les règles communes de fusion
+async function deliverPurchasedProductToMttDestination(destinationActor, transfer) {
   const productData = transfer?.deliveryProductData
   const deliveredItemData = transfer?.deliveredItemData
   const quantityToDeliver = transfer?.quantityToDeliver
   const simulation = simulatePurchasedItemDeliveryToActor(
-    storageActor,
+    destinationActor,
     productData,
     deliveredItemData,
     quantityToDeliver,
@@ -2118,7 +2125,7 @@ async function deliverPurchasedProductToStorage(storageActor, transfer) {
       productHasSecretInfo(productData)
 
     for (const stack of simulation.updated) {
-      await updateCatalogProduct(storageActor, stack.item.id, { quantity: stack.afterQuantity })
+      await updateCatalogProduct(destinationActor, stack.item.id, { quantity: stack.afterQuantity })
       result.updated.push(stack)
       result.deliveredQuantity += stack.addedQuantity
     }
@@ -2129,7 +2136,7 @@ async function deliverPurchasedProductToStorage(storageActor, transfer) {
       addDeliveredItemDescriptionBlock(itemData, productData)
       if (itemData.flags?.[MTT.ID]?.[MTT.FLAGS.PRODUCT]) delete itemData.flags[MTT.ID][MTT.FLAGS.PRODUCT]
 
-      const item = await addCatalogProduct(storageActor, {
+      const item = await addCatalogProduct(destinationActor, {
         itemData,
         productFlags: {
           enabled: true,
@@ -2186,7 +2193,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   const preview = await buildExecutionPreview(actor, session, options)
   const errors = [...(preview.errors ?? [])]
   const clientActor = await getClientActor(session, errors)
-  const clientIsStorage = isMTTStorage(clientActor)
+  const clientMttEntityType = getMTTEntityType(clientActor)
+  const clientIsMtt = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(clientMttEntityType)
   const operations = {
     productTransfers: [],
     serviceTransfers: [],
@@ -2270,7 +2278,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       deliveryProductData,
       deliveredItemData,
       quantityToDeliver,
-      clientIsStorage ? { quantityMode: "productFlag" } : {}
+      clientIsMtt ? { quantityMode: "productFlag" } : {}
     )
     deliveryPlans.push(deliveryPlan)
     if (!deliveryPlan.ok) {
@@ -2396,7 +2404,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
 export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"))
-  const clientIsStorage = isMTTStorage(clientActor)
+  const clientMttEntityType = getMTTEntityType(clientActor)
+  const clientIsMtt = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(clientMttEntityType)
 
   const deliveries = []
   const executionResult = {
@@ -2415,7 +2424,7 @@ export async function executeSessionItemTransfers(actor, plan) {
       transfer.deliveryProductData,
       transfer.deliveredItemData,
       transfer.quantityToDeliver,
-      clientIsStorage ? { quantityMode: "productFlag" } : {}
+      clientIsMtt ? { quantityMode: "productFlag" } : {}
     )
   )
   const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors)
@@ -2425,8 +2434,8 @@ export async function executeSessionItemTransfers(actor, plan) {
   }
 
   for (const transfer of plan.operations.productTransfers) {
-    const delivery = clientIsStorage
-      ? await deliverPurchasedProductToStorage(clientActor, transfer)
+    const delivery = clientIsMtt
+      ? await deliverPurchasedProductToMttDestination(clientActor, transfer)
       : await deliverPurchasedItemToActor(
           clientActor,
           transfer.deliveryProductData,

@@ -2381,3 +2381,59 @@ Les secrets commerciaux ne sont pas recopiés comme flags actifs du produit livr
 8. Vérifier que le stock marchand, la monnaie et le journal restent corrects.
 
 ---
+
+# Correction 3.1.D.4 — Destination MTT pour livraison marchand
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.D.4.
+- [x] Ajouter `getMTTEntityType` sans créer de helper parallèle.
+- [x] Remplacer les variables de destination `clientIsStorage` par `clientIsMtt`.
+- [x] Renommer la livraison storage en livraison vers destination MTT.
+- [x] Conserver la branche destination MTT dans `executeSessionItemTransfers()`.
+- [x] Garder les règles communes de fusion via `simulatePurchasedItemDeliveryToActor()`.
+- [x] Ignorer la quantité max système uniquement pour `quantityMode: "productFlag"`.
+- [x] Ne pas modifier la logique `warningGM` d’un stockage source.
+- [x] Ne pas modifier les flags complets, le rail, les droits, le socket, les services, les ventes, la monnaie ou le journal.
+- [x] Vérifier la syntaxe, le lint ciblé et le format.
+
+## Résumé
+
+La livraison d’un achat marchand ne parle plus de destination storage dans les variables et helpers de destination.
+
+Le flux actuel `shop -> storage` utilise maintenant une base plus générique `destination MTT`, tout en conservant la distinction entre écriture classique d’acteur et écriture MTT par flags produit.
+
+## Destination MTT
+
+Les destinations MTT sont détectées localement avec `getMTTEntityType(clientActor)` et `clientIsMtt`.
+
+Quand `clientIsMtt` est vrai, la simulation lit les quantités dans `flags.mtt-merchants.product.quantity` et ignore la quantité max système pendant le calcul de pile. L’écriture reste faite avec `updateCatalogProduct()` ou `addCatalogProduct()`.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement des flags complets conservés sur livraison.
+- Aucun changement du rail marchand.
+- Aucun changement des droits ou responsables du marchandage.
+- Aucun changement du socket.
+- Aucun changement des ventes depuis stockage.
+- Aucun changement des services.
+- Aucun changement de monnaie ou pourcentages personnalisés.
+- Aucun changement du journal.
+- Aucun template, style ou fichier de langue.
+
+## Vérifications manuelles simples
+
+1. Acheter 3 objets simples vers un stockage et vérifier une seule ligne MTT quantité 3.
+2. Acheter encore 2 objets identiques et vérifier que la même ligne passe à quantité 5.
+3. Vérifier que l’Item embedded conserve sa quantité max système initiale.
+4. Acheter le même objet vers un acteur classique et vérifier que la quantité max système reste respectée.
+5. Acheter un objet modifié ou secret vers un stockage et vérifier qu’il ne fusionne pas avec une ligne normale.
+6. Vérifier que les informations de transaction et secrets continuent d’être écrites.
+7. Vérifier que le bloc `warningGM` d’un stockage source n’a pas changé.
+
+---

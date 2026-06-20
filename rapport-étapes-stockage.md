@@ -2321,3 +2321,63 @@ Les piles existantes sont mises à jour uniquement si la simulation commune les 
 8. Vérifier qu’un service acheté ne crée toujours pas d’Item.
 
 ---
+
+# Correction 3.1.D.3 — Livraison marchand vers stockage : décision commune, écriture storage
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.D.3.
+- [x] Conserver la branche de destination storage dans `executeSessionItemTransfers()`.
+- [x] Garder la décision de fusion sur la simulation commune.
+- [x] Adapter la simulation commune pour lire la quantité storage depuis les flags produit MTT.
+- [x] Écrire les mises à jour storage via les flags produit MTT.
+- [x] Créer les nouvelles lignes storage via `addCatalogProduct()`.
+- [x] Marquer les lignes storage livrées depuis un produit modifié ou secret comme non fusionnables.
+- [x] Conserver l’écriture des informations de transaction et secrets dans l’Item livré.
+- [x] Ne pas modifier le rail, les droits, le socket, les responsables, les services, les ventes, la monnaie ou le journal.
+- [x] Vérifier la syntaxe, le lint ciblé et le format.
+
+## Résumé
+
+La livraison marchand vers stockage sépare maintenant clairement deux responsabilités :
+
+- décision : les règles communes de fusion restent utilisées via `simulatePurchasedItemDeliveryToActor()`;
+- écriture : si la destination est un stockage MTT, les quantités et la création passent par les flags produit MTT du contenu storage.
+
+## Écriture storage
+
+Les lignes existantes du stockage sont mises à jour avec `updateCatalogProduct(storageActor, ..., { quantity })`.
+
+Les nouvelles lignes sont créées avec `addCatalogProduct()`, avec `product.enabled = true`, `product.quantity`, `product.sourceUuid` et le marquage `isCommerciallyModified` quand le produit livré vient d’un produit modifié ou secret.
+
+Les secrets commerciaux ne sont pas recopiés comme flags actifs du produit livré. Ils restent écrits dans l’Item livré via le bloc de description commun.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `module/applications/sheets/merchant-utils.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement du rail marchand.
+- Aucun changement des droits ou responsables du marchandage.
+- Aucun changement du socket.
+- Aucun changement des ventes depuis stockage.
+- Aucun changement des services.
+- Aucun changement de monnaie ou pourcentages personnalisés.
+- Aucun changement du journal.
+- Aucun template, style ou fichier de langue.
+
+## Vérifications manuelles simples
+
+1. Avec un stockage vide, acheter un produit simple chez un marchand.
+2. Vérifier que le produit apparaît comme ligne MTT du stockage.
+3. Acheter à nouveau le même produit simple et vérifier que la quantité MTT augmente.
+4. Acheter une version modifiée d’un objet déjà présent et vérifier qu’elle crée une nouvelle ligne.
+5. Acheter un produit avec informations secrètes et vérifier qu’il crée une nouvelle ligne.
+6. Vérifier que les informations de transaction et secrets sont écrites dans l’Item livré.
+7. Vérifier qu’un acteur classique acheteur fonctionne toujours comme avant.
+8. Vérifier que le stock marchand, la monnaie et le journal restent corrects.
+
+---

@@ -292,7 +292,10 @@ export function getDeliveredItemMergeMode(existingItem, deliveredItemData, produ
   if (
     productHasSecretInfo(productData) ||
     productHasSecretInfo(deliveredProduct) ||
-    productHasSecretInfo(existingProduct)
+    productHasSecretInfo(existingProduct) ||
+    productData?.isCommerciallyModified === true ||
+    deliveredProduct.isCommerciallyModified === true ||
+    existingProduct.isCommerciallyModified === true
   )
     return null
 

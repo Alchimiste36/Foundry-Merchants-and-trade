@@ -1526,6 +1526,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
     actorName: clientActor.name,
     actorImg: clientActor.img
   }
+  const clientIsStorage = isMTTStorage(clientActor)
 
   // Check buyer items (merchant → client)
   for (const item of buyerItems) {
@@ -1565,6 +1566,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
         id: catalogProduct.id,
         sourceUuid: catalogProduct.sourceUuid,
         deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
+        isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
         secretName: catalogProduct.secretName ?? "",
         secretPrice: catalogProduct.secretPrice ?? "",
         secretCurrency: catalogProduct.secretCurrency ?? "",
@@ -1575,7 +1577,8 @@ export async function buildExecutionPreview(actor, session, options = {}) {
         clientActor,
         deliveryProductData,
         deliveredItemData,
-        quantityToDeliver
+        quantityToDeliver,
+        clientIsStorage ? { quantityMode: "productFlag" } : {}
       )
       preview.actorDeliverySimulations.push(deliverySimulation)
       for (const error of deliverySimulation.errors) {
@@ -1940,7 +1943,15 @@ function createDeliveryResult({ actor = null, productData = {}, quantityToDelive
   }
 }
 
-function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver) {
+function getDeliverySimulationQuantity(item, quantityPath, quantityMode = "system") {
+  if (quantityMode === "productFlag") {
+    return normalizeItemQuantity(item?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity, 0)
+  }
+
+  return normalizeItemQuantity(getConfiguredItemQuantity(item, quantityPath), 0)
+}
+
+function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver, options = {}) {
   const result = createDeliveryResult({ actor, productData, quantityToDeliver })
   const requestedQuantity = Number(quantityToDeliver)
 
@@ -1959,9 +1970,10 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
     return result
   }
 
+  const quantityMode = options.quantityMode === "productFlag" ? "productFlag" : "system"
   const config = getDeliveryStackingConfig()
   const quantityPath = getDeliveryQuantityPath(deliveredItemData, config)
-  if (!quantityPath) {
+  if (!quantityPath && quantityMode !== "productFlag") {
     result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryQuantityPathMissing"))
     return result
   }
@@ -1969,6 +1981,7 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   let remaining = normalizeItemQuantity(requestedQuantity, 0)
 
   const compatibleItems = actor.items
+    .filter((item) => quantityMode !== "productFlag" || item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.enabled === true)
     .map((item) => ({
       item,
       mergeMode: getDeliveredItemMergeMode(item, deliveredItemData, productData)
@@ -1978,7 +1991,7 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   for (const { item, mergeMode } of compatibleItems) {
     if (remaining <= 0) break
 
-    const currentQuantity = normalizeItemQuantity(getConfiguredItemQuantity(item, quantityPath), 0)
+    const currentQuantity = getDeliverySimulationQuantity(item, quantityPath, quantityMode)
     const maxQuantity = normalizeMaxQuantity(getConfiguredItemMaxQuantity(item, config.maxQuantityPath))
     const availableSpace = getAvailableStackSpace(currentQuantity, maxQuantity)
     if (availableSpace <= 0) continue
@@ -2083,7 +2096,8 @@ async function deliverPurchasedProductToStorage(storageActor, transfer) {
     storageActor,
     productData,
     deliveredItemData,
-    quantityToDeliver
+    quantityToDeliver,
+    { quantityMode: "productFlag" }
   )
   if (!simulation.ok) return simulation
 
@@ -2097,27 +2111,36 @@ async function deliverPurchasedProductToStorage(storageActor, transfer) {
   }
 
   try {
+    const sourceUuid = getMttSourceUuid(deliveredItemData, productData)
+    const shouldMarkDeliveredStorageItemCommerciallyModified =
+      Boolean(transfer?.catalogProduct?.isCommerciallyModified) ||
+      productHasSecretInfo(transfer?.catalogProduct) ||
+      productHasSecretInfo(productData)
+
     for (const stack of simulation.updated) {
-      const updateData = { [quantityPath]: stack.afterQuantity }
-      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
-      const deliveredProductFlags = foundry.utils.getProperty(deliveredItemData, productFlagPath) ?? {}
-      const existingProductFlags = stack.item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-      updateData[productFlagPath] = {
-        ...deliveredProductFlags,
-        ...existingProductFlags,
-        sourceUuid: getMttSourceUuid(stack.item) || getMttSourceUuid(deliveredItemData, productData)
-      }
-      await stack.item.update(updateData)
+      await updateCatalogProduct(storageActor, stack.item.id, { quantity: stack.afterQuantity })
       result.updated.push(stack)
       result.deliveredQuantity += stack.addedQuantity
     }
 
     for (const stack of simulation.created) {
       const itemData = foundry.utils.deepClone(deliveredItemData)
-      foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
+      if (quantityPath) foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
       addDeliveredItemDescriptionBlock(itemData, productData)
-      const documents = await storageActor.createEmbeddedDocuments("Item", [itemData])
-      const item = documents[0]
+      if (itemData.flags?.[MTT.ID]?.[MTT.FLAGS.PRODUCT]) delete itemData.flags[MTT.ID][MTT.FLAGS.PRODUCT]
+
+      const item = await addCatalogProduct(storageActor, {
+        itemData,
+        productFlags: {
+          enabled: true,
+          sourceUuid,
+          quantity: stack.quantity,
+          deliveryQuantityPerLot: productData?.deliveryQuantityPerLot ?? null,
+          ownershipLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          isHidden: false,
+          isCommerciallyModified: shouldMarkDeliveredStorageItemCommerciallyModified
+        }
+      })
       if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
 
       result.created.push({
@@ -2163,6 +2186,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   const preview = await buildExecutionPreview(actor, session, options)
   const errors = [...(preview.errors ?? [])]
   const clientActor = await getClientActor(session, errors)
+  const clientIsStorage = isMTTStorage(clientActor)
   const operations = {
     productTransfers: [],
     serviceTransfers: [],
@@ -2234,6 +2258,7 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       merchantName: skipCommercial ? "" : (actor?.name ?? ""),
       transactionNumber: skipCommercial ? undefined : options.transactionNumber,
       deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
+      isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
       secretName: skipCommercial ? "" : (catalogProduct.secretName ?? ""),
       secretPrice: skipCommercial ? "" : (catalogProduct.secretPrice ?? ""),
       secretCurrency: skipCommercial ? "" : (catalogProduct.secretCurrency ?? ""),
@@ -2244,7 +2269,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       clientActor,
       deliveryProductData,
       deliveredItemData,
-      quantityToDeliver
+      quantityToDeliver,
+      clientIsStorage ? { quantityMode: "productFlag" } : {}
     )
     deliveryPlans.push(deliveryPlan)
     if (!deliveryPlan.ok) {
@@ -2388,7 +2414,8 @@ export async function executeSessionItemTransfers(actor, plan) {
       clientActor,
       transfer.deliveryProductData,
       transfer.deliveredItemData,
-      transfer.quantityToDeliver
+      transfer.quantityToDeliver,
+      clientIsStorage ? { quantityMode: "productFlag" } : {}
     )
   )
   const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors)

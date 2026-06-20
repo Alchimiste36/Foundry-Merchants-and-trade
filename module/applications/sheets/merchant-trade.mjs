@@ -37,8 +37,7 @@ import {
   getCatalogProduct,
   updateCatalogProduct,
   addCatalogProduct,
-  buildCatalogProductFromItem,
-  getMerchantProductFlags
+  buildCatalogProductFromItem
 } from "../../documents/merchant-products.mjs"
 import { isMTTStorage, getStorageItemFlags } from "../../documents/storage-flags.mjs"
 
@@ -1527,7 +1526,6 @@ export async function buildExecutionPreview(actor, session, options = {}) {
     actorName: clientActor.name,
     actorImg: clientActor.img
   }
-  const clientIsStorage = isMTTStorage(clientActor)
 
   // Check buyer items (merchant → client)
   for (const item of buyerItems) {
@@ -1573,9 +1571,12 @@ export async function buildExecutionPreview(actor, session, options = {}) {
         secretDescription: catalogProduct.secretDescription ?? ""
       }
       const deliveredItemData = buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantityToDeliver)
-      const deliverySimulation = clientIsStorage
-        ? createStorageProductDeliveryResult(clientActor, deliveryProductData, quantityToDeliver)
-        : simulatePurchasedItemDeliveryToActor(clientActor, deliveryProductData, deliveredItemData, quantityToDeliver)
+      const deliverySimulation = simulatePurchasedItemDeliveryToActor(
+        clientActor,
+        deliveryProductData,
+        deliveredItemData,
+        quantityToDeliver
+      )
       preview.actorDeliverySimulations.push(deliverySimulation)
       for (const error of deliverySimulation.errors) {
         if (!preview.errors.includes(error)) preview.errors.push(error)
@@ -1939,25 +1940,6 @@ function createDeliveryResult({ actor = null, productData = {}, quantityToDelive
   }
 }
 
-function createStorageProductDeliveryResult(storageActor, productData = {}, quantityToDeliver = 0) {
-  const result = createDeliveryResult({ actor: storageActor, productData, quantityToDeliver })
-  const requestedQuantity = Number(quantityToDeliver)
-
-  if (!storageActor) {
-    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryActorMissing"))
-    return result
-  }
-
-  if (!Number.isFinite(requestedQuantity) || !Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
-    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryQuantityInvalid"))
-    return result
-  }
-
-  result.ok = true
-  result.deliveredQuantity = requestedQuantity
-  return result
-}
-
 function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver) {
   const result = createDeliveryResult({ actor, productData, quantityToDeliver })
   const requestedQuantity = Number(quantityToDeliver)
@@ -2092,80 +2074,63 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
   return result
 }
 
-// MTT storage — livraison d'un achat marchand dans le contenu MTT du stockage
+// MTT storage — livraison d'un achat marchand avec les règles communes de fusion
 async function deliverPurchasedProductToStorage(storageActor, transfer) {
-  const quantityToDeliver = Number(transfer?.quantityToDeliver)
-  const sourceUuid = String(
-    transfer?.deliveryProductData?.sourceUuid ?? transfer?.catalogProduct?.sourceUuid ?? ""
-  ).trim()
-  const result = createStorageProductDeliveryResult(
+  const productData = transfer?.deliveryProductData
+  const deliveredItemData = transfer?.deliveredItemData
+  const quantityToDeliver = transfer?.quantityToDeliver
+  const simulation = simulatePurchasedItemDeliveryToActor(
     storageActor,
-    transfer?.deliveryProductData ?? transfer?.catalogProduct ?? {},
+    productData,
+    deliveredItemData,
     quantityToDeliver
   )
-  if (!result.ok) return result
+  if (!simulation.ok) return simulation
 
-  if (!transfer?.deliveredItemData || typeof transfer.deliveredItemData !== "object") {
-    result.ok = false
-    result.deliveredQuantity = 0
-    result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryItemDataMissing"))
-    return result
+  const config = getDeliveryStackingConfig()
+  const quantityPath = getDeliveryQuantityPath(deliveredItemData, config)
+  const result = {
+    ...simulation,
+    deliveredQuantity: 0,
+    updated: [],
+    created: []
   }
 
   try {
-    const existingStorageItem = findMergeableMerchantItemBySourceUuid(storageActor, sourceUuid)
-
-    if (existingStorageItem) {
-      const existingFlags = getMerchantProductFlags(existingStorageItem)
-      const currentQuantity = isUnlimitedQuantity(existingFlags.quantity)
-        ? 0
-        : Number.isFinite(Number(existingFlags.quantity))
-          ? Number(existingFlags.quantity)
-          : 0
-      const nextQuantity = Number((currentQuantity + quantityToDeliver).toFixed(2))
-
-      await updateCatalogProduct(storageActor, existingStorageItem.id, { quantity: nextQuantity })
-      result.updated.push({
-        item: existingStorageItem,
-        itemId: existingStorageItem.id ?? "",
-        name: existingStorageItem.name ?? transfer?.catalogProduct?.name ?? transfer?.deliveredItemData?.name ?? "",
-        beforeQuantity: currentQuantity,
-        addedQuantity: quantityToDeliver,
-        afterQuantity: nextQuantity,
-        mergeMode: "mtt-source"
-      })
-
-      return result
+    for (const stack of simulation.updated) {
+      const updateData = { [quantityPath]: stack.afterQuantity }
+      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
+      const deliveredProductFlags = foundry.utils.getProperty(deliveredItemData, productFlagPath) ?? {}
+      const existingProductFlags = stack.item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+      updateData[productFlagPath] = {
+        ...deliveredProductFlags,
+        ...existingProductFlags,
+        sourceUuid: getMttSourceUuid(stack.item) || getMttSourceUuid(deliveredItemData, productData)
+      }
+      await stack.item.update(updateData)
+      result.updated.push(stack)
+      result.deliveredQuantity += stack.addedQuantity
     }
 
-    const deliveredItemData = foundry.utils.deepClone(transfer?.deliveredItemData ?? {})
-    const automaticCategory = getAutomaticItemCategory(deliveredItemData)
-    const categoryValue = await getOrCreateAutomaticProductCategory(storageActor, automaticCategory)
-    const { itemData, productFlags } = buildCatalogProductFromItem(deliveredItemData, {
-      categoryValue,
-      automaticCategory,
-      sourceUuid
-    })
-    const createdItem = await addCatalogProduct(storageActor, {
-      itemData,
-      productFlags: {
-        ...productFlags,
-        quantity: quantityToDeliver,
-        deliveryQuantityPerLot: transfer?.deliveryProductData?.deliveryQuantityPerLot ?? null
-      }
-    })
-    if (!createdItem) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
+    for (const stack of simulation.created) {
+      const itemData = foundry.utils.deepClone(deliveredItemData)
+      foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
+      addDeliveredItemDescriptionBlock(itemData, productData)
+      const documents = await storageActor.createEmbeddedDocuments("Item", [itemData])
+      const item = documents[0]
+      if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
 
-    result.created.push({
-      item: createdItem,
-      itemId: createdItem.id ?? "",
-      name: createdItem.name ?? itemData.name ?? transfer?.catalogProduct?.name ?? "",
-      quantity: quantityToDeliver,
-      mergeMode: "none"
-    })
+      result.created.push({
+        item,
+        itemId: item.id ?? "",
+        name: item.name ?? stack.name,
+        quantity: stack.quantity,
+        mergeMode: "none"
+      })
+      result.deliveredQuantity += stack.quantity
+    }
   } catch (error) {
     result.ok = false
-    result.deliveredQuantity = 0
     result.errors.push(error?.message || game.i18n.localize("mtt.sessions.errors.deliveryFailed"))
   }
 
@@ -2198,7 +2163,6 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   const preview = await buildExecutionPreview(actor, session, options)
   const errors = [...(preview.errors ?? [])]
   const clientActor = await getClientActor(session, errors)
-  const clientIsStorage = isMTTStorage(clientActor)
   const operations = {
     productTransfers: [],
     serviceTransfers: [],
@@ -2276,9 +2240,12 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       secretDescription: skipCommercial ? "" : (catalogProduct.secretDescription ?? "")
     }
     const deliveredItemData = buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantityToDeliver)
-    const deliveryPlan = clientIsStorage
-      ? createStorageProductDeliveryResult(clientActor, deliveryProductData, quantityToDeliver)
-      : simulatePurchasedItemDeliveryToActor(clientActor, deliveryProductData, deliveredItemData, quantityToDeliver)
+    const deliveryPlan = simulatePurchasedItemDeliveryToActor(
+      clientActor,
+      deliveryProductData,
+      deliveredItemData,
+      quantityToDeliver
+    )
     deliveryPlans.push(deliveryPlan)
     if (!deliveryPlan.ok) {
       errors.push(...deliveryPlan.errors)
@@ -2416,20 +2383,18 @@ export async function executeSessionItemTransfers(actor, plan) {
     errors: []
   }
 
-  if (!clientIsStorage) {
-    const deliveryPreflightPlans = plan.operations.productTransfers.map((transfer) =>
-      simulatePurchasedItemDeliveryToActor(
-        clientActor,
-        transfer.deliveryProductData,
-        transfer.deliveredItemData,
-        transfer.quantityToDeliver
-      )
+  const deliveryPreflightPlans = plan.operations.productTransfers.map((transfer) =>
+    simulatePurchasedItemDeliveryToActor(
+      clientActor,
+      transfer.deliveryProductData,
+      transfer.deliveredItemData,
+      transfer.quantityToDeliver
     )
-    const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors)
-    if (deliveryPreflightErrors.length > 0) {
-      executionResult.errors.push(...deliveryPreflightErrors)
-      throw new Error(deliveryPreflightErrors.join(" "))
-    }
+  )
+  const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors)
+  if (deliveryPreflightErrors.length > 0) {
+    executionResult.errors.push(...deliveryPreflightErrors)
+    throw new Error(deliveryPreflightErrors.join(" "))
   }
 
   for (const transfer of plan.operations.productTransfers) {

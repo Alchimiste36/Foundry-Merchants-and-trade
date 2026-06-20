@@ -2266,3 +2266,58 @@ Les acteurs classiques conservent la règle existante : le joueur doit posséder
 7. Vérifier que le MJ conserve tous les droits.
 
 ---
+
+# Correction 3.1.D.2 — Livraison storage avec règles communes de fusion
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.D.2.
+- [x] Identifier la fusion directe par `sourceUuid` dans la livraison storage.
+- [x] Supprimer la logique storage spécifique de fusion par `findMergeableMerchantItemBySourceUuid()`.
+- [x] Brancher le pré-vol storage sur `simulatePurchasedItemDeliveryToActor()`.
+- [x] Réutiliser les décisions communes `simulation.updated` et `simulation.created`.
+- [x] Écrire les quantités et flags comme la livraison acteur classique.
+- [x] Restaurer l’écriture des informations de transaction et secrets sur les nouvelles lignes storage.
+- [x] Ne pas modifier le rail, les droits, le socket, les ventes, les services, la monnaie ou le journal.
+- [x] Vérifier la syntaxe, le lint ciblé et le format.
+
+## Résumé
+
+La livraison des produits achetés par un stockage utilise maintenant les mêmes règles de fusion et de création que la livraison vers un acteur classique.
+
+La décision de fusion passe par `simulatePurchasedItemDeliveryToActor()`, donc par les règles communes autour de `getDeliveredItemMergeMode()`.
+
+## Correction de fusion
+
+La livraison storage n’utilise plus de fusion directe par `sourceUuid`.
+
+Les piles existantes sont mises à jour uniquement si la simulation commune les accepte. Les nouvelles lignes sont créées depuis `deliveredItemData`, avec la quantité au chemin configuré et le bloc de description de livraison si l’option du module est active.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement du rail marchand.
+- Aucun changement des droits ou responsables du marchandage.
+- Aucun changement du socket.
+- Aucun changement des ventes depuis stockage.
+- Aucun changement des services.
+- Aucun changement de monnaie ou pourcentages personnalisés.
+- Aucun changement du journal.
+- Aucun template, style ou fichier de langue.
+
+## Vérifications manuelles simples
+
+1. Acheter avec un stockage une version modifiée d’un objet déjà présent.
+2. Vérifier que l’objet modifié ne fusionne pas si les règles communes le refusent.
+3. Acheter une deuxième fois un objet identique et vérifier la fusion si elle est autorisée.
+4. Acheter un produit avec informations secrètes et vérifier qu’il ne fusionne pas avec une ligne existante.
+5. Vérifier que le bloc visible de transaction est écrit si l’option est active.
+6. Vérifier que le bloc secret est écrit dans le chemin secret configuré.
+7. Vérifier qu’un acteur classique acheteur fonctionne toujours comme avant.
+8. Vérifier qu’un service acheté ne crée toujours pas d’Item.
+
+---

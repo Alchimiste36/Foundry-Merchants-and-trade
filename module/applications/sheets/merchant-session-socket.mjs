@@ -6,7 +6,10 @@ import {
   getStorageData,
   getStorageFlagPath,
   applyStorageIgnoreAutoCategory,
-  toggleStorageItemTag
+  toggleStorageItemTag,
+  isMTTStorage,
+  getStorageTradeResponsibleActorUuids,
+  canActorTradeWithMerchantAsStorage
 } from "../../documents/storage-flags.mjs"
 import { getMerchantPermissions } from "../../documents/merchant-access.mjs"
 
@@ -56,12 +59,38 @@ function getActorByUuid(actorUuid) {
   )
 }
 
-function userOwnsSessionActor(user, session) {
-  const actor = getActorByUuid(session?.actorUuid)
+function userOwnsActorUuid(user, actorUuid) {
+  const actor = getActorByUuid(actorUuid)
   if (!user || !actor) return false
   if (actor.testUserPermission?.(user, "OWNER")) return true
   const level = actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
   return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+}
+
+function userOwnsSessionActor(user, session) {
+  return userOwnsActorUuid(user, session?.actorUuid)
+}
+
+function userCanTradeWithMerchantAsStorage(user, storageActor) {
+  if (user?.isGM) return true
+  if (!isMTTStorage(storageActor)) return false
+
+  return getStorageTradeResponsibleActorUuids(storageActor).some(
+    (actorUuid) => canActorTradeWithMerchantAsStorage(storageActor, actorUuid) && userOwnsActorUuid(user, actorUuid)
+  )
+}
+
+function userCanModifySessionActor(user, session) {
+  if (user?.isGM) return true
+
+  const sessionActor = getActorByUuid(session?.actorUuid)
+  if (!sessionActor) return false
+
+  if (isMTTStorage(sessionActor)) {
+    return userCanTradeWithMerchantAsStorage(user, sessionActor)
+  }
+
+  return userOwnsSessionActor(user, session)
 }
 
 function userCanEditSession(user, merchantActor, session) {
@@ -142,7 +171,7 @@ function buildSafeSessionUpdate(merchantActor, updateData, requestingUser) {
       return !existingSession || JSON.stringify(existingSession) !== JSON.stringify(requestedSession)
     })
 
-    if (modifiedSessions.some((session) => !userOwnsSessionActor(requestingUser, session))) return null
+    if (modifiedSessions.some((session) => !userCanModifySessionActor(requestingUser, session))) return null
   }
 
   return {
@@ -415,9 +444,7 @@ export async function requestMerchantSessionUpdate(merchantActor, updateData) {
   const sessionEntriesPath = getSessionEntriesFlagPath(merchantActor)
   const sessionActorUuids = Array.from(
     new Set(
-      (updateData?.[sessionEntriesPath] ?? [])
-        .map((session) => String(session.actorUuid ?? "").trim())
-        .filter(Boolean)
+      (updateData?.[sessionEntriesPath] ?? []).map((session) => String(session.actorUuid ?? "").trim()).filter(Boolean)
     )
   )
   const payload = {

@@ -2220,3 +2220,49 @@ Le texte commercial de livraison n’est pas ajouté au stockage.
 10. Vérifier que la monnaie du stockage continue de fonctionner comme avant.
 
 ---
+
+# Correction 3.1.D.1 — Socket marchand pour responsable storage
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.D.1.
+- [x] Identifier la validation socket qui refuse les sessions modifiées.
+- [x] Réutiliser les helpers storage existants pour les responsables du marchandage.
+- [x] Ajouter une vérification locale de possession d’acteur responsable.
+- [x] Autoriser la modification socket d’une session storage par un joueur responsable.
+- [x] Conserver la sécurité existante pour les sessions d’acteurs classiques.
+- [x] Ne pas modifier le rail, les droits de visibilité, la livraison ou la fusion.
+- [x] Vérifier la syntaxe, le lint ciblé et le format.
+
+## Résumé
+
+La validation socket accepte maintenant une modification de session marchand lorsque le client de la session est un stockage MTT et que l’utilisateur demandeur possède un acteur marqué responsable du marchandage dans ce stockage.
+
+Les acteurs classiques conservent la règle existante : le joueur doit posséder l’acteur de session, sauf si le MJ ou un gestionnaire de la feuille marchand traite la demande.
+
+## Fichier modifié
+
+- `module/applications/sheets/merchant-session-socket.mjs`
+- `rapport-étapes-stockage.md`
+
+## Conservé volontairement
+
+- Aucun changement du rail marchand.
+- Aucun changement de `#prepareAccessContext()`.
+- Aucun changement de `#getSessionActorAccess()`.
+- Aucun changement de `prepareAccessClients()`.
+- Aucun changement de livraison ou fusion des produits.
+- Aucun changement de monnaie ou pourcentages personnalisés.
+- Aucun template, style ou fichier de langue.
+
+## Vérifications manuelles simples
+
+1. Ajouter un stockage au rail d’un marchand.
+2. Marquer un acteur comme responsable du marchandage du stockage.
+3. Avec un joueur propriétaire de cet acteur, ajouter un produit à la session marchand du stockage.
+4. Modifier la quantité de cette ligne et vérifier que le socket accepte la demande.
+5. Vérifier qu’un joueur non responsable ne peut pas modifier cette session.
+6. Vérifier qu’un acteur classique client du marchand fonctionne comme avant.
+7. Vérifier que le MJ conserve tous les droits.
+
+---

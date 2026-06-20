@@ -11,7 +11,6 @@ import {
   getStorageFlagPath,
   updateStorageData,
   isMTTStorage,
-  getStorageAccessActorUuids,
   getStorageTradeResponsibleActorUuids,
   canActorTradeWithMerchantAsStorage,
   setStorageTradeResponsibleActorUuids,
@@ -626,33 +625,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
   }
 
-  #getStorageMerchantSessionViewerActorUuids(storageActor) {
-    const storageData = getStorageData(storageActor)
-    const actorUuids = new Set(getStorageAccessActorUuids(storageActor))
-    const preparedClients = prepareAccessClients(storageActor, {
-      accessClients: storageData?.access?.actors ?? [],
-      sessions: storageData?.sessions?.entries ?? [],
-      defaultPlayerAuthorization: true,
-      isEditable: false
-    })
-
-    for (const client of preparedClients) {
-      const actorUuid = String(client.actorUuid ?? "").trim()
-      if (actorUuid) actorUuids.add(actorUuid)
-    }
-
-    return Array.from(actorUuids)
-  }
-
-  #canUserViewStorageMerchantSession(storageActor, user = game.user) {
-    if (user?.isGM) return true
-    if (this.#canUserManageCurrentSheet(user)) return true
-
-    return this.#getStorageMerchantSessionViewerActorUuids(storageActor).some((actorUuid) =>
-      this.#userOwnsActorUuid(actorUuid, user)
-    )
-  }
-
   #canUserTradeWithMerchantAsStorage(storageActor, user = game.user) {
     if (user?.isGM) return true
     if (this.#canUserManageCurrentSheet(user)) return true
@@ -678,24 +650,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const canViewOtherSessions = Boolean(permissions.canViewObserverActorSessions)
     const canInteractWithSession = Boolean(permissions.canInteractWithSession)
 
-    if (isMTTStorage(actor)) {
-      const canViewStorageSession = this.#canUserViewStorageMerchantSession(actor, user)
-      const canTradeAsStorage = this.#canUserTradeWithMerchantAsStorage(actor, user)
-
-      return {
-        actor,
-        actorUuid,
-        ownershipLevel,
-        isOwner,
-        isObserver,
-        isLimited,
-        canViewOtherSession: canViewStorageSession,
-        canSelectOtherSession: canViewStorageSession,
-        canInteractWithOtherSession: canTradeAsStorage
-      }
-    }
-
-    return {
+    const baseAccess = {
       actor,
       actorUuid,
       ownershipLevel,
@@ -705,6 +660,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       canViewOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
       canSelectOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
       canInteractWithOtherSession: isGM || canManageSheet || (isOwner && canInteractWithSession)
+    }
+
+    if (!isMTTStorage(actor)) return baseAccess
+
+    return {
+      ...baseAccess,
+      canInteractWithOtherSession:
+        baseAccess.canInteractWithOtherSession && this.#canUserTradeWithMerchantAsStorage(actor, user)
     }
   }
 
@@ -1073,8 +1036,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       selectedClientActorUuid: this.#selectedClientActorUuid,
       isEditable: this.isEditable,
       accessClients: this.#getAccessEntries(),
-      sessions: this.#getSessions(),
-      defaultPlayerAuthorization: this.#isStorageEntity()
+      sessions: this.#getSessions()
     })
   }
 
@@ -3864,9 +3826,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     this.#selectedClientActorUuid = client.actorUuid
     this.#sessionCheckResult = null
+    const sessionActorAccess = this.#getSessionActorAccess(client.actorUuid)
     const session = this.#getBestSessionForClientActor(client.actorUuid)
     if (session) {
-      if (!this.#getSessionActorAccess(session).canSelectOtherSession) {
+      if (!sessionActorAccess.canSelectOtherSession) {
         this.#activeSessionId = null
         this.#selectedClientActorUuid = ""
         ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))

@@ -1929,3 +1929,162 @@ L’interaction avec cette session utilise les acteurs listés dans `storage.tra
 9. Vérifier que le MJ peut toujours tout faire.
 
 ---
+
+# Correction commune — Suppression de l’ajout automatique des personnages joueurs au rail
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction commune.
+- [x] Supprimer l’injection automatique de `game.users[].character` dans `prepareAccessClients`.
+- [x] Supprimer le paramètre `defaultPlayerAuthorization`.
+- [x] Nettoyer les appels à `prepareAccessClients`.
+- [x] Corriger la lecture des acteurs pouvant voir une session marchand d’un stockage.
+- [x] Conserver les helpers de contrôle d’acteur.
+- [x] Vérifier la syntaxe et le lint ciblé.
+
+## Résumé
+
+Le rail MTT ne crée plus d’entrée automatique depuis les personnages liés aux joueurs.
+
+Un acteur apparaît désormais dans le rail seulement s’il est présent dans les flags du rail ou ajouté explicitement ensuite.
+
+La lecture des acteurs pouvant voir la session marchand d’un stockage repose uniquement sur `storage.access.actors`.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune migration des rails existants.
+- Aucun changement des permissions marchand configurables.
+- Aucun changement des droits Foundry.
+- Aucun changement des helpers de contrôle d’acteur.
+- Aucun template ou style.
+- Aucun flux d’achat, vente, drop, livraison ou validation.
+
+## Vérifications manuelles simples
+
+1. Ouvrir un marchand sans acteur ajouté au rail.
+2. Vérifier qu’aucun personnage joueur n’apparaît automatiquement.
+3. Glisser un acteur dans le rail marchand et vérifier qu’il apparaît.
+4. Ouvrir un stockage sans acteur ajouté au rail.
+5. Vérifier qu’aucun personnage joueur n’apparaît automatiquement.
+6. Glisser un acteur dans le rail stockage.
+7. Vérifier qu’il apparaît dans le rail et dans les responsables du marchandage.
+8. Vérifier qu’un acteur non ajouté au rail stockage n’apparaît pas dans les responsables.
+9. Vérifier qu’un acteur non ajouté au rail stockage ne donne pas accès à une session marchand du stockage.
+10. Vérifier que le MJ peut toujours tout faire.
+
+---
+
+# Étape 3.1.C — Card stockage sur le rail marchand
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 3.1.C.
+- [x] Identifier les cards du rail marchand qui représentent un stockage MTT.
+- [x] Exposer les droits storage sur la card.
+- [x] Adapter la visibilité de la card storage sans modifier les acteurs classiques.
+- [x] Adapter le clic gauche existant sans créer de handler séparé.
+- [x] Ajouter un tooltip simple pour les consultants non responsables.
+- [x] Vérifier la syntaxe JS, les JSON et le lint ciblé.
+
+## Résumé
+
+Une card stockage dans le rail marchand est maintenant reconnue comme stockage MTT.
+
+La card est visible si l’utilisateur peut voir la session marchand du stockage, et elle reste invisible pour les utilisateurs qui ne sont pas liés au rail du stockage.
+
+La distinction consultation / interaction est conservée : un consultant peut sélectionner une session existante, tandis que seuls les responsables du marchandage ou le MJ peuvent créer ou modifier la session.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `lang/fr.json`
+- `lang/en.json`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun flux d’achat.
+- Aucun flux de vente.
+- Aucun drop d’Item storage dans une session marchand.
+- Aucune livraison d’achat marchand dans le stockage.
+- Aucune validation croisée marchand / stockage.
+- Aucun handler séparé pour les cards storage.
+- Aucun template ou style.
+- Aucune monnaie, aucun journal, aucun pourcentage personnalisé.
+
+## Vérifications manuelles simples
+
+1. Ajouter un stockage au rail d’un marchand.
+2. Vérifier côté MJ que la card stockage permet de créer ou sélectionner une session.
+3. Vérifier qu’un joueur dont l’acteur est dans le rail du stockage peut voir et sélectionner une session existante.
+4. Vérifier que ce joueur ne peut pas créer ou modifier la session s’il n’est pas responsable.
+5. Définir cet acteur comme responsable et vérifier qu’il peut interagir.
+6. Vérifier qu’un joueur absent du rail du stockage n’a pas accès utile à la card.
+7. Vérifier qu’un acteur classique du rail marchand fonctionne comme avant.
+8. Vérifier qu’aucun acteur joueur n’est ajouté automatiquement au rail.
+
+---
+
+# Correction 3.1.C — Retour au rail commun pour les cards storage
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction de correction 3.1.C.
+- [x] Supprimer le filtre de visibilité spécifique aux cards storage.
+- [x] Restaurer `canSeeCard` sur la règle commune du rail.
+- [x] Restaurer `canClickCard` sur la règle commune du rail.
+- [x] Supprimer les propriétés de contexte storage inutiles sur les cards.
+- [x] Supprimer le tooltip spécial ajouté pour les consultants non responsables.
+- [x] Conserver la suppression de l’ajout automatique des personnages joueurs au rail.
+- [x] Vérifier la syntaxe, les JSON et le lint ciblé.
+
+## Résumé
+
+Le rail marchand utilise de nouveau la même logique de visibilité pour toutes les cards, qu’elles représentent un acteur classique ou un stockage MTT.
+
+Les droits de session restent centralisés dans `#getSessionActorAccess`.
+
+Pour un stockage, seule l’interaction peut être limitée par les responsables du marchandage ; la consultation et la sélection reviennent à la logique commune du rail.
+
+## Code 3.1.C supprimé
+
+- Filtre `canSeeCard` spécifique aux stockages.
+- Branche `canClickCard` spécifique aux stockages.
+- Propriétés `isStorageClient`, `canViewStorageMerchantSession` et `canTradeWithMerchantAsStorage` dans le contexte des cards.
+- Tooltip `responsibleOnlyTooltip` et sa clé FR/EN.
+- Helpers de consultation storage devenus inutiles pour le rail commun.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `lang/fr.json`
+- `lang/en.json`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune réintroduction de l’ajout automatique des personnages joueurs au rail.
+- Aucun changement du HBS du rail.
+- Aucun CSS.
+- Aucun flux d’achat, vente, drop, livraison ou validation.
+- Aucune permission storage supplémentaire.
+- Aucun handler spécifique pour les cards storage.
+
+## Vérifications manuelles simples
+
+1. Ouvrir un marchand avec une card acteur classique et une card stockage.
+2. Vérifier que la permission “Voir les autres acteurs du rail” s’applique aux deux.
+3. Vérifier que la card stockage n’est pas filtrée par les responsables du stockage.
+4. Vérifier qu’un responsable du stockage peut toujours interagir si les droits communs le permettent.
+5. Vérifier qu’un non responsable ne peut pas modifier la session si la restriction d’interaction storage s’applique.
+6. Vérifier qu’un acteur classique du rail marchand fonctionne comme avant.
+7. Vérifier que les personnages liés aux joueurs ne sont toujours pas ajoutés automatiquement au rail.
+8. Vérifier que le MJ peut tout voir et tout faire.
+
+---

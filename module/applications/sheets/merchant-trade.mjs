@@ -821,14 +821,7 @@ function getBestAccessSessionForClient(sessions, actorUuid) {
 
 export function prepareAccessClients(
   actor,
-  {
-    selectedSession,
-    selectedClientActorUuid,
-    isEditable,
-    accessClients = null,
-    sessions = null,
-    defaultPlayerAuthorization = false
-  } = {}
+  { selectedSession, selectedClientActorUuid, isEditable, accessClients = null, sessions = null } = {}
 ) {
   const clientsByUuid = new Map()
   const defaultRates = getMerchantDefaultClientRates(actor)
@@ -837,29 +830,6 @@ export function prepareAccessClients(
   storedClients.forEach((client) => {
     if (!client.actorUuid) return
     clientsByUuid.set(client.actorUuid, client)
-  })
-
-  game.users.forEach((user) => {
-    const userActor = user.character
-    if (!userActor?.uuid) return
-
-    const existing = clientsByUuid.get(userActor.uuid)
-    const playerClient = buildAccessClientFromActor(userActor, {
-      user,
-      isAuthorized: existing?.isAuthorized ?? defaultPlayerAuthorization,
-      isFromPlayerCharacter: true
-    })
-
-    clientsByUuid.set(userActor.uuid, {
-      ...playerClient,
-      ...existing,
-      actorName: userActor.name ?? existing?.actorName ?? "",
-      actorImg: userActor.img ?? existing?.actorImg ?? "",
-      actorType: userActor.type ?? existing?.actorType ?? "",
-      userId: user.id ?? existing?.userId ?? "",
-      userName: user.name ?? existing?.userName ?? "",
-      isFromPlayerCharacter: true
-    })
   })
 
   return Array.from(clientsByUuid.values())

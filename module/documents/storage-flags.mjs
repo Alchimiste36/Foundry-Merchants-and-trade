@@ -181,10 +181,31 @@ export function getStorageTradeResponsibleActorUuids(actor) {
   return getStorageTradeWithMerchantData(actor).responsibleActorUuids ?? []
 }
 
+export function getStorageAccessActorUuids(actor) {
+  const storageData = getStorageData(actor)
+  const actors = Array.isArray(storageData?.access?.actors) ? storageData.access.actors : []
+  const seen = new Set()
+
+  return actors
+    .map((entry) => String(entry?.actorUuid ?? "").trim())
+    .filter(Boolean)
+    .filter((actorUuid) => {
+      if (seen.has(actorUuid)) return false
+      seen.add(actorUuid)
+      return true
+    })
+}
+
 export function isStorageTradeResponsibleActor(actor, actorUuid) {
   const normalizedActorUuid = String(actorUuid ?? "").trim()
   if (!normalizedActorUuid) return false
   return getStorageTradeResponsibleActorUuids(actor).includes(normalizedActorUuid)
+}
+
+export function canActorTradeWithMerchantAsStorage(storageActor, actorUuid) {
+  const normalizedActorUuid = String(actorUuid ?? "").trim()
+  if (!normalizedActorUuid) return false
+  return getStorageTradeResponsibleActorUuids(storageActor).includes(normalizedActorUuid)
 }
 
 export async function setStorageTradeResponsibleActorUuids(actor, actorUuids = []) {

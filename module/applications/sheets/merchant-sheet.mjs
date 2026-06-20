@@ -10,7 +10,10 @@ import {
   getStorageData,
   getStorageFlagPath,
   updateStorageData,
+  isMTTStorage,
+  getStorageAccessActorUuids,
   getStorageTradeResponsibleActorUuids,
+  canActorTradeWithMerchantAsStorage,
   setStorageTradeResponsibleActorUuids,
   setStorageItemWarningGM,
   setStorageItemBlocked,
@@ -614,6 +617,52 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
   }
 
+  #userOwnsActorUuid(actorUuid, user = game.user) {
+    const actor = this.#getActorByUuid(actorUuid)
+    if (!actor) return false
+    return (
+      Boolean(actor.testUserPermission?.(user, "OWNER")) ||
+      (actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE) >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    )
+  }
+
+  #getStorageMerchantSessionViewerActorUuids(storageActor) {
+    const storageData = getStorageData(storageActor)
+    const actorUuids = new Set(getStorageAccessActorUuids(storageActor))
+    const preparedClients = prepareAccessClients(storageActor, {
+      accessClients: storageData?.access?.actors ?? [],
+      sessions: storageData?.sessions?.entries ?? [],
+      defaultPlayerAuthorization: true,
+      isEditable: false
+    })
+
+    for (const client of preparedClients) {
+      const actorUuid = String(client.actorUuid ?? "").trim()
+      if (actorUuid) actorUuids.add(actorUuid)
+    }
+
+    return Array.from(actorUuids)
+  }
+
+  #canUserViewStorageMerchantSession(storageActor, user = game.user) {
+    if (user?.isGM) return true
+    if (this.#canUserManageCurrentSheet(user)) return true
+
+    return this.#getStorageMerchantSessionViewerActorUuids(storageActor).some((actorUuid) =>
+      this.#userOwnsActorUuid(actorUuid, user)
+    )
+  }
+
+  #canUserTradeWithMerchantAsStorage(storageActor, user = game.user) {
+    if (user?.isGM) return true
+    if (this.#canUserManageCurrentSheet(user)) return true
+
+    return getStorageTradeResponsibleActorUuids(storageActor).some(
+      (actorUuid) =>
+        canActorTradeWithMerchantAsStorage(storageActor, actorUuid) && this.#userOwnsActorUuid(actorUuid, user)
+    )
+  }
+
   #getSessionActorAccess(sessionOrActorUuid, user = game.user) {
     const actorUuid =
       typeof sessionOrActorUuid === "string" ? sessionOrActorUuid : String(sessionOrActorUuid?.actorUuid ?? "").trim()
@@ -628,6 +677,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const permissions = getMerchantPermissions(this.actor, { user })
     const canViewOtherSessions = Boolean(permissions.canViewObserverActorSessions)
     const canInteractWithSession = Boolean(permissions.canInteractWithSession)
+
+    if (isMTTStorage(actor)) {
+      const canViewStorageSession = this.#canUserViewStorageMerchantSession(actor, user)
+      const canTradeAsStorage = this.#canUserTradeWithMerchantAsStorage(actor, user)
+
+      return {
+        actor,
+        actorUuid,
+        ownershipLevel,
+        isOwner,
+        isObserver,
+        isLimited,
+        canViewOtherSession: canViewStorageSession,
+        canSelectOtherSession: canViewStorageSession,
+        canInteractWithOtherSession: canTradeAsStorage
+      }
+    }
 
     return {
       actor,

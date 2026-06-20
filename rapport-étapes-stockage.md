@@ -1870,3 +1870,62 @@ Lorsqu’un acteur est retiré de la feuille storage via le menu du rail, son UU
 9. Ouvrir un marchand et vérifier que son comportement n’a pas changé.
 
 ---
+
+# Étape 3.1.B — Lecture des droits storage depuis le rail marchand
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et l’instruction 3.1.B.
+- [x] Ajouter les helpers de lecture storage pour les acteurs du rail et les responsables.
+- [x] Ajouter la lecture des acteurs dynamiques du rail storage via le pipeline commun.
+- [x] Ajouter les helpers de droits utilisateur côté feuille marchand.
+- [x] Adapter `#getSessionActorAccess` pour les sessions dont l’acteur est un stockage MTT.
+- [x] Conserver le comportement des acteurs classiques du rail marchand.
+- [x] Vérifier la syntaxe et le lint ciblé.
+
+## Résumé
+
+La feuille marchand sait maintenant reconnaître qu’une session concerne un stockage MTT.
+
+Pour une session marchand liée à un stockage, la consultation et la sélection utilisent les acteurs présents dans le rail du stockage, y compris les acteurs dynamiques liés aux joueurs.
+
+L’interaction avec cette session utilise les acteurs listés dans `storage.tradeWithMerchant.responsibleActorUuids`.
+
+## Helpers ajoutés ou réutilisés
+
+- `getStorageAccessActorUuids(actor)`
+- `canActorTradeWithMerchantAsStorage(storageActor, actorUuid)`
+- `getStorageTradeResponsibleActorUuids(actor)`
+- `#canUserViewStorageMerchantSession(storageActor, user)`
+- `#canUserTradeWithMerchantAsStorage(storageActor, user)`
+
+## Fichiers modifiés
+
+- `module/documents/storage-flags.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun flux d’achat.
+- Aucun flux de vente.
+- Aucun drop d’Item storage dans une session marchand.
+- Aucune livraison d’achat marchand dans le stockage.
+- Aucune validation croisée marchand / stockage.
+- Aucun handler séparé pour les cards storage du rail marchand.
+- Aucun template ou style.
+- Aucune option globale.
+
+## Vérifications manuelles simples
+
+1. Ajouter un stockage au rail d’un marchand.
+2. Ouvrir une session marchand pour ce stockage côté MJ.
+3. Vérifier qu’un joueur lié à un acteur du rail storage peut voir et sélectionner la session.
+4. Vérifier que ce joueur ne peut pas interagir si son acteur n’est pas responsable.
+5. Définir cet acteur comme responsable dans la configuration du stockage.
+6. Vérifier que ce joueur peut maintenant interagir avec la session.
+7. Retirer cet acteur des responsables et vérifier qu’il redevient simple consultant.
+8. Vérifier qu’un acteur classique du rail marchand conserve le comportement habituel.
+9. Vérifier que le MJ peut toujours tout faire.
+
+---

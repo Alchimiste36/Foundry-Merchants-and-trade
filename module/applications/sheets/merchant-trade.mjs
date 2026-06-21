@@ -37,7 +37,9 @@ import {
   getCatalogProduct,
   updateCatalogProduct,
   addCatalogProduct,
-  buildCatalogProductFromItem
+  buildCatalogProductFromItem,
+  isMerchantProductItem,
+  getMerchantProductFlags
 } from "../../documents/merchant-products.mjs"
 import { getMTTEntityType, isMTTStorage, getStorageItemFlags } from "../../documents/storage-flags.mjs"
 
@@ -1456,9 +1458,8 @@ export async function checkSessionTransaction(actor, session, preparedSession) {
 // ─── Seller drop protection ───────────────────────────────────────────────────
 
 export function isMerchantSellerDropBlocked(payload, actorUuid) {
-  if (!payload || typeof payload !== "object") return false
-  if (payload.type === "mtt.product" || payload.type === "mtt.service") return true
-  if (payload.actorUuid && String(payload.actorUuid) === String(actorUuid)) return true
+  void payload
+  void actorUuid
   return false
 }
 
@@ -2385,7 +2386,13 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       continue
     }
 
-    const availableQuantity = getItemAvailableQuantity(sourceItem)
+    // MTT base — les sellerItems peuvent venir d'un Item classique ou d'un produit MTT embedded.
+    const sourceIsMttProduct = isMerchantProductItem(sourceItem)
+    const productFlags = sourceIsMttProduct ? getMerchantProductFlags(sourceItem) : null
+    const availableQuantity = sourceIsMttProduct ? normalizeFiniteQuantity(productFlags.quantity) : getItemAvailableQuantity(sourceItem)
+    const hasLimitedQuantity = sourceIsMttProduct
+      ? !isUnlimitedQuantity(productFlags.quantity)
+      : Number.isFinite(availableQuantity) && availableQuantity >= 0
     const requestedQuantity = Number(item.quantity)
 
     if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
@@ -2393,13 +2400,15 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       continue
     }
 
-    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && availableQuantity < requestedQuantity) {
+    if (hasLimitedQuantity && (!Number.isFinite(availableQuantity) || availableQuantity < requestedQuantity)) {
       errors.push(game.i18n.format("mtt.sessions.errors.sellerQuantityInsufficient", { name: item.name }))
       continue
     }
 
-    const quantityPath = getQuantityPathForItem(sourceItem)
-    if (!quantityPath) {
+    const quantityPath = sourceIsMttProduct
+      ? `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.quantity`
+      : getQuantityPathForItem(sourceItem)
+    if (hasLimitedQuantity && !quantityPath) {
       errors.push(game.i18n.format("mtt.sessions.errors.sellerQuantityInsufficient", { name: item.name }))
       continue
     }
@@ -2409,7 +2418,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       sourceItem,
       quantityPath,
       quantity: requestedQuantity,
-      nextQuantity: Number((availableQuantity - requestedQuantity).toFixed(2))
+      nextQuantity: hasLimitedQuantity ? Number((availableQuantity - requestedQuantity).toFixed(2)) : null,
+      hasLimitedQuantity
     })
   }
 
@@ -2581,9 +2591,11 @@ export async function executeSessionItemTransfers(actor, plan) {
       })
     }
 
-    await transfer.sourceItem.update({
-      [transfer.quantityPath]: transfer.nextQuantity
-    })
+    if (transfer.hasLimitedQuantity) {
+      await transfer.sourceItem.update({
+        [transfer.quantityPath]: transfer.nextQuantity
+      })
+    }
   }
 
   executionResult.ok = true

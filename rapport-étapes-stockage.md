@@ -2639,3 +2639,45 @@ Lorsqu’une nouvelle ligne est créée dans un acteur MTT, sa catégorie est re
 - Aucun changement des sockets, du rail, des droits, de la monnaie ou du journal.
 
 ---
+
+# Étape — Drop MTT dans “PJ vend / donne”
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de drop MTT.
+- [x] Conserver le pipeline existant `#onSessionSellerDrop()` → `#getDroppedItemDocument()` → `prepareSellerItemDropData()` → `#addSessionSellerItem()`.
+- [x] Adapter `#getDroppedItemDocument(event)` pour reconnaître les sources Item classiques et `mtt.product`.
+- [x] Résoudre un produit MTT depuis `actorUuid` et `itemId`.
+- [x] Réutiliser `prepareSellerItemDropData(...)` pour les Items classiques et les produits MTT.
+- [x] Lire la quantité disponible d’un produit MTT depuis les flags produit.
+- [x] Préparer le plan d’exécution pour décrémenter `flags.mtt-merchants.product.quantity`.
+- [x] Neutraliser le blocage trop large des drops vendeur.
+- [x] Ne créer aucune fonction parallèle shop/storage.
+
+## Résumé
+
+La zone de drop vendeur accepte maintenant une source `mtt.product` en plus des Items classiques.
+
+`#getDroppedItemDocument(event)` retourne désormais une source structurée qui indique si le drop vient d’un Item classique ou d’un produit MTT. Pour un produit MTT, la source est résolue via l’acteur MTT et l’Item embedded support, tout en conservant le contexte produit.
+
+`prepareSellerItemDropData(...)` reste le point commun de préparation des lignes `sellerItems`. Elle accepte maintenant soit un Item direct, soit la source structurée retournée par la feuille, et conserve un `sourceUuid` résoluble vers l’Item embedded exact à décrémenter.
+
+Le plan d’exécution lit maintenant la quantité disponible d’un produit MTT depuis `flags.mtt-merchants.product.quantity` et prépare le même chemin pour la décrémentation finale.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune fonction spécialisée shop/storage n’a été créée.
+- Aucune restriction source/destination n’a été ajoutée.
+- Les lots déjà stabilisés ne sont pas modifiés.
+- L’identité commerciale n’est pas réécrite.
+- La fusion et la création des Items reçus restent dans les fonctions communes existantes.
+- Le rail, les droits, la monnaie et le journal ne sont pas modifiés.
+
+---

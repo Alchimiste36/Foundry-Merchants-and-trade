@@ -105,7 +105,6 @@ import {
   normalizeClientCustomRates,
   prepareAccessClients,
   checkSessionTransaction,
-  isMerchantSellerDropBlocked,
   buildExecutionPreview,
   buildSessionItemExecutionPlan,
   executeSessionItemTransfers,
@@ -1323,23 +1322,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (activeSession && !this.#canInteractWithSession(activeSession)) return
     if (!activeSession && !this.#requireMerchantPermission("canInteractWithSession")) return
 
-    try {
-      const rawPayload = event.dataTransfer.getData("application/json")
-      if (rawPayload) {
-        const payload = JSON.parse(rawPayload)
-        if (isMerchantSellerDropBlocked(payload, this.actor.uuid)) {
-          ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotGiveMerchantProduct"))
-          return
-        }
-      }
-    } catch {
-      // not a JSON payload, continue
-    }
-
     if (!this.#isStorageEntity() && !this.#requireSelectedSessionForItemAddition()) return
 
-    const item = await this.#getDroppedItemDocument(event)
-    if (!item) {
+    const droppedItem = await this.#getDroppedItemDocument(event)
+    if (!droppedItem) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeSold"))
       return
     }
@@ -1348,12 +1334,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       const session = await this.#getOrCreateStorageSessionForAddingItem()
       if (!session) return
 
-      if (session.actorUuid && item.parent?.uuid !== session.actorUuid) {
+      if (session.actorUuid && droppedItem.sourceActor?.uuid !== session.actorUuid) {
         ui.notifications.warn(game.i18n.localize("mtt.storage.session.dropSelectedActorOnly"))
         return
       }
 
-      const sellerData = prepareSellerItemDropData(this.actor, item, { buyPercent: 100 })
+      const sellerData = prepareSellerItemDropData(this.actor, droppedItem, { buyPercent: 100 })
       const sessionItem = await this.#addSessionSellerItem({
         ...sellerData,
         quantity: 1,
@@ -1367,12 +1353,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    // Refuse items belonging to the merchant actor
-    if (item.parent?.uuid === this.actor.uuid || item.parent?.id === this.actor.id) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotGiveMerchantProduct"))
-      return
-    }
-
     const session = this.#getSessionForAddingItem()
     if (!session) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.selectSessionBeforeAction"))
@@ -1380,7 +1360,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const rates = this.#getEffectiveRatesForSession(session)
-    const sellerData = prepareSellerItemDropData(this.actor, item, { buyPercent: rates.itemBuyPercent })
+    const sellerData = prepareSellerItemDropData(this.actor, droppedItem, { buyPercent: rates.itemBuyPercent })
     const dialogData = await this.#openSellerItemDialog({
       ...sellerData,
       availableQuantity: sellerData.availableQuantity
@@ -2171,20 +2151,61 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!dragData) return null
 
     try {
+      // MTT base — logique commune de résolution des sources Item classiques et produits MTT.
+      if (dragData.type === "mtt.product") {
+        const sourceActor = dragData.actorUuid ? await fromUuid(dragData.actorUuid) : null
+        if (sourceActor?.documentName !== "Actor") return null
+
+        const itemId = String(dragData.itemId ?? dragData.productId ?? dragData.sourceId ?? dragData.id ?? "").trim()
+        const item = itemId ? (sourceActor.items?.get(itemId) ?? null) : null
+        if (item?.documentName !== "Item") return null
+
+        const product = getCatalogProduct(sourceActor, item.id)
+        if (!product && !item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.enabled) return null
+
+        return {
+          kind: "mttProduct",
+          item,
+          sourceActor,
+          product
+        }
+      }
+
       if (dragData.uuid) {
         const document = await fromUuid(dragData.uuid)
-        return document?.documentName === "Item" ? document : null
+        return document?.documentName === "Item"
+          ? {
+              kind: "actorItem",
+              item: document,
+              sourceActor: document.parent?.documentName === "Actor" ? document.parent : null,
+              product: null
+            }
+          : null
       }
 
       if (dragData.pack && dragData.id) {
         const pack = game.packs.get(dragData.pack)
         const document = pack ? await pack.getDocument(dragData.id) : null
-        return document?.documentName === "Item" ? document : null
+        return document?.documentName === "Item"
+          ? {
+              kind: "actorItem",
+              item: document,
+              sourceActor: document.parent?.documentName === "Actor" ? document.parent : null,
+              product: null
+            }
+          : null
       }
 
       if (dragData.type === "Item" && dragData.id) {
         const document = game.items.get(dragData.id) ?? null
-        return document?.documentName === "Item" ? document : null
+        return document?.documentName === "Item"
+          ? {
+              kind: "actorItem",
+              item: document,
+              sourceActor: document.parent?.documentName === "Actor" ? document.parent : null,
+              product: null
+            }
+          : null
       }
     } catch {
       return null

@@ -3,6 +3,7 @@ import { getCurrencies } from "../../config/settings.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
   getCatalogProducts,
+  getCatalogProduct,
   isMerchantProductItem,
   findMergeableCatalogItemBySourceUuid,
   getMerchantProductFlags,
@@ -698,8 +699,26 @@ export function getItemAvailableQuantity(item) {
   return null
 }
 
-export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {}) {
-  const availableQuantity = getItemAvailableQuantity(item)
+export function prepareSellerItemDropData(actor, itemSource, { buyPercent = null } = {}) {
+  // MTT base — logique commune de préparation des Items classiques et produits MTT droppés en session.
+  const source =
+    itemSource?.item?.documentName === "Item"
+      ? itemSource
+      : {
+          kind: "actorItem",
+          item: itemSource,
+          sourceActor: itemSource?.parent?.documentName === "Actor" ? itemSource.parent : null,
+          product: null
+        }
+  const item = source.item
+  const sourceActor = source.sourceActor ?? (item.parent?.documentName === "Actor" ? item.parent : null)
+  const product =
+    source.product ??
+    (source.kind === "mttProduct" || isMerchantProductItem(item) ? getCatalogProduct(sourceActor, item.id) : null)
+  const productFlags = isMerchantProductItem(item) ? getMerchantProductFlags(item) : null
+  const productQuantity = product?.quantity ?? productFlags?.quantity
+  const availableQuantity =
+    product || productFlags ? parseQuantityValue(productQuantity) : getItemAvailableQuantity(item)
   const universalSellerPrice = readItemReferencePrice(item)
   let basePriceValue, priceCurrency
 
@@ -719,15 +738,14 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
         ? Number(merchantBuyPercent)
         : 50
   const unitPriceValue = Number(((basePriceValue * effectiveBuyPercent) / 100).toFixed(2))
-  const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
 
   return {
     type: "item",
     sourceUuid: item.uuid ?? "",
     sourceActorUuid: sourceActor?.uuid ?? "",
     sourceId: item.id ?? "",
-    name: item.name ?? "",
-    img: item.img ?? "",
+    name: product?.name ?? item.name ?? "",
+    img: product?.img ?? item.img ?? "",
     quantity: 1,
     availableQuantity,
     hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,

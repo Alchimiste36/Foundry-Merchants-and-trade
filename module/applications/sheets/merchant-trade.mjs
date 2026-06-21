@@ -1571,6 +1571,8 @@ export async function buildExecutionPreview(actor, session, options = {}) {
         sourceUuid: catalogProduct.sourceUuid,
         sourceItemUuid: toItemOnlyUuid(actor.items.get(catalogProduct.id)?.uuid),
         sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
+        ownershipLevel: catalogProduct.ownershipLevel,
+        isHidden: Boolean(catalogProduct.isHidden),
         deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
         isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
         secretName: catalogProduct.secretName ?? "",
@@ -1921,7 +1923,9 @@ function buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantity)
 
   if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID]
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
-    sourceUuid: catalogProduct.sourceUuid ?? ""
+    sourceUuid: catalogProduct.sourceUuid ?? "",
+    ownershipLevel: catalogProduct.ownershipLevel,
+    isHidden: Boolean(catalogProduct.isHidden)
   })
   setItemDataQuantity(itemData, quantity, null)
 
@@ -2141,6 +2145,8 @@ async function deliverPurchasedProductToMttDestination(destinationActor, transfe
       if (quantityPath) foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
       addDeliveredItemDescriptionBlock(itemData, productData)
       if (itemData.flags?.[MTT.ID]?.[MTT.FLAGS.PRODUCT]) delete itemData.flags[MTT.ID][MTT.FLAGS.PRODUCT]
+      const automaticCategory = getAutomaticItemCategory(itemData)
+      const categoryValue = await getOrCreateAutomaticProductCategory(destinationActor, automaticCategory)
 
       const item = await addCatalogProduct(destinationActor, {
         itemData,
@@ -2149,8 +2155,12 @@ async function deliverPurchasedProductToMttDestination(destinationActor, transfe
           sourceUuid: nextSourceUuid,
           quantity: stack.quantity,
           deliveryQuantityPerLot: productData?.deliveryQuantityPerLot ?? null,
-          ownershipLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-          isHidden: false,
+          category: categoryValue,
+          systemCategoryKey: automaticCategory?.key ?? "",
+          systemCategoryLabel: automaticCategory?.label ?? "",
+          systemCategoryPath: automaticCategory?.path ?? "",
+          ownershipLevel: productData?.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          isHidden: Boolean(productData?.isHidden),
           isCommerciallyModified: false
         }
       })
@@ -2273,6 +2283,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       sourceUuid: catalogProduct.sourceUuid,
       sourceItemUuid: toItemOnlyUuid(actor.items.get(catalogProduct.id)?.uuid),
       sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
+      ownershipLevel: catalogProduct.ownershipLevel,
+      isHidden: Boolean(catalogProduct.isHidden),
       merchantName: skipCommercial ? "" : (actor?.name ?? ""),
       transactionNumber: skipCommercial ? undefined : options.transactionNumber,
       deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,

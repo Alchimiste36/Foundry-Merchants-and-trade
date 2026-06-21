@@ -148,6 +148,7 @@ export function buildCatalogProductFromItem(sourceItem, options = {}) {
   const sourceUuid = String(options.sourceUuid ?? sourceItem?.uuid ?? "").trim()
   const categoryValue = String(options.categoryValue ?? "").trim()
   const automaticCategory = options.automaticCategory ?? null
+  const sourceProductFlags = normalizeProductFlags(sourceItem?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {})
 
   const rawItemData = sourceItem?.toObject ? sourceItem.toObject() : foundry.utils.deepClone(sourceItem ?? {})
   delete rawItemData._id
@@ -178,8 +179,8 @@ export function buildCatalogProductFromItem(sourceItem, options = {}) {
       systemCategoryLabel: automaticCategory?.label ?? "",
       systemCategoryPath: automaticCategory?.path ?? "",
       systemSubcategory: rawSubcategory,
-      ownershipLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-      isHidden: false,
+      ownershipLevel: sourceProductFlags.ownershipLevel,
+      isHidden: sourceProductFlags.isHidden,
       requiresApproval: false,
       hasFreePrice: false,
       minimumPriceValue: 0

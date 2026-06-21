@@ -2600,3 +2600,42 @@ La quantité retirée au vendeur reste basée sur `requestedQuantity`, donc le v
 - Aucun changement des sockets, du rail, des droits, du journal ou de la monnaie.
 
 ---
+
+# Correction transferts — Flags transférables et catégorie de base
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction transferts.
+- [x] Identifier les données de transfert construites depuis un produit MTT.
+- [x] Copier exactement `ownershipLevel` dans les données transférées.
+- [x] Copier exactement `isHidden` dans les données transférées.
+- [x] Conserver ces flags sur une création vers acteur classique.
+- [x] Conserver ces flags sur une création vers destination MTT.
+- [x] Recalculer la catégorie de base côté destination MTT.
+- [x] Ne pas modifier `deliveryQuantityPerLot`.
+- [x] Ne pas modifier les lignes fusionnées.
+
+## Résumé
+
+Les transferts d’Items conservent maintenant les flags MTT `ownershipLevel` et `isHidden` lorsqu’une nouvelle ligne est créée.
+
+Ces flags sont propagés depuis le produit MTT source vers les données de livraison, puis conservés aussi bien pour une destination acteur classique que pour une destination MTT. Le chemin acteur classique permet ainsi de garder ces informations si l’Item est revendu ou déposé plus tard vers un acteur MTT.
+
+Lorsqu’une nouvelle ligne est créée dans un acteur MTT, sa catégorie est recalculée depuis les données système de l’Item reçu. La catégorie personnalisée du vendeur n’est pas copiée.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `module/documents/merchant-products.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune modification de `deliveryQuantityPerLot`.
+- Aucune modification de l’identité commerciale.
+- Aucune modification des règles de fusion.
+- Aucune réécriture des flags d’une ligne fusionnée.
+- Aucun helper shop/storage dédié créé.
+- Aucun changement des sockets, du rail, des droits, de la monnaie ou du journal.
+
+---

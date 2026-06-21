@@ -17,6 +17,8 @@ import {
   STORAGE_IGNORE_CATEGORY_ID,
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
+  getMTTEntityType,
+  getStorageData,
   getStorageItemTagForActor
 } from "../../documents/storage-flags.mjs"
 import {
@@ -67,7 +69,12 @@ export function prepareTrade(actor) {
 }
 
 export function prepareWalletCurrencies(actor) {
-  const walletCurrencies = getMerchantData(actor)?.wallet?.currencies ?? {}
+  // MTT base — trésorerie commune selon le type MTT actif
+  const entityType = getMTTEntityType(actor) || MTT.ENTITY_TYPES.MERCHANT
+  const walletCurrencies =
+    entityType === MTT.ENTITY_TYPES.STORAGE
+      ? (getStorageData(actor)?.wallet?.currencies ?? {})
+      : (getMerchantData(actor)?.wallet?.currencies ?? {})
 
   return getCurrencies()
     .map((currency) => {

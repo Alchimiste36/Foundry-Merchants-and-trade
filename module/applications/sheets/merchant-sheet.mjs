@@ -337,9 +337,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         serviceSellPercent: 100,
         negotiationFormula: ""
       },
-      wallet: {
-        currencies: {}
-      },
+      wallet: storageData?.wallet ?? { currencies: {} },
       referenceState: null,
       journal: {
         nextTransactionNumber: 1,
@@ -4290,14 +4288,22 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return
 
-    const current = getMerchantData(this.actor)?.shop?.img ?? "icons/svg/hanging-sign.svg"
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const current = isStorage
+      ? (getStorageData(this.actor)?.storage?.img ?? this.actor.img ?? "icons/svg/chest.svg")
+      : (getMerchantData(this.actor)?.shop?.img ?? "icons/svg/hanging-sign.svg")
     const FilePickerApp = foundry.applications.apps.FilePicker.implementation
     const picker = new FilePickerApp({
       type: "image",
       current,
       callback: async (path) => {
         if (!path) return
-        await updateMerchantData(this.actor, { shop: { img: path } })
+        if (isStorage) {
+          await updateStorageData(this.actor, { storage: { img: path } })
+        } else {
+          await updateMerchantData(this.actor, { shop: { img: path } })
+        }
         this.render()
       }
     })
@@ -4507,6 +4513,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "shop.name") {
       const name = target.value?.trim() ?? ""
+      const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+
+      if (entityType === MTT.ENTITY_TYPES.STORAGE) {
+        const current = getStorageData(this.actor)?.storage?.name ?? ""
+        if (name === current) return null
+
+        return { [getStorageFlagPath("storage.name")]: name }
+      }
+
       const current = getMerchantData(this.actor)?.shop?.name ?? ""
       if (name === current) return null
 
@@ -4604,16 +4619,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const currencyId = target.dataset.mttWalletCurrency
     if (!currencyId) return
 
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const wallet = isStorage ? getStorageData(this.actor)?.wallet : getMerchantData(this.actor)?.wallet
+    const currentCurrencies = wallet?.currencies ?? {}
     const amount = Number(target.value)
 
     if (!Number.isFinite(amount) || amount < 0) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidWalletAmount"))
-      target.value = getMerchantData(this.actor)?.wallet?.currencies?.[currencyId] ?? 0
+      target.value = currentCurrencies[currencyId] ?? 0
       return
     }
 
-    const currencies = foundry.utils.deepClone(getMerchantData(this.actor)?.wallet?.currencies ?? {})
+    const currencies = foundry.utils.deepClone(currentCurrencies)
     currencies[currencyId] = amount
+
+    if (isStorage) {
+      await updateStorageData(this.actor, { wallet: { currencies } })
+      return
+    }
 
     await updateMerchantData(this.actor, { wallet: { currencies } })
   }

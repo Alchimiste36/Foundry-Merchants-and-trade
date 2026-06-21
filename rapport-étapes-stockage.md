@@ -2848,3 +2848,65 @@ Le droit ajouté concerne uniquement le drag vers une zone seller. Les contrôle
 - Les permissions générales, le rail, les styles, les langues et les sockets n’ont pas été modifiés.
 
 ---
+
+## Étape — Header stockage : identité et fortune
+
+### Todo utilisée
+
+- [x] Enregistrer le nom du stockage dans les flags storage.
+- [x] Enregistrer l’image du stockage dans les flags storage.
+- [x] Afficher la fortune réelle de l’acteur support dans le header stockage.
+
+### Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `rapport-étapes-stockage.md`
+
+### Éléments modifiés
+
+- Routage du champ `shop.name` vers `storage.storage.name` quand la feuille MTT est un stockage.
+- Routage de `editShopImage` vers `storage.storage.img` quand la feuille MTT est un stockage.
+- Ajout d’un helper d’affichage qui lit les monnaies de l’acteur via `currency.actorPath`.
+- Utilisation de ce helper uniquement pour le header stockage.
+
+### Éléments explicitement non modifiés
+
+- Pas de dépôt/retrait de monnaie.
+- Pas de répartition de fortune.
+- Pas de modification de `actor.name` ou `actor.img`.
+- Pas de modification de la logique shop/marchand.
+
+---
+
+# Correction — Trésorerie commune Shop / Storage
+
+## Todo
+
+- [x] Supprimer la lecture `actorPath` pour le header stockage.
+- [x] Supprimer `prepareActorWalletCurrencies`.
+- [x] Généraliser `prepareWalletCurrencies` selon le type MTT actif.
+- [x] Faire écrire l'édition du wallet dans `merchant.wallet` ou `storage.wallet`.
+- [x] Conserver la correction du nom et de l'image stockage.
+- [x] Ne pas implémenter de transfert de monnaie.
+
+## Résumé
+
+La trésorerie affichée dans le header utilise maintenant le wallet MTT du type actif. Une boutique lit `flags.mtt-merchants.merchant.wallet.currencies`, et un stockage lit `flags.mtt-merchants.storage.wallet.currencies`.
+
+Le stockage possède désormais une structure `wallet.currencies` dans ses données par défaut et dans sa normalisation.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-catalog.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/documents/storage-flags.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun transfert de monnaie n'a été ajouté.
+- Le nom et l'image du stockage restent enregistrés dans les flags storage.
+- `actor.name` et `actor.img` ne sont pas modifiés.
+
+---

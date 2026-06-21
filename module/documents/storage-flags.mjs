@@ -60,6 +60,9 @@ export function buildDefaultStorageData(actor = null) {
     access: {
       actors: []
     },
+    wallet: {
+      currencies: {}
+    },
     sessions: {
       entries: []
     },
@@ -108,6 +111,8 @@ export function normalizeStorageData(data = {}, actor = null) {
   merged.sheet.isLocked = true
   merged.access ??= {}
   merged.access.actors ??= []
+  merged.wallet ??= {}
+  merged.wallet.currencies ??= {}
   merged.sessions ??= {}
   merged.sessions.entries ??= []
   merged.content ??= {}

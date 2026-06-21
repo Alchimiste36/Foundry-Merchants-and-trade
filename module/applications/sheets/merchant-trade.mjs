@@ -1561,7 +1561,10 @@ export async function buildExecutionPreview(actor, session, options = {}) {
       const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
         item.deliveryQuantityPerLot ?? catalogProduct.deliveryQuantityPerLot
       )
-      const quantityToDeliver = Math.floor(item.quantity * deliveryQuantityPerLot)
+      const requestedQuantity = Number(item.quantity)
+      const quantityToDeliver = clientIsMtt
+        ? Math.floor(requestedQuantity)
+        : Math.floor(requestedQuantity * deliveryQuantityPerLot)
       const displayName = formatProductNameWithLotQuantity(catalogProduct.name ?? item.name, deliveryQuantityPerLot)
       const deliveryProductData = {
         id: catalogProduct.id,
@@ -2245,7 +2248,9 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
       item.deliveryQuantityPerLot ?? catalogProduct.deliveryQuantityPerLot
     )
-    const quantityToDeliver = Math.floor(requestedQuantity * deliveryQuantityPerLot)
+    const quantityToDeliver = clientIsMtt
+      ? Math.floor(requestedQuantity)
+      : Math.floor(requestedQuantity * deliveryQuantityPerLot)
     const reservedQuantity = reservedMerchantQuantities.get(catalogProduct.id) ?? 0
     const totalRequestedQuantity = reservedQuantity + requestedQuantity
 

@@ -2562,3 +2562,41 @@ Le MJ conserve tous les droits hors matrice, comme avant.
 - Aucune permission de remplacement ajoutée.
 
 ---
+
+# Correction lots — Transfert MTT vers MTT en lots
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction lots.
+- [x] Identifier les calculs de `quantityToDeliver` dans `buildExecutionPreview()`.
+- [x] Identifier les calculs de `quantityToDeliver` dans `buildSessionItemExecutionPlan()`.
+- [x] Réutiliser la détection existante `clientIsMtt`.
+- [x] Conserver le dépliage des lots vers un acteur classique.
+- [x] Transférer des lots non dépliés vers une destination MTT.
+- [x] Ne pas modifier la décrémentation du vendeur.
+- [x] Ne pas modifier la fusion, l’identité commerciale, les sockets, le rail, les droits, le journal ou la monnaie.
+
+## Résumé
+
+La quantité saisie dans une session reste un nombre de lots.
+
+Pour une destination acteur classique, le lot est toujours déplié en unités réelles avec `requestedQuantity × deliveryQuantityPerLot`.
+
+Pour une destination MTT, le lot n’est plus déplié : la destination reçoit `requestedQuantity` lots et conserve `deliveryQuantityPerLot` sur la ligne reçue.
+
+La quantité retirée au vendeur reste basée sur `requestedQuantity`, donc le vendeur perd bien un nombre de lots et non le nombre d’unités contenues dans ces lots.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucune modification des fonctions de livraison.
+- Aucune modification des fonctions de fusion.
+- Aucune modification de l’identité commerciale.
+- Aucun helper shop/storage dédié créé.
+- Aucun changement des sockets, du rail, des droits, du journal ou de la monnaie.
+
+---

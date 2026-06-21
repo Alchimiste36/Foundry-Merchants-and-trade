@@ -11,6 +11,7 @@ import {
   MERCHANT_CONFIGURABLE_PERMISSIONS,
   MERCHANT_PERMISSION_DEFINITIONS,
   MERCHANT_PERMISSION_PROFILE_KEYS,
+  canConfigureMerchantPermission,
   normalizeMerchantPermissionProfiles
 } from "../documents/merchant-access.mjs"
 
@@ -74,7 +75,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
         hint: MERCHANT_PERMISSION_DEFINITIONS[key].hint,
         limited: merchantPermissionProfiles.limited[key],
         observer: merchantPermissionProfiles.observer[key],
-        owner: merchantPermissionProfiles.owner[key]
+        owner: merchantPermissionProfiles.owner[key],
+        canConfigureLimited: canConfigureMerchantPermission("limited", key),
+        canConfigureObserver: canConfigureMerchantPermission("observer", key),
+        canConfigureOwner: canConfigureMerchantPermission("owner", key)
       })),
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
       itemDeliveryQuantityPerLotPath: game.settings.get(MTT.ID, "itemDeliveryQuantityPerLotPath"),
@@ -153,7 +157,11 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.element.querySelectorAll("input[name='allowedStorageActorTypes']:checked")
     ).map((cb) => cb.value)
     await setAllowedStorageActorTypes(allowedStorageActorTypes)
-    await game.settings.set(MTT.ID, "merchantPermissionProfiles", JSON.stringify(this.#collectMerchantPermissionProfiles()))
+    await game.settings.set(
+      MTT.ID,
+      "merchantPermissionProfiles",
+      JSON.stringify(this.#collectMerchantPermissionProfiles())
+    )
     this.close()
   }
 
@@ -293,7 +301,11 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
             continue
           }
           if (key === "merchantPermissionProfiles") {
-            await game.settings.set(MTT.ID, key, JSON.stringify(normalizeMerchantPermissionProfiles(data.settings[key])))
+            await game.settings.set(
+              MTT.ID,
+              key,
+              JSON.stringify(normalizeMerchantPermissionProfiles(data.settings[key]))
+            )
             continue
           }
           await game.settings.set(MTT.ID, key, data.settings[key])

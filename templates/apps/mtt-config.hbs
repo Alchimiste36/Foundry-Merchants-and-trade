@@ -91,25 +91,37 @@
                 ></i>
               </div>
               <label class="mtt-permissions-check">
-                <input
-                  type="checkbox"
-                  name="merchantPermissionProfiles.limited.{{permission.key}}"
-                  {{#if permission.limited}}checked{{/if}}
-                />
+                {{#if permission.canConfigureLimited}}
+                  <input
+                    type="checkbox"
+                    name="merchantPermissionProfiles.limited.{{permission.key}}"
+                    {{#if permission.limited}}checked{{/if}}
+                  />
+                {{else}}
+                  <span class="mtt-permission-unavailable" aria-hidden="true">—</span>
+                {{/if}}
               </label>
               <label class="mtt-permissions-check">
-                <input
-                  type="checkbox"
-                  name="merchantPermissionProfiles.observer.{{permission.key}}"
-                  {{#if permission.observer}}checked{{/if}}
-                />
+                {{#if permission.canConfigureObserver}}
+                  <input
+                    type="checkbox"
+                    name="merchantPermissionProfiles.observer.{{permission.key}}"
+                    {{#if permission.observer}}checked{{/if}}
+                  />
+                {{else}}
+                  <span class="mtt-permission-unavailable" aria-hidden="true">—</span>
+                {{/if}}
               </label>
               <label class="mtt-permissions-check">
-                <input
-                  type="checkbox"
-                  name="merchantPermissionProfiles.owner.{{permission.key}}"
-                  {{#if permission.owner}}checked{{/if}}
-                />
+                {{#if permission.canConfigureOwner}}
+                  <input
+                    type="checkbox"
+                    name="merchantPermissionProfiles.owner.{{permission.key}}"
+                    {{#if permission.owner}}checked{{/if}}
+                  />
+                {{else}}
+                  <span class="mtt-permission-unavailable" aria-hidden="true">—</span>
+                {{/if}}
               </label>
             </div>
           {{/each}}

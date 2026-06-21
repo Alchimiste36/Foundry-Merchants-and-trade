@@ -2520,3 +2520,45 @@ La logique de fusion existante n’a pas été refaite. La correction normalise 
 - Aucun changement du rail, des droits, du socket, des services, de la monnaie, du journal, des templates, des styles ou des langues.
 
 ---
+
+# Correction permissions — Actions d’écriture réservées propriétaire/MJ
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction permissions.
+- [x] Identifier le nom réel de la permission d’ajout au rail : `canAddActorToMerchantRail`.
+- [x] Centraliser les permissions réservées propriétaire/MJ dans les helpers de permissions existants.
+- [x] Retirer les cases `limited` et `observer` de la configuration pour `canValidateOrRefuseSessions`.
+- [x] Retirer les cases `limited` et `observer` de la configuration pour `canAddActorToMerchantRail`.
+- [x] Neutraliser les anciennes valeurs enregistrées au runtime.
+- [x] Conserver le comportement configurable pour `owner` et les droits complets du MJ.
+- [x] Ne pas modifier les transferts, sessions, sockets, monnaie, journal ou rendu du rail.
+
+## Résumé
+
+Les permissions qui déclenchent des écritures Foundry restent maintenant configurables uniquement pour le profil `owner`.
+
+Les colonnes `limited` et `observer` n’affichent plus de checkbox pour `canValidateOrRefuseSessions` et `canAddActorToMerchantRail`. La sauvegarde, l’import de configuration et la lecture runtime passent par la normalisation commune, qui force ces valeurs à `false` pour les profils non propriétaires.
+
+Le MJ conserve tous les droits hors matrice, comme avant.
+
+## Fichiers modifiés
+
+- `module/documents/merchant-access.mjs`
+- `module/applications/mtt-config-app.mjs`
+- `templates/apps/mtt-config.hbs`
+- `styles/applications/mtt-config.less`
+- `css/mtt.css`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun changement des transferts d’Items.
+- Aucun changement des sessions métier.
+- Aucun changement des sockets.
+- Aucun changement de monnaie.
+- Aucun changement du journal.
+- Aucun changement du rendu des cards du rail.
+- Aucune permission de remplacement ajoutée.
+
+---

@@ -97,15 +97,31 @@ export const MERCHANT_DEFAULT_PERMISSION_PROFILES = {
 
 export const MERCHANT_PERMISSION_PROFILE_KEYS = Object.freeze(["limited", "observer", "owner"])
 
+export const MERCHANT_OWNER_ONLY_PERMISSION_KEYS = new Set(["canAddActorToMerchantRail", "canValidateOrRefuseSessions"])
+
+const MERCHANT_RESTRICTED_PERMISSION_PROFILE_KEYS = new Set(["limited", "observer"])
+
+export function canConfigureMerchantPermission(profileKey, permissionKey) {
+  return !(
+    MERCHANT_RESTRICTED_PERMISSION_PROFILE_KEYS.has(profileKey) &&
+    MERCHANT_OWNER_ONLY_PERMISSION_KEYS.has(permissionKey)
+  )
+}
+
 function buildAllMerchantPermissions(value = true) {
   return Object.fromEntries(MERCHANT_CONFIGURABLE_PERMISSIONS.map((permission) => [permission, Boolean(value)]))
 }
 
-function normalizeMerchantPermissionProfile(profile, defaultProfile) {
+function normalizeMerchantPermissionProfile(profile, defaultProfile, profileKey = "") {
   const source = profile && typeof profile === "object" && !Array.isArray(profile) ? profile : {}
   const normalized = {}
 
   for (const permission of MERCHANT_CONFIGURABLE_PERMISSIONS) {
+    if (!canConfigureMerchantPermission(profileKey, permission)) {
+      normalized[permission] = false
+      continue
+    }
+
     normalized[permission] = Object.prototype.hasOwnProperty.call(source, permission)
       ? Boolean(source[permission])
       : Boolean(defaultProfile[permission])
@@ -130,7 +146,8 @@ export function normalizeMerchantPermissionProfiles(value) {
   for (const profileKey of MERCHANT_PERMISSION_PROFILE_KEYS) {
     normalized[profileKey] = normalizeMerchantPermissionProfile(
       profiles[profileKey],
-      MERCHANT_DEFAULT_PERMISSION_PROFILES[profileKey]
+      MERCHANT_DEFAULT_PERMISSION_PROFILES[profileKey],
+      profileKey
     )
   }
 
@@ -154,7 +171,8 @@ export function getMerchantPermissions(actor, { user = game.user, profiles = nul
 
   return normalizeMerchantPermissionProfile(
     normalizedProfiles[profileKey],
-    MERCHANT_DEFAULT_PERMISSION_PROFILES[profileKey]
+    MERCHANT_DEFAULT_PERMISSION_PROFILES[profileKey],
+    profileKey
   )
 }
 
@@ -226,11 +244,7 @@ export function getMerchantAccessContext(actor, user = game.user) {
 
   const isOwner = !isGM && permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
   const isObserver = !isGM && !isOwner && permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
-  const isLimited =
-    !isGM &&
-    !isOwner &&
-    !isObserver &&
-    permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+  const isLimited = !isGM && !isOwner && !isObserver && permissionLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
 
   return {
     isGM,

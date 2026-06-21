@@ -1220,7 +1220,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "application/json",
       JSON.stringify({ type: "mtt.product", itemId: productId, actorUuid: this.actor.uuid, sourceCategory })
     )
-    event.dataTransfer.effectAllowed = "move"
+    event.dataTransfer.effectAllowed = "copyMove"
   }
 
   #onCategoryDragOver(event) {
@@ -2147,16 +2147,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #getDroppedItemDocument(event) {
-    const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event)
-    if (!dragData) return null
-
     try {
       // MTT base — logique commune de résolution des sources Item classiques et produits MTT.
-      if (dragData.type === "mtt.product") {
-        const sourceActor = dragData.actorUuid ? await fromUuid(dragData.actorUuid) : null
+      const rawJson = event.dataTransfer?.getData("application/json")
+      const payload = rawJson ? JSON.parse(rawJson) : null
+      if (payload?.type === "mtt.product") {
+        const sourceActor = payload.actorUuid ? await fromUuid(payload.actorUuid) : null
         if (sourceActor?.documentName !== "Actor") return null
 
-        const itemId = String(dragData.itemId ?? dragData.productId ?? dragData.sourceId ?? dragData.id ?? "").trim()
+        const itemId = String(payload.itemId ?? payload.productId ?? payload.sourceId ?? payload.id ?? "").trim()
         const item = itemId ? (sourceActor.items?.get(itemId) ?? null) : null
         if (item?.documentName !== "Item") return null
 
@@ -2170,7 +2169,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
           product
         }
       }
+    } catch {
+      // Ne pas bloquer les drops Foundry classiques si le JSON MTT est absent ou invalide.
+    }
 
+    const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event)
+    if (!dragData) return null
+
+    try {
       if (dragData.uuid) {
         const document = await fromUuid(dragData.uuid)
         return document?.documentName === "Item"

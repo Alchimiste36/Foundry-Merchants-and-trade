@@ -2681,3 +2681,98 @@ Le plan d’exécution lit maintenant la quantité disponible d’un produit MTT
 - Le rail, les droits, la monnaie et le journal ne sont pas modifiés.
 
 ---
+
+# Correction drop seller — compatibilité copyMove produit MTT
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction ciblée.
+- [x] Vérifier que `isMerchantSellerDropBlocked(...)` est neutralisée.
+- [x] Modifier uniquement le drag produit MTT.
+- [x] Conserver le payload `mtt.product` existant.
+- [x] Conserver les drops de catégories en `move` et protégés par `isEditable`.
+- [x] Conserver la zone seller en `copy`.
+- [x] Ne pas modifier les fonctions de transfert, de quantité, de lots ou d’identité commerciale.
+
+## Résumé
+
+Le drag d’un produit MTT annonce maintenant `effectAllowed = "copyMove"` au lieu de `effectAllowed = "move"`.
+
+Ce changement rend le même drag compatible avec deux usages existants : déplacer le produit entre catégories avec un drop `move`, ou le copier vers la zone seller avec un drop `copy`.
+
+## Fichier modifié
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Les drops de catégories restent en `dropEffect = "move"` et protégés par `isEditable`.
+- La zone seller reste en `dropEffect = "copy"`.
+- Le payload `mtt.product` n’a pas été changé.
+- Les fonctions de transfert, de quantité, de lots et d’identité commerciale n’ont pas été modifiées.
+- Les permissions, le rail, `canEditMerchant` et `isEditable` n’ont pas été modifiés.
+
+---
+
+# Correction drop seller — Lecture payload MTT
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction ciblée.
+- [x] Vérifier que le drag produit MTT utilise toujours `effectAllowed = "copyMove"`.
+- [x] Conserver `getDragEventData(event)` pour les drops Foundry classiques.
+- [x] Ajouter un fallback de lecture `application/json` dans `#getDroppedItemDocument(event)`.
+- [x] Conserver le payload `mtt.product` existant sans renommage.
+- [x] Ne pas modifier les fonctions de transfert, quantité, lots, fusion ou identité commerciale.
+
+## Résumé
+
+`#getDroppedItemDocument(event)` lit toujours d’abord les données de drag/drop Foundry classiques via `getDragEventData(event)`.
+
+Si cette lecture ne retourne rien, la fonction tente maintenant de lire directement le payload JSON stocké en `application/json`. Cela permet à la branche `mtt.product` existante d’être atteinte pour les produits MTT draggés depuis le catalogue.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Le payload `mtt.product` existant n’a pas été renommé.
+- `getDragEventData(event)` est conservé pour les drops Foundry classiques.
+- Les fonctions de transfert, quantité, lots, fusion et identité commerciale n’ont pas été modifiées.
+- Les permissions, le rail, les catégories et les règles de relation entre acteurs n’ont pas été modifiés.
+
+---
+
+# Correction drop seller — Priorité payload MTT
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction ciblée.
+- [x] Modifier uniquement `#getDroppedItemDocument(event)`.
+- [x] Lire `application/json` en priorité pour les payloads `mtt.product`.
+- [x] Conserver le retour structuré `kind: "mttProduct"`.
+- [x] Conserver `getDragEventData(event)` pour les drops Foundry classiques.
+- [x] Ne pas modifier le payload, les transferts, les lots, la fusion ou l’identité commerciale.
+
+## Résumé
+
+`#getDroppedItemDocument(event)` traite maintenant en priorité le JSON interne MTT stocké dans `application/json` quand il contient `type: "mtt.product"`.
+
+Si le JSON est absent, invalide ou n’est pas un produit MTT, la fonction continue ensuite avec `getDragEventData(event)` pour les drops Foundry classiques.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Le payload `mtt.product` n’a pas été modifié.
+- `#onProductDragStart(event)`, `#onSessionSellerDragOver(event)` et `#onSessionSellerDrop(event)` n’ont pas été modifiés.
+- Les fonctions de transfert, lots, fusion, quantité et identité commerciale n’ont pas été modifiées.
+- Aucun helper ou pipeline parallèle n’a été créé.
+
+---

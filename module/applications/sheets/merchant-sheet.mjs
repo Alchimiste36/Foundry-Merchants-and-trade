@@ -120,6 +120,9 @@ import { requestMerchantSessionUpdate, requestStorageTagUpdate } from "./merchan
 
 const { ActorSheetV2 } = foundry.applications.sheets
 const { HandlebarsApplicationMixin } = foundry.applications.api
+const STORAGE_MONEY_TAKE_ID = "storage-money-take"
+const STORAGE_MONEY_DEPOSIT_ID = "storage-money-deposit"
+const STORAGE_MONEY_ICON = "icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp"
 
 // MTT base — feuille historique commune utilisée par les types MTT basés sur merchant-*
 export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
@@ -177,6 +180,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       refuseSessionTransaction: MerchantSheet.#onRefuseSessionTransaction,
       increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
       decreaseSessionItemQuantity: MerchantSheet.#onDecreaseSessionItemQuantity,
+      increaseStorageMoney: MerchantSheet.#onIncreaseStorageMoney,
+      decreaseStorageMoney: MerchantSheet.#onDecreaseStorageMoney,
       removeSessionItem: MerchantSheet.#onRemoveSessionItem,
       submitNegotiationOffer: MerchantSheet.#onSubmitNegotiationOffer,
       acceptNegotiationOffer: MerchantSheet.#onAcceptNegotiationOffer,
@@ -373,9 +378,40 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       accessClients,
       buyerActor
     })
+    const referenceCurrency = getReferenceCurrency()
+    const referenceCurrencyLabel = String(
+      referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.name ?? ""
+    ).trim()
+    const moneyTakeItem = session?.buyerItems?.find(
+      (item) => item.id === STORAGE_MONEY_TAKE_ID && item.type === "money"
+    )
+    const moneyDepositItem = session?.sellerItems?.find(
+      (item) => item.id === STORAGE_MONEY_DEPOSIT_ID && item.type === "money"
+    )
+    const takeValue = Number(moneyTakeItem?.unitPriceValue ?? 0)
+    const depositValue = Number(moneyDepositItem?.unitPriceValue ?? 0)
+    const buyerItems = sessionContext.buyerItems.filter((item) => item.type !== "money")
+    const sellerItems = sessionContext.sellerItems.filter((item) => item.type !== "money")
+
     return {
       ...sessionContext,
-      ...this.#prepareActiveSessionAccess(session)
+      ...this.#prepareActiveSessionAccess(session),
+      buyerItems,
+      sellerItems,
+      hasBuyerItems: buyerItems.length > 0,
+      hasSellerItems: sellerItems.length > 0,
+      hasAnyItems:
+        buyerItems.length > 0 ||
+        sellerItems.length > 0 ||
+        (Number.isFinite(takeValue) && takeValue > 0) ||
+        (Number.isFinite(depositValue) && depositValue > 0),
+      storageMoney: {
+        referenceCurrencyLabel,
+        takeItemId: STORAGE_MONEY_TAKE_ID,
+        depositItemId: STORAGE_MONEY_DEPOSIT_ID,
+        takeValue: Number.isFinite(takeValue) && takeValue >= 0 ? takeValue : 0,
+        depositValue: Number.isFinite(depositValue) && depositValue >= 0 ? depositValue : 0
+      }
     }
   }
 
@@ -914,6 +950,52 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #removeSessionItemById(session, itemId, side) {
     return removeSessionItemById(session, itemId, side)
   }
+  #setStorageSessionMoneyValue(session, side, amount) {
+    // MTT storage — lignes permanentes de monnaie dans la session de stockage
+    if (!this.#isStorageEntity() || !session) return null
+
+    const isDeposit = side === "deposit"
+    const itemId = isDeposit ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
+    const itemsKey = isDeposit ? "sellerItems" : "buyerItems"
+    const referenceCurrency = getReferenceCurrency()
+    const referenceCurrencyLabel = String(
+      referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.name ?? ""
+    ).trim()
+    const normalizedAmount = Number(Number(Math.max(0, Number(amount) || 0)).toFixed(2))
+
+    session[itemsKey] = Array.isArray(session[itemsKey]) ? session[itemsKey] : []
+    let item = session[itemsKey].find((entry) => entry.id === itemId && entry.type === "money")
+
+    if (!item) {
+      item = normalizeSessionItem({
+        id: itemId,
+        type: "money",
+        sourceKind: "storageMoney",
+        sourceUuid: "",
+        sourceActorUuid: "",
+        sourceId: itemId,
+        name: game.i18n.localize(isDeposit ? "mtt.storage.session.money.deposit" : "mtt.storage.session.money.take"),
+        img: STORAGE_MONEY_ICON,
+        quantity: 1,
+        unitPriceValue: normalizedAmount,
+        totalPriceValue: normalizedAmount,
+        priceCurrency: referenceCurrencyLabel,
+        sourceLabel: ""
+      })
+      session[itemsKey].push(item)
+      return item
+    }
+
+    item.quantity = 1
+    item.unitPriceValue = normalizedAmount
+    item.totalPriceValue = normalizedAmount
+    item.priceCurrency = referenceCurrencyLabel
+    item.sourceKind = "storageMoney"
+    item.sourceId = itemId
+    item.name = game.i18n.localize(isDeposit ? "mtt.storage.session.money.deposit" : "mtt.storage.session.money.take")
+    item.img = item.img || STORAGE_MONEY_ICON
+    return item
+  }
   #getProductAvailability(productId, options = {}) {
     return (
       buildProductAvailabilityMap(getCatalogProducts(this.actor), this.#getSessions(), options).get(productId) ?? null
@@ -1076,8 +1158,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #checkSessionTransaction(session) {
-    const preparedSession = this.#prepareSessionContext()
-    return checkSessionTransaction(this.actor, session, preparedSession)
+    const isStorage = this.#isStorageEntity()
+    const preparedSession = isStorage ? this.#prepareStorageSessionContext() : this.#prepareSessionContext()
+    return checkSessionTransaction(
+      this.actor,
+      session,
+      preparedSession,
+      isStorage
+        ? {
+            accessClients: this.#prepareAccessClients(),
+            includeCurrencyTransfers: true,
+            currencyTransferMode: "money-only",
+            allowPayerInternalConversion: true,
+            skipCommercialDeliveryText: true,
+            validateWithCurrencyTransferPlan: true
+          }
+        : {}
+    )
   }
 
   // ─── Session field change handler ─────────────────────────────────────────
@@ -1097,6 +1194,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       session.label = label
+      await this.#saveSession(session)
+      this.render()
+      return
+    }
+
+    if (field === "storageMoney") {
+      const side = input.dataset.storageMoneySide
+      if (!["take", "deposit"].includes(side)) return
+
+      const amount = Number(input.value)
+      if (!Number.isFinite(amount) || amount < 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidWalletAmount"))
+        input.value = 0
+        this.#setStorageSessionMoneyValue(session, side, 0)
+        await this.#saveSession(session)
+        this.render()
+        return
+      }
+
+      const roundedAmount = Number(amount.toFixed(2))
+      this.#setStorageSessionMoneyValue(session, side, roundedAmount)
       await this.#saveSession(session)
       this.render()
       return
@@ -3315,6 +3433,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const sessions = this.#getSessions().map((session) => normalizeSession(session))
     const session = buildSessionData(client)
+    if (this.#isStorageEntity()) {
+      this.#setStorageSessionMoneyValue(session, "take", 0)
+      this.#setStorageSessionMoneyValue(session, "deposit", 0)
+    }
     sessions.push(session)
     this.#activeSessionId = session.id
     this.#selectedClientActorUuid = client.actorUuid
@@ -3756,6 +3878,49 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render()
   }
 
+  static async #onIncreaseStorageMoney(event, target) {
+    event.preventDefault()
+
+    const session = this.#getActiveSessionForInteraction()
+    if (!session) return
+
+    const side = target.dataset.storageMoneySide
+    if (!["take", "deposit"].includes(side)) return
+
+    const items = side === "deposit" ? (session.sellerItems ?? []) : (session.buyerItems ?? [])
+    const itemId = side === "deposit" ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
+    const current = items.find((item) => item.id === itemId && item.type === "money")
+    const currentAmount = Number(current?.unitPriceValue ?? 0)
+    const nextAmount = Number(((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) + 1).toFixed(2))
+
+    this.#setStorageSessionMoneyValue(session, side, nextAmount)
+    await this.#saveSession(session)
+    this.render()
+  }
+
+  static async #onDecreaseStorageMoney(event, target) {
+    event.preventDefault()
+
+    const session = this.#getActiveSessionForInteraction()
+    if (!session) return
+
+    const side = target.dataset.storageMoneySide
+    if (!["take", "deposit"].includes(side)) return
+
+    const items = side === "deposit" ? (session.sellerItems ?? []) : (session.buyerItems ?? [])
+    const itemId = side === "deposit" ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
+    const current = items.find((item) => item.id === itemId && item.type === "money")
+    const currentAmount = Number(current?.unitPriceValue ?? 0)
+    const nextAmount = Math.max(
+      0,
+      Number(((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) - 1).toFixed(2))
+    )
+
+    this.#setStorageSessionMoneyValue(session, side, nextAmount)
+    await this.#saveSession(session)
+    this.render()
+  }
+
   static async #onIncreaseSessionItemQuantity(event, target) {
     event.preventDefault()
 
@@ -3822,7 +3987,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
-    const hasItems = session.buyerItems.length > 0 || session.sellerItems.length > 0
+    const isStorage = this.#isStorageEntity()
+    const hasItems = isStorage
+      ? [...(session.buyerItems ?? []), ...(session.sellerItems ?? [])].some((item) => {
+          if (item.type !== "money") return true
+          const amount = Number(item.unitPriceValue)
+          return Number.isFinite(amount) && amount > 0
+        })
+      : session.buyerItems.length > 0 || session.sellerItems.length > 0
     if (!hasItems) return
 
     const content = await this.#renderMttDialogContent({
@@ -3847,8 +4019,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return
 
-    session.buyerItems = []
-    session.sellerItems = []
+    if (isStorage) {
+      session.buyerItems = (session.buyerItems ?? []).filter((item) => item.type === "money")
+      session.sellerItems = (session.sellerItems ?? []).filter((item) => item.type === "money")
+      this.#setStorageSessionMoneyValue(session, "take", 0)
+      this.#setStorageSessionMoneyValue(session, "deposit", 0)
+    } else {
+      session.buyerItems = []
+      session.sellerItems = []
+    }
     session.status = "active"
     await this.#saveSession(session)
 
@@ -3942,7 +4121,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
-    const preview = await buildExecutionPreview(this.actor, session)
+    const preview = await buildExecutionPreview(
+      this.actor,
+      session,
+      this.#isStorageEntity()
+        ? {
+            accessClients: this.#prepareAccessClients(),
+            includeCurrencyTransfers: true,
+            currencyTransferMode: "money-only",
+            allowPayerInternalConversion: true,
+            skipCommercialDeliveryText: true
+          }
+        : {}
+    )
 
     this.#sessionCheckResult = {
       checked: true,
@@ -4007,10 +4198,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — transfert réel sans monnaie ni journal commercial
+      // MTT storage — transfert réel des Items et des lignes money, sans journal commercial
       const storageExecutionOptions = {
         accessClients: this.#prepareAccessClients(),
-        includeCurrencyTransfers: false,
+        includeCurrencyTransfers: true,
+        currencyTransferMode: "money-only",
+        allowPayerInternalConversion: true,
         skipCommercialDeliveryText: true
       }
       const storageClaimErrors = this.#getStorageSessionClaimLimitErrors(session)
@@ -4089,7 +4282,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         }
 
         await executeSessionItemTransfers(this.actor, executionPlan)
+        if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
+          await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan)
+        }
         clearSessionAfterExecution(session)
+        this.#setStorageSessionMoneyValue(session, "take", 0)
+        this.#setStorageSessionMoneyValue(session, "deposit", 0)
         await this.#saveSession(session)
         this.#sessionCheckResult = null
         this.render()
@@ -4205,6 +4403,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (this.#isStorageEntity()) {
       // MTT storage — refus sans transfert ni journal commercial
       clearSessionAfterExecution(session)
+      this.#setStorageSessionMoneyValue(session, "take", 0)
+      this.#setStorageSessionMoneyValue(session, "deposit", 0)
       await this.#saveSession(session)
       this.render()
       return

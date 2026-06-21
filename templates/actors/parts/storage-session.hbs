@@ -33,6 +33,56 @@
       </header>
 
       <ol class="mtt-merchant-session-list">
+        <li class="mtt-merchant-session-item" data-session-side="buyer" data-session-item-id="{{mtt.session.storageMoney.takeItemId}}">
+          <div>
+            <img class="mtt-merchant-session-item-image" src="icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp" alt="{{localize 'mtt.storage.session.money.take'}}" />
+          </div>
+
+          <div class="mtt-merchant-session-item-name">
+            <strong>{{localize "mtt.storage.session.money.take"}}</strong>
+          </div>
+
+          <div class="mtt-merchant-session-item-quantity">
+            {{#if @root.mtt.session.canEditActiveSession}}
+              {{#unless @root.mtt.session.isSubmitted}}
+                <span class="mtt-merchant-session-item-controls">
+                  <button
+                    class="mtt-merchant-session-action"
+                    type="button"
+                    data-action="decreaseStorageMoney"
+                    data-storage-money-side="take"
+                    data-tooltip="{{localize 'mtt.sessions.decreaseQuantity'}}"
+                  ><i class="fas fa-minus"></i></button>
+                  <input
+                    class="mtt-merchant-session-quantity"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value="{{mtt.session.storageMoney.takeValue}}"
+                    data-mtt-session-field="storageMoney"
+                    data-storage-money-side="take"
+                    data-tooltip="{{localize 'mtt.sessions.editQuantity'}}"
+                  />
+                 
+                  <button
+                    class="mtt-merchant-session-action"
+                    type="button"
+                    data-action="increaseStorageMoney"
+                    data-storage-money-side="take"
+                    data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
+                  ><i class="fas fa-plus"></i></button>
+
+                   <span class="mtt-storage-session-money-currency">{{mtt.session.storageMoney.referenceCurrencyLabel}}</span>
+                </span>
+              {{else}}
+                <span>{{mtt.session.storageMoney.takeValue}} {{mtt.session.storageMoney.referenceCurrencyLabel}}</span>
+              {{/unless}}
+            {{else}}
+              <span>{{mtt.session.storageMoney.takeValue}} {{mtt.session.storageMoney.referenceCurrencyLabel}}</span>
+            {{/if}}
+          </div>
+        </li>
+
         {{#if mtt.session.hasBuyerItems}}
           {{#each mtt.session.buyerItems as |item|}}
             <li class="mtt-merchant-session-item" data-session-side="buyer" data-session-item-id="{{item.id}}">
@@ -96,6 +146,56 @@
       </header>
 
       <ol class="mtt-merchant-session-list">
+        <li class="mtt-merchant-session-item" data-session-side="seller" data-session-item-id="{{mtt.session.storageMoney.depositItemId}}">
+          <div>
+            <img class="mtt-merchant-session-item-image" src="icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp" alt="{{localize 'mtt.storage.session.money.deposit'}}" />
+          </div>
+
+          <div class="mtt-merchant-session-item-main">
+            <strong>{{localize "mtt.storage.session.money.deposit"}}</strong>
+          </div>
+
+          <div class="mtt-merchant-session-item-quantity">
+            {{#if @root.mtt.session.canEditActiveSession}}
+              {{#unless @root.mtt.session.isSubmitted}}
+                <span class="mtt-merchant-session-item-controls">
+                  <button
+                    class="mtt-merchant-session-action"
+                    type="button"
+                    data-action="decreaseStorageMoney"
+                    data-storage-money-side="deposit"
+                    data-tooltip="{{localize 'mtt.sessions.decreaseQuantity'}}"
+                  ><i class="fas fa-minus"></i></button>
+                  <input
+                    class="mtt-merchant-session-quantity"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value="{{mtt.session.storageMoney.depositValue}}"
+                    data-mtt-session-field="storageMoney"
+                    data-storage-money-side="deposit"
+                    data-tooltip="{{localize 'mtt.sessions.editQuantity'}}"
+                  />
+                  
+                  <button
+                    class="mtt-merchant-session-action"
+                    type="button"
+                    data-action="increaseStorageMoney"
+                    data-storage-money-side="deposit"
+                    data-tooltip="{{localize 'mtt.sessions.increaseQuantity'}}"
+                  ><i class="fas fa-plus"></i></button>
+
+                  <span class="mtt-storage-session-money-currency">{{mtt.session.storageMoney.referenceCurrencyLabel}}</span>
+                </span>
+              {{else}}
+                <span>{{mtt.session.storageMoney.depositValue}} {{mtt.session.storageMoney.referenceCurrencyLabel}}</span>
+              {{/unless}}
+            {{else}}
+              <span>{{mtt.session.storageMoney.depositValue}} {{mtt.session.storageMoney.referenceCurrencyLabel}}</span>
+            {{/if}}
+          </div>
+        </li>
+
         {{#if mtt.session.hasSellerItems}}
           {{#each mtt.session.sellerItems as |item|}}
             <li class="mtt-merchant-session-item mtt-merchant-session-item-object" data-session-side="seller" data-session-item-id="{{item.id}}">

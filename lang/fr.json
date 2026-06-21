@@ -228,6 +228,10 @@
         "submittedMessage": "Cet échange est bloqué et attend une décision.",
         "selectActorBeforeAdding": "Sélectionnez un acteur autorisé avant d’ajouter un objet à l’échange.",
         "dropSelectedActorOnly": "Déposez un objet appartenant à l’acteur sélectionné.",
+        "money": {
+          "take": "Prendre de l'argent",
+          "deposit": "Déposer de l'argent"
+        },
         "item": {
           "storage": "Stockage",
           "actor": "Acteur"

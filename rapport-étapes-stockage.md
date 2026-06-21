@@ -2776,3 +2776,41 @@ Si le JSON est absent, invalide ou n’est pas un produit MTT, la fonction conti
 - Aucun helper ou pipeline parallèle n’a été créé.
 
 ---
+
+# Correction seller MTT — Quantités source et fusion commune
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction seller MTT.
+- [x] Conserver le pipeline seller existant sans créer de flux parallèle.
+- [x] Ajouter `sourceKind` pour identifier les sellerItems issus d’un produit MTT.
+- [x] Conserver `sourceKind` lors de la normalisation, de l’ajout seller et des négociations seller.
+- [x] Résoudre la source seller par `sourceActorUuid` + `sourceId` en priorité.
+- [x] Resynchroniser les quantités seller MTT depuis `flags.mtt-merchants.product.quantity`.
+- [x] Corriger les vérifications et la preview seller pour utiliser la quantité source commune.
+- [x] Ne pas réécrire les règles de fusion, de lots ou d’identité commerciale.
+
+## Résumé
+
+Les lignes seller issues d’un produit MTT conservent maintenant `sourceKind: "mttProduct"` dans la session.
+
+Les contrôles synchrones, l’affichage de session, la vérification de transaction, la preview et le plan d’exécution résolvent la source seller par l’acteur source et l’id d’Item, puis lisent la quantité disponible dans `flags.mtt-merchants.product.quantity` quand la source est un produit MTT.
+
+Les Items classiques continuent à utiliser leur quantité système.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-catalog.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Aucun pipeline seller parallèle n’a été créé.
+- Les règles de fusion destination existantes n’ont pas été réécrites.
+- Les règles de lots existantes n’ont pas été réécrites.
+- L’identité commerciale `sourceUuid` / `isCommerciallyModified` reste gérée par les fonctions communes existantes.
+- Les templates, styles, langues, sockets, permissions et rail n’ont pas été modifiés.
+
+---

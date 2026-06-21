@@ -775,6 +775,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return normalizeSessionItem({
       id: foundry.utils.randomID(),
       type: negotiation.type,
+      sourceKind: negotiation.sourceKind,
       sourceId: negotiation.sourceId,
       sourceUuid: negotiation.sourceUuid,
       sourceActorUuid: negotiation.sourceActorUuid,
@@ -1394,6 +1395,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         this.#createNegotiation({
           side: "seller",
           type: "item",
+          sourceKind: sellerData.sourceKind,
           sourceUuid: sellerData.sourceUuid,
           sourceActorUuid: sellerData.sourceActorUuid,
           sourceId: sellerData.sourceId,
@@ -3125,6 +3127,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #createNegotiation({
     side,
     type,
+    sourceKind = "",
     sourceId = "",
     sourceUuid = "",
     sourceActorUuid = "",
@@ -3156,6 +3159,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       id: foundry.utils.randomID(),
       side: side === "seller" ? "seller" : "buyer",
       type: ["product", "service", "item"].includes(type) ? type : "product",
+      sourceKind: String(sourceKind ?? "").trim(),
       sourceId: String(sourceId ?? "").trim(),
       sourceUuid: String(sourceUuid ?? "").trim(),
       sourceActorUuid: String(sourceActorUuid ?? "").trim(),
@@ -3204,6 +3208,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #addSessionSellerItem({
     type,
+    sourceKind = "",
     sourceUuid,
     sourceActorUuid,
     sourceId,
@@ -3224,6 +3229,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const convertedPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency)
     const normalizedUnitPrice = Number(convertedPrice.value)
     const normalizedCurrency = convertedPrice.currency
+    const normalizedSourceKind = String(sourceKind ?? "").trim()
     const normalizedSourceUuid = String(sourceUuid ?? "").trim()
     const normalizedAvailableQuantity = Number(availableQuantity)
     const hasLimitedStock =
@@ -3246,6 +3252,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     )
 
     if (existingItem) {
+      if (normalizedSourceKind && !existingItem.sourceKind) existingItem.sourceKind = normalizedSourceKind
       existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
       existingItem.hasLimitedQuantity = hasLimitedStock
       if (
@@ -3266,6 +3273,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sessionItem = {
       id: foundry.utils.randomID(),
       type,
+      sourceKind: normalizedSourceKind,
       sourceUuid: normalizedSourceUuid,
       sourceActorUuid: sourceActorUuid ?? "",
       sourceId,

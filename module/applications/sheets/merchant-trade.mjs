@@ -58,6 +58,7 @@ export function normalizeSessionItem(item) {
   return {
     id: item.id || foundry.utils.randomID(),
     type: ["product", "service", "item"].includes(item.type) ? item.type : "product",
+    sourceKind: String(item.sourceKind ?? "").trim(),
     sourceUuid: item.sourceUuid ?? "",
     sourceActorUuid: item.sourceActorUuid ?? "",
     sourceId: item.sourceId ?? "",
@@ -118,6 +119,7 @@ export function normalizeSessionNegotiation(negotiation = {}) {
     side: ["buyer", "seller"].includes(negotiation.side) ? negotiation.side : "buyer",
     type: ["product", "service", "item"].includes(negotiation.type) ? negotiation.type : "product",
     sourceId: String(negotiation.sourceId ?? "").trim(),
+    sourceKind: String(negotiation.sourceKind ?? "").trim(),
     sourceUuid: String(negotiation.sourceUuid ?? "").trim(),
     sourceActorUuid: String(negotiation.sourceActorUuid ?? "").trim(),
     name: String(negotiation.name ?? "").trim(),
@@ -235,6 +237,34 @@ export function removeSessionItemById(session, itemId, side = "") {
   return initialBuyerCount !== session.buyerItems.length || initialSellerCount !== session.sellerItems.length
 }
 
+function getSellerSourceItemFromSessionItem(item) {
+  const sourceActorUuid = String(item?.sourceActorUuid ?? "").trim()
+  const sourceId = String(item?.sourceId ?? "").trim()
+  if (!sourceActorUuid || !sourceId) return null
+
+  const sourceActor =
+    game.actors?.find?.((actor) => actor.uuid === sourceActorUuid) ??
+    game.actors?.get?.(sourceActorUuid.replace(/^Actor\./, "")) ??
+    null
+  const sourceItem = sourceActor?.items?.get(sourceId) ?? null
+  return sourceItem?.documentName === "Item" ? sourceItem : null
+}
+
+function getSellerSourceAvailableQuantity(sourceItem, fallbackItem = null) {
+  if (sourceItem && isMerchantProductItem(sourceItem)) {
+    const productFlags = getMerchantProductFlags(sourceItem)
+    if (isUnlimitedQuantity(productFlags.quantity)) return null
+
+    const productQuantity = normalizeFiniteQuantity(productFlags.quantity)
+    if (productQuantity !== null) return productQuantity
+  }
+
+  if (sourceItem?.documentName === "Item") return getItemAvailableQuantity(sourceItem)
+
+  const fallbackQuantity = Number(fallbackItem?.availableQuantity)
+  return Number.isFinite(fallbackQuantity) && fallbackQuantity >= 0 ? fallbackQuantity : null
+}
+
 function syncSessionItemAvailability(actor, item) {
   if (!item) return
 
@@ -262,6 +292,19 @@ function syncSessionItemAvailability(actor, item) {
 
     item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
     item.hasLimitedQuantity = hasLimitedQuantity
+    return
+  }
+
+  if (item.type === "item") {
+    const sourceItem = getSellerSourceItemFromSessionItem(item)
+    if (sourceItem && isMerchantProductItem(sourceItem)) {
+      const productFlags = getMerchantProductFlags(sourceItem)
+      const availableQuantity = normalizeFiniteQuantity(productFlags.quantity)
+      const hasLimitedQuantity = !isUnlimitedQuantity(productFlags.quantity) && availableQuantity !== null
+
+      item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
+      item.hasLimitedQuantity = hasLimitedQuantity
+    }
   }
 }
 
@@ -562,6 +605,7 @@ export function prepareSessionContext(
   })
 
   const sellerItems = (session.sellerItems ?? []).map((item) => {
+    syncSessionItemAvailability(actor, item)
     recalculateSessionItemTotal(item)
 
     return {
@@ -1284,9 +1328,9 @@ async function checkSessionSellerItems(actor, session, result) {
 
   for (const item of sellerItems) {
     const sourceUuid = String(item.sourceUuid ?? "").trim()
-    let source = null
+    let source = getSellerSourceItemFromSessionItem(item)
 
-    if (sourceUuid) {
+    if (!source && sourceUuid) {
       try {
         source = await fromUuid(sourceUuid)
       } catch {
@@ -1306,7 +1350,7 @@ async function checkSessionSellerItems(actor, session, result) {
       continue
     }
 
-    const availableQuantity = getItemAvailableQuantity(source)
+    const availableQuantity = getSellerSourceAvailableQuantity(source, item)
     checkLimitedSessionQuantity({
       item,
       availableQuantity,
@@ -1656,11 +1700,13 @@ export async function buildExecutionPreview(actor, session, options = {}) {
       continue
     }
 
-    let sourceItem = null
-    try {
-      sourceItem = await fromUuid(sourceUuid)
-    } catch {
-      // ignore
+    let sourceItem = getSellerSourceItemFromSessionItem(item)
+    if (!sourceItem) {
+      try {
+        sourceItem = await fromUuid(sourceUuid)
+      } catch {
+        // ignore
+      }
     }
 
     if (!sourceItem || sourceItem.documentName !== "Item") {
@@ -1678,7 +1724,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
       continue
     }
 
-    const available = getItemAvailableQuantity(sourceItem)
+    const available = getSellerSourceAvailableQuantity(sourceItem, item)
     if (Number.isFinite(available) && available >= 0 && available < item.quantity) {
       preview.errors.push(game.i18n.format("mtt.sessions.preview.sellerQuantityInsufficient", { name: item.name }))
     }
@@ -2366,9 +2412,9 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
 
   for (const item of session?.sellerItems ?? []) {
     const sourceUuid = String(item.sourceUuid ?? "").trim()
-    let sourceItem = null
+    let sourceItem = getSellerSourceItemFromSessionItem(item)
 
-    if (sourceUuid) {
+    if (!sourceItem && sourceUuid) {
       try {
         sourceItem = await fromUuid(sourceUuid)
       } catch {

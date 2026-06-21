@@ -741,6 +741,7 @@ export function prepareSellerItemDropData(actor, itemSource, { buyPercent = null
 
   return {
     type: "item",
+    sourceKind: source.kind === "mttProduct" || isMerchantProductItem(item) ? "mttProduct" : "actorItem",
     sourceUuid: item.uuid ?? "",
     sourceActorUuid: sourceActor?.uuid ?? "",
     sourceId: item.id ?? "",

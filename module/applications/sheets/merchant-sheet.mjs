@@ -248,6 +248,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLocked,
       isUnlocked,
       canEditMerchant,
+      canDragProductToSeller: this.#canDragProductToSeller(),
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
       configurablePermissions: sheetPermissions,
@@ -640,6 +641,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       (actorUuid) =>
         canActorTradeWithMerchantAsStorage(storageActor, actorUuid) && this.#userOwnsActorUuid(actorUuid, user)
     )
+  }
+
+  #canDragProductToSeller() {
+    if (game.user?.isGM) return true
+    if (this.isEditable) return true
+    if (this.#isStorageEntity()) return this.#canUserTradeWithMerchantAsStorage(this.actor)
+    return false
   }
 
   #getSessionActorAccess(sessionOrActorUuid, user = game.user) {
@@ -1212,7 +1220,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #onProductDragStart(event) {
     const target = event.currentTarget
     const productId = target.dataset.mttProductId
-    if (!productId || !this.isEditable) return
+    if (!productId || !this.#canDragProductToSeller()) return
 
     const product = getCatalogProduct(this.actor, productId)
     const sourceCategory = product?.category ?? ""

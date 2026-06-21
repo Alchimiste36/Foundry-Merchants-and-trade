@@ -2814,3 +2814,37 @@ Les Items classiques continuent à utiliser leur quantité système.
 - Les templates, styles, langues, sockets, permissions et rail n’ont pas été modifiés.
 
 ---
+
+# Correction drop seller — Responsables du stockage source
+
+## Todo
+
+- [x] Lire `agents.md` et l’instruction de correction.
+- [x] Ajouter un droit local dédié au drag produit vers seller.
+- [x] Appliquer la règle MJ / feuille éditable / responsable du stockage source.
+- [x] Exposer ce droit dans le contexte `mtt`.
+- [x] Modifier uniquement le `draggable` des lignes produit dans le template.
+- [x] Modifier `#onProductDragStart(event)` pour utiliser ce droit local.
+- [x] Conserver les drops de catégories protégés par `isEditable`.
+- [x] Ne pas modifier les quantités, lots, fusion ou `sourceUuid`.
+
+## Résumé
+
+Un produit MTT peut maintenant être rendu draggable depuis une feuille source si l’utilisateur est MJ, si la feuille est éditable, ou si la source est un stockage MTT pour lequel l’utilisateur possède un acteur responsable autorisé au marchandage.
+
+Le droit ajouté concerne uniquement le drag vers une zone seller. Les contrôles d’édition du catalogue restent basés sur `canEditMerchant` ou `isEditable`.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/merchant-products.hbs`
+- `rapport-étapes-stockage.md`
+
+## Non modifié volontairement
+
+- Les drops de catégories restent protégés par `isEditable` et utilisent toujours `dropEffect = "move"`.
+- La zone seller destination n’a pas été modifiée.
+- Les quantités, lots, fusion, `sourceUuid`, `isCommerciallyModified`, `ownershipLevel` et `isHidden` n’ont pas été modifiés.
+- Les permissions générales, le rail, les styles, les langues et les sockets n’ont pas été modifiés.
+
+---

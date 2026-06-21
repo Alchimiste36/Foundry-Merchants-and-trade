@@ -339,24 +339,6 @@ function isSessionMoneyItem(item) {
   return item?.type === "money"
 }
 
-function getCurrencyTransferItemGroups(buyerItems, sellerItems, options = {}) {
-  const mode = String(options.currencyTransferMode ?? "all").trim()
-  const buyerSourceItems = Array.isArray(buyerItems) ? buyerItems : []
-  const sellerSourceItems = Array.isArray(sellerItems) ? sellerItems : []
-
-  if (mode === "money-only") {
-    return {
-      buyerCurrencyItems: sellerSourceItems.filter((item) => isSessionMoneyItem(item)),
-      sellerCurrencyItems: buyerSourceItems.filter((item) => isSessionMoneyItem(item))
-    }
-  }
-
-  return {
-    buyerCurrencyItems: buyerSourceItems,
-    sellerCurrencyItems: sellerSourceItems
-  }
-}
-
 function prepareSessionTotals(items) {
   const totals = new Map()
 
@@ -1095,7 +1077,7 @@ function buildInternalConversionDeltas(currentAmounts, targetAmounts, currencies
     .filter(Boolean)
 }
 
-function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies, options = {}) {
+function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies) {
   const result = {
     canExecute: false,
     errors: [],
@@ -1169,6 +1151,9 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
 
   const payerActor = payerIsClient ? clientActor : merchantActor
   const receiverActor = payerIsClient ? merchantActor : clientActor
+  const payerEntityType = getMTTEntityType(payerActor)
+  const payerUsesMttWallet = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(payerEntityType)
+  const payerCanUseInternalConversion = payerUsesMttWallet
 
   const currenciesSortedDesc = [...currencies].sort((a, b) => Number(b.rate) - Number(a.rate))
 
@@ -1189,7 +1174,7 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
 
   if (result.errors.length > 0) return result
 
-  if (options.allowPayerInternalConversion) {
+  if (payerCanUseInternalConversion) {
     const payerReferenceValue = getCurrencyAmountsReferenceValue(payerAmounts, currencies)
 
     if (payerReferenceValue + 0.0001 < result.netDebtReference) {
@@ -1596,7 +1581,7 @@ function checkSessionMoneyAdjustments(actor, moneyAdjustments, result, options =
       )
     )
 
-    if (options.validateWithCurrencyTransferPlan) return
+    if (options.currencyTransferPlan) return
 
     const merchantAmount = getTransferCurrencyAmount(actor, adjustment.currency) ?? 0
     if (merchantAmount < adjustment.amount) {
@@ -1621,12 +1606,14 @@ function checkSessionMoneyAdjustments(actor, moneyAdjustments, result, options =
     )
   })
 
-  if (options.validateWithCurrencyTransferPlan) {
-    const plan = options.currencyTransferPlan
-    for (const warning of plan?.warnings ?? []) {
-      result.warnings.push(createCheckMessage("warning", `currency-plan-warning-${result.warnings.length}`, warning, "fa-coins"))
+  const plan = options.currencyTransferPlan
+  if (plan) {
+    for (const warning of plan.warnings ?? []) {
+      result.warnings.push(
+        createCheckMessage("warning", `currency-plan-warning-${result.warnings.length}`, warning, "fa-coins")
+      )
     }
-    for (const error of plan?.errors ?? []) {
+    for (const error of plan.errors ?? []) {
       result.errors.push(createCheckMessage("error", `currency-plan-error-${result.errors.length}`, error, "fa-coins"))
     }
   }
@@ -1687,9 +1674,7 @@ export async function checkSessionTransaction(actor, session, preparedSession, o
   checkSessionStatus(session, result)
   checkSessionBuyerItems(actor, session, result)
   await checkSessionSellerItems(actor, session, result)
-  const currencyPreview = options.validateWithCurrencyTransferPlan
-    ? await buildExecutionPreview(actor, session, options)
-    : null
+  const currencyPreview = await buildExecutionPreview(actor, session, options)
   checkSessionMoneyAdjustments(actor, preparedSession.moneyAdjustments ?? [], result, {
     ...options,
     currencyTransferPlan: currencyPreview?.currencyTransferPlan ?? null
@@ -1953,16 +1938,15 @@ export async function buildExecutionPreview(actor, session, options = {}) {
   }
 
   // Check money adjustments
-  const { buyerCurrencyItems, sellerCurrencyItems } = getCurrencyTransferItemGroups(buyerItems, sellerItems, options)
   const buyerTotals = prepareSessionTotals(
-    buyerCurrencyItems.map((item) => {
+    buyerItems.map((item) => {
       const copy = { ...item }
       recalculateSessionItemTotal(copy)
       return copy
     })
   )
   const sellerTotals = prepareSessionTotals(
-    sellerCurrencyItems.map((item) => {
+    sellerItems.map((item) => {
       const copy = { ...item }
       recalculateSessionItemTotal(copy)
       return copy
@@ -1974,7 +1958,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
   const currencies = includeCurrencyTransfers ? getCurrencies() : []
   const currencyTransferPlan =
     includeCurrencyTransfers && clientActor && currencies.length > 0
-      ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies, options)
+      ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies)
       : null
 
   preview.currencyTransferPlan = currencyTransferPlan ?? null

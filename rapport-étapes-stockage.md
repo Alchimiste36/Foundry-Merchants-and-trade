@@ -3092,3 +3092,105 @@ Le check préalable storage utilise les mêmes options de plan monétaire, afin 
 - Le comportement marchand par défaut ne reçoit pas `allowPayerInternalConversion`.
 
 ---
+
+# Étape 1 — Mise en commun des sessions MTT storage
+
+## Todo
+
+- [x] Ajouter une normalisation locale des sessions storage.
+- [x] Replacer les lignes `money` storage dans le sens financier commun.
+- [x] Garder les vrais Items storage à valeur `0`.
+- [x] Adapter la lecture des montants affichés sans modifier le HBS.
+- [x] Supprimer l'inversion spéciale du mode `money-only`.
+- [x] Appliquer la normalisation avant sauvegarde, contrôle, prévisualisation et validation.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Les lignes `money` storage sont maintenant replacées dans le sens financier commun des sessions MTT : `Prendre de l'argent` va dans `sellerItems`, et `Déposer de l'argent` va dans `buyerItems`.
+
+Les vrais Items de storage restent gratuits avec `unitPriceValue`, `totalPriceValue` et `priceCurrency` remis à `0` / vide pendant la normalisation.
+
+Le mode `money-only` filtre encore les lignes `money`, mais il n'inverse plus les côtés. Le moteur monétaire lit désormais le bon sens directement depuis la session normalisée.
+
+## Non modifié volontairement
+
+- Aucun template HBS n'a été modifié.
+- Aucune refonte complète de la validation storage.
+- Aucun journal storage ou journal commercial ajouté.
+- Aucun nouveau modèle `takenItems`, `depositedItems` ou équivalent.
+- Les transferts complets et le journal restent réservés à l'étape suivante.
+
+---
+
+# Étape 2 — Mise en commun de la validation MTT storage
+
+## Todo
+
+- [x] Vérifier que `money-only` ne fait plus d'inversion de côtés.
+- [x] Retirer `currencyTransferMode: "money-only"` des appels storage.
+- [x] Retirer `allowPayerInternalConversion: true` des appels storage.
+- [x] Rendre la conversion interne automatique pour un payeur MTT.
+- [x] Conserver les lignes `money` exclues des transferts d'Items.
+- [x] Garder la validation storage sur le moteur commun.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+La validation storage ne dépend plus de `currencyTransferMode: "money-only"`. Les vrais Items storage restent à `0`, donc le moteur commun peut calculer les totaux sur les mêmes tableaux `buyerItems` / `sellerItems` que la boutique.
+
+La conversion interne du payeur est maintenant commune aux acteurs MTT : un marchand ou un stockage MTT peut payer depuis la valeur totale de son wallet sans option spéciale storage.
+
+Les lignes `money` participent aux totaux monétaires, mais restent exclues des contrôles et transferts d'Items Foundry.
+
+## Non modifié volontairement
+
+- Aucun template HBS n'a été modifié.
+- Aucun style ou fichier de langue n'a été modifié.
+- Le journal n'a pas été modifié dans cette étape.
+- Aucun helper dédié storage de dépôt/retrait de monnaie n'a été créé.
+
+---
+
+# Étape 3 — Nettoyage commun des sessions MTT
+
+## Todo
+
+- [x] Supprimer les reliquats `currencyTransferMode` / `money-only` du code actif.
+- [x] Supprimer l'option externe `allowPayerInternalConversion`.
+- [x] Recentrer le check monétaire sur le plan commun de transfert.
+- [x] Conserver les protections qui excluent les lignes `money` des transferts d'Items.
+- [x] Ne pas modifier le journal.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+La session storage ne dépend plus d'un mode monétaire spécial. Les calculs utilisent les tableaux complets `buyerItems` / `sellerItems`, car les vrais Items storage sont normalisés à `0` et les lignes `money` portent seules la valeur payante.
+
+La conversion interne du payeur repose maintenant uniquement sur le fait que le payeur est un acteur MTT `merchant` ou `storage`.
+
+Le check monétaire utilise systématiquement le plan commun de transfert quand il existe, puis conserve l'ancien contrôle direct seulement comme secours.
+
+## Non modifié volontairement
+
+- Aucun template HBS n'a été modifié.
+- Aucun CSS ni fichier de langue n'a été modifié.
+- Le journal n'a pas été modifié.
+- Aucun helper storage de dépôt/retrait de monnaie n'a été créé.
+
+---

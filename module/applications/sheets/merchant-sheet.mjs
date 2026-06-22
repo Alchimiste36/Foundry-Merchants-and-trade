@@ -4220,7 +4220,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     this.render()
-    await openPreviewDialog(preview)
+    await openPreviewDialog(preview, { isStorage: this.#isStorageEntity() })
   }
 
   static async #onSubmitSession(event) {
@@ -4314,6 +4314,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         await openSessionExecutionErrorsDialog(preview)
         return
       }
+
+      const confirmed = await openSessionValidationDialog(preview, { isStorage: true })
+      if (!confirmed) return
 
       try {
         const executionPlan = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
@@ -4461,6 +4464,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (this.#isStorageEntity()) {
       // MTT storage — refus sans transfert ni journal commercial
+      const confirmed = await openRefuseConfirmDialog()
+      if (!confirmed) return
+
       clearSessionAfterExecution(session)
       this.#setStorageSessionMoneyValue(session, "take", 0)
       this.#setStorageSessionMoneyValue(session, "deposit", 0)

@@ -319,6 +319,11 @@
           "total": "Total"
         }
       },
+      "storage": {
+        "actorReceives": "L’acteur récupère",
+        "actorGives": "L’acteur dépose",
+        "moneyTransfer": "Monnaie échangée"
+      },
       "deleteItem": {
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"

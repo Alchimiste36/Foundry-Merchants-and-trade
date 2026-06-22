@@ -319,6 +319,11 @@
           "total": "Total"
         }
       },
+      "storage": {
+        "actorReceives": "Actor takes",
+        "actorGives": "Actor deposits",
+        "moneyTransfer": "Exchanged money"
+      },
       "deleteItem": {
         "title": "Delete item",
         "content": "Do you really want to delete this item from the merchant?"

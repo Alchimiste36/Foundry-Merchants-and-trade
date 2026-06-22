@@ -3295,3 +3295,32 @@ Le helper `finalizeMttProductQuantity(actor, productId, nextQuantity, { hideWhen
 - Aucun changement des calculs temporaires de disponibilité.
 
 ---
+
+## Étape — Dialogs de validation/refus pour les sessions d'échange storage
+
+**Todo**
+
+- [x] Adapter `renderPreviewDialogContent` pour accepter `isStorage` et le transmettre au template.
+- [x] Étendre `openPreviewDialog` et `openSessionValidationDialog` avec `{ isStorage }`.
+- [x] Masquer les colonnes prix dans `transaction-summary-dialog.hbs` si `isStorage`.
+- [x] Adapter les titres de sections (actorReceives / actorGives / moneyTransfer) si `isStorage`.
+- [x] Ajouter les clés de langue `mtt.dialog.storage.*` en fr et en.
+- [x] Brancher `openPreviewDialog` storage avec `isStorage: true`.
+- [x] Ajouter `openSessionValidationDialog` dans la branche storage de `#onValidateSessionTransaction`.
+- [x] Ajouter `openRefuseConfirmDialog` dans la branche storage de `#onRefuseSessionTransaction`.
+
+**Fichiers modifiés**
+
+- `module/applications/sheets/merchant-dialogs.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/dialogs/transaction-summary-dialog.hbs`
+- `lang/fr.json`
+- `lang/en.json`
+
+**Résumé**
+
+Les sessions d'échange storage affichent maintenant un dialog de preview, un dialog de confirmation avant validation et un dialog de confirmation avant refus. Le dialog commun `transaction-summary-dialog.hbs` adapte ses titres et masque les colonnes prix quand `isStorage` est actif.
+
+**Aucun nouveau dialog ni template storage créé.** Toutes les fonctions réutilisées sont celles du shop : `openPreviewDialog`, `openSessionValidationDialog`, `openRefuseConfirmDialog`, `renderPreviewDialogContent`.
+
+---

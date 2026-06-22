@@ -1037,11 +1037,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       session.sellerItems.push(moneyTakeItem)
     }
 
+    const refCurrency = getReferenceCurrency()
+    const refCurrencyLabel = String(refCurrency?.abbreviation ?? refCurrency?.id ?? "").trim()
     for (const item of [...session.buyerItems, ...session.sellerItems]) {
       if (!item || item.type === "money") continue
       item.unitPriceValue = 0
-      item.totalPriceValue = 0
-      item.priceCurrency = ""
+      item.priceCurrency = String(item.priceCurrency ?? "").trim() || refCurrencyLabel
       recalculateSessionItemTotal(item)
     }
 
@@ -3234,12 +3235,16 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
+    const pricesMatchForMerge = (item) => {
+      if (Number(item.unitPriceValue) === 0 && normalizedUnitPrice === 0) return true
+      return item.priceCurrency === normalizedCurrency
+    }
     const existingItem = session.buyerItems.find(
       (item) =>
         item.type === type &&
         item.sourceId === sourceId &&
         item.unitPriceValue === normalizedUnitPrice &&
-        item.priceCurrency === normalizedCurrency &&
+        pricesMatchForMerge(item) &&
         normalizeEffectiveDeliveryQuantityPerLot(item.deliveryQuantityPerLot) === normalizedDeliveryQuantityPerLot
     )
 
@@ -3417,11 +3422,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
+    const pricesMatchForMerge = (item) => {
+      if (Number(item.unitPriceValue) === 0 && normalizedUnitPrice === 0) return true
+      return item.priceCurrency === normalizedCurrency
+    }
     const existingItem = session.sellerItems.find(
       (item) =>
         (normalizedSourceUuid ? item.sourceUuid === normalizedSourceUuid : item.sourceId === sourceId) &&
         item.unitPriceValue === normalizedUnitPrice &&
-        item.priceCurrency === normalizedCurrency
+        pricesMatchForMerge(item)
     )
 
     if (existingItem) {

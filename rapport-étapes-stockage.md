@@ -3194,3 +3194,38 @@ Le check monétaire utilise systématiquement le plan commun de transfert quand 
 - Aucun helper storage de dépôt/retrait de monnaie n'a été créé.
 
 ---
+
+# Correction — Fusion des ajouts répétés en session storage
+
+## Todo
+
+- [x] Lire `agents.md`, le rapport stockage et les instructions de correction.
+- [x] Identifier la cause dans `#normalizeStorageExchangeSession` : `priceCurrency = ""` vidait la devise des vrais Items.
+- [x] Corriger la normalisation pour conserver la devise existante ou l'initialiser à la devise de référence.
+- [x] Ajouter une tolérance de fusion dans `#addSessionBuyerItem` quand les deux prix valent `0`.
+- [x] Appliquer la même tolérance dans `#addSessionSellerItem`.
+- [x] Vérifier `node --check` sur `merchant-sheet.mjs`.
+- [x] Rapport ajouté.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+La normalisation des vrais Items storage ne force plus `priceCurrency = ""`. Elle conserve la devise déjà présente, ou initialise à la devise de référence (`getReferenceCurrency`) si le champ est vide. Les Items ajoutés à la session et les Items déjà en session ont donc toujours la même devise.
+
+Les fonctions `#addSessionBuyerItem` et `#addSessionSellerItem` utilisent maintenant une règle locale `pricesMatchForMerge` : si les deux prix valent `0`, la devise n'est pas requise pour identifier une ligne existante. Si le prix est supérieur à `0`, la comparaison de devise reste inchangée.
+
+Résultat : des clics répétés sur `Ajouter à la session` pour le même Item augmentent la quantité de la ligne existante au lieu de créer des doublons, même si cette ligne avait une devise vide dans une session enregistrée avant la correction.
+
+## Non modifié volontairement
+
+- Aucun fichier HBS, CSS ou de langue.
+- Aucun modèle de session parallèle.
+- Aucun helper dédié `addStorageItemToSession`.
+- Les lignes `money` restent permanentes et inchangées.
+- Le moteur de validation et les transferts d'Items ne sont pas modifiés.
+
+---

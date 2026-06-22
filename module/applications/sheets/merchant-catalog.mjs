@@ -122,8 +122,9 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
 }
 
 const STORAGE_TAG_DEFS = [
-  { type: "want", icon: "fa-hand" },
-  { type: "ignore", icon: "fa-ban" }
+  { type: "want", icon: "fa-hand-wave" },
+  { type: "ignore", icon: "fa-ban" },
+  { type: "blocked", icon: "fa-lock" }
 ]
 const STORAGE_TAG_TYPES = new Set(STORAGE_TAG_DEFS.map((def) => def.type))
 
@@ -171,7 +172,8 @@ export function prepareItems(
     sessionEntries = null,
     activeSessionId = "",
     canEditActiveSession = false,
-    voterActorUuid = ""
+    voterActorUuid = "",
+    isEditable = false
   } = {}
 ) {
   const products = getCatalogProducts(actor)
@@ -217,6 +219,7 @@ export function prepareItems(
       const activeSession = Array.isArray(sessionEntries)
         ? sessionEntries.find((session) => String(session?.id ?? "") === String(activeSessionId ?? ""))
         : null
+      const isActiveSessionSubmitted = Boolean(activeSession?.isSubmitted)
       const storageIntentState = buildStorageItemIntentState({
         rawTags: rawStorageTags,
         sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
@@ -231,6 +234,20 @@ export function prepareItems(
       const storageAddBlockReasonLabel = storageAddIntentBlockState.storageAddBlockReasonKey
         ? game.i18n.localize(storageAddIntentBlockState.storageAddBlockReasonKey)
         : ""
+      const canShowAddToSessionButton =
+        canEditActiveSession && ((isVisible && !product.isBlocked && !isActiveSessionSubmitted) || isEditable)
+      const isAddToSessionDangerVisible =
+        isEditable &&
+        (!isVisible ||
+          product.isBlocked ||
+          isActiveSessionSubmitted ||
+          storageAddIntentBlockState.isStorageAddBlockedForCurrentUser)
+      const addToSessionTooltip =
+        storageAddIntentBlockState.isStorageAddBlockedForCurrentUser && storageAddBlockReasonLabel
+          ? storageAddBlockReasonLabel
+          : product.isBlocked
+            ? game.i18n.localize("mtt.storage.intent.block.blockedItem")
+            : game.i18n.localize("mtt.sessions.actions.addProduct")
 
       return {
         id: product.id,
@@ -287,10 +304,12 @@ export function prepareItems(
         minimumPriceValue: product.minimumPriceValue,
         selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
         isBlocked: product.isBlocked,
+        isBlockedByStorageTag: product.isBlockedByStorageTag,
         hasWarningGM: product.hasWarningGM,
         storageActiveTag,
         isStorageWantedByActiveActor: storageActiveTag === "want",
         isStorageIgnoredByActiveActor: storageActiveTag === "ignore",
+        isStorageBlockedByActiveActor: storageActiveTag === "blocked",
         storageIntentState,
         allActorsIgnoredStorageItem:
           storageIntentState.totalVotingSlots > 0 &&
@@ -303,6 +322,9 @@ export function prepareItems(
         isStorageAddBlockedForCurrentUser: storageAddIntentBlockState.isStorageAddBlockedForCurrentUser,
         storageAddBlockReasonKey: storageAddIntentBlockState.storageAddBlockReasonKey,
         storageAddBlockReasonLabel,
+        canShowAddToSessionButton,
+        isAddToSessionDangerVisible,
+        addToSessionTooltip,
         storageTags: buildStorageTagsContext(rawStorageTags, { canEditActiveSession, voterActorUuid })
       }
     })

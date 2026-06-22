@@ -260,6 +260,10 @@
           "label": "Sans intérêt pour moi",
           "tooltip": "Cet objet ne m’intéresse pas"
         },
+        "blocked": {
+          "label": "Garder l'objet",
+          "tooltip": "Cet objet doit être gardé"
+        },
         "noEditableSession": "Vous devez avoir une session active modifiable pour voter.",
         "noActiveActor": "La session active ne contient pas d’acteur votant."
       },
@@ -273,6 +277,7 @@
           "missingVotes": "Cet objet est demandé. Tous les acteurs activés sur ce stockage doivent choisir « Je le veux » ou « Sans intérêt pour moi ».",
           "notEnoughQuantity": "Cet objet est demandé par plus d’acteurs qu’il n’y a d’exemplaires disponibles.",
           "claimLimitReached": "Cet acteur a atteint sa quantité maximale pour cet objet.",
+          "blockedItem": "Un objet est bloqué dans le stockage. Validation impossible.",
           "generic": "Cet objet est en cours de décision et ne peut pas être ajouté librement."
         }
       }

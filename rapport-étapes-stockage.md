@@ -3324,3 +3324,63 @@ Les sessions d'échange storage affichent maintenant un dialog de preview, un di
 **Aucun nouveau dialog ni template storage créé.** Toutes les fonctions réutilisées sont celles du shop : `openPreviewDialog`, `openSessionValidationDialog`, `openRefuseConfirmDialog`, `renderPreviewDialogContent`.
 
 ---
+
+# Étape 7 — Tag actif de blocage storage
+
+## Todo
+
+- [x] Étendre les tags storage avec le tag `blocked`.
+- [x] Brancher le tag sur le booléen effectif `isBlocked`.
+- [x] Afficher le troisième bouton de tag avec l’icône cadenas.
+- [x] Garder visible le bouton “Ajouter à la session” pour les éditeurs avec couleur danger.
+- [x] Bloquer l’ajout joueur via `item.isBlocked`.
+- [x] Bloquer la validation joueur si la session contient un Item bloqué.
+- [x] Mettre à jour les traductions et styles.
+
+## Résumé
+
+Un troisième tag actif permet maintenant de signaler qu’un objet du stockage doit être gardé. Ce tag alimente le blocage effectif existant de l’Item au lieu de créer une logique parallèle.
+
+Les joueurs ne peuvent pas ajouter ni valider une session contenant un objet bloqué. Le MJ peut toujours outrepasser. Les utilisateurs pouvant éditer la feuille voient toujours l’icône d’ajout, même quand elle serait masquée pour les autres, avec une couleur danger.
+
+## Non modifié volontairement
+
+- Aucun nouveau template storage.
+- Aucun nouveau système de permissions.
+- Aucun second booléen métier de blocage.
+- Aucune modification des quantités déjà présentes en session.
+- Aucune modification du blocage MJ/proprio existant.
+
+---
+
+# Correction — Bouton d'ajout shop pour éditeurs
+
+## Todo
+
+- [x] Lire les instructions de correction et vérifier la branche shop de `#onAddProductToSession`.
+- [x] Autoriser `isEditable` à utiliser le bouton pour un produit shop masqué.
+- [x] Autoriser `isEditable` à utiliser le bouton pour un produit shop bloqué.
+- [x] Conserver la limite stricte de quantité disponible à `0`.
+- [x] Ne pas modifier le comportement storage.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Côté shop/marchand, les produits masqués ou bloqués restent inaccessibles aux joueurs non éditeurs. Un utilisateur pouvant éditer la feuille peut maintenant utiliser le bouton d'ajout visible en danger tant que du stock réel est disponible.
+
+La vérification de quantité disponible reste inchangée et bloque toujours tout le monde si le stock disponible est à `0`.
+
+## Non modifié volontairement
+
+- Aucun template modifié.
+- Aucun style modifié.
+- Aucune langue modifiée.
+- Aucun helper ajouté.
+- Aucune règle storage modifiée.
+- Aucun contournement de la limite de stock.
+
+---

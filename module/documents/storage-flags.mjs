@@ -252,7 +252,7 @@ export async function setStorageItemWarningGM(item, warningGM) {
 
 // ─── Tags de vote rapides sur les Items ──────────────────────────────────────
 
-const STORAGE_TAG_VALID_TYPES = new Set(["want", "ignore"])
+const STORAGE_TAG_VALID_TYPES = new Set(["want", "ignore", "blocked"])
 
 function deleteStorageTagPath(source, path) {
   if (!source || typeof source !== "object" || !path) return
@@ -279,6 +279,21 @@ export function getStorageItemTagForActor(rawTags, actorUuid) {
 
   const tag = foundry.utils.getProperty(rawTags, actorUuid)
   return STORAGE_TAG_VALID_TYPES.has(tag) ? tag : ""
+}
+
+export function hasStorageItemTagType(rawTags, tagType) {
+  if (!rawTags || !STORAGE_TAG_VALID_TYPES.has(tagType)) return false
+
+  const stack = [rawTags]
+  while (stack.length > 0) {
+    const value = stack.pop()
+    if (value === tagType) return true
+    if (!value || typeof value !== "object") continue
+
+    stack.push(...Object.values(value))
+  }
+
+  return false
 }
 
 function isSameStorageSessionProduct(entry, product) {

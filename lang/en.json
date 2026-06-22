@@ -260,6 +260,10 @@
           "label": "Not interested",
           "tooltip": "This item does not interest me"
         },
+        "blocked": {
+          "label": "Keep this item",
+          "tooltip": "This item must be kept"
+        },
         "noEditableSession": "You need an editable active session to vote.",
         "noActiveActor": "The active session has no voting actor."
       },
@@ -273,6 +277,7 @@
           "missingVotes": "This item is claimed. Every active actor on this storage must choose “I want it” or “Not interested”.",
           "notEnoughQuantity": "More actors want this item than there are available copies.",
           "claimLimitReached": "This actor has reached their maximum quantity for this item.",
+          "blockedItem": "An item is blocked in the storage. Validation is impossible.",
           "generic": "This item is under decision and cannot be freely added."
         }
       }

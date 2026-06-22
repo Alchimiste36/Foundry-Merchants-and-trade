@@ -276,13 +276,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const activeSession = this.#getActiveSession()
     const canEditActiveSession = Boolean(isStorage && this.#canEditStorageTagsForSession(activeSession))
     context.canEditActiveSession = canEditActiveSession
+    const canEditActiveSessionItems = this.#prepareActiveSessionAccess(activeSession).canEditActiveSession
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
     context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
       includeHidden: isEditable,
       sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null,
       activeSessionId: isStorage ? (activeSession?.id ?? "") : "",
-      canEditActiveSession,
-      voterActorUuid: canEditActiveSession ? activeSession.actorUuid : ""
+      canEditActiveSession: canEditActiveSessionItems,
+      voterActorUuid: canEditActiveSession ? activeSession.actorUuid : "",
+      isEditable
     })
     context.productCategories = prepareProductCategories(this.actor, context.items, {
       includeHidden: isEditable,
@@ -1123,6 +1125,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (item?.type !== "product" || checkedProductIds.has(item.sourceId)) continue
 
       checkedProductIds.add(item.sourceId)
+      const product = getCatalogProduct(this.actor, item.sourceId)
+      if (product?.isBlocked) {
+        errors.push(game.i18n.localize("mtt.storage.intent.block.blockedItem"))
+        continue
+      }
+
       const totalClaimQuantity = (session.buyerItems ?? []).reduce((total, entry) => {
         if (entry?.type !== "product" || entry.sourceId !== item.sourceId) return total
 
@@ -3674,7 +3682,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
       const product = getCatalogProduct(this.actor, productId)
-      if (!product || product.isHidden) return
+      if (!product) return
+      if (product.isHidden && !this.isEditable) return
+      if (product.isBlocked && game.user?.isGM !== true && !this.isEditable) {
+        ui.notifications.warn(game.i18n.localize("mtt.storage.intent.block.blockedItem"))
+        return
+      }
 
       const availability = this.#getProductAvailability(product.id)
       const hasLimitedAvailableQuantity = Boolean(availability?.hasLimitedQuantity)
@@ -3730,7 +3743,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const product = getCatalogProduct(this.actor, productId)
     if (!product) return
 
-    if (product.isHidden) return
+    if (product.isHidden && !this.isEditable) return
+    if (product.isBlocked && !this.isEditable) return
     if (!this.#requireSelectedSessionForItemAddition()) return
 
     const availability = this.#getProductAvailability(product.id)

@@ -1,5 +1,5 @@
 import { MTT } from "../config/constants.mjs"
-import { getStorageItemFlags, getStorageItemTags } from "./storage-flags.mjs"
+import { getStorageItemFlags, getStorageItemTags, hasStorageItemTagType } from "./storage-flags.mjs"
 import {
   getConfiguredItemValue,
   parseQuantityValue,
@@ -78,6 +78,7 @@ function buildProductContextFromItem(item) {
   const flags = normalizeProductFlags(item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT))
   const storageFlags = getStorageItemFlags(item)
   const rawStorageTags = getStorageItemTags(item)
+  const isBlockedByStorageTag = hasStorageItemTagType(rawStorageTags, "blocked")
 
   const priceRef = readItemReferencePrice(item)
   const priceValue = priceRef !== null ? priceRef.value : (getItemPrice(item) ?? 0)
@@ -109,7 +110,8 @@ function buildProductContextFromItem(item) {
     secretDescription: flags.secretDescription,
     isCommerciallyModified: flags.isCommerciallyModified,
     isSecretExpanded: flags.isSecretExpanded,
-    isBlocked: storageFlags.blocked,
+    isBlocked: storageFlags.blocked || isBlockedByStorageTag,
+    isBlockedByStorageTag,
     hasWarningGM: storageFlags.warningGM,
     rawStorageTags,
     itemData: item.toObject()

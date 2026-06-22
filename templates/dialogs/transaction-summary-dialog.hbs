@@ -4,7 +4,13 @@
 </div>
 
 <section class="mtt-dialog-preview-section">
-  <h4 class="mtt-dialog-preview-section-title">{{localize "mtt.dialog.transaction.buyerReceives"}}</h4>
+  <h4 class="mtt-dialog-preview-section-title">
+    {{#if isStorage}}
+      {{localize "mtt.dialog.storage.actorReceives"}}
+    {{else}}
+      {{localize "mtt.dialog.transaction.buyerReceives"}}
+    {{/if}}
+  </h4>
   {{#if buyerReceives.length}}
     <div class="mtt-dialog-preview-table-wrap">
       <table class="mtt-dialog-preview-table">
@@ -14,8 +20,10 @@
             <th>{{localize "mtt.dialog.transaction.columns.type"}}</th>
             <th>{{localize "mtt.dialog.transaction.columns.quantity"}}</th>
             <th>{{localize "mtt.dialog.transaction.columns.name"}}</th>
-            <th>{{localize "mtt.dialog.transaction.columns.unitPrice"}}</th>
-            <th>{{localize "mtt.dialog.transaction.columns.total"}}</th>
+            {{#unless isStorage}}
+              <th>{{localize "mtt.dialog.transaction.columns.unitPrice"}}</th>
+              <th>{{localize "mtt.dialog.transaction.columns.total"}}</th>
+            {{/unless}}
           </tr>
         </thead>
         <tbody>
@@ -27,8 +35,10 @@
               <td>{{item.typeLabel}}</td>
               <td class="mtt-dialog-preview-number">{{item.quantity}}</td>
               <td class="mtt-dialog-preview-name">{{item.name}}</td>
-              <td class="mtt-dialog-preview-price">{{item.unitPriceLabel}}</td>
-              <td class="mtt-dialog-preview-price">{{item.totalPriceLabel}}</td>
+              {{#unless @root.isStorage}}
+                <td class="mtt-dialog-preview-price">{{item.unitPriceLabel}}</td>
+                <td class="mtt-dialog-preview-price">{{item.totalPriceLabel}}</td>
+              {{/unless}}
             </tr>
           {{/each}}
         </tbody>
@@ -40,7 +50,13 @@
 </section>
 
 <section class="mtt-dialog-preview-section">
-  <h4 class="mtt-dialog-preview-section-title">{{localize "mtt.dialog.transaction.buyerGives"}}</h4>
+  <h4 class="mtt-dialog-preview-section-title">
+    {{#if isStorage}}
+      {{localize "mtt.dialog.storage.actorGives"}}
+    {{else}}
+      {{localize "mtt.dialog.transaction.buyerGives"}}
+    {{/if}}
+  </h4>
   {{#if buyerGives.length}}
     <div class="mtt-dialog-preview-table-wrap">
       <table class="mtt-dialog-preview-table">
@@ -50,8 +66,10 @@
             <th>{{localize "mtt.dialog.transaction.columns.type"}}</th>
             <th>{{localize "mtt.dialog.transaction.columns.quantity"}}</th>
             <th>{{localize "mtt.dialog.transaction.columns.name"}}</th>
-            <th>{{localize "mtt.dialog.transaction.columns.unitPrice"}}</th>
-            <th>{{localize "mtt.dialog.transaction.columns.total"}}</th>
+            {{#unless isStorage}}
+              <th>{{localize "mtt.dialog.transaction.columns.unitPrice"}}</th>
+              <th>{{localize "mtt.dialog.transaction.columns.total"}}</th>
+            {{/unless}}
           </tr>
         </thead>
         <tbody>
@@ -63,8 +81,10 @@
               <td>{{item.typeLabel}}</td>
               <td class="mtt-dialog-preview-number">{{item.quantity}}</td>
               <td class="mtt-dialog-preview-name">{{item.name}}</td>
-              <td class="mtt-dialog-preview-price">{{item.unitPriceLabel}}</td>
-              <td class="mtt-dialog-preview-price">{{item.totalPriceLabel}}</td>
+              {{#unless @root.isStorage}}
+                <td class="mtt-dialog-preview-price">{{item.unitPriceLabel}}</td>
+                <td class="mtt-dialog-preview-price">{{item.totalPriceLabel}}</td>
+              {{/unless}}
             </tr>
           {{/each}}
         </tbody>
@@ -76,7 +96,13 @@
 </section>
 
 <section class="mtt-dialog-preview-section">
-  <h4 class="mtt-dialog-preview-section-title">{{localize "mtt.dialog.transaction.moneyTransfer"}}</h4>
+  <h4 class="mtt-dialog-preview-section-title">
+    {{#if isStorage}}
+      {{localize "mtt.dialog.storage.moneyTransfer"}}
+    {{else}}
+      {{localize "mtt.dialog.transaction.moneyTransfer"}}
+    {{/if}}
+  </h4>
   {{#if moneyTransferGroups.length}}
     <div class="mtt-dialog-preview-money">
       {{#each moneyTransferGroups as |group|}}

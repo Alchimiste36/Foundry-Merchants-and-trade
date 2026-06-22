@@ -1,8 +1,9 @@
-import { MTT } from "./module/config/constants.mjs"
+import { MTT, MTT_ENTITY_TYPES } from "./module/config/constants.mjs"
 import { getCurrencies, registerSettings } from "./module/config/settings.mjs"
 import * as applications from "./module/applications/_module.mjs"
 import { registerMerchantSessionSocket } from "./module/applications/sheets/merchant-session-socket.mjs"
 import * as merchantFlags from "./module/documents/merchant-flags.mjs"
+import * as storageFlags from "./module/documents/storage-flags.mjs"
 import * as merchantConversion from "./module/documents/merchant-conversion.mjs"
 import * as merchantAccess from "./module/documents/merchant-access.mjs"
 import { isMerchantProductItem } from "./module/documents/merchant-products.mjs"
@@ -12,8 +13,10 @@ Hooks.once("init", async function () {
 
   game.modules.get(MTT.ID).api = {
     MTT,
+    MTT_ENTITY_TYPES,
     applications,
     merchantFlags,
+    storageFlags,
     merchantConversion,
     merchantAccess
   }

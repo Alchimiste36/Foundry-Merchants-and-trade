@@ -1,5 +1,5 @@
 import { MTT } from "./constants.mjs"
-import { normalizeAllowedMerchantActorTypes } from "./actor-types.mjs"
+import { normalizeAllowedMerchantActorTypes, normalizeAllowedStorageActorTypes } from "./actor-types.mjs"
 import { normalizeMerchantPermissionProfiles } from "../documents/merchant-access.mjs"
 
 export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
@@ -21,6 +21,7 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemCategoryI18nPrefix",
   "itemSubcategoryI18nPrefix",
   "allowedMerchantActorTypes",
+  "allowedStorageActorTypes",
   "merchantPermissionProfiles"
 ]
 
@@ -32,6 +33,8 @@ export function buildModuleConfigurationExport() {
       settings[key] =
         key === "allowedMerchantActorTypes"
           ? JSON.stringify(normalizeAllowedMerchantActorTypes(value))
+          : key === "allowedStorageActorTypes"
+            ? JSON.stringify(normalizeAllowedStorageActorTypes(value))
           : key === "merchantPermissionProfiles"
             ? JSON.stringify(normalizeMerchantPermissionProfiles(value))
             : value

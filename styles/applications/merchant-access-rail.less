@@ -15,6 +15,18 @@
   background: transparent;
   box-shadow: none;
   pointer-events: none;
+  --mtt-access-card-radius: 0 0.4rem 0.4rem 0;
+  --mtt-access-hover-shift: -0.2rem;
+  --mtt-access-selected-shift: -0.25rem;
+}
+
+/* MTT storage — position gauche du rail commun */
+.mtt-storage-access-rail {
+  right: auto;
+  left: -3.5rem;
+  --mtt-access-card-radius: 0.4rem 0 0 0.4rem;
+  --mtt-access-hover-shift: 0.2rem;
+  --mtt-access-selected-shift: 0.25rem;
 }
 
 .mtt-merchant-access-card,
@@ -24,7 +36,7 @@
   height: 3rem;
   padding: 0.25rem;
   border: 1px solid var(--mtt-border);
-  border-radius: 0 0.4rem 0.4rem 0;
+  border-radius: var(--mtt-access-card-radius);
   background: var(--mtt-bg-panel-soft);
   color: var(--mtt-text-muted);
   cursor: pointer;
@@ -47,7 +59,7 @@
 .mtt-merchant-access-drop-card:hover {
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);
-  transform: translateX(-0.2rem);
+  transform: translateX(var(--mtt-access-hover-shift));
 }
 
 .mtt-merchant-access-context-menu {
@@ -85,6 +97,22 @@
   background: var(--mtt-bg-hover);
 }
 
+.mtt-merchant-access-context-menu-button {
+  .fa-triangle-exclamation,
+  .fa-user-check,
+  .fa-user-minus {
+    color: var(--mtt-warning);
+  }
+  .fa-lock,
+  .fa-lock-open {
+    color: var(--mtt-danger);
+  }
+  .fa-file-slash,
+  .fa-file-plus {
+    color: var(--mtt-secret);
+  }
+}
+
 .mtt-merchant-catalog-context-menu {
   z-index: 135;
 }
@@ -94,7 +122,7 @@
   box-shadow:
     0 0 0 2px var(--mtt-accent-soft),
     0 0.35rem 1rem rgba(199, 154, 72, 0.28);
-  transform: translateX(-0.25rem);
+  transform: translateX(var(--mtt-access-selected-shift));
   width: 4rem;
   height: 4rem;
 }

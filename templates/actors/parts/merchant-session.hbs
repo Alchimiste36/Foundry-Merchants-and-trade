@@ -1,5 +1,6 @@
+  {{!-- MTT shop — session de transaction commerciale --}}
 <aside class="mtt-merchant-session-sidebar">
-  <section class="mtt-merchant-session">
+    <section class="mtt-merchant-session">
     <header class="mtt-merchant-session-header">
       <div class="mtt-merchant-session-title-block">
         {{#if mtt.session.client.actorImg}}
@@ -101,11 +102,11 @@
                       data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
                       <span class="mtt-merchant-negotiation-offer-side">{{negotiation.draftSideLabel}}</span>
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" />
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
                       {{#unless negotiation.isFreePrice}}
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-percent" type="number" min="0" step="1" value="{{negotiation.draft.percentOfReference}}" data-mtt-negotiation-field="percentOfReference" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.percent'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-percent" type="number" min="0" step="1" value="{{negotiation.draft.percentOfReference}}" data-mtt-negotiation-field="percentOfReference" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.percent'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
                       {{/unless}}
                     </div>
 
@@ -123,16 +124,18 @@
                           </button>
                         {{/if}}
                       {{else}}
-                        {{#if negotiation.isBuyerTurn}}
-                          <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
-                            <i class="fas fa-paper-plane"></i>
-                          </button>
-                          <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
-                            <i class="fas fa-check"></i>
-                          </button>
-                          <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
-                            <i class="fas fa-xmark"></i>
-                          </button>
+                        {{#if @root.mtt.session.canEditActiveSession}}
+                          {{#if negotiation.isBuyerTurn}}
+                            <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
+                              <i class="fas fa-paper-plane"></i>
+                            </button>
+                            <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
+                              <i class="fas fa-check"></i>
+                            </button>
+                            <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
+                              <i class="fas fa-xmark"></i>
+                            </button>
+                          {{/if}}
                         {{/if}}
                       {{/if}}
                     </div>
@@ -158,7 +161,7 @@
 
               <div class="mtt-merchant-session-item-quantity">
                   <span>
-                    {{#if @root.permissions.canInteractWithSession}}
+                    {{#if @root.mtt.session.canEditActiveSession}}
                       {{#unless @root.mtt.session.isSubmitted}}
                       <span class="mtt-merchant-session-item-controls">
                         <button
@@ -233,7 +236,7 @@
       
       </section>
 
-      <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if @root.permissions.canInteractWithSession}}{{#if mtt.session.canEdit}}{{#unless @root.mtt.session.isSubmitted}}data-mtt-session-seller-drop{{/unless}}{{/if}}{{/if}}>
+      <section class="mtt-merchant-session-section mtt-merchant-session-side-seller" {{#if @root.mtt.session.canEditActiveSession}}{{#if mtt.session.canEdit}}{{#unless @root.mtt.session.isSubmitted}}data-mtt-session-seller-drop{{/unless}}{{/if}}{{/if}}>
       <header class="mtt-merchant-session-section-header">
         <i class="fas fa-handshake-angle"></i>
         <h3 class="mtt-merchant-session-section-title">{{localize "mtt.sessions.sellerSide.title"}}</h3>
@@ -308,11 +311,11 @@
                       data-is-free-price="{{#if negotiation.isFreePrice}}true{{else}}false{{/if}}"
                     >
                       <span class="mtt-merchant-negotiation-offer-side">{{negotiation.draftSideLabel}}</span>
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" />
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" />
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-quantity" type="number" min="0" step="1" value="{{negotiation.draft.quantity}}" data-mtt-negotiation-field="quantity" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.quantity'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-unit-price" type="number" min="0" step="0.1" value="{{negotiation.draft.unitPriceValue}}" data-mtt-negotiation-field="unitPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.unitPrice'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-total-price" type="number" min="0" step="0.1" value="{{negotiation.draft.totalPriceValue}}" data-mtt-negotiation-field="totalPriceValue" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.totalPrice'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
                       {{#unless negotiation.isFreePrice}}
-                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-percent" type="number" min="0" step="1" value="{{negotiation.draft.percentOfReference}}" data-mtt-negotiation-field="percentOfReference" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.percent'}}" />
+                      <input class="mtt-merchant-negotiation-draft-field mtt-merchant-negotiation-draft-percent" type="number" min="0" step="1" value="{{negotiation.draft.percentOfReference}}" data-mtt-negotiation-field="percentOfReference" data-negotiation-id="{{negotiation.id}}" data-tooltip="{{localize 'mtt.sessions.negotiations.percent'}}" {{#unless @root.mtt.session.canEditActiveSession}}disabled{{/unless}} />
                       {{/unless}}
                     </div>
 
@@ -330,16 +333,18 @@
                           <i class="fas fa-xmark"></i>
                         </button>
                       {{else}}
-                        {{#if negotiation.isBuyerTurn}}
-                          <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
-                            <i class="fas fa-paper-plane"></i>
-                          </button>
-                          <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
-                            <i class="fas fa-check"></i>
-                          </button>
-                          <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
-                            <i class="fas fa-xmark"></i>
-                          </button>
+                        {{#if @root.mtt.session.canEditActiveSession}}
+                          {{#if negotiation.isBuyerTurn}}
+                            <button class="mtt-merchant-negotiation-action" type="button" data-action="submitNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.submit'}}">
+                              <i class="fas fa-paper-plane"></i>
+                            </button>
+                            <button class="mtt-merchant-negotiation-action" type="button" data-action="acceptNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.accept'}}">
+                              <i class="fas fa-check"></i>
+                            </button>
+                            <button class="mtt-merchant-negotiation-action" type="button" data-action="refuseNegotiationOffer" data-tooltip="{{localize 'mtt.sessions.negotiations.actions.refuse'}}">
+                              <i class="fas fa-xmark"></i>
+                            </button>
+                          {{/if}}
                         {{/if}}
                       {{/if}}
                     </div>
@@ -365,7 +370,7 @@
 
                 <div class="mtt-merchant-session-item-quantity">
                   <span>
-                    {{#if @root.permissions.canInteractWithSession}}
+                    {{#if @root.mtt.session.canEditActiveSession}}
                       {{#unless @root.mtt.session.isSubmitted}}
                       <span class="mtt-merchant-session-item-controls">
                         <button
@@ -500,7 +505,7 @@
           <p class="mtt-merchant-session-submitted-message">{{localize "mtt.sessions.submittedMessage"}}</p>
         {{/if}}
         {{#if mtt.session.hasAnyItems}}
-          {{#if @root.permissions.canInteractWithSession}}
+          {{#if @root.mtt.session.canEditActiveSession}}
               <button
                 class="mtt-merchant-session-final-action delete"
                 type="button"
@@ -526,7 +531,7 @@
               <i class="fas fa-xmark"></i>
             </button>
           {{else}}
-            {{#if @root.permissions.canInteractWithSession}}
+            {{#if @root.mtt.session.canEditActiveSession}}
               {{#unless mtt.session.isSubmitted}}
                 <button class="mtt-merchant-session-final-action" type="button" data-action="submitSession" data-tooltip="{{localize 'mtt.sessions.submitSession'}}">
                   <i class="fas fa-thumbs-up"></i>
@@ -602,5 +607,5 @@
         </ul>
       </section>
     {{/if}}
-  </section>
+    </section>
 </aside>

@@ -3,12 +3,15 @@ import { MTT_EXPORTABLE_CONFIG_SETTINGS, buildModuleConfigurationExport } from "
 import {
   getAvailableActorTypes,
   getAllowedMerchantActorTypes,
-  setAllowedMerchantActorTypes
+  getAllowedStorageActorTypes,
+  setAllowedMerchantActorTypes,
+  setAllowedStorageActorTypes
 } from "../config/actor-types.mjs"
 import {
   MERCHANT_CONFIGURABLE_PERMISSIONS,
   MERCHANT_PERMISSION_DEFINITIONS,
   MERCHANT_PERMISSION_PROFILE_KEYS,
+  canConfigureMerchantPermission,
   normalizeMerchantPermissionProfiles
 } from "../documents/merchant-access.mjs"
 
@@ -54,14 +57,17 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
     const availableTypes = getAvailableActorTypes()
-    const allowedTypes = getAllowedMerchantActorTypes()
+    const allowedMerchantTypes = getAllowedMerchantActorTypes()
+    const allowedStorageTypes = getAllowedStorageActorTypes()
     const merchantPermissionProfiles = normalizeMerchantPermissionProfiles(
       game.settings.get(MTT.ID, "merchantPermissionProfiles")
     )
     return {
       ...context,
-      availableActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedTypes.includes(t.value) })),
-      hasAllowedActorTypes: allowedTypes.length > 0,
+      availableActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedMerchantTypes.includes(t.value) })),
+      availableStorageActorTypes: availableTypes.map((t) => ({ ...t, checked: allowedStorageTypes.includes(t.value) })),
+      hasAllowedActorTypes: allowedMerchantTypes.length > 0,
+      hasAllowedStorageActorTypes: allowedStorageTypes.length > 0,
       merchantPermissionProfiles,
       merchantPermissionRows: MERCHANT_CONFIGURABLE_PERMISSIONS.map((key) => ({
         key,
@@ -69,7 +75,10 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
         hint: MERCHANT_PERMISSION_DEFINITIONS[key].hint,
         limited: merchantPermissionProfiles.limited[key],
         observer: merchantPermissionProfiles.observer[key],
-        owner: merchantPermissionProfiles.owner[key]
+        owner: merchantPermissionProfiles.owner[key],
+        canConfigureLimited: canConfigureMerchantPermission("limited", key),
+        canConfigureObserver: canConfigureMerchantPermission("observer", key),
+        canConfigureOwner: canConfigureMerchantPermission("owner", key)
       })),
       itemQuantityPath: game.settings.get(MTT.ID, "itemQuantityPath"),
       itemDeliveryQuantityPerLotPath: game.settings.get(MTT.ID, "itemDeliveryQuantityPerLotPath"),
@@ -84,6 +93,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       useItemTypeAsCategoryFallback: game.settings.get(MTT.ID, "useItemTypeAsCategoryFallback"),
       categoryLabelMap: game.settings.get(MTT.ID, "categoryLabelMap"),
       defaultCustomCategories: game.settings.get(MTT.ID, "defaultCustomCategories"),
+      defaultStorageCategories: game.settings.get(MTT.ID, "defaultStorageCategories"),
       itemSubcategoryPath: game.settings.get(MTT.ID, "itemSubcategoryPath"),
       itemCategoryI18nPrefix: game.settings.get(MTT.ID, "itemCategoryI18nPrefix"),
       itemSubcategoryI18nPrefix: game.settings.get(MTT.ID, "itemSubcategoryI18nPrefix"),
@@ -134,6 +144,7 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await game.settings.set(MTT.ID, "useItemTypeAsCategoryFallback", fd.get("useItemTypeAsCategoryFallback") === "on")
     await game.settings.set(MTT.ID, "categoryLabelMap", fd.get("categoryLabelMap") ?? "")
     await game.settings.set(MTT.ID, "defaultCustomCategories", fd.get("defaultCustomCategories") ?? "")
+    await game.settings.set(MTT.ID, "defaultStorageCategories", fd.get("defaultStorageCategories") ?? "")
     await game.settings.set(MTT.ID, "itemSubcategoryPath", fd.get("itemSubcategoryPath") ?? "")
     await game.settings.set(MTT.ID, "itemCategoryI18nPrefix", fd.get("itemCategoryI18nPrefix") ?? "")
     await game.settings.set(MTT.ID, "itemSubcategoryI18nPrefix", fd.get("itemSubcategoryI18nPrefix") ?? "")
@@ -142,7 +153,15 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this.element.querySelectorAll("input[name='allowedMerchantActorTypes']:checked")
     ).map((cb) => cb.value)
     await setAllowedMerchantActorTypes(allowedActorTypes)
-    await game.settings.set(MTT.ID, "merchantPermissionProfiles", JSON.stringify(this.#collectMerchantPermissionProfiles()))
+    const allowedStorageActorTypes = Array.from(
+      this.element.querySelectorAll("input[name='allowedStorageActorTypes']:checked")
+    ).map((cb) => cb.value)
+    await setAllowedStorageActorTypes(allowedStorageActorTypes)
+    await game.settings.set(
+      MTT.ID,
+      "merchantPermissionProfiles",
+      JSON.stringify(this.#collectMerchantPermissionProfiles())
+    )
     this.close()
   }
 
@@ -277,8 +296,16 @@ export class MttConfigApp extends HandlebarsApplicationMixin(ApplicationV2) {
             await setAllowedMerchantActorTypes(data.settings[key])
             continue
           }
+          if (key === "allowedStorageActorTypes") {
+            await setAllowedStorageActorTypes(data.settings[key])
+            continue
+          }
           if (key === "merchantPermissionProfiles") {
-            await game.settings.set(MTT.ID, key, JSON.stringify(normalizeMerchantPermissionProfiles(data.settings[key])))
+            await game.settings.set(
+              MTT.ID,
+              key,
+              JSON.stringify(normalizeMerchantPermissionProfiles(data.settings[key]))
+            )
             continue
           }
           await game.settings.set(MTT.ID, key, data.settings[key])

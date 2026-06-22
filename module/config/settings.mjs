@@ -141,6 +141,15 @@ export function registerSettings() {
     default: ""
   })
 
+  game.settings.register(MTT.ID, "defaultStorageCategories", {
+    name: "mtt.settings.defaultStorageCategories.name",
+    hint: "mtt.settings.defaultStorageCategories.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: ""
+  })
+
   game.settings.register(MTT.ID, "itemSubcategoryPath", {
     name: "mtt.settings.itemSubcategoryPath.name",
     hint: "mtt.settings.itemSubcategoryPath.hint",
@@ -186,6 +195,15 @@ export function registerSettings() {
     default: "[]"
   })
 
+  game.settings.register(MTT.ID, "allowedStorageActorTypes", {
+    name: "mtt.settings.allowedStorageActorTypes.name",
+    hint: "mtt.settings.allowedStorageActorTypes.hint",
+    scope: "world",
+    config: false,
+    type: String,
+    default: "[]"
+  })
+
   game.settings.register(MTT.ID, "merchantPermissionProfiles", {
     name: "mtt.settings.merchantPermissionProfiles.name",
     hint: "mtt.settings.merchantPermissionProfiles.hint",
@@ -193,6 +211,15 @@ export function registerSettings() {
     config: false,
     type: String,
     default: JSON.stringify(MERCHANT_DEFAULT_PERMISSION_PROFILES)
+  })
+
+  game.settings.register(MTT.ID, "deleteEmptySystemActorItems", {
+    name: "mtt.settings.deleteEmptySystemActorItems.name",
+    hint: "mtt.settings.deleteEmptySystemActorItems.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
   })
 
   game.settings.registerMenu(MTT.ID, "openConfigWindow", {

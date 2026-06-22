@@ -7,7 +7,9 @@
     },
     "sheets": {
       "merchant": "Feuille de marchand",
-      "merchantTitle": "MTT - Marchand : {name}"
+      "storage": "Stockage MTT",
+      "merchantTitle": "MTT - Marchand : {name}",
+      "storageTitle": "MTT - Stockage : {name}"
     },
     "settings": {
       "debug": {
@@ -33,6 +35,10 @@
       "allowExtendedItemMerge": {
         "name": "Autoriser la fusion étendue des items livrés",
         "hint": "Permet à MTT de fusionner un item acheté avec un item déjà présent sur l’acteur lorsqu’aucune origine MTT fiable commune n’est trouvée, en comparant son nom, son type, son sous-type, son prix initial et sa monnaie. Désactivé par défaut."
+      },
+      "deleteEmptySystemActorItems": {
+        "name": "Supprimer les Items à 0 sur les acteurs du système de jeu",
+        "hint": "Si cette option est activée, MTT supprime automatiquement un Item d’un acteur du système de jeu quand sa quantité atteint 0 après une validation de session. Les boutiques et stockages MTT ne sont pas concernés par cette option."
       },
       "writeDeliveryDescriptionInfo": {
         "name": "Écrire la provenance et les informations secrètes dans la description des objets livrés",
@@ -70,6 +76,10 @@
         "name": "Catégories personnalisées par défaut",
         "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne."
       },
+      "defaultStorageCategories": {
+        "name": "Catégories de stockage par défaut",
+        "hint": "Liste des catégories à ajouter automatiquement aux nouveaux stockages. Écrire une catégorie par ligne."
+      },
       "itemSubcategoryPath": {
         "name": "Chemin de sous-catégorie produit",
         "hint": "Chemin lu sur l’Item source pour afficher une sous-catégorie discrète dans le catalogue. La sous-catégorie apparaît sous forme d’icône avec une info-bulle sur la ligne produit. Laisser vide pour désactiver cette fonction."
@@ -90,6 +100,10 @@
       },
       "allowedMerchantActorTypes": {
         "name": "Types d'acteurs convertibles en marchand MTT",
+        "hint": "JSON interne géré via la fenêtre de configuration MTT."
+      },
+      "allowedStorageActorTypes": {
+        "name": "Types d'acteurs convertibles en stockage MTT",
         "hint": "JSON interne géré via la fenêtre de configuration MTT."
       },
       "merchantPermissionProfiles": {
@@ -186,6 +200,88 @@
       },
       "empty": "Aucun gérant renseigné"
     },
+    "storage": {
+      "placeholder": {
+        "contentTitle": "Contenu du stockage",
+        "contentText": "Le contenu du stockage sera affiché ici.",
+        "session": "Les échanges de dépôt et retrait seront affichés ici.",
+        "configurationTitle": "Configuration du stockage",
+        "configuration": "Les réglages propres au stockage seront ajoutés ici.",
+        "journal": "Le journal des mouvements du stockage sera affiché ici."
+      },
+      "tradeWithMerchant": {
+        "title": "Responsables du marchandage",
+        "description": "Les acteurs liés au stockage peuvent voir la session de ce stockage chez un marchand. Les responsables sélectionnés peuvent acheter et vendre au nom du stockage.",
+        "noActors": "Aucun acteur n’est lié à ce stockage.",
+        "responsibleTooltip": "{actorName} peut marchander au nom du stockage.",
+        "notResponsibleTooltip": "{actorName} peut voir la session du stockage chez un marchand, mais ne peut pas encore marchander en son nom."
+      },
+      "session": {
+        "title": "Session d’Échange",
+        "take": "Le PJ prend / récupère",
+        "deposit": "Le PJ dépose / stock",
+        "emptyTake": "Aucun objet à récupérer pour le moment.",
+        "emptyDeposit": "Aucun objet déposé pour le moment.",
+        "selectActor": "Sélectionnez un acteur autorisé pour ouvrir un échange.",
+        "noSessionForActor": "Ajoutez un objet à l’échange pour créer la session.",
+        "clear": "Vider la session",
+        "lock": "Bloquer la session",
+        "unlock": "Débloquer la session",
+        "validate": "Valider",
+        "reject": "Refuser",
+        "submittedMessage": "Cet échange est bloqué et attend une décision.",
+        "selectActorBeforeAdding": "Sélectionnez un acteur autorisé avant d’ajouter un objet à l’échange.",
+        "dropSelectedActorOnly": "Déposez un objet appartenant à l’acteur sélectionné.",
+        "money": {
+          "take": "Prendre de l'argent",
+          "deposit": "Déposer de l'argent"
+        },
+        "item": {
+          "storage": "Stockage",
+          "actor": "Acteur"
+        }
+      },
+      "statuses": {
+        "warningGM": {
+          "tooltip": "Avertissement MJ : cet objet déclenchera un message privé au MJ lors de son transfert.",
+          "chatMessage": "⚠️ Avertissement MJ — {clientName} a récupéré l’objet {itemName} depuis le stockage {storageName}.",
+          "speaker": "MTT Stockage"
+        },
+        "blocked": {
+          "tooltip": "Objet bloqué : ne peut pas être ajouté à une session."
+        }
+      },
+      "tags": {
+        "want": {
+          "label": "Je le veux",
+          "tooltip": "Je souhaite récupérer cet objet"
+        },
+        "ignore": {
+          "label": "Sans intérêt pour moi",
+          "tooltip": "Cet objet ne m’intéresse pas"
+        },
+        "blocked": {
+          "label": "Garder l'objet",
+          "tooltip": "Cet objet doit être gardé"
+        },
+        "noEditableSession": "Vous devez avoir une session active modifiable pour voter.",
+        "noActiveActor": "La session active ne contient pas d’acteur votant."
+      },
+      "categories": {
+        "ignoreSell": "A vendre / sans intérêt"
+      },
+      "intent": {
+        "block": {
+          "activeActorIgnored": "Retirez “Sans intérêt pour moi” pour récupérer cet objet.",
+          "activeActorMustWant": "Cet objet est demandé. Cet acteur doit choisir « Je le veux » pour le récupérer.",
+          "missingVotes": "Cet objet est demandé. Tous les acteurs activés sur ce stockage doivent choisir « Je le veux » ou « Sans intérêt pour moi ».",
+          "notEnoughQuantity": "Cet objet est demandé par plus d’acteurs qu’il n’y a d’exemplaires disponibles.",
+          "claimLimitReached": "Cet acteur a atteint sa quantité maximale pour cet objet.",
+          "blockedItem": "Un objet est bloqué dans le stockage. Validation impossible.",
+          "generic": "Cet objet est en cours de décision et ne peut pas être ajouté librement."
+        }
+      }
+    },
     "actions": {
       "createItem": "Créer un objet",
       "edit": "Modifier",
@@ -198,9 +294,9 @@
       "removeAuthorizationTitle": "Retirer l’autorisation",
       "removeAuthorizationMessage": "Retirer l’autorisation de ce client annulera sa session en cours sans effectuer de transaction.",
       "removeAuthorizationConfirm": "Retirer l’autorisation",
-      "removeActorTitle": "Supprimer l’acteur du marchand",
-      "removeActorMessage": "L’acteur Foundry ne sera pas supprimé. Seule son entrée sur ce marchand sera retirée.",
-      "removeActorConfirm": "Supprimer du marchand",
+      "removeActorTitle": "Retirer l’acteur de la feuille",
+      "removeActorMessage": "L’acteur Foundry ne sera pas supprimé. Seule son entrée sur cette feuille sera retirée.",
+      "removeActorConfirm": "Retirer de la feuille",
       "sellerItemTitle": "Ajouter un objet vendu ou donné",
       "sellerItemQuantity": "Quantité proposée",
       "sellerItemAvailableQuantity": "Quantité disponible",
@@ -228,22 +324,42 @@
           "total": "Total"
         }
       },
+      "storage": {
+        "actorReceives": "L’acteur récupère",
+        "actorGives": "L’acteur dépose",
+        "moneyTransfer": "Monnaie échangée"
+      },
       "deleteItem": {
         "title": "Supprimer l’objet",
         "content": "Voulez-vous vraiment supprimer cet objet du marchand ?"
       }
     },
     "actorDirectory": {
+      "convertMTT": "Conversion MTT",
       "convertToMerchant": "Convertir en marchand MTT",
+      "convertToStorage": "Convertir en stockage MTT",
       "openMerchant": "Ouvrir la boutique MTT",
+      "openStorage": "Ouvrir le stockage MTT",
       "openManager": "Ouvrir le gérant",
-      "removeMerchant": "Retirer la boutique MTT"
+      "openActorSheet": "Ouvrir la feuille de l'acteur",
+      "removeMerchant": "Retirer la boutique MTT",
+      "removeStorage": "Retirer le stockage MTT"
     },
     "dialogs": {
+      "mttConversion": {
+        "title": "Conversion MTT",
+        "content": "Choisissez le type MTT à appliquer à {name}."
+      },
       "removeMerchant": {
         "title": "Retirer la boutique MTT",
         "content": "Cette action supprimera la boutique MTT attachée à cet acteur : catalogue, services, sessions, journal, état de référence et configuration commerciale. L’acteur système, sa fiche native et son inventaire personnel ne seront pas supprimés. Continuer ?",
         "confirm": "Retirer la boutique",
+        "cancel": "Annuler"
+      },
+      "removeStorage": {
+        "title": "Retirer le stockage MTT",
+        "content": "Cette action supprimera les données de stockage MTT attachées à cet acteur. L’acteur système, sa fiche native et ses objets ne seront pas supprimés. Continuer ?",
+        "confirm": "Retirer le stockage",
         "cancel": "Annuler"
       }
     },
@@ -316,7 +432,6 @@
       "clientAccessSessionRemoved": "La session en cours du client a été supprimée.",
       "clientSessionCreated": "Session créée pour ce client.",
       "clientSessionSelected": "Session sélectionnée.",
-      "clientAlreadyTrading": "Ce client a déjà une session en cours avec un autre marchand.",
       "actorNotFound": "L’acteur est introuvable.",
       "actorRemovedFromMerchant": "Acteur supprimé du marchand.",
       "actorRemoveCancelled": "Suppression annulée.",
@@ -352,8 +467,21 @@
         "success": "{name} possède maintenant une boutique MTT.",
         "noMerchant": "Cet acteur ne possède pas de boutique MTT."
       },
+      "storageConversion": {
+        "gmOnly": "Seul le MJ peut convertir un acteur en stockage MTT.",
+        "alreadyStorage": "Cet acteur possède déjà un stockage MTT.",
+        "typeNotAllowed": "Le type d'acteur '{type}' n'est pas autorisé pour les stockages MTT.",
+        "success": "{name} possède maintenant un stockage MTT.",
+        "noStorage": "Cet acteur ne possède pas de stockage MTT."
+      },
+      "mttConversion": {
+        "noTypeAllowed": "Le type d'acteur '{type}' n'est autorisé pour aucun type MTT."
+      },
       "merchantRemoval": {
         "success": "La boutique MTT de {name} a été retirée."
+      },
+      "storageRemoval": {
+        "success": "Le stockage MTT de {name} a été retiré."
       }
     },
     "defaults": {
@@ -387,10 +515,10 @@
       "contextTitle": "Actions client",
       "openActor": "Ouvrir l’acteur",
       "removeAuthorization": "Retirer l’autorisation",
-      "removeActor": "Supprimer l’acteur du marchand",
-      "removeActorTitle": "Supprimer l’acteur du marchand",
-      "removeActorContent": "Voulez-vous vraiment supprimer cet acteur du marchand ?",
-      "removeActorWithSessionContent": "Une session en cours existe pour cet acteur. Voulez-vous supprimer l’acteur du marchand et supprimer la session en cours ?",
+      "removeActor": "Retirer l’acteur de la feuille",
+      "removeActorTitle": "Retirer l’acteur de la feuille",
+      "removeActorContent": "Voulez-vous vraiment retirer cet acteur de la feuille ?",
+      "removeActorWithSessionContent": "Une session en cours existe pour cet acteur. Voulez-vous retirer l’acteur de la feuille et supprimer la session en cours ?",
       "removeAuthorizationTitle": "Retirer l’autorisation",
       "removeAuthorizationContent": "Une session de transaction est en cours pour ce client. Voulez-vous retirer l’autorisation et supprimer la session en cours ?",
       "cancelRemoveAuthorization": "Annuler",
@@ -582,7 +710,15 @@
         "categorySetProductsLimited": "Passer tous les produits en Limité",
         "categorySetProductsObserver": "Passer tous les produits en Observateur",
         "categoryRequireApprovalForProducts": "Demander l'approbation MJ pour tous les produits",
-        "categoryRemoveApprovalForProducts": "Retirer l'approbation MJ pour tous les produits"
+        "categoryRemoveApprovalForProducts": "Retirer l'approbation MJ pour tous les produits",
+        "setWarningGM": "Avertir le MJ lors du transfert",
+        "removeWarningGM": "Retirer l'avertissement MJ",
+        "setBlocked": "Bloquer l'objet",
+        "removeBlocked": "Débloquer l'objet",
+        "categorySetWarningGM": "Avertir le MJ pour tous les objets",
+        "categoryRemoveWarningGM": "Retirer l'avertissement MJ pour tous les objets",
+        "categorySetBlocked": "Bloquer tous les objets",
+        "categoryRemoveBlocked": "Débloquer tous les objets"
       }
     },
     "secrets": {
@@ -690,7 +826,6 @@
       "createSessionForClient": "Créer une session pour ce client",
       "newLabel": "Nouvelle session",
       "sessionForActor": "Session — {name}",
-      "clientAlreadyTrading": "Ce client a déjà une session en cours avec un autre marchand.",
       "selectClientBeforeAdding": "Sélectionnez un client avant d’ajouter un élément.",
       "selectClientFirst": "Sélectionnez un client autorisé avant de créer une session.",
       "createSessionBeforeAdding": "Créez une session pour ce client avant d’ajouter un élément.",
@@ -930,6 +1065,10 @@
         "defaultCustomCategories": {
           "label": "Catégories personnalisées par défaut",
           "hint": "Liste des catégories personnalisées à ajouter automatiquement aux nouveaux marchands. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque marchand."
+        },
+        "defaultStorageCategories": {
+          "label": "Catégories de stockage par défaut",
+          "hint": "Liste des catégories à ajouter automatiquement aux nouveaux stockages. Écrire une catégorie par ligne. Ces catégories restent modifiables et supprimables sur chaque stockage."
         }
       },
       "importExport": {
@@ -984,6 +1123,12 @@
         "hint": "Sélectionnez les types d'acteurs du système actif qui pourront recevoir une boutique MTT. MTT ne crée pas d'acteur automatiquement : le MJ crée un acteur normal puis le convertit en boutique MTT.",
         "noneAvailable": "Aucun type d'acteur n'a été détecté pour ce système.",
         "noneSelected": "Aucun type d'acteur n'est actuellement autorisé pour la conversion en marchand MTT."
+      },
+      "storageActorTypes": {
+        "title": "Types d'acteurs convertibles en stockage MTT",
+        "hint": "Sélectionnez les types d'acteurs du système actif qui pourront recevoir un stockage MTT. MTT ne crée pas d'acteur automatiquement : le MJ crée un acteur normal puis le convertit en stockage MTT.",
+        "noneAvailable": "Aucun type d'acteur n'a été détecté pour ce système.",
+        "noneSelected": "Aucun type d'acteur n'est actuellement autorisé pour la conversion en stockage MTT."
       }
     }
   }

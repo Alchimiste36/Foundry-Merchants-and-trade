@@ -281,7 +281,7 @@ function getMoneyTransferGroups(transfers) {
   return groups
 }
 
-async function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}) {
+async function renderPreviewDialogContent(preview, { isPreviewOnly = true, isStorage = false } = {}) {
   const buyerReceives = [
     ...(preview.buyerDeliveries ?? []),
     ...(preview.services ?? []).map((item) => ({ ...item, type: "service" }))
@@ -308,7 +308,8 @@ async function renderPreviewDialogContent(preview, { isPreviewOnly = true } = {}
     buyerGives,
     moneyTransferGroups,
     warnings: preview.warnings ?? [],
-    isPreviewOnly
+    isPreviewOnly,
+    isStorage
   })
 }
 
@@ -318,8 +319,8 @@ async function renderPreviewErrorContent(preview) {
   })
 }
 
-export async function openPreviewDialog(preview) {
-  const form = await renderPreviewDialogContent(preview)
+export async function openPreviewDialog(preview, { isStorage = false } = {}) {
+  const form = await renderPreviewDialogContent(preview, { isStorage })
   const content = await renderMttDialogContent({
     icon: "fa-clipboard-list",
     title: game.i18n.localize("mtt.sessions.preview.title"),
@@ -374,8 +375,8 @@ export async function openPreviewErrorDialog(preview) {
   }
 }
 
-export async function openSessionValidationDialog(preview) {
-  const form = await renderPreviewDialogContent(preview, { isPreviewOnly: false })
+export async function openSessionValidationDialog(preview, { isStorage = false } = {}) {
+  const form = await renderPreviewDialogContent(preview, { isPreviewOnly: false, isStorage })
   const content = await renderMttDialogContent({
     icon: "fa-circle-check",
     title: game.i18n.localize("mtt.sessions.execution.validateTitle"),

@@ -3,6 +3,7 @@ import { getCurrencies } from "../../config/settings.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
   getCatalogProducts,
+  getCatalogProduct,
   isMerchantProductItem,
   findMergeableCatalogItemBySourceUuid,
   getMerchantProductFlags,
@@ -12,6 +13,14 @@ import {
   updateCatalogProduct,
   sanitizeItemDataForMerchantProductCopy
 } from "../../documents/merchant-products.mjs"
+import {
+  STORAGE_IGNORE_CATEGORY_ID,
+  buildStorageAddIntentBlockState,
+  buildStorageItemIntentState,
+  getMTTEntityType,
+  getStorageData,
+  getStorageItemTagForActor
+} from "../../documents/storage-flags.mjs"
 import {
   parseQuantityValue,
   isUnlimitedQuantity,
@@ -60,7 +69,12 @@ export function prepareTrade(actor) {
 }
 
 export function prepareWalletCurrencies(actor) {
-  const walletCurrencies = getMerchantData(actor)?.wallet?.currencies ?? {}
+  // MTT base — trésorerie commune selon le type MTT actif
+  const entityType = getMTTEntityType(actor) || MTT.ENTITY_TYPES.MERCHANT
+  const walletCurrencies =
+    entityType === MTT.ENTITY_TYPES.STORAGE
+      ? (getStorageData(actor)?.wallet?.currencies ?? {})
+      : (getMerchantData(actor)?.wallet?.currencies ?? {})
 
   return getCurrencies()
     .map((currency) => {
@@ -107,9 +121,66 @@ function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency 
   return lines.join("\n")
 }
 
-export function prepareItems(actor, sellPercent, { includeHidden = false } = {}) {
+const STORAGE_TAG_DEFS = [
+  { type: "want", icon: "fa-hand-wave" },
+  { type: "ignore", icon: "fa-ban" },
+  { type: "blocked", icon: "fa-lock" }
+]
+const STORAGE_TAG_TYPES = new Set(STORAGE_TAG_DEFS.map((def) => def.type))
+
+function buildStorageTagsContext(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
+  if (!canEditActiveSession || !voterActorUuid) return []
+
+  const activeTag = foundry.utils.getProperty(rawTags, voterActorUuid)
+  return STORAGE_TAG_DEFS.map((def) => ({
+    type: def.type,
+    icon: def.icon,
+    isActive: activeTag === def.type && STORAGE_TAG_TYPES.has(activeTag),
+    label: game.i18n.localize(`mtt.storage.tags.${def.type}.label`),
+    tooltip: game.i18n.localize(`mtt.storage.tags.${def.type}.tooltip`)
+  }))
+}
+
+function getStorageActiveTag(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
+  if (!canEditActiveSession || !voterActorUuid) return ""
+
+  return getStorageItemTagForActor(rawTags, voterActorUuid)
+}
+
+function sortStorageIgnoredItemsLast(items) {
+  items.sort((a, b) => {
+    const aIgnored = a.isStorageIgnoredByActiveActor === true
+    const bIgnored = b.isStorageIgnoredByActiveActor === true
+
+    if (aIgnored !== bIgnored) return aIgnored ? 1 : -1
+    return 0
+  })
+}
+
+function getProductCategoryDisplayRank(category) {
+  // MTT storage — la catégorie automatique ignore reste groupée avec les catégories de fin
+  if (category?.categoryValue === STORAGE_IGNORE_CATEGORY_ID) return 1
+  if (category?.isSystemCategory) return 2
+  return 0
+}
+
+export function prepareItems(
+  actor,
+  sellPercent,
+  {
+    includeHidden = false,
+    sessionEntries = null,
+    activeSessionId = "",
+    canEditActiveSession = false,
+    voterActorUuid = "",
+    isEditable = false
+  } = {}
+) {
   const products = getCatalogProducts(actor)
-  const availabilityByProductId = buildProductAvailabilityMap(products, getMerchantData(actor)?.sessions?.entries ?? [])
+  const availabilityByProductId = buildProductAvailabilityMap(
+    products,
+    Array.isArray(sessionEntries) ? sessionEntries : (getMerchantData(actor)?.sessions?.entries ?? [])
+  )
 
   const items = products
     .map((product) => {
@@ -140,6 +211,43 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
       const secretCurrency = product.secretCurrency
       const secretDescription = product.secretDescription
       const hasSecrets = productHasSecretInfo({ secretName, secretPrice, secretCurrency, secretDescription })
+      const rawStorageTags = product.rawStorageTags ?? {}
+      const storageActiveTag = getStorageActiveTag(rawStorageTags, {
+        canEditActiveSession,
+        voterActorUuid
+      })
+      const activeSession = Array.isArray(sessionEntries)
+        ? sessionEntries.find((session) => String(session?.id ?? "") === String(activeSessionId ?? ""))
+        : null
+      const isActiveSessionSubmitted = Boolean(activeSession?.isSubmitted)
+      const storageIntentState = buildStorageItemIntentState({
+        rawTags: rawStorageTags,
+        sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
+        activeSession,
+        activeSessionActorUuid: voterActorUuid,
+        availableQuantity: availability?.availableQuantity ?? 0,
+        product
+      })
+      const storageAddIntentBlockState = buildStorageAddIntentBlockState(storageIntentState, {
+        canOverride: game.user?.isGM === true
+      })
+      const storageAddBlockReasonLabel = storageAddIntentBlockState.storageAddBlockReasonKey
+        ? game.i18n.localize(storageAddIntentBlockState.storageAddBlockReasonKey)
+        : ""
+      const canShowAddToSessionButton =
+        canEditActiveSession && ((isVisible && !product.isBlocked && !isActiveSessionSubmitted) || isEditable)
+      const isAddToSessionDangerVisible =
+        isEditable &&
+        (!isVisible ||
+          product.isBlocked ||
+          isActiveSessionSubmitted ||
+          storageAddIntentBlockState.isStorageAddBlockedForCurrentUser)
+      const addToSessionTooltip =
+        storageAddIntentBlockState.isStorageAddBlockedForCurrentUser && storageAddBlockReasonLabel
+          ? storageAddBlockReasonLabel
+          : product.isBlocked
+            ? game.i18n.localize("mtt.storage.intent.block.blockedItem")
+            : game.i18n.localize("mtt.sessions.actions.addProduct")
 
       return {
         id: product.id,
@@ -194,7 +302,30 @@ export function prepareItems(actor, sellPercent, { includeHidden = false } = {})
         isSecretExpanded: product.isSecretExpanded,
         hasFreePrice,
         minimumPriceValue: product.minimumPriceValue,
-        selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency
+        selectedCurrencyKey: hasFreePrice ? FREE_PRICE_CURRENCY_KEY : priceCurrency,
+        isBlocked: product.isBlocked,
+        isBlockedByStorageTag: product.isBlockedByStorageTag,
+        hasWarningGM: product.hasWarningGM,
+        storageActiveTag,
+        isStorageWantedByActiveActor: storageActiveTag === "want",
+        isStorageIgnoredByActiveActor: storageActiveTag === "ignore",
+        isStorageBlockedByActiveActor: storageActiveTag === "blocked",
+        storageIntentState,
+        allActorsIgnoredStorageItem:
+          storageIntentState.totalVotingSlots > 0 &&
+          storageIntentState.ignoreCount === storageIntentState.totalVotingSlots,
+        isStorageIntentPending: storageIntentState.hasWant && !storageIntentState.canResolveWithoutConflict,
+        isStorageIntentResolved: storageIntentState.canResolveWithoutConflict,
+        activeActorCanClaimStorageItem: storageIntentState.activeActorCanClaimOne,
+        activeActorCanStillClaimStorageItem: storageAddIntentBlockState.activeActorCanStillClaimOne,
+        isStorageBlockedByIntent: storageAddIntentBlockState.isStorageBlockedByIntent,
+        isStorageAddBlockedForCurrentUser: storageAddIntentBlockState.isStorageAddBlockedForCurrentUser,
+        storageAddBlockReasonKey: storageAddIntentBlockState.storageAddBlockReasonKey,
+        storageAddBlockReasonLabel,
+        canShowAddToSessionButton,
+        isAddToSessionDangerVisible,
+        addToSessionTooltip,
+        storageTags: buildStorageTagsContext(rawStorageTags, { canEditActiveSession, voterActorUuid })
       }
     })
     .filter((item) => includeHidden || item.isVisible)
@@ -325,11 +456,12 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
     .filter((service) => includeHidden || service.isVisible)
 }
 
-export function prepareProductCategories(actor, items, { includeHidden = false } = {}) {
+export function prepareProductCategories(actor, items, { includeHidden = false, collapsedCategories = {} } = {}) {
   const merchantCatalog = getMerchantData(actor)?.catalog
   const definedCategories = merchantCatalog?.productCategories ?? []
-  const categories = new Map()
   const hiddenCategories = merchantCatalog?.hiddenCategories ?? {}
+
+  const categories = new Map()
 
   const shouldShowSystemCategory = items.length > 0 || definedCategories.length > 0
   if (shouldShowSystemCategory) {
@@ -371,9 +503,12 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     group.count += 1
   })
 
-  const collapsedCategories = merchantCatalog?.collapsedCategories ?? {}
+  categories.forEach((group) => {
+    sortStorageIgnoredItemsLast(group.items)
+  })
 
   const sortedCategories = Array.from(categories.values())
+    .filter((group) => group.categoryValue !== STORAGE_IGNORE_CATEGORY_ID || group.count > 0)
     .filter((group) => includeHidden || group.isVisible)
     .map((group) => ({
       ...group,
@@ -381,8 +516,10 @@ export function prepareProductCategories(actor, items, { includeHidden = false }
     }))
 
   sortedCategories.sort((a, b) => {
-    if (a.isSystemCategory && !b.isSystemCategory) return 1
-    if (!a.isSystemCategory && b.isSystemCategory) return -1
+    const rankA = getProductCategoryDisplayRank(a)
+    const rankB = getProductCategoryDisplayRank(b)
+
+    if (rankA !== rankB) return rankA - rankB
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
   })
 
@@ -591,8 +728,26 @@ export function getItemAvailableQuantity(item) {
   return null
 }
 
-export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {}) {
-  const availableQuantity = getItemAvailableQuantity(item)
+export function prepareSellerItemDropData(actor, itemSource, { buyPercent = null } = {}) {
+  // MTT base — logique commune de préparation des Items classiques et produits MTT droppés en session.
+  const source =
+    itemSource?.item?.documentName === "Item"
+      ? itemSource
+      : {
+          kind: "actorItem",
+          item: itemSource,
+          sourceActor: itemSource?.parent?.documentName === "Actor" ? itemSource.parent : null,
+          product: null
+        }
+  const item = source.item
+  const sourceActor = source.sourceActor ?? (item.parent?.documentName === "Actor" ? item.parent : null)
+  const product =
+    source.product ??
+    (source.kind === "mttProduct" || isMerchantProductItem(item) ? getCatalogProduct(sourceActor, item.id) : null)
+  const productFlags = isMerchantProductItem(item) ? getMerchantProductFlags(item) : null
+  const productQuantity = product?.quantity ?? productFlags?.quantity
+  const availableQuantity =
+    product || productFlags ? parseQuantityValue(productQuantity) : getItemAvailableQuantity(item)
   const universalSellerPrice = readItemReferencePrice(item)
   let basePriceValue, priceCurrency
 
@@ -612,15 +767,15 @@ export function prepareSellerItemDropData(actor, item, { buyPercent = null } = {
         ? Number(merchantBuyPercent)
         : 50
   const unitPriceValue = Number(((basePriceValue * effectiveBuyPercent) / 100).toFixed(2))
-  const sourceActor = item.parent?.documentName === "Actor" ? item.parent : null
 
   return {
     type: "item",
+    sourceKind: source.kind === "mttProduct" || isMerchantProductItem(item) ? "mttProduct" : "actorItem",
     sourceUuid: item.uuid ?? "",
     sourceActorUuid: sourceActor?.uuid ?? "",
     sourceId: item.id ?? "",
-    name: item.name ?? "",
-    img: item.img ?? "",
+    name: product?.name ?? item.name ?? "",
+    img: product?.img ?? item.img ?? "",
     quantity: 1,
     availableQuantity,
     hasLimitedQuantity: Number.isFinite(availableQuantity) && availableQuantity >= 0,

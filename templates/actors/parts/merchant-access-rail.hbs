@@ -1,4 +1,5 @@
-<aside class="mtt-merchant-access-rail" aria-label="{{railAriaLabel}}">
+{{!-- MTT base — rail d’acteurs autorisés --}}
+<aside class="mtt-merchant-access-rail {{#if isStorage}}mtt-storage-access-rail{{/if}}" aria-label="{{railAriaLabel}}">
   {{#each clients as |client|}}
     <button
       type="button"

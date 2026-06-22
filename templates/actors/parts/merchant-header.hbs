@@ -1,4 +1,5 @@
-<header class="mtt-merchant-header">
+{{!-- MTT base — header commun aux types MTT --}}
+<header class="mtt-merchant-header {{#if isStorage}}mtt-merchant-header-storage{{/if}}">
   <div class="mtt-merchant-header-left">
     <button
       class="mtt-merchant-image-button"
@@ -17,7 +18,7 @@
       />
     </button>
 
-    <div class="mtt-merchant-header-title-area">
+    <div class="mtt-merchant-header-title-area {{#if isStorage}}mtt-merchant-header-title-area-storage{{/if}}">
       {{#if mtt.canEditMerchant}}
         <input
           class="mtt-merchant-name-input"
@@ -30,9 +31,8 @@
       {{else}}
         <h1 class="mtt-merchant-name">{{merchant.shop.name}}</h1>
       {{/if}}
-      
-
       <div class="mtt-merchant-state-row">
+        {{!-- MTT base — bouton de verrouillage commun aux types MTT --}}
         {{#if mtt.isEditable}}
           <button
             class="mtt-merchant-lock-button"
@@ -50,7 +50,27 @@
         {{/if}}
       </div>
 
-      <div class="mtt-merchant-nav-row">
+      {{#if isStorage}}
+        {{#if mtt.isEditable}}
+          <div class="mtt-merchant-header-wallet-summary">
+            {{#if mtt.hasHeaderCurrencies}}
+              {{#each mtt.headerCurrencies as |currency|}}
+                <span class="mtt-merchant-header-wallet-currency">
+                  <strong>{{currency.label}}</strong>
+                  {{currency.amount}}
+                </span>
+              {{/each}}
+            {{else}}
+              <span class="mtt-merchant-header-wallet-empty">
+                {{localize "mtt.configuration.walletSummaryEmpty"}}
+              </span>
+            {{/if}}
+          </div>
+        {{/if}}
+      {{/if}}
+
+      <div class="mtt-merchant-nav-row {{#if isStorage}}mtt-merchant-nav-row-storage{{/if}}">
+        {{!-- MTT base — navigation commune de feuille MTT --}}
         <nav class="mtt-merchant-tab-nav" aria-label="{{localize 'mtt.navigation.label'}}">
           <button
             class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'products')}}mtt-merchant-tab-nav-btn-active{{/if}}"
@@ -62,15 +82,18 @@
             <i class="fas fa-box"></i>
           </button>
 
-          <button
-            class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'services')}}mtt-merchant-tab-nav-btn-active{{/if}}"
-            type="button"
-            data-action="selectTab"
-            data-tab="services"
-            data-tooltip="{{localize 'mtt.tabs.services'}}"
-          >
-            <i class="fas fa-handshake"></i>
-          </button>
+          {{!-- MTT shop — onglets propres à la boutique / marchand commercial --}}
+          {{#if isShop}}
+            <button
+              class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'services')}}mtt-merchant-tab-nav-btn-active{{/if}}"
+              type="button"
+              data-action="selectTab"
+              data-tab="services"
+              data-tooltip="{{localize 'mtt.tabs.services'}}"
+            >
+              <i class="fas fa-handshake"></i>
+            </button>
+          {{/if}}
 
           <button
             class="mtt-merchant-tab-nav-btn {{#if (eq mtt.activeTab 'journal')}}mtt-merchant-tab-nav-btn-active{{/if}}"
@@ -96,13 +119,16 @@
         </nav>
       </div>
 
-      <div class="mtt-nav-info">
+      <div class="mtt-nav-info {{#if isStorage}}mtt-nav-info-storage{{/if}}">
         <div class="mtt-merchant-title-block">
           {{#if (eq mtt.activeTab "products")}}
             <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.products"}}</h2>
           {{/if}}
-          {{#if (eq mtt.activeTab "services")}}
-            <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.services"}}</h2>
+          {{!-- MTT shop — titres d’onglets commerciaux --}}
+          {{#if isShop}}
+            {{#if (eq mtt.activeTab "services")}}
+              <h2 class="mtt-merchant-section-title">{{localize "mtt.tabs.services"}}</h2>
+            {{/if}}
           {{/if}}
           {{#if permissions.canViewConfigTab}}
             {{#if (eq mtt.activeTab "configuration")}}
@@ -117,73 +143,76 @@
     </div>
   </div>
 
-  <div class="mtt-merchant-header-right">
-    <div class="mtt-merchant-header-right-main">
-      <div class="mtt-merchant-header-manager">
-        {{#if mtt.canEditMerchant}}
-          <div class="mtt-merchant-manager-fields">
-
-            <label class="mtt-merchant-field">
-              <input
-                class="mtt-merchant-field-input"
-                type="text"
-                name="flags.mtt-merchants.merchant.manager.displayName"
-                value="{{merchant.manager.displayName}}"
-                data-mtt-merchant-field="manager.displayName"
-                placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
-              />
-            </label>
-          </div>
-        {{else}}
-          <div class="mtt-merchant-manager-summary">
-            <span class="mtt-merchant-manager-name">{{merchant.manager.displayName}}</span>
-            {{#if mtt.isEditable}}
-              <button
-              class="mtt-merchant-header-action"
-              type="button"
-              data-action="rollNegotiation"
-              data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
-            >
-              <i class="fas fa-dice-d20"></i>
-            </button>
+  {{!-- MTT shop — informations propres à la boutique / marchand commercial --}}
+  {{#if isShop}}
+    <div class="mtt-merchant-header-right">
+      <div class="mtt-merchant-header-right-main">
+        <div class="mtt-merchant-header-manager">
+          {{#if mtt.canEditMerchant}}
+            <div class="mtt-merchant-manager-fields">
+              <label class="mtt-merchant-field">
+                <input
+                  class="mtt-merchant-field-input"
+                  type="text"
+                  name="flags.mtt-merchants.merchant.manager.displayName"
+                  value="{{merchant.manager.displayName}}"
+                  data-mtt-merchant-field="manager.displayName"
+                  placeholder="{{localize 'mtt.manager.displayName.placeholder'}}"
+                />
+              </label>
+            </div>
+          {{else}}
+            <div class="mtt-merchant-manager-summary">
+              <span class="mtt-merchant-manager-name">{{merchant.manager.displayName}}</span>
+              {{#if mtt.isEditable}}
+                <button
+                  class="mtt-merchant-header-action"
+                  type="button"
+                  data-action="rollNegotiation"
+                  data-tooltip="{{localize 'mtt.configuration.rollNegotiation'}}"
+                >
+                  <i class="fas fa-dice-d20"></i>
+                </button>
+              {{/if}}
+            </div>
           {{/if}}
+        </div>
+
+        {{#if mtt.isEditable}}
+          <div class="mtt-merchant-header-wallet-summary">
+            {{#if mtt.hasHeaderCurrencies}}
+              {{#each mtt.headerCurrencies as |currency|}}
+                <span class="mtt-merchant-header-wallet-currency">
+                  <strong>{{currency.label}}</strong>
+                  {{currency.amount}}
+                </span>
+              {{/each}}
+            {{else}}
+              <span class="mtt-merchant-header-wallet-empty">
+                {{localize "mtt.configuration.walletSummaryEmpty"}}
+              </span>
+            {{/if}}
           </div>
         {{/if}}
       </div>
 
-      {{#if mtt.isEditable}}
-        <div class="mtt-merchant-header-wallet-summary">
-          {{#if mtt.hasHeaderCurrencies}}
-            {{#each mtt.headerCurrencies as |currency|}}
-              <span class="mtt-merchant-header-wallet-currency">
-                <strong>{{currency.label}}</strong>
-                {{currency.amount}}
-              </span>
-            {{/each}}
-          {{else}}
-            <span class="mtt-merchant-header-wallet-empty">
-              {{localize "mtt.configuration.walletSummaryEmpty"}}
-            </span>
-          {{/if}}
-        </div>
-      {{/if}}
+      <button
+        class="mtt-merchant-manager-img-button"
+        type="button"
+        {{#if mtt.canEditMerchant}}
+          data-action="editManagerImage"
+          data-tooltip="{{localize 'mtt.manager.image.edit'}}"
+        {{else}}
+          disabled
+        {{/if}}
+      >
+        <img
+          class="mtt-merchant-manager-img"
+          src="{{merchant.manager.img}}"
+          alt="{{merchant.manager.displayName}}"
+        />
+      </button>
     </div>
+  {{/if}}
 
-    <button
-      class="mtt-merchant-manager-img-button"
-      type="button"
-      {{#if mtt.canEditMerchant}}
-        data-action="editManagerImage"
-        data-tooltip="{{localize 'mtt.manager.image.edit'}}"
-      {{else}}
-        disabled
-      {{/if}}
-    >
-      <img
-        class="mtt-merchant-manager-img"
-        src="{{merchant.manager.img}}"
-        alt="{{merchant.manager.displayName}}"
-      />
-    </button>
-  </div>
 </header>

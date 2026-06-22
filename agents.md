@@ -18,39 +18,687 @@ Le projet est un **module indépendant pour Foundry VTT**, et non une fonctionna
 
 Le module cible **Foundry VTT v14**.
 
-Le fichier d’instructions du projet est nommé `agents.md` en minuscules. Ne pas chercher uniquement `AGENTS.md`.
+Le fichier d’instructions du projet est nommé :
+
+```text
+agents.md
+```
+
+en minuscules.
+
+Ne pas chercher uniquement `AGENTS.md`.
 
 L’utilisateur est néophyte en développement. Les modifications doivent rester cohérentes avec l’existant, faciles à relire, faciles à tester et éviter les refontes massives non demandées.
 
 ---
 
-## 2. État actuel du module
+## 2. Principe directeur du projet
 
-La partie **Marchand MTT** fonctionne et constitue désormais une base de travail importante.
+MTT doit devenir un module multi-types reposant sur une **base commune stable**.
 
-Ne pas casser les fonctions déjà validées du marchand.
+Le marchand actuel n’est pas seulement une fonctionnalité isolée. Il est aussi la première implémentation fonctionnelle et validée de la base de feuille MTT.
 
-Avant toute modification, lire l’état actuel du dépôt et tenir compte des changements déjà effectués par les agents précédents. Ne pas raisonner uniquement à partir d’une ancienne archive, d’un ancien rapport ou d’une ancienne instruction.
+La logique de développement doit donc être :
 
-Quand l’utilisateur dit qu’une correction fonctionne, considérer cette correction comme une base stable pour la suite.
+```text
+Ne pas recréer une interface ou des fonctions en parallèle si une base fonctionnelle existe déjà.
+Partir de l’existant validé.
+Réutiliser.
+Adapter progressivement.
+Spécialiser seulement quand c’est réellement nécessaire.
+```
 
-Quand l’utilisateur dit qu’il a poussé sur le dépôt GitHub, le dépôt GitHub redevient l’état de référence.
+Objectif prioritaire :
+
+```text
+Une seule fondation MTT stable,
+puis des variantes métier :
+- boutique / marchand commercial ;
+- stockage / réserve ;
+- autres types MTT futurs.
+```
 
 ---
 
-## 3. Règle majeure : aucun legacy à préserver
+## 3. Convention majeure de nommage logique
+
+Le projet utilise beaucoup de fichiers nommés `merchant-*`.
+
+À partir de maintenant, cette convention doit être comprise ainsi :
+
+```text
+merchant-* = base stable du module MTT, contenant les parties communes
+storage-*  = uniquement ce qui est propre au stockage
+shop-*     = uniquement ce qui est propre à la boutique / marchand commercial
+```
+
+Important :
+
+```text
+merchant-* ne veut pas automatiquement dire “interdit au stockage”.
+```
+
+Le module s’appelle **Merchants, Trades and Transactions**. Il est acceptable que les fichiers `merchant-*` restent la base commune du module.
+
+### Règle opérationnelle
+
+Avant de créer une fonction, un fichier HBS, un fichier LESS ou un helper `storage-*`, vérifier si un équivalent existe déjà dans les fichiers `merchant-*`.
+
+Si un équivalent existe :
+
+```text
+Ne pas le recréer côté stockage.
+Ne pas créer une variante légèrement différente.
+Ne pas le renommer.
+L’utiliser comme base commune.
+```
+
+Créer du `storage-*` uniquement pour ce qui est réellement propre au stockage.
+
+Créer du `shop-*` uniquement pour ce qui est réellement propre à la boutique / marchand commercial.
+
+---
+
+## 4. Distinction entre base commune, boutique et stockage
+
+Le code MTT doit progressivement distinguer trois familles de logique.
+
+### 4.1. Base commune MTT
+
+La base commune MTT concerne les éléments utiles à plusieurs types MTT.
+
+Exemples :
+
+- structure de feuille ;
+- header partagé ;
+- verrouillage de feuille ;
+- mémorisation des scrolls ;
+- rail d’acteurs autorisés ;
+- cards d’acteurs ;
+- niveaux de droits ;
+- sessions associées à un acteur ;
+- ajout d'un item dans le stockage ;
+- affichage de lignes d’Items ;
+- objet invisible ;
+- objet à validation MJ ;
+- ouverture d’un Item par clic sur son image ;
+- quantités ;
+- catégories ;
+- journaux ;
+- fusion des items dans le catalogue ;
+- fusion des items après livraison ;
+- validation de la session ;
+- refus de la session ;
+- trésorerie de l'acteur ;
+- livraison des items sur le client ;
+- drag/drop générique ;
+- menus contextuels génériques ;
+- journalisation générique ;
+- dialogues communs ;
+- helpers Foundry ;
+- rendu compact des boutons ;
+- CSS de structure.
+
+Ces éléments restent dans les fichiers `merchant-*`.
+
+### 4.2. Boutique / marchand commercial
+
+La logique boutique concerne uniquement le marchand commercial.
+
+Exemples :
+
+- prix ;
+- devises de prix ;
+- vente ;
+- achat ;
+- services ;
+- négociation ;
+- prix libre ;
+- pourcentages d’achat/vente ;
+- ajustement monétaire ;
+- secrets commerciaux ;
+- gérant de boutique si spécifique à la boutique.
+
+Ces éléments pourront plus tard être déplacés vers des fichiers `shop-*`, mais ce déplacement n’est pas prioritaire.
+
+### 4.3. Stockage
+
+La logique stockage concerne uniquement le stockage.
+
+Exemples :
+
+- dépôt ;
+- retrait ;
+- demande de retrait ;
+- décision de groupe ;
+- votes ;
+- tags de tri ;
+- statuts techniques de stockage ;
+- objet bloqué ;
+- journal de mouvements ;
+- répartition de monnaie ;
+- réserve / coffre / butin ;
+- règles spécifiques de session d’échange stockage.
+
+Ces éléments doivent aller dans des fichiers `storage-*` quand ils n’existent pas déjà comme mécanique commune.
+
+---
+
+## 5. Commentaires obligatoires pour clarifier la propriété du code
+
+Quand un bloc, une fonction, une section HBS ou un groupe LESS devient utilisé par plusieurs types MTT, il doit être clairement commenté.
+
+Le but n’est pas de commenter chaque ligne. Le but est d’identifier les blocs importants pour faciliter un nettoyage futur.
+
+### 5.1. Commentaire pour code commun
+
+JavaScript :
+
+```js
+// MTT base — logique commune
+```
+
+HBS :
+
+```hbs
+{{! MTT base — bloc commun }}
+```
+
+LESS :
+
+```less
+/* MTT base — styles communs */
+```
+
+### 5.2. Commentaire pour code uniquement boutique / marchand commercial
+
+JavaScript :
+
+```js
+// MTT shop — logique propre à la boutique
+```
+
+HBS :
+
+```hbs
+{{! MTT shop — bloc propre à la boutique }}
+```
+
+LESS :
+
+```less
+/* MTT shop — styles propres à la boutique */
+```
+
+### 5.3. Commentaire pour code uniquement stockage
+
+JavaScript :
+
+```js
+// MTT storage — logique propre au stockage
+```
+
+HBS :
+
+```hbs
+{{! MTT storage — bloc propre au stockage }}
+```
+
+LESS :
+
+```less
+/* MTT storage — styles propres au stockage */
+```
+
+### 5.4. Quand ajouter ces commentaires
+
+Ajouter un commentaire quand :
+
+- une fonction `merchant-*` est utilisée par le stockage ;
+- une section HBS `merchant-*` reçoit une condition `isMerchant` / `isStorage` ;
+- un bloc LESS `merchant-*` est volontairement partagé ;
+- une logique commerciale reste dans un fichier commun et doit être identifiable comme future logique `shop-*` ;
+- une logique stockage nouvelle est ajoutée.
+
+Ne pas ajouter de commentaires inutiles sur chaque variable ou chaque ligne.
+
+---
+
+## 6. Règle anti-duplication
+
+Avant toute nouvelle fonction, rechercher dans l’existant.
+
+Règle stricte :
+
+```text
+Si une fonction existante fait déjà le travail, ne pas en créer une deuxième.
+```
+
+Exemples :
+
+- si `getItemAvailableQuantity` existe déjà côté marchand/base, ne pas recréer `getItemAvailableQuantity` côté stockage ;
+- si l’ouverture d’Item existe déjà par clic image, ne pas ajouter une nouvelle icône d’ouverture ;
+- si une logique de verrouillage existe déjà, ne pas créer un nouveau verrouillage stockage ;
+- si un rail acteur existe déjà, ne pas créer un rail stockage interne différent ;
+- si une ligne produit existe déjà, ne pas créer une ligne stockage avec une ergonomie différente.
+
+Quand une fonction existante doit être utilisée par le stockage :
+
+1. vérifier si elle peut être utilisée telle quelle ;
+2. si oui, l’utiliser sans changement ;
+3. si elle nécessite une adaptation légère, l’adapter en préservant le comportement marchand ;
+4. commenter la fonction comme `MTT base` ;
+5. ne pas renommer la fonction si le renommage n’est pas nécessaire ;
+6. ne pas créer une copie spécifique stockage.
+
+---
+
+## 7. Règle d’interface : copie stricte avant adaptation
+
+Pour le stockage, la règle n’est pas :
+
+```text
+Créer une interface stockage inspirée du marchand.
+```
+
+La règle est :
+
+```text
+Utiliser la feuille marchand/base comme socle réel.
+Modifier uniquement ce qui est demandé.
+```
+
+Conséquences :
+
+- ne pas ajouter une icône si l’équivalent marchand n’en a pas ;
+- ne pas ajouter un badge si l’équivalent marchand n’en a pas ;
+- ne pas déplacer un bouton sans demande ;
+- ne pas changer l’ouverture d’un Item ;
+- ne pas changer les classes CSS ;
+- ne pas changer la densité des lignes ;
+- ne pas changer la structure des sections ;
+- ne pas changer la place du rail ;
+- ne pas créer un onglet supplémentaire si la zone existe déjà dans le layout ;
+- ne pas répéter une information déjà portée par la catégorie.
+
+Exemple important :
+
+```text
+Si la ligne marchand ouvre l’Item par clic sur l’image,
+la ligne stockage doit ouvrir l’Item par clic sur l’image.
+
+Si la ligne marchand n’a pas d’icône “ouvrir”,
+la ligne stockage ne doit pas avoir d’icône “ouvrir”.
+
+Si la catégorie affiche déjà le type ou la catégorie,
+la ligne stockage ne doit pas ajouter un badge type.
+```
+
+Toute différence visible entre marchand/base et stockage doit être justifiée par :
+
+- une demande explicite de l’utilisateur ;
+- une différence métier indispensable ;
+- une limitation technique réelle expliquée.
+
+---
+
+## 8. Variables de contexte et types MTT
+
+Les feuilles MTT doivent savoir quel type MTT elles affichent.
+
+Prévoir dans les contextes HBS des variables simples :
+
+```js
+entityType
+isStorage
+isShop
+isMTTBase
+mttAccent
+```
+
+Ne pas multiplier inutilement les booléens.
+
+Le type logique doit venir de :
+
+```text
+flags.mtt-merchants.type
+```
+
+Valeurs prévues :
+
+```text
+merchant
+storage
+```
+
+Un acteur MTT est en usage normal un seul type MTT à la fois.
+
+```text
+Un acteur marchand n’est pas un stockage.
+Un acteur stockage n’est pas un marchand.
+```
+
+Il faut donc éviter de coder par peur d’un mélange simultané des deux types sur une même feuille.
+
+---
+
+## 9. HBS : logique commune et variantes
+
+Quand un HBS est partagé par marchand et stockage, utiliser des conditions simples.
+
+Exemple :
+
+```hbs
+{{! MTT base — header commun marchand/stockage }}
+<header class="mtt-merchant-header">
+  ...
+
+  {{#if isShop}}
+    {{! MTT shop — informations boutique/gérant }}
+    ...
+  {{/if}}
+
+  {{#if isStorage}}
+    {{! MTT storage — informations stockage }}
+    ...
+  {{/if}}
+</header>
+```
+
+Règles :
+
+- garder les classes existantes si elles portent la structure commune ;
+- ajouter des classes `mtt-storage-*` seulement en complément ;
+- éviter de dupliquer un fichier HBS entier si seules quelques conditions changent ;
+- ne pas créer une version storage parallèle d’un bloc qui fonctionne déjà ;
+- ne pas supprimer un bloc commun sans vérifier son usage marchand.
+
+---
+
+## 10. LESS : base commune et variantes
+
+Le CSS actuel peut utiliser des classes `mtt-merchant-*` comme base commune.
+
+Ne pas tout renommer maintenant.
+
+Règle :
+
+```text
+Les classes `mtt-merchant-*` peuvent rester la base commune de structure si elles sont déjà utilisées et stables.
+```
+
+Pour les variantes, utiliser des classes racines et des variables CSS.
+
+Exemple :
+
+```less
+.mtt-merchant-form {
+  --mtt-accent: #c9923e;
+}
+
+.mtt-storage-form {
+  --mtt-accent: #5ba3bf;
+}
+```
+
+Puis les styles communs doivent utiliser :
+
+```less
+color: var(--mtt-accent);
+border-color: var(--mtt-accent);
+```
+
+Règles :
+
+- ne pas dupliquer tout le CSS marchand en CSS stockage ;
+- ne pas renommer toutes les classes pour le stockage ;
+- ne pas créer une feuille visuellement différente sans demande ;
+- ne pas ajouter de glow, badges ou décorations fantaisie ;
+- conserver les styles compacts ;
+- préserver le CSS local modifié par l’utilisateur.
+
+---
+
+## 11. Architecture générale actuelle
+
+Les fichiers `merchant-*` actuels sont stables et servent de base.
+
+### `module/applications/sheets/merchant-sheet.mjs`
+
+Fichier principal et orchestrateur de la feuille MTT commune.
+
+Il contient la classe de feuille, les options, les parties de template, la préparation du contexte, le rendu, les actions Application V2 et les appels vers les fonctions spécialisées.
+
+Il peut contenir du commun, du shop historique et des points d’extension stockage.
+
+Ne pas le réécrire massivement.
+
+### `module/applications/sheets/merchant-catalog.mjs`
+
+Catalogue / contenu de la feuille MTT commune.
+
+Il contient actuellement la logique produits/services/catégories du marchand.
+
+Certaines fonctions peuvent être communes :
+
+- affichage d’Items ;
+- quantités ;
+- catégories ;
+- ouverture Item ;
+- drag/drop ;
+- actions de ligne ;
+- déplacement de catégorie.
+
+D’autres sont `shop` :
+
+- prix ;
+- services ;
+- secrets commerciaux ;
+- approbation marchand ;
+- prix libre.
+
+### `module/applications/sheets/merchant-trade.mjs`
+
+Sessions et transactions historiques du marchand.
+
+Certaines mécaniques peuvent devenir communes :
+
+- session par acteur ;
+- sélection d’acteur ;
+- lignes de session ;
+- quantités en session ;
+- validation/refus de session ;
+- journalisation de base.
+
+D’autres sont `shop` :
+
+- achat ;
+- vente ;
+- ajustement monétaire commercial ;
+- négociation ;
+- livraison d’un achat.
+
+### `module/applications/sheets/merchant-dialogs.mjs`
+
+Dialogues MTT historiques.
+
+Peut contenir du commun et du shop.
+
+Les dialogues importants doivent utiliser les templates dédiés dans :
+
+```text
+templates/dialogs/
+```
+
+### `module/applications/sheets/merchant-utils.mjs`
+
+Utilitaires simples.
+
+Peut contenir du commun.
+
+Ne pas transformer ce fichier en fourre-tout.
+
+### Fichiers `storage-*`
+
+Créer uniquement pour la logique réellement propre au stockage.
+
+Exemples :
+
+```text
+module/applications/sheets/storage-sheet.mjs
+module/applications/sheets/storage-content.mjs
+module/applications/sheets/storage-exchange.mjs
+module/documents/storage-flags.mjs
+module/documents/storage-access.mjs
+```
+
+Ne pas créer un fichier `storage-*` pour copier une fonction déjà présente dans un fichier `merchant-*`.
+
+### Fichiers `shop-*`
+
+Fichiers futurs pour isoler ce qui est purement marchand commercial.
+
+Ne pas créer ou déplacer massivement vers `shop-*` tant que le stockage n’est pas stabilisé, sauf demande explicite.
+
+---
+
+## 12. Méthode de développement du stockage
+
+Le développement du stockage doit suivre cette méthode.
+
+### 12.1. Étape de base logique
+
+Créer ou vérifier :
+
+```text
+flags.mtt-merchants.type = "storage"
+flags.mtt-merchants.storage = { ... }
+```
+
+Créer les helpers de flags stockage :
+
+```text
+module/documents/storage-flags.mjs
+```
+
+Ce fichier est spécifique stockage car il manipule les données propres au stockage.
+
+### 12.2. Réutiliser la base marchand/base
+
+Pour la feuille, ne pas créer une feuille stockage indépendante.
+
+Partir des fichiers `merchant-*` comme base commune.
+
+Si une zone de la feuille doit exister pour le stockage et existe déjà côté marchand/base, la réutiliser.
+
+### 12.3. Ajouter les conditions métier minimales
+
+Utiliser des conditions :
+
+```hbs
+{{#if isShop}}{{/if}}
+
+{{#if isStorage}}{{/if}}
+```
+
+ou côté JS :
+
+```js
+if (context.isStorage) {
+  ...
+}
+```
+
+Mais ne pas transformer chaque ligne en forêt de conditions.
+
+Si un bloc devient trop différent, il pourra plus tard être extrait proprement.
+
+### 12.4. Développer les fonctions exclusives stockage ensuite
+
+Une fois le squelette commun utilisé, ajouter progressivement :
+
+- contenu stockage ;
+- catégories stockage ;
+- tags ;
+- statuts ;
+- sessions d’échange ;
+- dépôt ;
+- retrait ;
+- validation ;
+- journal de mouvements ;
+- votes ;
+- répartition de monnaie.
+
+Chaque fonction exclusive doit aller dans `storage-*`.
+
+---
+
+## 13. Rapports de développement
+
+Règle générale :
+
+```text
+Ne pas créer de rapport `.md` après chaque instruction.
+Créer un rapport uniquement si l’utilisateur le demande explicitement.
+```
+
+Exception actuelle pour le développement du stockage MTT :
+
+```text
+Après chaque étape de développement stockage,
+ajouter un rapport clair et simple à la suite de `rapport-étapes-stockage.md`.
+```
+
+Le rapport stockage doit reprendre le modèle existant :
+
+- titre de l’étape ;
+- todo list cochée ;
+- résumé de ce qui a été fait ;
+- ce qui n’a pas été créé volontairement ;
+
+Ne pas créer un autre fichier de rapport.
+
+Ne pas détailler ligne par ligne tout le code modifié.
+
+---
+
+## 14. État actuel du module et priorité marchand
+
+La partie Marchand MTT fonctionne et constitue la base validée.
+
+Ne pas casser les fonctions déjà validées du marchand.
+
+Quand une modification commune touche un fichier `merchant-*`, vérifier que le marchand conserve exactement son comportement attendu.
+
+Avant toute modification :
+
+1. lire l’état actuel du dépôt ;
+2. lire `agents.md` ;
+3. lire les rapports pertinents si l’instruction concerne le stockage ;
+4. chercher les fonctions existantes ;
+5. éviter les doublons ;
+6. modifier uniquement ce qui est demandé.
+
+Quand l’utilisateur dit qu’une correction fonctionne, considérer cette correction comme une base stable pour la suite.
+
+Quand l’utilisateur dit qu’il a poussé sur GitHub, le dépôt GitHub redevient l’état de référence.
+
+---
+
+## 15. Aucun legacy à préserver
 
 Le module MTT est encore en développement local et n’est pas distribué publiquement.
 
 Il ne faut pas préserver de compatibilité pour :
 
 - anciens marchands ;
+- anciens stockages ;
 - anciennes transactions ;
 - anciens journaux ;
 - anciens settings ;
 - anciens champs de flags ;
 - anciens formats de produits ;
-- anciennes décisions de conception abandonnées ;
+- anciennes décisions abandonnées ;
 - anciens mondes de test.
 
 Objectif prioritaire :
@@ -71,153 +719,7 @@ Conséquences :
 
 ---
 
-## 4. Vision générale MTT 2.0
-
-MTT doit évoluer vers un module **multi-types MTT**.
-
-Un acteur Foundry normal peut être converti en entité MTT logique :
-
-```text
-Acteur système normal
-→ Conversion MTT
-→ choix du type MTT
-   → Marchand / Boutique
-   → Stockage / Réserve
-   → autres types éventuels plus tard
-```
-
-Types MTT prévus :
-
-- `merchant` : boutique, marchand, services, prix, ventes, achats, négociation, journal marchand ;
-- `storage` : coffre, réserve, dépôt, butin, demandes, votes, retrait/dépôt, journal de mouvements.
-
-Le stockage ne doit pas être un marchand avec les prix cachés. Il doit avoir ses propres flags, sa propre feuille, ses propres permissions, son propre journal, et seulement partager des fondations communes avec le marchand.
-
-Structure cible des flags :
-
-```text
-flags.mtt-merchants.type = "merchant" | "storage"
-flags.mtt-merchants.merchant = { ... }
-flags.mtt-merchants.storage = { ... }
-```
-
-Ne pas mélanger les données de stockage dans `merchant`.
-
----
-
-## 5. Philosophie de développement
-
-Avancer étape par étape, avec rigueur.
-
-Ne pas ajouter de fonctionnalité avancée non demandée.
-
-Ne pas refactoriser massivement sans demande explicite.
-
-Ne pas se compliquer la vie avec des notions bloquantes, des couches d’abstraction ou des systèmes génériques non demandés.
-
-Préférer :
-
-- corrections ciblées ;
-- étapes courtes ;
-- code lisible ;
-- noms clairs ;
-- peu de constantes ;
-- peu de helpers, mais bien définis ;
-- réutilisation progressive des fonctions existantes ;
-- extraction commune uniquement quand elle est réellement utile.
-
-Éviter :
-
-- gros frameworks internes trop tôt ;
-- factorisation anticipée ;
-- réécriture complète d’une fonctionnalité validée ;
-- changements simultanés sur plusieurs sujets sans nécessité ;
-- multiplication de constantes du type `isEditable`, `canManage...`, `canDoThis...` si une constante existante couvre déjà le besoin.
-
-Règle importante :
-
-```text
-Ne pas créer de rapport `.md` après chaque instruction.
-Créer un rapport uniquement si l’utilisateur le demande explicitement.
-```
-
----
-
-## 6. Roadmap et ordre de travail
-
-Avant de modifier une fonctionnalité importante, vérifier la roadmap du projet et l’état réellement déjà implémenté.
-
-Ne pas refaire une étape déjà effectuée.
-
-Ne pas changer une logique validée sans raison.
-
-Quand une instruction concerne les stockages, vérifier si une fonction équivalente existe déjà côté marchand :
-
-```text
-Si la fonction existe déjà côté marchand :
-→ l’extraire vers une partie commune seulement si c’est nécessaire ;
-→ préserver le comportement marchand ;
-→ ne pas casser les imports ni la logique existante.
-
-Si la fonction n’existe pas côté marchand :
-→ l’implémenter côté stockage sans créer prématurément une abstraction commune.
-```
-
-La règle est :
-
-```text
-Réutiliser ce qui existe, mais ne pas forcer l’abstraction.
-```
-
----
-
-## 7. Outils et dépendances
-
-Le projet MTT doit rester simple.
-
-Ne pas ajouter de dépendance npm, de plugin Gulp, de configuration de build ou d’outil supplémentaire sans nécessité claire et validation explicite.
-
-Outils acceptés :
-
-- `gulp`
-- `gulp-less`
-- `less`
-- `prettier`
-- `eslint`
-- `@eslint/js`
-- `globals`
-
-Le fichier `gulpfile.mjs` doit rester minimal.
-
-Il doit uniquement compiler :
-
-```text
-styles/mtt.less
-```
-
-vers :
-
-```text
-css/mtt.css
-```
-
-et permettre un mode watch sur les fichiers `.less`.
-
-Ne pas ajouter automatiquement :
-
-- `gulp-sourcemaps`
-- `gulp-clean-css`
-- minification CSS ;
-- sourcemaps ;
-- bundler JavaScript ;
-- transpiler ;
-- framework CSS ;
-- dépendance externe non demandée ;
-- outil de packaging non demandé.
-
----
-
-## 8. Conventions JavaScript et Foundry v14
+## 16. Foundry VTT v14 et JavaScript
 
 Utiliser du JavaScript moderne compatible Foundry VTT v14.
 
@@ -257,7 +759,11 @@ foundry.utils.mergeObject(target, source)
 foundry.utils.duplicate(data)
 ```
 
-Ne pas utiliser `new foundry.applications.DialogV2(...)`.
+Ne pas utiliser :
+
+```js
+new foundry.applications.DialogV2(...)
+```
 
 Utiliser un style JavaScript sans point-virgule superflu.
 
@@ -272,7 +778,53 @@ export const MTT = {
 
 ---
 
-## 9. Convention de fichiers et chemins
+## 17. Outils et dépendances
+
+Le projet MTT doit rester simple.
+
+Ne pas ajouter de dépendance npm, de plugin Gulp, de configuration de build ou d’outil supplémentaire sans nécessité claire et validation explicite.
+
+Outils acceptés :
+
+- `gulp`
+- `gulp-less`
+- `less`
+- `prettier`
+- `eslint`
+- `@eslint/js`
+- `globals`
+
+Le fichier `gulpfile.mjs` doit rester minimal.
+
+Il doit uniquement compiler :
+
+```text
+styles/mtt.less
+```
+
+vers :
+
+```text
+css/mtt.css
+```
+
+et permettre un mode watch sur les fichiers `.less`.
+
+Ne pas ajouter automatiquement :
+
+- `gulp-sourcemaps` ;
+- `gulp-clean-css` ;
+- minification CSS ;
+- sourcemaps ;
+- bundler JavaScript ;
+- transpiler ;
+- framework CSS ;
+- dépendance externe non demandée ;
+- outil de packaging non demandé.
+
+---
+
+## 18. Conventions fichiers et chemins
 
 Tous les fichiers et dossiers doivent être en minuscules.
 
@@ -298,8 +850,7 @@ module/applications/sheets/merchant-dialogs.mjs
 module/applications/sheets/merchant-utils.mjs
 module/applications/sheets/storage-sheet.mjs
 module/applications/sheets/storage-content.mjs
-module/applications/sheets/storage-trade.mjs
-module/applications/sheets/mtt-sheet-common.mjs
+module/applications/sheets/storage-exchange.mjs
 templates/actors/merchant-sheet.hbs
 templates/actors/storage-sheet.hbs
 templates/actors/parts/merchant-access-rail.hbs
@@ -314,7 +865,7 @@ lang/en.json
 
 ---
 
-## 10. Localisation
+## 19. Localisation
 
 Toute chaîne affichée à l’utilisateur doit passer par les fichiers de langue.
 
@@ -332,7 +883,12 @@ Cela concerne :
 
 Le namespace de localisation est `mtt`.
 
-Les fichiers `lang/fr.json` et `lang/en.json` doivent rester alignés.
+Les fichiers suivants doivent rester alignés :
+
+```text
+lang/fr.json
+lang/en.json
+```
 
 Quand une clé visible est ajoutée, modifiée, renommée ou supprimée, mettre à jour les deux fichiers.
 
@@ -340,11 +896,11 @@ Ne pas conserver de clés de langue inutilisées pour d’anciennes décisions.
 
 ---
 
-## 11. CSS / Less
+## 20. CSS / LESS
 
 Toutes les classes CSS propres au module doivent être préfixées par `mtt-`.
 
-Classes acceptées en principe :
+Classes acceptées :
 
 ```text
 mtt-sheet
@@ -388,166 +944,45 @@ Le CSS compilé doit aller dans :
 css/mtt.css
 ```
 
-Le CSS local modifié manuellement par l’utilisateur doit être préservé.
+Les boutons MTT doivent être compacts, avec icône Font Awesome et tooltip localisé, surtout dans les zones denses.
 
 Ne pas réécrire/refactoriser le CSS des produits, du rail client, des sessions ou du layout général sans nécessité explicite.
 
-Les boutons MTT doivent être compacts, avec icône Font Awesome et tooltip localisé, surtout dans les zones denses.
-
 ---
 
-## 12. Architecture JavaScript marchand
-
-La feuille marchand est séparée en plusieurs fichiers cohérents. Respecter cette organisation.
-
-### `module/applications/sheets/merchant-sheet.mjs`
-
-Fichier principal et orchestrateur de la feuille marchand.
-
-Il contient la classe `MerchantSheet`, les options, les parties de template, la préparation du contexte, le rendu, les actions Application V2 et les appels vers les fonctions spécialisées.
-
-Ce fichier pourra être séparé plus tard, mais ne pas commencer par un refactor massif tant que ce n’est pas demandé.
-
-### `module/applications/sheets/merchant-catalog.mjs`
-
-Catalogue du marchand.
-
-Il regroupe :
-
-- produits ;
-- services ;
-- catégories ;
-- sous-catégories ;
-- catégories automatiques ;
-- drops ;
-- déplacement de produit ;
-- ajout/fusion de produit ;
-- création de services ;
-- prix ;
-- prix libre ;
-- quantités ;
-- masquage ;
-- secrets ;
-- approbation MJ ;
-- copie produit/service.
-
-Produits et services restent ensemble dans ce fichier.
-
-### `module/applications/sheets/merchant-trade.mjs`
-
-Échange entre client et marchand.
-
-Ce fichier peut rester volumineux tant qu’il reste cohérent.
-
-Il regroupe :
-
-- sessions de transaction ;
-- buyerItems ;
-- sellerItems ;
-- quantités ;
-- totaux ;
-- ajustement monétaire ;
-- vérification transaction ;
-- validation/refus ;
-- transfert objets/monnaies ;
-- livraison ;
-- fusion/stacking ;
-- négociation ;
-- visibilité de session.
-
-Ne pas le découper sauf demande explicite.
-
-### `module/applications/sheets/merchant-dialogs.mjs`
-
-Centralise les dialogues MTT.
-
-Les dialogues importants doivent utiliser les templates dédiés dans :
-
-```text
-templates/dialogs/
-```
-
-Éviter le HTML brut dispersé dans les MJS.
-
-### `module/applications/sheets/merchant-utils.mjs`
-
-Utilitaires simples et réutilisables.
-
-Ne pas transformer ce fichier en fourre-tout.
-
----
-
-## 13. Architecture commune future
-
-Découpage futur possible :
-
-```text
-module/applications/sheets/mtt-sheet-common.mjs
-  → fonctions communes de feuille MTT
-  → helpers UI, positionnement, mémorisation scroll, activation listeners communs
-
-module/applications/sheets/merchant-sheet.mjs
-  → fonctions spécifiques marchand
-
-module/applications/sheets/storage-sheet.mjs
-  → fonctions spécifiques stockage
-```
-
-Règle pour les stockages :
-
-```text
-À chaque fonction nécessaire pour le stockage, vérifier si elle existe déjà côté marchand.
-```
-
-Si oui :
-
-- déplacer vers une partie commune uniquement si le stockage en a réellement besoin ;
-- ne pas changer le comportement marchand ;
-- garder le nom clair ;
-- éviter les wrappers inutiles ;
-- ne pas créer de surcouche générique si un helper simple suffit.
-
-Si non :
-
-- créer la fonction côté stockage ;
-- ne pas anticiper une généralisation inutile.
-
----
-
-## 14. Architecture marchand actuelle
+## 21. Conversion MTT et types d’acteurs
 
 MTT ne crée plus de type d’acteur marchand dédié.
 
-Le MJ crée un acteur système normal d’un type autorisé puis le convertit en marchand via les options d’en-tête de sa feuille acteur.
+Le MJ crée un acteur système normal d’un type autorisé puis le convertit en entité MTT via les contrôles d’en-tête ou le menu contextuel.
 
-L’acteur reste l’acteur support/gérant. Son `actor.type` reste celui du système actif.
+L’acteur reste un acteur système normal. Son `actor.type` reste celui du système actif.
 
-Les données marchand sont stockées dans :
+La détection MTT doit passer par les flags :
 
 ```text
+flags.mtt-merchants.type
 flags.mtt-merchants.merchant
+flags.mtt-merchants.storage
 ```
 
-La détection d’un marchand MTT se fait via :
+Ne pas utiliser `actor.type` pour identifier un marchand ou un stockage MTT.
 
-```js
-isMTTMerchant(actor)
+Interdit :
+
+```text
+CONFIG.Actor.dataModels["mtt-merchants.merchant"]
+Actors.registerSheet(...) avec types: ["mtt-merchants.merchant"]
+actor.type === "mtt-merchants.merchant"
+actor.type === "storage"
+actor.type === "mtt-merchants.storage"
 ```
 
-`module/config/actor-types.mjs` sert uniquement à lire, normaliser et vérifier les types d’acteurs du système actif autorisés à être convertis en marchand. Il ne doit jamais déclarer, ajouter, exposer ou sauvegarder `merchant` / `mtt-merchants.merchant` comme type d’acteur Foundry.
-
-Le mot `merchant` reste valide comme nom métier et comme nom de flag dans `flags.mtt-merchants.merchant`, mais il est interdit comme type d’acteur Foundry.
-
-Ne pas réintroduire :
-
-- `CONFIG.Actor.dataModels["mtt-merchants.merchant"]` ;
-- `Actors.registerSheet(...)` avec `types: ["mtt-merchants.merchant"]` ;
-- `actor.type === "mtt-merchants.merchant"` ;
-- tout test `actor.type` pour identifier un marchand MTT.
+`module/config/actor-types.mjs` sert uniquement à lire, normaliser et vérifier les types d’acteurs du système actif autorisés à être convertis.
 
 ---
 
-## 15. Données marchand
+## 22. Données marchand
 
 Toutes les données marchand sont stockées dans les flags Foundry de l’acteur support, pas dans `actor.system`.
 
@@ -567,7 +1002,13 @@ flags.mtt-merchants.merchant.journal.transactions[]
 flags.mtt-merchants.merchant.referenceState
 ```
 
-Helpers centralisés dans `module/documents/merchant-flags.mjs` :
+Helpers centralisés dans :
+
+```text
+module/documents/merchant-flags.mjs
+```
+
+Fonctions attendues :
 
 ```js
 getMerchantData(actor)
@@ -583,12 +1024,56 @@ Ne pas utiliser `TypeDataModel` pour les données marchand MTT.
 
 ---
 
-## 16. Produits marchands actuels
+## 23. Données stockage
+
+Les données stockage doivent être stockées dans :
+
+```text
+flags.mtt-merchants.storage
+```
+
+Le type logique doit être stocké dans :
+
+```text
+flags.mtt-merchants.type = "storage"
+```
+
+Helpers dédiés :
+
+```text
+module/documents/storage-flags.mjs
+```
+
+Fonctions attendues ou équivalentes :
+
+```js
+buildDefaultStorageData(actor)
+getStorageData(actor)
+setStorageData(actor, data)
+updateStorageData(actor, changes)
+unsetStorageData(actor)
+isMTTStorage(actor)
+getMTTEntityType(actor)
+getStorageFlagPath(path)
+normalizeStorageData(data, actor)
+```
+
+Aucune donnée stockage ne doit être écrite dans `actor.system`.
+
+Ne pas mélanger les données stockage dans :
+
+```text
+flags.mtt-merchants.merchant
+```
+
+---
+
+## 24. Produits / Items
 
 Décision actuelle importante :
 
 ```text
-Les produits du catalogue sont de vrais Embedded Items de l’acteur support.
+Les produits du catalogue marchand sont de vrais Embedded Items de l’acteur support.
 ```
 
 Un produit marchand est un Item de `actor.items` dont les flags MTT indiquent qu’il est activé comme produit catalogue.
@@ -623,17 +1108,21 @@ Les helpers liés aux produits se trouvent dans :
 module/documents/merchant-products.mjs
 ```
 
-La copie produit/service du menu contextuel doit créer une nouvelle ligne indépendante, quantité `1`, sans diminuer la ligne d’origine, et conserver `sourceUuid`.
+Pour le stockage, les Items du stockage sont aussi des Embedded Items de l’acteur support.
+
+Ne pas créer un modèle parallèle de stockage sous forme de plain objects tant que les Embedded Items suffisent.
 
 ---
 
-## 17. Services
+## 25. Services
 
 Les services restent stockés dans :
 
 ```text
 flags.mtt-merchants.merchant.catalog.services[]
 ```
+
+Les services sont une logique `shop`.
 
 Un service acheté :
 
@@ -648,15 +1137,17 @@ Quantité service vide, `null` ou `undefined` = illimité.
 
 Un nouveau service doit initialiser sa monnaie de prix avec la monnaie de référence par défaut.
 
+Les services ne concernent pas le stockage sauf demande explicite.
+
 ---
 
-## 18. Catégories et sous-catégories marchand
+## 26. Catégories
 
 MTT distingue :
 
 1. le type Foundry de l’Item ;
 2. le type/sous-type/catégorie système lu via des chemins configurés ;
-3. la catégorie marchande MTT, indépendante et modifiable.
+3. la catégorie MTT indépendante et modifiable.
 
 Les catégories automatiques doivent utiliser des chemins configurables.
 
@@ -664,21 +1155,15 @@ La catégorie automatique issue du système ne doit jamais modifier l’Item sou
 
 Si le MJ déplace un produit vers une autre catégorie, ne pas le remettre automatiquement dans sa catégorie système.
 
-Les catégories personnalisées globales sont copiées une seule fois à la conversion en catégories locales du marchand. Pas de resynchronisation automatique ensuite.
+La catégorie “Sans catégorie” doit être affichée à la fin.
 
-La catégorie “Sans catégorie” doit être affichée à la fin du catalogue.
+Si la catégorie affiche déjà le type ou la catégorie, ne pas répéter cette information dans chaque ligne d’Item sous forme de badge.
 
-Le clic droit sur une catégorie principale peut appliquer une action de masse aux produits de cette catégorie :
-
-- passer tous les produits en Limited ou Observer ;
-- demander l’approbation MJ sur tous les produits ;
-- retirer l’approbation MJ sur tous les produits.
-
-Ces actions modifient directement chaque produit, pas la catégorie. Si le produit change ensuite de catégorie, il conserve son droit et son statut d’approbation.
+Le clic droit sur une catégorie principale peut appliquer des actions de masse côté marchand. Des actions similaires pourront être définies plus tard pour le stockage, mais ne pas les inventer sans instruction.
 
 ---
 
-## 19. Monnaies et prix
+## 27. Monnaies et prix
 
 Le tableau des devises est la source actuelle pour les prix et monnaies.
 
@@ -694,11 +1179,15 @@ Lecture et écriture du prix Item doivent passer par les fonctions actuelles fon
 
 Si le tableau des devises n’est pas configuré correctement, afficher une notification claire au MJ.
 
+Prix et monnaies sont une logique `shop`, sauf futures fonctionnalités de répartition de monnaie dans le stockage.
+
+Ne pas ajouter de prix dans une ligne stockage.
+
 ---
 
-## 20. Informations secrètes
+## 28. Informations secrètes
 
-Un produit ou service peut avoir :
+Un produit ou service marchand peut avoir :
 
 - nom secret ;
 - prix secret ;
@@ -711,9 +1200,11 @@ Le joueur ne doit pas voir de bouton ou d’indicateur lui révélant qu’un se
 
 Dans le journal, les secrets ne doivent pas exposer leur contenu aux acheteurs.
 
+Les secrets marchands sont une logique `shop`, sauf si une logique de note privée stockage est explicitement demandée plus tard.
+
 ---
 
-## 21. Prix libre et négociation
+## 29. Prix libre et négociation
 
 Le prix classique d’un produit/service peut être ajusté par les pourcentages du marchand et les taux personnalisés du client actif.
 
@@ -721,52 +1212,60 @@ Le prix libre doit rester compact, avec icône, tooltip, prix minimum MJ caché 
 
 Le test de négociation n’a aucun rôle automatique. Il sert seulement d’outil MJ.
 
+Prix libre et négociation sont une logique `shop`.
+
 ---
 
-## 22. Rail clients et sessions marchand
+## 30. Rail acteurs et sessions
 
-Le MJ gère les clients autorisés via le rail de cards.
+Le rail d’acteurs est une mécanique potentiellement commune.
 
-Logique :
+Le rail marchand actuel est stable et doit servir de base.
 
-- acteur non autorisé : clic gauche = autoriser ;
-- acteur autorisé : clic gauche = ouvrir/sélectionner sa session ;
-- retirer une autorisation : clic droit / menu contextuel ;
-- supprimer l’acteur du marchand : clic droit / menu contextuel.
+Ne pas créer un rail stockage interne différent si le rail marchand/base existe déjà.
 
-Quand un acteur est autorisé à commercer, une session doit exister pour lui chez ce marchand.
-
-Un acteur ne peut avoir qu’une seule session par marchand.
-
-Toutes les transactions passent par une session.
-
-La session contient :
+Le stockage pourra utiliser le même modèle de rail avec des variantes :
 
 ```text
-Le PJ achète / reçoit
-Le PJ vend / donne
+marchand : clients autorisés
+stockage : acteurs autorisés / participants au stockage
 ```
 
-L’ajustement monétaire automatique est une ligne dans l’une de ces deux parties.
+La mécanique commune :
 
-Quand une session est validée, la transaction est exécutée, le journal est écrit, et l’acteur repart sur une session vide.
+- cards d’acteurs ;
+- image ;
+- nom ;
+- niveau de droit ;
+- état de session ;
+- sélection ;
+- menu contextuel ;
+- ajout/retrait d’acteur ;
+- session liée à un acteur.
 
-Quand une session est refusée, aucune transaction réelle n’est appliquée, le journal est écrit, et l’acteur repart sur une session vide.
+La logique métier diffère :
+
+```text
+marchand : acheter / vendre
+stockage : déposer / retirer / demander
+```
+
+Les sessions doivent rester un modèle central d’échange, pas des actions directes dispersées.
 
 ---
 
-## 23. Render, update et scroll marchand
+## 31. Render, update et scroll
 
-Terminologie de travail pour ce projet :
+Terminologie de travail :
 
 ```text
-update = mise à jour globale qui modifie l’acteur marchand et peut impacter toutes les feuilles ouvertes
+update = mise à jour globale qui modifie l’acteur et peut impacter toutes les feuilles ouvertes
 render = rafraîchissement local de la feuille utilisateur
 ```
 
-Les grosses modifications du marchand peuvent utiliser un update :
+Les grosses modifications peuvent utiliser un update :
 
-- catalogue ;
+- catalogue/contenu ;
 - configuration ;
 - changement de catégorie ;
 - validation/refus ;
@@ -774,34 +1273,44 @@ Les grosses modifications du marchand peuvent utiliser un update :
 - journalisation ;
 - masquage ;
 - prix ;
-- services.
+- services ;
+- transfert réel.
 
-Les interactions de session utilisent les renders existants et ne doivent pas être complexifiées tant que la mémorisation du scroll rend l’expérience fluide.
+Les interactions légères de session peuvent utiliser des renders locaux si l’expérience reste fluide.
 
-La position des scrolls doit être préservée lors des renders/updates de la feuille marchand :
+La position des scrolls doit être préservée lors des renders/updates :
 
-- onglet produits ;
-- onglet services ;
+- onglet produits/contenu ;
+- onglet services si présent ;
 - onglet configuration si scrollable ;
 - journal ;
 - session ;
+- rail ;
 - autres conteneurs scrollables pertinents.
 
 ---
 
-## 24. Quantités disponibles et réservations
+## 32. Quantités disponibles et réservations
 
-Le catalogue marchand tient compte des quantités engagées dans les sessions pertinentes.
+La quantité est une mécanique potentiellement commune.
 
-Logique :
+Logique générale :
 
 ```text
-stockTotal = quantité réelle du produit chez le marchand
-reservedQuantity = quantités déjà engagées dans les sessions actives/submitted/pending pertinentes
+stockTotal = quantité réelle de l’Item sur l’acteur support
+reservedQuantity = quantités déjà engagées dans des sessions pertinentes
 availableQuantity = stockTotal - reservedQuantity
 ```
 
-L’affichage produit doit rester compact :
+Côté marchand, cela concerne les achats/ventes.
+
+Côté stockage, cela concernera les retraits/demandes/dépôts engagés.
+
+Si une fonction de quantité existe déjà côté marchand/base, ne pas la recréer côté stockage.
+
+L’affichage doit rester compact.
+
+Exemple marchand :
 
 ```text
 8x
@@ -810,25 +1319,15 @@ L’affichage produit doit rester compact :
 
 Le `!` indique que le stock réel est partiellement engagé dans une ou plusieurs sessions.
 
-Le tooltip de la quantité indique :
-
-```text
-disponible / stock réel
-```
-
-Exemple :
-
-```text
-8/10
-```
-
 La validation finale doit toujours revérifier la disponibilité réelle.
 
 ---
 
-## 25. Livraison et fusion des objets
+## 33. Livraison, transfert et fusion
 
-Lors d’un achat validé, MTT doit :
+Le transfert d’Items est une mécanique potentiellement commune.
+
+Côté marchand, lors d’un achat validé, MTT doit :
 
 - copier l’Item marchand actuel ;
 - créer ou fusionner l’Item sur l’acteur client ;
@@ -838,15 +1337,17 @@ Lors d’un achat validé, MTT doit :
 - accorder les droits prévus sur l’objet livré ;
 - respecter les quantités maximales uniquement sur l’acteur destinataire.
 
-La quantité max ne limite pas le stock du marchand.
+Côté stockage, les transferts devront réutiliser autant que possible cette logique de copie/fusion/quantité.
+
+La quantité max ne limite jamais le stock de l’acteur source. Elle s’applique seulement à la livraison sur l’acteur destinataire.
 
 ---
 
-## 26. Permissions marchand
+## 34. Permissions
 
 La matrice de permissions marchand doit rester simple.
 
-Permissions configurables validées :
+Permissions configurables marchand validées :
 
 ```text
 canViewConfigTab
@@ -873,22 +1374,6 @@ Le MJ a toujours toutes les permissions à `true`.
 
 Le profil `owner` est configurable. Par défaut il peut tout faire, mais un MJ peut désactiver certaines permissions owner.
 
-Ne pas rendre configurables :
-
-- produits/services/catégories masqués ;
-- indicateurs de secrets ;
-- stock exact ;
-- fonctions profondes de gestion marchand.
-
-Conserver uniquement :
-
-```text
-isEditable
-canEditMerchant
-```
-
-pour la gestion profonde du marchand.
-
 Ne pas réintroduire :
 
 ```text
@@ -896,13 +1381,13 @@ canUserManageMerchant
 isOwnerLike
 ```
 
-`canUserManageMerchant` est redondant avec `canEditMerchant`.
+Pour le stockage, définir les permissions progressivement, uniquement quand elles deviennent nécessaires.
 
-`isOwnerLike` mélangeait GM et Owner et doit rester supprimé.
+Ne pas partir dans une liste excessive de micro-permissions.
 
 ---
 
-## 27. Journal marchand et journal global
+## 35. Journal
 
 Le journal marchand existe.
 
@@ -912,20 +1397,20 @@ La visibilité est filtrée selon les droits et permissions actuels.
 
 Les sessions validées/refusées sont copiées dans le journal du marchand.
 
-Les secrets ne doivent pas exposer leur contenu aux acheteurs.
+Le stockage aura plus tard un journal de mouvements.
 
-Ne pas prévoir d’annulation automatique après coup.
+La mécanique de journalisation peut devenir partiellement commune, mais ne pas l’abstraire massivement sans besoin concret.
 
 ---
 
-## 28. Configuration du module
+## 36. Configuration du module
 
 Le module doit permettre de configurer des chemins pour rester universel.
 
 Options importantes :
 
 - types d’acteurs convertibles en marchand ;
-- futurs types d’acteurs convertibles en stockage ;
+- types d’acteurs convertibles en stockage ;
 - types d’Items autorisés comme produits ;
 - types d’Items autorisés comme services ;
 - chemins de quantité ;
@@ -949,7 +1434,7 @@ module/config/config-export.mjs
 
 ---
 
-## 29. Stockage MTT — vision fonctionnelle
+## 37. Stockage MTT — vision fonctionnelle
 
 Le stockage MTT représentera :
 
@@ -965,65 +1450,30 @@ Le stockage n’est pas une boutique sans prix.
 Différence métier :
 
 ```text
-Marchand MTT :
+Marchand / boutique :
 acheter, vendre, prix, tarifs, négociation, transaction commerciale.
 
-Stockage MTT :
+Stockage :
 déposer, demander, retirer, trier, voter, répartir, tracer les mouvements.
 ```
 
-Feuille stockage souhaitée :
+Le stockage doit utiliser les fondations MTT existantes quand elles sont pertinentes.
 
-- visuellement proche du marchand ;
-- palette de couleurs distincte ;
-- layout inversé ;
-- rail acteurs/session à gauche ;
-- contenu du stockage à droite.
+Le stockage ne doit pas réinventer :
 
-Le contenu du stockage doit afficher :
-
-- quantité ;
-- image ;
-- nom ;
-- catégorie ;
-- tags ;
-- statuts techniques ;
-- actions.
-
-Le stockage doit utiliser des sessions d’échange, pas du retrait libre généralisé.
+- la feuille ;
+- le rail ;
+- les lignes d’Items ;
+- les catégories ;
+- le verrouillage ;
+- les sessions ;
+- les dialogues communs ;
+- les helpers de quantité ;
+- les helpers de transfert.
 
 ---
 
-## 30. Stockage MTT — développement progressif
-
-Ordre de développement prévu :
-
-1. Introduire le type logique MTT `storage`.
-2. Ajouter la conversion MTT avec choix Marchand / Stockage.
-3. Ajouter les types d’acteurs convertibles en stockage dans la configuration.
-4. Créer les helpers de flags stockage.
-5. Créer la feuille stockage minimale.
-6. Créer les templates de base.
-7. Ajouter une palette CSS distincte et un layout inversé.
-8. Afficher le contenu du stockage.
-9. Gérer les catégories du stockage.
-10. Ajouter les tags d’information.
-11. Ajouter les statuts techniques.
-12. Créer les sessions d’échange.
-13. Ajouter les actions de dépôt.
-14. Ajouter les actions de retrait/demande.
-15. Valider/refuser les sessions d’échange.
-16. Exécuter les transferts réels.
-17. Journaliser les mouvements.
-18. Ajouter demandes/votes.
-19. Ajouter gestion des monnaies.
-20. Ajouter répartition de monnaie.
-
-Ne pas ajouter les étapes de test ou de consolidation dans les instructions de développement sauf demande explicite de l’utilisateur.
-
----
-
-## 31. Tags et statuts du stockage
+## 38. Tags et statuts du stockage
 
 Distinguer clairement tags humains et statuts techniques.
 
@@ -1053,9 +1503,11 @@ Les statuts servent aux règles techniques.
 
 Ne pas mélanger les deux.
 
+Ne pas ajouter tags/statuts tant que l’étape ne le demande pas.
+
 ---
 
-## 32. Permissions stockage futures
+## 39. Permissions stockage futures
 
 Le stockage devra utiliser une table centrale de permissions par profil, mais elle devra rester simple.
 
@@ -1069,8 +1521,6 @@ gm
 ```
 
 Le MJ peut tout faire.
-
-Ne pas partir dans une liste excessive de micro-permissions.
 
 Définir seulement les permissions réellement utiles pour l’interface stockage :
 
@@ -1090,40 +1540,7 @@ Les permissions doivent être utilisées côté HBS et revérifiées côté JS.
 
 ---
 
-## 33. Fondations communes à préparer progressivement
-
-Ne pas créer immédiatement un gros framework commun.
-
-Préparer progressivement des helpers communs pour :
-
-- permissions par profils `can...` ;
-- rail d’acteurs autorisés ;
-- cartes d’acteurs avec niveau de droit ;
-- sessions par acteur ;
-- calcul des quantités réservées ;
-- disponibilité réelle ;
-- transferts d’Items ;
-- fusion intelligente ;
-- respect de la quantité max seulement à la livraison ;
-- catégories ;
-- drag & drop vers catégorie ;
-- menus contextuels ;
-- journalisation ;
-- dialogues ;
-- recherche/filtre/tri ;
-- mémorisation de scroll.
-
-Principe :
-
-```text
-Le marchand fonctionne : ne pas le casser.
-Le stockage arrive : réutiliser ce qui existe quand c’est pertinent.
-Extraire en commun seulement quand les deux usages le justifient vraiment.
-```
-
----
-
-## 34. Relation avec Chroniques Oubliées 2
+## 40. Relation avec Chroniques Oubliées 2
 
 CO2 est le premier environnement de test et le futur premier preset.
 
@@ -1137,7 +1554,7 @@ Ne pas ajouter de migration MTT pour corriger des données internes CO2.
 
 ---
 
-## 35. Dialogues et notifications
+## 41. Dialogues et notifications
 
 Les dialogues MTT doivent utiliser une structure stylable propre au module, avec des classes `mtt-dialog`.
 
@@ -1167,7 +1584,7 @@ Conserver les notifications pour :
 
 ---
 
-## 36. Presets système
+## 42. Presets système
 
 Les presets système sont une direction future.
 
@@ -1184,7 +1601,7 @@ Le cœur MTT ne doit pas coder CO2 en dur.
 
 ---
 
-## 37. Instructions pour Codex / Claude Code
+## 43. Instructions pour Codex / Claude Code
 
 Les instructions destinées à Codex ou Claude Code doivent mentionner :
 
@@ -1193,9 +1610,7 @@ Lis le fichier `agents.md` à la racine du dépôt.
 Attention : le fichier est nommé `agents.md` en minuscules, pas `AGENTS.md`.
 ```
 
-Ne pas demander de lire `AGENTS.md`.
-
-Quand l’utilisateur demande un bloc pour Codex ou Claude Code, fournir toutes les instructions dans un seul bloc copiable.
+Quand l’utilisateur demande un bloc pour Codex ou Claude Code, fournir toutes les instructions importantes dans un seul bloc copiable.
 
 Ne pas mettre de consignes importantes hors du bloc copiable.
 
@@ -1205,6 +1620,14 @@ Quand Codex ou Claude Code modifie les fichiers :
 - vérifier la roadmap et l’état actuel avant de changer une logique ;
 - respecter le fait que la partie marchand fonctionne ;
 - ne pas casser une fonction marchand validée ;
+- traiter `merchant-*` comme base historique commune quand c’est pertinent ;
+- créer `storage-*` uniquement pour les fonctions propres au stockage ;
+- créer `shop-*` uniquement pour les fonctions propres à la boutique ;
+- rechercher une fonction existante avant d’en créer une nouvelle ;
+- ne pas dupliquer une fonction existante ;
+- commenter les blocs communs avec `MTT base` ;
+- commenter les blocs boutique avec `MTT shop` ;
+- commenter les blocs stockage avec `MTT storage` ;
 - éviter les gros changements non demandés ;
 - ne pas ajouter de fonctionnalités avancées sans demande explicite ;
 - respecter le style sans point-virgule ;
@@ -1215,10 +1638,10 @@ Quand Codex ou Claude Code modifie les fichiers :
 - ne pas refactoriser massivement sans demande explicite ;
 - préserver les corrections CSS locales ;
 - préserver le rail client et ne pas casser le layout global Foundry ;
-- respecter la séparation entre fichiers marchand actuels ;
+- ne pas réinventer une interface stockage si une base commune existe ;
 - ne pas réintroduire de compatibilité legacy supprimée ;
 - ne pas réintroduire d’anciens settings supprimés ;
 - ne pas réintroduire l’ancien modèle produits plain objects dans les flags ;
 - ne pas réintroduire de type d’acteur marchand dédié ;
 - ne pas utiliser les globals Foundry dépréciés ;
-- ne pas créer de rapport `.md` sauf demande explicite de l’utilisateur.
+- ne pas créer de rapport `.md` sauf demande explicite, sauf pour les étapes de développement stockage où `rapport-étapes-stockage.md` doit être complété.

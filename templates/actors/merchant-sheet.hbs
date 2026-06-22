@@ -1,13 +1,24 @@
-<form class="mtt-merchant-form {{#if mtt.isLocked}}mtt-is-locked{{/if}} {{#if mtt.isUnlocked}}mtt-is-unlocked{{/if}}" autocomplete="off">
+{{!-- MTT base — structure commune de feuille MTT --}}
+<form class="mtt-merchant-form {{#if @root.isShop}}mtt-merchant-form-shop{{/if}} {{#if @root.isStorage}}mtt-merchant-form-storage{{/if}} {{#if mtt.isLocked}}mtt-is-locked{{/if}} {{#if mtt.isUnlocked}}mtt-is-unlocked{{/if}}" autocomplete="off">
   <section class="mtt-merchant-layout">
     {{> "modules/mtt-merchants/templates/actors/parts/merchant-header.hbs"}}
 
     <section class="mtt-merchant-body">
-      <main class="mtt-merchant-main">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
-      </main>
+      {{#if @root.isShop}}
+        <main class="mtt-merchant-main">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
+        </main>
 
-      {{> "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs"}}
+        {{> "modules/mtt-merchants/templates/actors/parts/merchant-session.hbs"}}
+      {{/if}}
+      
+      {{#if @root.isStorage}}
+        {{> "modules/mtt-merchants/templates/actors/parts/storage-session.hbs"}}
+
+        <main class="mtt-merchant-main">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-main.hbs"}}
+        </main>      
+      {{/if}}
     </section>
 
   </section>

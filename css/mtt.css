@@ -17,6 +17,14 @@
   --mtt-secret: #8f75c9;
   --mtt-secret-soft: rgba(143, 117, 201, 0.18);
 }
+:root .mtt-merchant-form.mtt-merchant-form-shop {
+  --mtt-accent: #c79a48;
+  --mtt-bg-panel: #2a2d31;
+}
+:root .mtt-merchant-form.mtt-merchant-form-storage {
+  --mtt-accent: #5ba3bf;
+  --mtt-bg-panel: #161100;
+}
 .mtt-sheet {
   font-family: var(--font-family);
   color: var(--mtt-text);
@@ -41,6 +49,17 @@
   background: transparent;
   box-shadow: none;
   pointer-events: none;
+  --mtt-access-card-radius: 0 0.4rem 0.4rem 0;
+  --mtt-access-hover-shift: -0.2rem;
+  --mtt-access-selected-shift: -0.25rem;
+}
+/* MTT storage — position gauche du rail commun */
+.mtt-storage-access-rail {
+  right: auto;
+  left: -3.5rem;
+  --mtt-access-card-radius: 0.4rem 0 0 0.4rem;
+  --mtt-access-hover-shift: 0.2rem;
+  --mtt-access-selected-shift: 0.25rem;
 }
 .mtt-merchant-access-card,
 .mtt-merchant-access-drop-card {
@@ -49,7 +68,7 @@
   height: 3rem;
   padding: 0.25rem;
   border: 1px solid var(--mtt-border);
-  border-radius: 0 0.4rem 0.4rem 0;
+  border-radius: var(--mtt-access-card-radius);
   background: var(--mtt-bg-panel-soft);
   color: var(--mtt-text-muted);
   cursor: pointer;
@@ -69,7 +88,7 @@
 .mtt-merchant-access-drop-card:hover {
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);
-  transform: translateX(-0.2rem);
+  transform: translateX(var(--mtt-access-hover-shift));
 }
 .mtt-merchant-access-context-menu {
   position: fixed;
@@ -103,13 +122,26 @@
   border-color: var(--mtt-accent);
   background: var(--mtt-bg-hover);
 }
+.mtt-merchant-access-context-menu-button .fa-triangle-exclamation,
+.mtt-merchant-access-context-menu-button .fa-user-check,
+.mtt-merchant-access-context-menu-button .fa-user-minus {
+  color: var(--mtt-warning);
+}
+.mtt-merchant-access-context-menu-button .fa-lock,
+.mtt-merchant-access-context-menu-button .fa-lock-open {
+  color: var(--mtt-danger);
+}
+.mtt-merchant-access-context-menu-button .fa-file-slash,
+.mtt-merchant-access-context-menu-button .fa-file-plus {
+  color: var(--mtt-secret);
+}
 .mtt-merchant-catalog-context-menu {
   z-index: 135;
 }
 .mtt-merchant-access-card-selected {
   border-color: var(--mtt-accent);
   box-shadow: 0 0 0 2px var(--mtt-accent-soft), 0 0.35rem 1rem rgba(199, 154, 72, 0.28);
-  transform: translateX(-0.25rem);
+  transform: translateX(var(--mtt-access-selected-shift));
   width: 4rem;
   height: 4rem;
 }
@@ -224,7 +256,7 @@
 /* ─── En-tête ─────────────────────────────────────────────────────────────── */
 .mtt-merchant-header {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 2fr) 310px;
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.5rem;
@@ -251,6 +283,13 @@
 }
 .mtt-merchant-header-manager {
   flex: 1;
+}
+.mtt-merchant-header-storage {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.5rem;
 }
 .mtt-merchant-manager-img-button {
   width: 5rem;
@@ -319,6 +358,14 @@
   align-items: center;
   width: 100%;
 }
+.mtt-merchant-header-title-area-storage {
+  display: grid;
+  grid-template-columns: 310px 0.5fr 1fr;
+  min-width: 0;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
 .mtt-merchant-title-block {
   flex: 1;
   min-width: 0;
@@ -345,9 +392,13 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
+  justify-content: flex-end;
 }
 .mtt-nav-info {
   grid-column: 2 / 4;
+}
+.mtt-nav-info-storage {
+  grid-column: auto;
 }
 .mtt-merchant-header-wallet-summary {
   display: flex;
@@ -359,6 +410,7 @@
   background: var(--mtt-bg-field);
   color: var(--mtt-text-muted);
   font-size: 0.82rem;
+  width: 220px;
 }
 .mtt-merchant-header-wallet-currency {
   display: inline-flex;
@@ -719,7 +771,7 @@
 }
 .mtt-merchant-product-row {
   display: grid;
-  grid-template-columns: 1rem 0.3fr 3fr 1.1fr auto;
+  grid-template-columns: 1rem 0.3fr 3fr minmax(auto, 90px) minmax(65px, auto);
   align-items: center;
   align-content: center;
   margin: 0;
@@ -747,6 +799,18 @@
 }
 .mtt-merchant-catalog-item-hidden {
   opacity: 0.45;
+  background: #d36b5f36;
+}
+/* MTT storage — effets visuels des tags actifs */
+.mtt-storage-item-wanted {
+  background: color-mix(in srgb, var(--mtt-accent) 25%, transparent);
+}
+.mtt-storage-item-ignored {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+.mtt-storage-item-ignored:hover {
+  opacity: 0.78;
 }
 .mtt-merchant-product-main {
   display: flex;
@@ -789,6 +853,52 @@
   cursor: help;
 }
 .mtt-merchant-approval-indicator {
+  color: var(--mtt-danger);
+}
+.mtt-storage-item-blocked,
+.mtt-storage-item-warning-gm {
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  cursor: help;
+}
+.mtt-storage-item-blocked {
+  color: var(--mtt-danger);
+}
+.mtt-storage-item-warning-gm {
+  color: var(--color-level-warning, #e69900);
+}
+.mtt-storage-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+.mtt-storage-tag-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0 0.15rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.45;
+  font-size: 0.78rem;
+  line-height: 1;
+  transition: opacity 0.12s;
+}
+.mtt-storage-tag-button:hover {
+  opacity: 0.8;
+}
+.mtt-storage-tag-active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+.mtt-storage-add-blocked {
+  color: var(--mtt-danger);
+  border-color: var(--mtt-danger);
+}
+.mtt-storage-add-blocked i {
   color: var(--mtt-danger);
 }
 #tooltip.mtt-secret-tooltip {
@@ -1074,6 +1184,63 @@
 .mtt-merchant-configuration-empty {
   color: var(--mtt-text-soft);
   font-size: 0.86rem;
+}
+/* MTT storage — styles propres aux responsables de marchandage */
+.mtt-storage-trade-with-merchant {
+  gap: 0.7rem;
+}
+.mtt-storage-trade-responsibles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
+  gap: 0.55rem;
+}
+.mtt-storage-trade-responsible-card {
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 0.45rem;
+  border: 1px solid var(--mtt-border-soft);
+  border-radius: 0.45rem;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-text);
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: center;
+  justify-items: center;
+}
+.mtt-storage-trade-responsible-card:hover {
+  border-color: var(--mtt-accent);
+  background: var(--mtt-bg-hover);
+}
+.mtt-storage-trade-responsible-card:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+.mtt-storage-trade-responsible-card-active {
+  border-color: var(--mtt-accent);
+  box-shadow: 0 0 0 2px var(--mtt-accent-soft);
+  background: #375738ad;
+}
+.mtt-storage-trade-responsible-card-image {
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border: 1px solid var(--mtt-border);
+  border-radius: 0.35rem;
+}
+.mtt-storage-trade-responsible-card-name {
+  max-width: 100%;
+  min-width: 0;
+  color: var(--mtt-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .mtt-merchant-wallet-currency-input {
   text-align: right;
@@ -2010,9 +2177,8 @@
 }
 /* MTT — Session de transaction */
 .mtt-merchant-session-sidebar {
-  width: 340px;
-  flex: 0 0 340px;
-  max-width: 45%;
+  width: 320px;
+  flex: 0 0 320px;
   padding: 0.3rem;
   overflow: auto;
   display: flex;
@@ -2027,7 +2193,7 @@
 .mtt-merchant-session-header {
   display: flex;
   align-items: center;
-  margin-left: 20px;
+  margin-left: 0px;
   margin-bottom: -10px;
 }
 .mtt-merchant-session-title-block {
@@ -2886,6 +3052,10 @@
 .mtt-permissions-check {
   display: flex;
   justify-content: center;
+}
+.mtt-permission-unavailable {
+  color: var(--mtt-text-muted);
+  font-weight: 700;
 }
 .mtt-config-currency-table-head,
 .mtt-config-currency-row {

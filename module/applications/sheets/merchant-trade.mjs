@@ -10,6 +10,7 @@ import {
   isUnlimitedQuantity,
   isFreePriceService,
   normalizeFiniteQuantity,
+  getReferenceSessionCurrency,
   getConfiguredItemQuantity,
   getConfiguredItemMaxQuantity,
   normalizeMaxQuantity,
@@ -17,6 +18,7 @@ import {
   getAvailableStackSpace,
   getDeliveryStackingConfig,
   getMttSourceUuid,
+  toItemOnlyUuid,
   getDeliveredItemMergeMode,
   roundToSmallestCurrencyUnit,
   escapeHTML,
@@ -29,16 +31,25 @@ import {
 import {
   getAutomaticItemCategory,
   getOrCreateAutomaticProductCategory,
-  getItemAvailableQuantity,
-  findMergeableMerchantItemBySourceUuid
+  getItemAvailableQuantity
 } from "./merchant-catalog.mjs"
 import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs"
 import {
   getCatalogProduct,
   updateCatalogProduct,
+  removeCatalogProduct,
   addCatalogProduct,
-  buildCatalogProductFromItem
+  buildCatalogProductFromItem,
+  isMerchantProductItem,
+  getMerchantProductFlags
 } from "../../documents/merchant-products.mjs"
+import {
+  getMTTEntityType,
+  isMTTStorage,
+  getStorageItemFlags,
+  getStorageData,
+  getStorageFlagPath
+} from "../../documents/storage-flags.mjs"
 
 // ─── Session normalization ────────────────────────────────────────────────────
 
@@ -51,23 +62,29 @@ export function normalizeSessionItem(item) {
   const normalizedQuantity = Number.isFinite(quantity) && quantity >= 0 ? quantity : 1
   const normalizedUnitPrice = Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0
   const normalizedDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(item.deliveryQuantityPerLot)
+  const type = ["product", "service", "item", "money"].includes(item.type) ? item.type : "product"
+  const referenceCurrency = getReferenceSessionCurrency()
+  const referenceCurrencyLabel = String(
+    referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.name ?? ""
+  ).trim()
 
   return {
     id: item.id || foundry.utils.randomID(),
-    type: ["product", "service", "item"].includes(item.type) ? item.type : "product",
+    type,
+    sourceKind: String(item.sourceKind ?? "").trim(),
     sourceUuid: item.sourceUuid ?? "",
     sourceActorUuid: item.sourceActorUuid ?? "",
     sourceId: item.sourceId ?? "",
     name: item.name ?? "",
     img: item.img ?? "",
-    quantity: normalizedQuantity,
+    quantity: type === "money" ? 1 : normalizedQuantity,
     deliveryQuantityPerLot:
       item.type === "product" && normalizedDeliveryQuantityPerLot > 1 ? normalizedDeliveryQuantityPerLot : null,
     availableQuantity: hasLimitedQuantity ? availableQuantity : null,
     hasLimitedQuantity,
     unitPriceValue: normalizedUnitPrice,
-    priceCurrency: String(item.priceCurrency ?? "").trim(),
-    totalPriceValue: Number((normalizedQuantity * normalizedUnitPrice).toFixed(2)),
+    priceCurrency: type === "money" ? referenceCurrencyLabel : String(item.priceCurrency ?? "").trim(),
+    totalPriceValue: Number(((type === "money" ? 1 : normalizedQuantity) * normalizedUnitPrice).toFixed(2)),
     sourceLabel: item.sourceLabel ?? "",
     proposedUnitPriceValue:
       item.proposedUnitPriceValue !== null &&
@@ -115,6 +132,7 @@ export function normalizeSessionNegotiation(negotiation = {}) {
     side: ["buyer", "seller"].includes(negotiation.side) ? negotiation.side : "buyer",
     type: ["product", "service", "item"].includes(negotiation.type) ? negotiation.type : "product",
     sourceId: String(negotiation.sourceId ?? "").trim(),
+    sourceKind: String(negotiation.sourceKind ?? "").trim(),
     sourceUuid: String(negotiation.sourceUuid ?? "").trim(),
     sourceActorUuid: String(negotiation.sourceActorUuid ?? "").trim(),
     name: String(negotiation.name ?? "").trim(),
@@ -232,6 +250,34 @@ export function removeSessionItemById(session, itemId, side = "") {
   return initialBuyerCount !== session.buyerItems.length || initialSellerCount !== session.sellerItems.length
 }
 
+function getSellerSourceItemFromSessionItem(item) {
+  const sourceActorUuid = String(item?.sourceActorUuid ?? "").trim()
+  const sourceId = String(item?.sourceId ?? "").trim()
+  if (!sourceActorUuid || !sourceId) return null
+
+  const sourceActor =
+    game.actors?.find?.((actor) => actor.uuid === sourceActorUuid) ??
+    game.actors?.get?.(sourceActorUuid.replace(/^Actor\./, "")) ??
+    null
+  const sourceItem = sourceActor?.items?.get(sourceId) ?? null
+  return sourceItem?.documentName === "Item" ? sourceItem : null
+}
+
+function getSellerSourceAvailableQuantity(sourceItem, fallbackItem = null) {
+  if (sourceItem && isMerchantProductItem(sourceItem)) {
+    const productFlags = getMerchantProductFlags(sourceItem)
+    if (isUnlimitedQuantity(productFlags.quantity)) return null
+
+    const productQuantity = normalizeFiniteQuantity(productFlags.quantity)
+    if (productQuantity !== null) return productQuantity
+  }
+
+  if (sourceItem?.documentName === "Item") return getItemAvailableQuantity(sourceItem)
+
+  const fallbackQuantity = Number(fallbackItem?.availableQuantity)
+  return Number.isFinite(fallbackQuantity) && fallbackQuantity >= 0 ? fallbackQuantity : null
+}
+
 function syncSessionItemAvailability(actor, item) {
   if (!item) return
 
@@ -259,6 +305,19 @@ function syncSessionItemAvailability(actor, item) {
 
     item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
     item.hasLimitedQuantity = hasLimitedQuantity
+    return
+  }
+
+  if (item.type === "item") {
+    const sourceItem = getSellerSourceItemFromSessionItem(item)
+    if (sourceItem && isMerchantProductItem(sourceItem)) {
+      const productFlags = getMerchantProductFlags(sourceItem)
+      const availableQuantity = normalizeFiniteQuantity(productFlags.quantity)
+      const hasLimitedQuantity = !isUnlimitedQuantity(productFlags.quantity) && availableQuantity !== null
+
+      item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
+      item.hasLimitedQuantity = hasLimitedQuantity
+    }
   }
 }
 
@@ -276,6 +335,10 @@ export function canAcceptSessionQuantity(actor, item, quantity) {
 }
 
 // ─── Session totals and adjustments ──────────────────────────────────────────
+
+function isSessionMoneyItem(item) {
+  return item?.type === "money"
+}
 
 function prepareSessionTotals(items) {
   const totals = new Map()
@@ -548,6 +611,7 @@ export function prepareSessionContext(
 
     return {
       ...item,
+      isMoney: item.type === "money",
       sourceLabel: item.sourceLabel || game.i18n.localize(`mtt.sessions.item.${item.type}`),
       unitPriceLabel: formatPriceLabel(item.unitPriceValue, item.priceCurrency),
       totalPriceLabel: formatPriceLabel(item.totalPriceValue, item.priceCurrency),
@@ -559,10 +623,12 @@ export function prepareSessionContext(
   })
 
   const sellerItems = (session.sellerItems ?? []).map((item) => {
+    syncSessionItemAvailability(actor, item)
     recalculateSessionItemTotal(item)
 
     return {
       ...item,
+      isMoney: item.type === "money",
       sourceLabel: item.sourceLabel || game.i18n.localize("mtt.sessions.item.object"),
       unitPriceLabel: formatPriceLabel(item.unitPriceValue, item.priceCurrency),
       totalPriceLabel: formatPriceLabel(item.totalPriceValue, item.priceCurrency),
@@ -773,8 +839,6 @@ export function getStoredAccessClients(actor) {
 function getAccessSessionBadgeIcon(status) {
   if (status === "active") return "fa-hourglass-half"
   if (status === "pending") return "fa-triangle-exclamation"
-  if (status === "validated") return "fa-check"
-  if (status === "refused") return "fa-xmark"
   if (status === "submitted") return "fa-thumbs-up"
   return ""
 }
@@ -802,51 +866,42 @@ export function getBestSessionForClient(actor, actorUuid) {
   const normalizedActorUuid = String(actorUuid ?? "").trim()
   if (!normalizedActorUuid) return null
 
-  const sessions = getSessions(actor)
-    .filter((session) => session.actorUuid === normalizedActorUuid)
-    .map((session) => normalizeSession(session))
-  if (sessions.length === 0) return null
-
-  const statusOrder = ["active", "pending", "validated", "refused", "submitted"]
-  sessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
-  return sessions[0]
+  return getBestAccessSessionForClient(getSessions(actor), normalizedActorUuid)
 }
 
-export function prepareAccessClients(actor, { selectedSession, selectedClientActorUuid, isEditable }) {
+function getBestAccessSessionForClient(sessions, actorUuid) {
+  const normalizedActorUuid = String(actorUuid ?? "").trim()
+  if (!normalizedActorUuid) return null
+
+  const relevantSessions = (sessions ?? [])
+    .filter((session) => session.actorUuid === normalizedActorUuid)
+    .map((session) => normalizeSession(session))
+    .filter((session) => ["active", "pending", "submitted"].includes(session.status))
+  if (relevantSessions.length === 0) return null
+
+  const statusOrder = ["active", "pending", "submitted"]
+  relevantSessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
+  return relevantSessions[0]
+}
+
+export function prepareAccessClients(
+  actor,
+  { selectedSession, selectedClientActorUuid, isEditable, accessClients = null, sessions = null } = {}
+) {
   const clientsByUuid = new Map()
   const defaultRates = getMerchantDefaultClientRates(actor)
+  const storedClients = Array.isArray(accessClients) ? accessClients : getStoredAccessClients(actor)
 
-  getStoredAccessClients(actor).forEach((client) => {
+  storedClients.forEach((client) => {
     if (!client.actorUuid) return
     clientsByUuid.set(client.actorUuid, client)
   })
 
-  game.users.forEach((user) => {
-    const userActor = user.character
-    if (!userActor?.uuid) return
-
-    const existing = clientsByUuid.get(userActor.uuid)
-    const playerClient = buildAccessClientFromActor(userActor, {
-      user,
-      isAuthorized: existing?.isAuthorized ?? false,
-      isFromPlayerCharacter: true
-    })
-
-    clientsByUuid.set(userActor.uuid, {
-      ...playerClient,
-      ...existing,
-      actorName: userActor.name ?? existing?.actorName ?? "",
-      actorImg: userActor.img ?? existing?.actorImg ?? "",
-      actorType: userActor.type ?? existing?.actorType ?? "",
-      userId: user.id ?? existing?.userId ?? "",
-      userName: user.name ?? existing?.userName ?? "",
-      isFromPlayerCharacter: true
-    })
-  })
-
   return Array.from(clientsByUuid.values())
     .map((client) => {
-      const session = getBestSessionForClient(actor, client.actorUuid)
+      const session = Array.isArray(sessions)
+        ? getBestAccessSessionForClient(sessions, client.actorUuid)
+        : getBestSessionForClient(actor, client.actorUuid)
       const sessionStatus = session?.status ?? ""
       const hasCustomRates = Boolean(client.customRates)
       const customRates = normalizeClientCustomRates(client.customRates, defaultRates)
@@ -880,6 +935,23 @@ export function prepareAccessClients(actor, { selectedSession, selectedClientAct
 // ─── Check logic ──────────────────────────────────────────────────────────────
 
 function getConfiguredCurrency(currency) {
+  if (currency && typeof currency === "object") {
+    const currencyKeys = [currency.id, currency.abbreviation, currency.name]
+      .map((value) => normalizeCurrencyText(value))
+      .filter(Boolean)
+    if (currencyKeys.length === 0) return null
+
+    return (
+      getCurrencies().find((entry) => {
+        const candidates = [entry.id, entry.abbreviation, entry.name]
+          .map((value) => normalizeCurrencyText(value))
+          .filter(Boolean)
+
+        return candidates.some((candidate) => currencyKeys.includes(candidate))
+      }) ?? null
+    )
+  }
+
   const normalizedCurrency = normalizeCurrencyText(currency)
   if (!normalizedCurrency) return null
 
@@ -892,12 +964,24 @@ function getConfiguredCurrency(currency) {
   )
 }
 
-function getMerchantWalletAmount(actor, currency) {
+function getMttWalletCurrencyAmount(actor, currency) {
   const configuredCurrency = getConfiguredCurrency(currency)
-  const walletKey = String(configuredCurrency?.id ?? currency ?? "").trim()
-  if (!walletKey) return 0
+  const currencyId = String(
+    configuredCurrency?.id ?? (currency && typeof currency === "object" ? currency.id : currency) ?? ""
+  ).trim()
+  if (!actor || !currencyId) return 0
 
-  const amount = Number(getMerchantData(actor)?.wallet?.currencies?.[walletKey] ?? 0)
+  const entityType = getMTTEntityType(actor)
+  const walletCurrencies =
+    entityType === MTT.ENTITY_TYPES.STORAGE
+      ? (getStorageData(actor)?.wallet?.currencies ?? {})
+      : entityType === MTT.ENTITY_TYPES.MERCHANT
+        ? (getMerchantData(actor)?.wallet?.currencies ?? {})
+        : null
+
+  if (!walletCurrencies) return null
+
+  const amount = Number(walletCurrencies[currencyId] ?? 0)
   return Number.isFinite(amount) && amount >= 0 ? amount : 0
 }
 
@@ -912,6 +996,13 @@ function getActorCurrencyAmount(actor, currency) {
   }
 }
 
+function getTransferCurrencyAmount(actor, currency) {
+  const walletAmount = getMttWalletCurrencyAmount(actor, currency)
+  if (walletAmount !== null) return walletAmount
+
+  return getActorCurrencyAmount(actor, currency)
+}
+
 function prepareBuyerFortune(actor) {
   if (!actor) return []
 
@@ -921,9 +1012,68 @@ function prepareBuyerFortune(actor) {
       if (!abbreviation) return null
 
       return {
-        value: getActorCurrencyAmount(actor, currency) ?? 0,
+        value: getTransferCurrencyAmount(actor, currency) ?? 0,
         abbreviation
       }
+    })
+    .filter(Boolean)
+}
+
+function getActorCurrencyAmounts(actor, currencies) {
+  const amounts = {}
+
+  for (const currency of currencies) {
+    const currId = String(currency.id ?? "").trim()
+    if (!currId) continue
+    amounts[currId] = getTransferCurrencyAmount(actor, currency) ?? 0
+  }
+
+  return amounts
+}
+
+function getCurrencyAmountsReferenceValue(amounts, currencies) {
+  const total = currencies.reduce((sum, currency) => {
+    const currId = String(currency.id ?? "").trim()
+    const rate = Number(currency.rate)
+    if (!currId || !Number.isFinite(rate) || rate <= 0) return sum
+
+    const amount = Number(amounts[currId] ?? 0)
+    return Number.isFinite(amount) && amount > 0 ? sum + amount * rate : sum
+  }, 0)
+
+  return roundToSmallestCurrencyUnit(total, currencies)
+}
+
+function distributeReferenceValueToCurrencies(amountReference, currencies) {
+  const targetAmounts = {}
+  let remaining = roundToSmallestCurrencyUnit(Math.max(0, Number(amountReference) || 0), currencies)
+  const sortedCurrencies = [...currencies].sort((a, b) => Number(b.rate) - Number(a.rate))
+
+  for (const currency of sortedCurrencies) {
+    const currId = String(currency.id ?? "").trim()
+    const rate = Number(currency.rate)
+    if (!currId || !Number.isFinite(rate) || rate <= 0) continue
+
+    const amount = Math.floor(remaining / rate + 0.0001)
+    targetAmounts[currId] = amount
+    remaining = roundToSmallestCurrencyUnit(remaining - amount * rate, currencies)
+  }
+
+  return targetAmounts
+}
+
+function buildInternalConversionDeltas(currentAmounts, targetAmounts, currencies) {
+  return currencies
+    .map((currency) => {
+      const currId = String(currency.id ?? "").trim()
+      if (!currId) return null
+
+      const current = Number(currentAmounts[currId] ?? 0)
+      const target = Number(targetAmounts[currId] ?? 0)
+      const delta = Number(((Number.isFinite(target) ? target : 0) - (Number.isFinite(current) ? current : 0)).toFixed(2))
+      if (delta === 0) return null
+
+      return { currency, delta }
     })
     .filter(Boolean)
 }
@@ -940,6 +1090,8 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
     receiverAdditions: [],
     changeRemovals: [],
     changeAdditions: [],
+    payerDeltas: [],
+    receiverDeltas: [],
     hasChange: false
   }
 
@@ -1000,30 +1152,52 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
 
   const payerActor = payerIsClient ? clientActor : merchantActor
   const receiverActor = payerIsClient ? merchantActor : clientActor
+  const payerEntityType = getMTTEntityType(payerActor)
+  const payerUsesMttWallet = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(payerEntityType)
+  const payerCanUseInternalConversion = payerUsesMttWallet
 
   const currenciesSortedDesc = [...currencies].sort((a, b) => Number(b.rate) - Number(a.rate))
 
-  const payerAmounts = {}
+  const payerAmounts = getActorCurrencyAmounts(payerActor, currenciesSortedDesc)
   for (const currency of currenciesSortedDesc) {
     const currId = String(currency.id ?? "").trim()
     if (!currId) continue
-    if (payerIsClient) {
-      const amount = getActorCurrencyAmount(clientActor, currency)
-      if (amount === null && currency.actorPath) {
-        result.errors.push(
-          game.i18n.format("mtt.sessions.errors.currencyPathUnreadable", {
-            currency: formatCurrencyLabel(String(currency.abbreviation ?? currency.id ?? "").trim()),
-            actor: payerActor.name
-          })
-        )
-      }
-      payerAmounts[currId] = amount ?? 0
-    } else {
-      payerAmounts[currId] = getMerchantWalletAmount(merchantActor, currId)
+    const amount = getTransferCurrencyAmount(payerActor, currency)
+    if (amount === null && currency.actorPath) {
+      result.errors.push(
+        game.i18n.format("mtt.sessions.errors.currencyPathUnreadable", {
+          currency: formatCurrencyLabel(String(currency.abbreviation ?? currency.id ?? "").trim()),
+          actor: payerActor.name
+        })
+      )
     }
   }
 
   if (result.errors.length > 0) return result
+
+  if (payerCanUseInternalConversion) {
+    const payerReferenceValue = getCurrencyAmountsReferenceValue(payerAmounts, currencies)
+
+    if (payerReferenceValue + 0.0001 < result.netDebtReference) {
+      result.errors.push(game.i18n.format("mtt.sessions.errors.payerInsufficientFunds", { actor: payerActor.name }))
+      return result
+    }
+
+    const payerRemainingValue = roundToSmallestCurrencyUnit(payerReferenceValue - result.netDebtReference, currencies)
+    const payerTargetAmounts = distributeReferenceValueToCurrencies(payerRemainingValue, currencies)
+    const receiverAdditionAmounts = distributeReferenceValueToCurrencies(result.netDebtReference, currencies)
+    const receiverCurrentAmounts = {}
+
+    result.payerDeltas = buildInternalConversionDeltas(payerAmounts, payerTargetAmounts, currencies)
+    result.receiverDeltas = buildInternalConversionDeltas(receiverCurrentAmounts, receiverAdditionAmounts, currencies)
+    result.payerRemovals = result.receiverDeltas
+      .filter((entry) => entry.delta > 0)
+      .map((entry) => ({ currency: entry.currency, amount: entry.delta }))
+    result.receiverAdditions = result.payerRemovals.map((entry) => ({ ...entry }))
+    result.hasChange = false
+    result.canExecute = true
+    return result
+  }
 
   const payerRemovals = []
   let remaining = result.netDebtReference
@@ -1075,11 +1249,7 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
         for (const c of currenciesSortedDesc) {
           const cId = String(c.id ?? "").trim()
           if (!cId) continue
-          if (payerIsClient) {
-            receiverAmounts[cId] = getMerchantWalletAmount(merchantActor, cId)
-          } else {
-            receiverAmounts[cId] = getActorCurrencyAmount(receiverActor, c) ?? 0
-          }
+          receiverAmounts[cId] = getTransferCurrencyAmount(receiverActor, c) ?? 0
         }
 
         for (const c of currenciesSortedDesc) {
@@ -1124,6 +1294,44 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
   return result
 }
 
+function getMttWalletCurrencyUpdatePath(actor, currencyId) {
+  const entityType = getMTTEntityType(actor)
+  if (entityType === MTT.ENTITY_TYPES.STORAGE) return getStorageFlagPath(`wallet.currencies.${currencyId}`)
+  if (entityType === MTT.ENTITY_TYPES.MERCHANT) return getMerchantFlagPath(`wallet.currencies.${currencyId}`)
+  return ""
+}
+
+async function applyCurrencyDeltasToActor(actor, deltas, currencyById) {
+  if (!actor || !(deltas instanceof Map) || deltas.size === 0) return
+
+  const updateData = {}
+
+  for (const [currId, delta] of deltas) {
+    if (delta === 0) continue
+
+    const currency = currencyById.get(currId)
+    const walletPath = getMttWalletCurrencyUpdatePath(actor, currId)
+
+    if (walletPath) {
+      const current = getMttWalletCurrencyAmount(actor, currId) ?? 0
+      updateData[walletPath] = Math.max(0, Number((current + delta).toFixed(2)))
+      continue
+    }
+
+    if (!currency?.actorPath) continue
+
+    const current = Number(foundry.utils.getProperty(actor, currency.actorPath) ?? 0)
+    const currentAmount = Number.isFinite(current) ? current : 0
+    foundry.utils.setProperty(
+      updateData,
+      currency.actorPath,
+      Math.max(0, Number((currentAmount + delta).toFixed(2)))
+    )
+  }
+
+  if (Object.keys(updateData).length > 0) await actor.update(updateData)
+}
+
 export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan) {
   if (!plan?.canExecute || plan.noTransferNeeded) return
 
@@ -1139,47 +1347,40 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
     map.set(currencyId, (map.get(currencyId) ?? 0) + delta)
   }
 
-  for (const { currency, amount } of plan.payerRemovals) {
-    const currId = String(currency.id ?? "").trim()
-    if (currId) applyDelta(payerIsClient, currId, -amount)
-  }
-  for (const { currency, amount } of plan.receiverAdditions) {
-    const currId = String(currency.id ?? "").trim()
-    if (currId) applyDelta(!payerIsClient, currId, +amount)
-  }
-  if (plan.hasChange) {
-    for (const { currency, amount } of plan.changeRemovals) {
+  const hasDirectDeltas = (plan.payerDeltas?.length ?? 0) > 0 || (plan.receiverDeltas?.length ?? 0) > 0
+
+  if (hasDirectDeltas) {
+    for (const { currency, delta } of plan.payerDeltas ?? []) {
       const currId = String(currency.id ?? "").trim()
-      if (currId) applyDelta(!payerIsClient, currId, -amount)
+      if (currId) applyDelta(payerIsClient, currId, delta)
     }
-    for (const { currency, amount } of plan.changeAdditions) {
+    for (const { currency, delta } of plan.receiverDeltas ?? []) {
       const currId = String(currency.id ?? "").trim()
-      if (currId) applyDelta(payerIsClient, currId, +amount)
+      if (currId) applyDelta(!payerIsClient, currId, delta)
+    }
+  } else {
+    for (const { currency, amount } of plan.payerRemovals) {
+      const currId = String(currency.id ?? "").trim()
+      if (currId) applyDelta(payerIsClient, currId, -amount)
+    }
+    for (const { currency, amount } of plan.receiverAdditions) {
+      const currId = String(currency.id ?? "").trim()
+      if (currId) applyDelta(!payerIsClient, currId, +amount)
+    }
+    if (plan.hasChange) {
+      for (const { currency, amount } of plan.changeRemovals) {
+        const currId = String(currency.id ?? "").trim()
+        if (currId) applyDelta(!payerIsClient, currId, -amount)
+      }
+      for (const { currency, amount } of plan.changeAdditions) {
+        const currId = String(currency.id ?? "").trim()
+        if (currId) applyDelta(payerIsClient, currId, +amount)
+      }
     }
   }
 
-  const clientUpdate = {}
-  for (const [currId, delta] of clientDeltas) {
-    if (delta === 0) continue
-    const currency = currencyById.get(currId)
-    if (!currency?.actorPath) continue
-    const current = Number(foundry.utils.getProperty(clientActor, currency.actorPath) ?? 0)
-    const newAmount = Math.max(0, Number(((Number.isFinite(current) ? current : 0) + delta).toFixed(2)))
-    foundry.utils.setProperty(clientUpdate, currency.actorPath, newAmount)
-  }
-
-  const merchantUpdate = {}
-  for (const [currId, delta] of merchantDeltas) {
-    if (delta === 0) continue
-    const current = getMerchantWalletAmount(merchantActor, currId)
-    merchantUpdate[getMerchantFlagPath(`wallet.currencies.${currId}`)] = Math.max(
-      0,
-      Number((current + delta).toFixed(2))
-    )
-  }
-
-  if (Object.keys(clientUpdate).length > 0) await clientActor.update(clientUpdate)
-  if (Object.keys(merchantUpdate).length > 0) await merchantActor.update(merchantUpdate)
+  await applyCurrencyDeltasToActor(clientActor, clientDeltas, currencyById)
+  await applyCurrencyDeltasToActor(merchantActor, merchantDeltas, currencyById)
 }
 
 function getProductCheckAvailableQuantity(actor, item) {
@@ -1251,6 +1452,8 @@ function checkSessionBuyerItems(actor, session, result) {
   const errorCount = result.errors.length
 
   buyerItems.forEach((item) => {
+    if (isSessionMoneyItem(item)) return
+
     if (item.type === "product") {
       const availableQuantity = getProductCheckAvailableQuantity(actor, item)
       checkLimitedSessionQuantity({
@@ -1291,10 +1494,12 @@ async function checkSessionSellerItems(actor, session, result) {
   const warningCount = result.warnings.length
 
   for (const item of sellerItems) {
-    const sourceUuid = String(item.sourceUuid ?? "").trim()
-    let source = null
+    if (isSessionMoneyItem(item)) continue
 
-    if (sourceUuid) {
+    const sourceUuid = String(item.sourceUuid ?? "").trim()
+    let source = getSellerSourceItemFromSessionItem(item)
+
+    if (!source && sourceUuid) {
       try {
         source = await fromUuid(sourceUuid)
       } catch {
@@ -1314,7 +1519,7 @@ async function checkSessionSellerItems(actor, session, result) {
       continue
     }
 
-    const availableQuantity = getItemAvailableQuantity(source)
+    const availableQuantity = getSellerSourceAvailableQuantity(source, item)
     checkLimitedSessionQuantity({
       item,
       availableQuantity,
@@ -1337,7 +1542,7 @@ async function checkSessionSellerItems(actor, session, result) {
   }
 }
 
-function checkSessionMoneyAdjustments(actor, moneyAdjustments, result) {
+function checkSessionMoneyAdjustments(actor, moneyAdjustments, result, options = {}) {
   moneyAdjustments.forEach((adjustment) => {
     const currencyLabel = formatCurrencyLabel(adjustment.currency === "__none" ? "" : adjustment.currency)
 
@@ -1377,7 +1582,9 @@ function checkSessionMoneyAdjustments(actor, moneyAdjustments, result) {
       )
     )
 
-    const merchantAmount = getMerchantWalletAmount(actor, adjustment.currency)
+    if (options.currencyTransferPlan) return
+
+    const merchantAmount = getTransferCurrencyAmount(actor, adjustment.currency) ?? 0
     if (merchantAmount < adjustment.amount) {
       result.errors.push(
         createCheckMessage(
@@ -1399,6 +1606,18 @@ function checkSessionMoneyAdjustments(actor, moneyAdjustments, result) {
       )
     )
   })
+
+  const plan = options.currencyTransferPlan
+  if (plan) {
+    for (const warning of plan.warnings ?? []) {
+      result.warnings.push(
+        createCheckMessage("warning", `currency-plan-warning-${result.warnings.length}`, warning, "fa-coins")
+      )
+    }
+    for (const error of plan.errors ?? []) {
+      result.errors.push(createCheckMessage("error", `currency-plan-error-${result.errors.length}`, error, "fa-coins"))
+    }
+  }
 }
 
 function checkSessionCurrencies(actor, preparedSession, result) {
@@ -1439,7 +1658,7 @@ function checkSessionCurrencies(actor, preparedSession, result) {
   })
 }
 
-export async function checkSessionTransaction(actor, session, preparedSession) {
+export async function checkSessionTransaction(actor, session, preparedSession, options = {}) {
   const result = {
     checked: true,
     canProceed: false,
@@ -1456,7 +1675,11 @@ export async function checkSessionTransaction(actor, session, preparedSession) {
   checkSessionStatus(session, result)
   checkSessionBuyerItems(actor, session, result)
   await checkSessionSellerItems(actor, session, result)
-  checkSessionMoneyAdjustments(actor, preparedSession.moneyAdjustments ?? [], result)
+  const currencyPreview = await buildExecutionPreview(actor, session, options)
+  checkSessionMoneyAdjustments(actor, preparedSession.moneyAdjustments ?? [], result, {
+    ...options,
+    currencyTransferPlan: currencyPreview?.currencyTransferPlan ?? null
+  })
   checkSessionCurrencies(actor, preparedSession, result)
 
   result.canProceed = result.errors.length === 0
@@ -1466,15 +1689,18 @@ export async function checkSessionTransaction(actor, session, preparedSession) {
 // ─── Seller drop protection ───────────────────────────────────────────────────
 
 export function isMerchantSellerDropBlocked(payload, actorUuid) {
-  if (!payload || typeof payload !== "object") return false
-  if (payload.type === "mtt.product" || payload.type === "mtt.service") return true
-  if (payload.actorUuid && String(payload.actorUuid) === String(actorUuid)) return true
+  void payload
+  void actorUuid
   return false
 }
 
 // ─── Execution preview ────────────────────────────────────────────────────────
 
-export async function buildExecutionPreview(actor, session) {
+function getExecutionAccessClients(actor, options = {}) {
+  return Array.isArray(options.accessClients) ? options.accessClients : getStoredAccessClients(actor)
+}
+
+export async function buildExecutionPreview(actor, session, options = {}) {
   const preview = {
     canExecute: false,
     errors: [],
@@ -1521,7 +1747,7 @@ export async function buildExecutionPreview(actor, session) {
     return preview
   }
 
-  const storedClients = getStoredAccessClients(actor)
+  const storedClients = getExecutionAccessClients(actor, options)
   const accessClient = storedClients.find((c) => c.actorUuid === actorUuid)
   if (!accessClient?.isAuthorized) {
     preview.errors.push(game.i18n.localize("mtt.sessions.preview.clientNotAuthorized"))
@@ -1532,9 +1758,13 @@ export async function buildExecutionPreview(actor, session) {
     actorName: clientActor.name,
     actorImg: clientActor.img
   }
+  const clientMttEntityType = getMTTEntityType(clientActor)
+  const clientIsMtt = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(clientMttEntityType)
 
   // Check buyer items (merchant → client)
   for (const item of buyerItems) {
+    if (isSessionMoneyItem(item)) continue
+
     const totalPriceValue = Number((item.unitPriceValue * item.quantity).toFixed(2))
     const totalPriceLabel = formatPriceLabel(item.totalPriceValue ?? totalPriceValue, item.priceCurrency)
     const unitPriceLabel = formatPriceLabel(item.unitPriceValue, item.priceCurrency)
@@ -1565,12 +1795,20 @@ export async function buildExecutionPreview(actor, session) {
       const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
         item.deliveryQuantityPerLot ?? catalogProduct.deliveryQuantityPerLot
       )
-      const quantityToDeliver = Math.floor(item.quantity * deliveryQuantityPerLot)
+      const requestedQuantity = Number(item.quantity)
+      const quantityToDeliver = clientIsMtt
+        ? Math.floor(requestedQuantity)
+        : Math.floor(requestedQuantity * deliveryQuantityPerLot)
       const displayName = formatProductNameWithLotQuantity(catalogProduct.name ?? item.name, deliveryQuantityPerLot)
       const deliveryProductData = {
         id: catalogProduct.id,
         sourceUuid: catalogProduct.sourceUuid,
+        sourceItemUuid: toItemOnlyUuid(actor.items.get(catalogProduct.id)?.uuid),
+        sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
+        ownershipLevel: catalogProduct.ownershipLevel,
+        isHidden: Boolean(catalogProduct.isHidden),
         deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
+        isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
         secretName: catalogProduct.secretName ?? "",
         secretPrice: catalogProduct.secretPrice ?? "",
         secretCurrency: catalogProduct.secretCurrency ?? "",
@@ -1581,7 +1819,8 @@ export async function buildExecutionPreview(actor, session) {
         clientActor,
         deliveryProductData,
         deliveredItemData,
-        quantityToDeliver
+        quantityToDeliver,
+        clientIsMtt ? { quantityMode: "productFlag" } : {}
       )
       preview.actorDeliverySimulations.push(deliverySimulation)
       for (const error of deliverySimulation.errors) {
@@ -1631,6 +1870,8 @@ export async function buildExecutionPreview(actor, session) {
 
   // Check seller items (client → merchant)
   for (const item of sellerItems) {
+    if (isSessionMoneyItem(item)) continue
+
     const totalPriceValue = Number((item.unitPriceValue * item.quantity).toFixed(2))
     const totalPriceLabel = formatPriceLabel(item.totalPriceValue ?? totalPriceValue, item.priceCurrency)
     const unitPriceLabel = formatPriceLabel(item.unitPriceValue, item.priceCurrency)
@@ -1650,11 +1891,13 @@ export async function buildExecutionPreview(actor, session) {
       continue
     }
 
-    let sourceItem = null
-    try {
-      sourceItem = await fromUuid(sourceUuid)
-    } catch {
-      // ignore
+    let sourceItem = getSellerSourceItemFromSessionItem(item)
+    if (!sourceItem) {
+      try {
+        sourceItem = await fromUuid(sourceUuid)
+      } catch {
+        // ignore
+      }
     }
 
     if (!sourceItem || sourceItem.documentName !== "Item") {
@@ -1672,7 +1915,7 @@ export async function buildExecutionPreview(actor, session) {
       continue
     }
 
-    const available = getItemAvailableQuantity(sourceItem)
+    const available = getSellerSourceAvailableQuantity(sourceItem, item)
     if (Number.isFinite(available) && available >= 0 && available < item.quantity) {
       preview.errors.push(game.i18n.format("mtt.sessions.preview.sellerQuantityInsufficient", { name: item.name }))
     }
@@ -1712,9 +1955,12 @@ export async function buildExecutionPreview(actor, session) {
   )
   const adjustments = prepareMoneyAdjustments(buyerTotals, sellerTotals)
 
-  const currencies = getCurrencies()
+  const includeCurrencyTransfers = options.includeCurrencyTransfers !== false
+  const currencies = includeCurrencyTransfers ? getCurrencies() : []
   const currencyTransferPlan =
-    clientActor && currencies.length > 0 ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies) : null
+    includeCurrencyTransfers && clientActor && currencies.length > 0
+      ? buildCurrencyTransferPlan(actor, clientActor, adjustments, currencies)
+      : null
 
   preview.currencyTransferPlan = currencyTransferPlan ?? null
   preview.moneyTransfers = []
@@ -1757,7 +2003,7 @@ export async function buildExecutionPreview(actor, session) {
         })
       }
     }
-  } else if (adjustments.length > 0) {
+  } else if (includeCurrencyTransfers && adjustments.length > 0) {
     for (const adjustment of adjustments) {
       const adjustmentCurrency = adjustment.currency === "__none" ? "" : adjustment.currency
       preview.moneyTransfers.push({
@@ -1915,7 +2161,9 @@ function buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantity)
 
   if (itemData.flags?.[MTT.ID]) delete itemData.flags[MTT.ID]
   foundry.utils.setProperty(itemData, `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`, {
-    sourceUuid: catalogProduct.sourceUuid ?? ""
+    sourceUuid: catalogProduct.sourceUuid ?? "",
+    ownershipLevel: catalogProduct.ownershipLevel,
+    isHidden: Boolean(catalogProduct.isHidden)
   })
   setItemDataQuantity(itemData, quantity, null)
 
@@ -1943,7 +2191,15 @@ function createDeliveryResult({ actor = null, productData = {}, quantityToDelive
   }
 }
 
-function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver) {
+function getDeliverySimulationQuantity(item, quantityPath, quantityMode = "system") {
+  if (quantityMode === "productFlag") {
+    return normalizeItemQuantity(item?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.quantity, 0)
+  }
+
+  return normalizeItemQuantity(getConfiguredItemQuantity(item, quantityPath), 0)
+}
+
+function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver, options = {}) {
   const result = createDeliveryResult({ actor, productData, quantityToDeliver })
   const requestedQuantity = Number(quantityToDeliver)
 
@@ -1962,9 +2218,10 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
     return result
   }
 
+  const quantityMode = options.quantityMode === "productFlag" ? "productFlag" : "system"
   const config = getDeliveryStackingConfig()
   const quantityPath = getDeliveryQuantityPath(deliveredItemData, config)
-  if (!quantityPath) {
+  if (!quantityPath && quantityMode !== "productFlag") {
     result.errors.push(game.i18n.localize("mtt.sessions.errors.deliveryQuantityPathMissing"))
     return result
   }
@@ -1972,6 +2229,7 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   let remaining = normalizeItemQuantity(requestedQuantity, 0)
 
   const compatibleItems = actor.items
+    .filter((item) => quantityMode !== "productFlag" || item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.enabled === true)
     .map((item) => ({
       item,
       mergeMode: getDeliveredItemMergeMode(item, deliveredItemData, productData)
@@ -1981,8 +2239,11 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   for (const { item, mergeMode } of compatibleItems) {
     if (remaining <= 0) break
 
-    const currentQuantity = normalizeItemQuantity(getConfiguredItemQuantity(item, quantityPath), 0)
-    const maxQuantity = normalizeMaxQuantity(getConfiguredItemMaxQuantity(item, config.maxQuantityPath))
+    const currentQuantity = getDeliverySimulationQuantity(item, quantityPath, quantityMode)
+    const maxQuantity =
+      quantityMode === "productFlag"
+        ? Infinity
+        : normalizeMaxQuantity(getConfiguredItemMaxQuantity(item, config.maxQuantityPath))
     const availableSpace = getAvailableStackSpace(currentQuantity, maxQuantity)
     if (availableSpace <= 0) continue
 
@@ -2002,7 +2263,10 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
     remaining -= quantityToAdd
   }
 
-  const maxQuantity = normalizeMaxQuantity(getConfiguredItemMaxQuantity(deliveredItemData, config.maxQuantityPath))
+  const maxQuantity =
+    quantityMode === "productFlag"
+      ? Infinity
+      : normalizeMaxQuantity(getConfiguredItemMaxQuantity(deliveredItemData, config.maxQuantityPath))
 
   while (remaining > 0) {
     const quantity = maxQuantity === Infinity ? remaining : Math.min(remaining, maxQuantity)
@@ -2038,16 +2302,7 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
 
   try {
     for (const stack of simulation.updated) {
-      const updateData = { [quantityPath]: stack.afterQuantity }
-      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
-      const deliveredProductFlags = foundry.utils.getProperty(deliveredItemData, productFlagPath) ?? {}
-      const existingProductFlags = stack.item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
-      updateData[productFlagPath] = {
-        ...deliveredProductFlags,
-        ...existingProductFlags,
-        sourceUuid: getMttSourceUuid(stack.item) || getMttSourceUuid(deliveredItemData, productData)
-      }
-      await stack.item.update(updateData)
+      await stack.item.update({ [quantityPath]: stack.afterQuantity })
       result.updated.push(stack)
       result.deliveredQuantity += stack.addedQuantity
     }
@@ -2056,8 +2311,97 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
       const itemData = foundry.utils.deepClone(deliveredItemData)
       foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
       addDeliveredItemDescriptionBlock(itemData, productData)
+      const productFlagPath = `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}`
+      const productFlags = foundry.utils.getProperty(itemData, productFlagPath) ?? {}
+      const nextSourceUuid =
+        productData?.sourceIsCommerciallyModified === true
+          ? String(productData?.sourceItemUuid ?? "").trim()
+          : getMttSourceUuid(itemData, productData)
+      foundry.utils.setProperty(itemData, productFlagPath, {
+        ...productFlags,
+        sourceUuid: nextSourceUuid,
+        isCommerciallyModified: false
+      })
       const documents = await actor.createEmbeddedDocuments("Item", [itemData])
       const item = documents[0]
+      if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
+
+      result.created.push({
+        item,
+        itemId: item.id ?? "",
+        name: item.name ?? stack.name,
+        quantity: stack.quantity,
+        mergeMode: "none"
+      })
+      result.deliveredQuantity += stack.quantity
+    }
+  } catch (error) {
+    result.ok = false
+    result.errors.push(error?.message || game.i18n.localize("mtt.sessions.errors.deliveryFailed"))
+  }
+
+  return result
+}
+
+// MTT base — livraison d'un achat marchand vers une destination MTT avec les règles communes de fusion
+async function deliverPurchasedProductToMttDestination(destinationActor, transfer) {
+  const productData = transfer?.deliveryProductData
+  const deliveredItemData = transfer?.deliveredItemData
+  const quantityToDeliver = transfer?.quantityToDeliver
+  const simulation = simulatePurchasedItemDeliveryToActor(
+    destinationActor,
+    productData,
+    deliveredItemData,
+    quantityToDeliver,
+    { quantityMode: "productFlag" }
+  )
+  if (!simulation.ok) return simulation
+
+  const config = getDeliveryStackingConfig()
+  const quantityPath = getDeliveryQuantityPath(deliveredItemData, config)
+  const result = {
+    ...simulation,
+    deliveredQuantity: 0,
+    updated: [],
+    created: []
+  }
+
+  try {
+    const nextSourceUuid =
+      productData?.sourceIsCommerciallyModified === true
+        ? String(productData?.sourceItemUuid ?? "").trim()
+        : getMttSourceUuid(deliveredItemData, productData)
+
+    for (const stack of simulation.updated) {
+      await updateCatalogProduct(destinationActor, stack.item.id, { quantity: stack.afterQuantity })
+      result.updated.push(stack)
+      result.deliveredQuantity += stack.addedQuantity
+    }
+
+    for (const stack of simulation.created) {
+      const itemData = foundry.utils.deepClone(deliveredItemData)
+      if (quantityPath) foundry.utils.setProperty(itemData, quantityPath, stack.quantity)
+      addDeliveredItemDescriptionBlock(itemData, productData)
+      if (itemData.flags?.[MTT.ID]?.[MTT.FLAGS.PRODUCT]) delete itemData.flags[MTT.ID][MTT.FLAGS.PRODUCT]
+      const automaticCategory = getAutomaticItemCategory(itemData)
+      const categoryValue = await getOrCreateAutomaticProductCategory(destinationActor, automaticCategory)
+
+      const item = await addCatalogProduct(destinationActor, {
+        itemData,
+        productFlags: {
+          enabled: true,
+          sourceUuid: nextSourceUuid,
+          quantity: stack.quantity,
+          deliveryQuantityPerLot: productData?.deliveryQuantityPerLot ?? null,
+          category: categoryValue,
+          systemCategoryKey: automaticCategory?.key ?? "",
+          systemCategoryLabel: automaticCategory?.label ?? "",
+          systemCategoryPath: automaticCategory?.path ?? "",
+          ownershipLevel: productData?.ownershipLevel ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+          isHidden: Boolean(productData?.isHidden),
+          isCommerciallyModified: false
+        }
+      })
       if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
 
       result.created.push({
@@ -2100,9 +2444,11 @@ async function getClientActor(session, errors) {
 }
 
 export async function buildSessionItemExecutionPlan(actor, session, options = {}) {
-  const preview = await buildExecutionPreview(actor, session)
+  const preview = await buildExecutionPreview(actor, session, options)
   const errors = [...(preview.errors ?? [])]
   const clientActor = await getClientActor(session, errors)
+  const clientMttEntityType = getMTTEntityType(clientActor)
+  const clientIsMtt = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(clientMttEntityType)
   const operations = {
     productTransfers: [],
     serviceTransfers: [],
@@ -2118,7 +2464,9 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     }
   }
 
-  const accessClient = getStoredAccessClients(actor).find((client) => client.actorUuid === session?.actorUuid)
+  const accessClient = getExecutionAccessClients(actor, options).find(
+    (client) => client.actorUuid === session?.actorUuid
+  )
   if (!accessClient?.isAuthorized) {
     errors.push(game.i18n.localize("mtt.sessions.errors.clientNotAuthorized"))
   }
@@ -2148,7 +2496,9 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
     const deliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(
       item.deliveryQuantityPerLot ?? catalogProduct.deliveryQuantityPerLot
     )
-    const quantityToDeliver = Math.floor(requestedQuantity * deliveryQuantityPerLot)
+    const quantityToDeliver = clientIsMtt
+      ? Math.floor(requestedQuantity)
+      : Math.floor(requestedQuantity * deliveryQuantityPerLot)
     const reservedQuantity = reservedMerchantQuantities.get(catalogProduct.id) ?? 0
     const totalRequestedQuantity = reservedQuantity + requestedQuantity
 
@@ -2164,23 +2514,31 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
 
     reservedMerchantQuantities.set(catalogProduct.id, totalRequestedQuantity)
 
+    // MTT base — skipCommercialDeliveryText: true pour le stockage (transfert brut sans enrichissement commercial)
+    const skipCommercial = Boolean(options.skipCommercialDeliveryText)
     const deliveryProductData = {
       id: catalogProduct.id,
       sourceUuid: catalogProduct.sourceUuid,
-      merchantName: actor?.name ?? "",
-      transactionNumber: options.transactionNumber,
+      sourceItemUuid: toItemOnlyUuid(actor.items.get(catalogProduct.id)?.uuid),
+      sourceIsCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
+      ownershipLevel: catalogProduct.ownershipLevel,
+      isHidden: Boolean(catalogProduct.isHidden),
+      merchantName: skipCommercial ? "" : (actor?.name ?? ""),
+      transactionNumber: skipCommercial ? undefined : options.transactionNumber,
       deliveryQuantityPerLot: deliveryQuantityPerLot > 1 ? deliveryQuantityPerLot : null,
-      secretName: catalogProduct.secretName ?? "",
-      secretPrice: catalogProduct.secretPrice ?? "",
-      secretCurrency: catalogProduct.secretCurrency ?? "",
-      secretDescription: catalogProduct.secretDescription ?? ""
+      isCommerciallyModified: Boolean(catalogProduct.isCommerciallyModified),
+      secretName: skipCommercial ? "" : (catalogProduct.secretName ?? ""),
+      secretPrice: skipCommercial ? "" : (catalogProduct.secretPrice ?? ""),
+      secretCurrency: skipCommercial ? "" : (catalogProduct.secretCurrency ?? ""),
+      secretDescription: skipCommercial ? "" : (catalogProduct.secretDescription ?? "")
     }
     const deliveredItemData = buildVisibleProductItemDataFromCatalogProduct(catalogProduct, quantityToDeliver)
     const deliveryPlan = simulatePurchasedItemDeliveryToActor(
       clientActor,
       deliveryProductData,
       deliveredItemData,
-      quantityToDeliver
+      quantityToDeliver,
+      clientIsMtt ? { quantityMode: "productFlag" } : {}
     )
     deliveryPlans.push(deliveryPlan)
     if (!deliveryPlan.ok) {
@@ -2244,10 +2602,12 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   }
 
   for (const item of session?.sellerItems ?? []) {
-    const sourceUuid = String(item.sourceUuid ?? "").trim()
-    let sourceItem = null
+    if (isSessionMoneyItem(item)) continue
 
-    if (sourceUuid) {
+    const sourceUuid = String(item.sourceUuid ?? "").trim()
+    let sourceItem = getSellerSourceItemFromSessionItem(item)
+
+    if (!sourceItem && sourceUuid) {
       try {
         sourceItem = await fromUuid(sourceUuid)
       } catch {
@@ -2265,7 +2625,13 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       continue
     }
 
-    const availableQuantity = getItemAvailableQuantity(sourceItem)
+    // MTT base — les sellerItems peuvent venir d'un Item classique ou d'un produit MTT embedded.
+    const sourceIsMttProduct = isMerchantProductItem(sourceItem)
+    const productFlags = sourceIsMttProduct ? getMerchantProductFlags(sourceItem) : null
+    const availableQuantity = sourceIsMttProduct ? normalizeFiniteQuantity(productFlags.quantity) : getItemAvailableQuantity(sourceItem)
+    const hasLimitedQuantity = sourceIsMttProduct
+      ? !isUnlimitedQuantity(productFlags.quantity)
+      : Number.isFinite(availableQuantity) && availableQuantity >= 0
     const requestedQuantity = Number(item.quantity)
 
     if (!Number.isFinite(requestedQuantity) || requestedQuantity <= 0) {
@@ -2273,13 +2639,15 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       continue
     }
 
-    if (Number.isFinite(availableQuantity) && availableQuantity >= 0 && availableQuantity < requestedQuantity) {
+    if (hasLimitedQuantity && (!Number.isFinite(availableQuantity) || availableQuantity < requestedQuantity)) {
       errors.push(game.i18n.format("mtt.sessions.errors.sellerQuantityInsufficient", { name: item.name }))
       continue
     }
 
-    const quantityPath = getQuantityPathForItem(sourceItem)
-    if (!quantityPath) {
+    const quantityPath = sourceIsMttProduct
+      ? `flags.${MTT.ID}.${MTT.FLAGS.PRODUCT}.quantity`
+      : getQuantityPathForItem(sourceItem)
+    if (hasLimitedQuantity && !quantityPath) {
       errors.push(game.i18n.format("mtt.sessions.errors.sellerQuantityInsufficient", { name: item.name }))
       continue
     }
@@ -2289,7 +2657,8 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
       sourceItem,
       quantityPath,
       quantity: requestedQuantity,
-      nextQuantity: Number((availableQuantity - requestedQuantity).toFixed(2))
+      nextQuantity: hasLimitedQuantity ? Number((availableQuantity - requestedQuantity).toFixed(2)) : null,
+      hasLimitedQuantity
     })
   }
 
@@ -2303,9 +2672,35 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   }
 }
 
+function isGameSystemActor(actor) {
+  if (!actor || actor.documentName !== "Actor") return false
+  const entityType = getMTTEntityType(actor)
+  return ![MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(entityType)
+}
+
+async function finalizeMttProductQuantity(actor, productId, nextQuantity, { hideWhenEmpty = false } = {}) {
+  const normalizedNextQuantity = Number(nextQuantity)
+  const quantity = Number.isFinite(normalizedNextQuantity) ? Math.max(0, normalizedNextQuantity) : 0
+  const isEmpty = quantity <= 0
+  const entityType = getMTTEntityType(actor)
+
+  if (entityType === MTT.ENTITY_TYPES.STORAGE && isEmpty) {
+    await removeCatalogProduct(actor, productId)
+    return
+  }
+
+  const changes = { quantity }
+  if (entityType === MTT.ENTITY_TYPES.MERCHANT && isEmpty && hideWhenEmpty) {
+    changes.isHidden = true
+  }
+  await updateCatalogProduct(actor, productId, changes)
+}
+
 export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"))
+  const clientMttEntityType = getMTTEntityType(clientActor)
+  const clientIsMtt = [MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(clientMttEntityType)
 
   const deliveries = []
   const executionResult = {
@@ -2323,7 +2718,8 @@ export async function executeSessionItemTransfers(actor, plan) {
       clientActor,
       transfer.deliveryProductData,
       transfer.deliveredItemData,
-      transfer.quantityToDeliver
+      transfer.quantityToDeliver,
+      clientIsMtt ? { quantityMode: "productFlag" } : {}
     )
   )
   const deliveryPreflightErrors = deliveryPreflightPlans.flatMap((deliveryPlan) => deliveryPlan.errors)
@@ -2332,13 +2728,22 @@ export async function executeSessionItemTransfers(actor, plan) {
     throw new Error(deliveryPreflightErrors.join(" "))
   }
 
+  const warningGMTransfers = isMTTStorage(actor)
+    ? plan.operations.productTransfers.filter((t) => {
+        const item = actor.items.get(t.catalogProduct.id)
+        return item ? Boolean(getStorageItemFlags(item).warningGM) : false
+      })
+    : []
+
   for (const transfer of plan.operations.productTransfers) {
-    const delivery = await deliverPurchasedItemToActor(
-      clientActor,
-      transfer.deliveryProductData,
-      transfer.deliveredItemData,
-      transfer.quantityToDeliver
-    )
+    const delivery = clientIsMtt
+      ? await deliverPurchasedProductToMttDestination(clientActor, transfer)
+      : await deliverPurchasedItemToActor(
+          clientActor,
+          transfer.deliveryProductData,
+          transfer.deliveredItemData,
+          transfer.quantityToDeliver
+        )
     if (!delivery.ok) throw new Error(delivery.errors.join(" "))
     if (delivery.deliveredQuantity !== transfer.quantityToDeliver) {
       throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryQuantityMismatch"))
@@ -2347,7 +2752,7 @@ export async function executeSessionItemTransfers(actor, plan) {
     executionResult.deliveries.push(delivery)
 
     if (transfer.hasLimitedQuantity) {
-      await updateCatalogProduct(actor, transfer.catalogProduct.id, { quantity: transfer.nextQuantity })
+      await finalizeMttProductQuantity(actor, transfer.catalogProduct.id, transfer.nextQuantity, { hideWhenEmpty: true })
     }
 
     executionResult.merchantStockUpdates.push({
@@ -2356,6 +2761,18 @@ export async function executeSessionItemTransfers(actor, plan) {
       purchasedQuantity: transfer.quantity,
       remainingQuantity: transfer.nextQuantity,
       hasLimitedQuantity: transfer.hasLimitedQuantity
+    })
+  }
+
+  for (const transfer of warningGMTransfers) {
+    await ChatMessage.create({
+      content: game.i18n.format("mtt.storage.statuses.warningGM.chatMessage", {
+        itemName: transfer.catalogProduct.name,
+        storageName: actor.name,
+        clientName: clientActor.name
+      }),
+      whisper: ChatMessage.getWhisperRecipients("GM"),
+      speaker: { alias: game.i18n.localize("mtt.storage.statuses.warningGM.speaker") }
     })
   }
 
@@ -2399,8 +2816,19 @@ export async function executeSessionItemTransfers(actor, plan) {
   for (const transfer of plan.operations.sellerTransfers) {
     const automaticCategory = getAutomaticItemCategory(transfer.sourceItem)
     const categoryValue = await getOrCreateAutomaticProductCategory(actor, automaticCategory)
-    const sourceUuid = String(transfer.sourceItem.uuid ?? "").trim()
-    const existingMerchantItem = findMergeableMerchantItemBySourceUuid(actor, sourceUuid)
+    const sourceProductFlags = transfer.sourceItem.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
+    const sourceIsCommerciallyModified = Boolean(sourceProductFlags.isCommerciallyModified)
+    const sourceItemUuid = toItemOnlyUuid(transfer.sourceItem.uuid)
+    const deliveredItemData = transfer.sourceItem.toObject()
+    const productData = {
+      sourceUuid: String(sourceProductFlags.sourceUuid ?? "").trim(),
+      sourceItemUuid,
+      sourceIsCommerciallyModified
+    }
+    const existingMerchantItem =
+      Array.from(actor.items.values()).find((item) =>
+        Boolean(getDeliveredItemMergeMode(item, deliveredItemData, productData))
+      ) ?? null
 
     if (existingMerchantItem) {
       const existingFlags = existingMerchantItem.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {}
@@ -2413,20 +2841,39 @@ export async function executeSessionItemTransfers(actor, plan) {
         quantity: Number((currentQuantity + transfer.quantity).toFixed(2))
       })
     } else {
+      const nextSourceUuid = sourceIsCommerciallyModified
+        ? sourceItemUuid
+        : String(sourceProductFlags.sourceUuid ?? sourceItemUuid).trim()
       const { itemData, productFlags } = buildCatalogProductFromItem(transfer.sourceItem, {
         categoryValue,
         automaticCategory,
-        sourceUuid
+        sourceUuid: nextSourceUuid
       })
       await addCatalogProduct(actor, {
         itemData,
-        productFlags: { ...productFlags, quantity: transfer.quantity }
+        productFlags: { ...productFlags, quantity: transfer.quantity, isCommerciallyModified: false }
       })
     }
 
-    await transfer.sourceItem.update({
-      [transfer.quantityPath]: transfer.nextQuantity
-    })
+    if (transfer.hasLimitedQuantity) {
+      const nextQuantity = Number(transfer.nextQuantity)
+      const sourceActor = transfer.sourceItem?.parent?.documentName === "Actor" ? transfer.sourceItem.parent : null
+      const shouldDeleteSystemActorItem =
+        Number.isFinite(nextQuantity) &&
+        nextQuantity <= 0 &&
+        isGameSystemActor(sourceActor) &&
+        game.settings.get(MTT.ID, "deleteEmptySystemActorItems") === true
+
+      if (shouldDeleteSystemActorItem) {
+        await sourceActor.deleteEmbeddedDocuments("Item", [transfer.sourceItem.id])
+      } else if (sourceActor && isMerchantProductItem(transfer.sourceItem)) {
+        await finalizeMttProductQuantity(sourceActor, transfer.sourceItem.id, nextQuantity, { hideWhenEmpty: true })
+      } else {
+        await transfer.sourceItem.update({
+          [transfer.quantityPath]: Math.max(0, nextQuantity)
+        })
+      }
+    }
   }
 
   executionResult.ok = true

@@ -1,6 +1,6 @@
 import { MTT } from "./constants.mjs"
 
-const LEGACY_MTT_ACTOR_TYPES = new Set(["merchant", "mtt-merchants.merchant"])
+const LEGACY_MTT_ACTOR_TYPES = new Set(["merchant", "storage", "mtt-merchants.merchant", "mtt-merchants.storage"])
 
 function isLegacyMTTActorType(type) {
   return LEGACY_MTT_ACTOR_TYPES.has(String(type ?? "").trim())
@@ -49,6 +49,15 @@ export function normalizeAllowedMerchantActorTypes(types) {
   }
 }
 
+export function normalizeAllowedStorageActorTypes(types) {
+  try {
+    const arr = Array.isArray(types) ? types : JSON.parse(String(types ?? "[]"))
+    return normalizeActorTypeList(arr)
+  } catch {
+    return []
+  }
+}
+
 export function getAllowedMerchantActorTypes() {
   try {
     return normalizeAllowedMerchantActorTypes(game.settings.get(MTT.ID, "allowedMerchantActorTypes"))
@@ -62,10 +71,31 @@ export async function setAllowedMerchantActorTypes(types) {
   return game.settings.set(MTT.ID, "allowedMerchantActorTypes", JSON.stringify(normalized))
 }
 
+export function getAllowedStorageActorTypes() {
+  try {
+    return normalizeAllowedStorageActorTypes(game.settings.get(MTT.ID, "allowedStorageActorTypes"))
+  } catch {
+    return []
+  }
+}
+
+export async function setAllowedStorageActorTypes(types) {
+  const normalized = normalizeAllowedStorageActorTypes(types)
+  return game.settings.set(MTT.ID, "allowedStorageActorTypes", JSON.stringify(normalized))
+}
+
 export function isActorTypeAllowedForMerchant(actorOrType) {
   const rawType = typeof actorOrType === "string" ? actorOrType : actorOrType?.type
   const type = typeof rawType === "string" ? rawType.trim() : ""
   if (!type) return false
   if (isLegacyMTTActorType(type)) return false
   return getAllowedMerchantActorTypes().includes(type)
+}
+
+export function isActorTypeAllowedForStorage(actorOrType) {
+  const rawType = typeof actorOrType === "string" ? actorOrType : actorOrType?.type
+  const type = typeof rawType === "string" ? rawType.trim() : ""
+  if (!type) return false
+  if (isLegacyMTTActorType(type)) return false
+  return getAllowedStorageActorTypes().includes(type)
 }

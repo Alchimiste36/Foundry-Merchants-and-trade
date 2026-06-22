@@ -1,5 +1,4 @@
 <section class="mtt-merchant-main-zone">
-  
   <section class="mtt-merchant-tab-content">
     {{#if (eq mtt.activeTab "products")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-products" data-tab="products">
@@ -7,23 +6,42 @@
       </section>
     {{/if}}
 
-    {{#if (eq mtt.activeTab "services")}}
-      <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs"}}
-      </section>
+    {{!-- MTT shop — services vendus par la boutique --}}
+    {{#if isShop}}
+      {{#if (eq mtt.activeTab "services")}}
+        <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-services" data-tab="services">
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-services.hbs"}}
+        </section>
+      {{/if}}
     {{/if}}
 
     {{#if permissions.canViewConfigTab}}
       {{#if (eq mtt.activeTab "configuration")}}
         <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-configuration" data-tab="configuration">
-          {{> "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs"}}
+          {{#if isShop}}
+            {{!-- MTT shop — contenu configuration boutique --}}
+            {{> "modules/mtt-merchants/templates/actors/parts/merchant-configuration.hbs"}}
+          {{/if}}
+
+          {{#if isStorage}}
+            {{!-- MTT storage — contenu configuration stockage --}}
+            {{> "modules/mtt-merchants/templates/actors/parts/storage-configuration.hbs"}}
+          {{/if}}
         </section>
       {{/if}}
     {{/if}}
 
     {{#if (eq mtt.activeTab "journal")}}
       <section class="mtt-merchant-tab-panel mtt-merchant-tab-panel-journal" data-tab="journal">
-        {{> "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs"}}
+        {{#if isShop}}
+          {{!-- MTT shop — journal commercial --}}
+          {{> "modules/mtt-merchants/templates/actors/parts/merchant-journal.hbs"}}
+        {{/if}}
+
+        {{#if isStorage}}
+          {{!-- MTT storage — contenu journal stockage --}}
+          {{> "modules/mtt-merchants/templates/actors/parts/storage-journal.hbs"}}
+        {{/if}}
       </section>
     {{/if}}
   </section>

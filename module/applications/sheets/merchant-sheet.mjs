@@ -1,16 +1,32 @@
 import { MTT } from "../../config/constants.mjs"
 import {
-  isMTTMerchant,
   getMerchantData,
   getMerchantFlagPath,
   updateMerchantData,
   createLocalMerchantCategory
 } from "../../documents/merchant-flags.mjs"
 import {
+  getMTTEntityType,
+  getStorageData,
+  getStorageFlagPath,
+  updateStorageData,
+  isMTTStorage,
+  getStorageAccessActorUuids,
+  getStorageTradeResponsibleActorUuids,
+  canActorTradeWithMerchantAsStorage,
+  setStorageTradeResponsibleActorUuids,
+  setStorageItemWarningGM,
+  setStorageItemBlocked,
+  applyStorageIgnoreAutoCategory,
+  buildStorageAddIntentBlockState,
+  buildStorageItemIntentState,
+  getStorageClaimQuantityBlockReasonKey,
+  toggleStorageItemTag
+} from "../../documents/storage-flags.mjs"
+import {
   getMerchantAccessContext,
   getMerchantPermissions,
-  canUserViewClientActor,
-  canUserViewClientSession
+  canUserViewClientActor
 } from "../../documents/merchant-access.mjs"
 import {
   isUnlimitedQuantity,
@@ -84,13 +100,11 @@ import {
   canAcceptSessionQuantity,
   prepareSessionContext,
   getStoredAccessClients,
-  getBestSessionForClient,
   getEffectiveClientRates,
   getMerchantDefaultClientRates,
   normalizeClientCustomRates,
   prepareAccessClients,
   checkSessionTransaction,
-  isMerchantSellerDropBlocked,
   buildExecutionPreview,
   buildSessionItemExecutionPlan,
   executeSessionItemTransfers,
@@ -102,25 +116,31 @@ import {
   buildMerchantJournalEntryFromSession,
   appendMerchantJournalEntry
 } from "./merchant-journal.mjs"
-import { requestMerchantSessionUpdate } from "./merchant-session-socket.mjs"
+import { requestMerchantSessionUpdate, requestStorageTagUpdate } from "./merchant-session-socket.mjs"
 
 const { ActorSheetV2 } = foundry.applications.sheets
 const { HandlebarsApplicationMixin } = foundry.applications.api
+const STORAGE_MONEY_TAKE_ID = "storage-money-take"
+const STORAGE_MONEY_DEPOSIT_ID = "storage-money-deposit"
+const STORAGE_MONEY_ICON = "icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp"
 
+// MTT base — feuille historique commune utilisée par les types MTT basés sur merchant-*
 export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #activeTab = "products"
   #activeSessionId = null
   #selectedClientActorUuid = ""
   #sessionCheckResult = null
   #journalSort = { key: "date", direction: "desc" }
+  #localProductCategoryCollapseState = new Map()
   #scrollPositions = {}
   #scrollRestorePending = false
+  #storageSheetLocked = true
 
   static DEFAULT_OPTIONS = {
     classes: [MTT.CSS.SHEET, MTT.CSS.MERCHANT_SHEET, "mtt-merchant-window"],
     position: {
-      width: 900,
-      height: 700
+      width: 820,
+      height: 750
     },
     form: {
       submitOnChange: true
@@ -147,6 +167,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleProductCategory: MerchantSheet.#onToggleProductCategory,
       toggleProductFreePrice: MerchantSheet.#onToggleProductFreePrice,
       toggleServiceFreePrice: MerchantSheet.#onToggleServiceFreePrice,
+      toggleStorageTradeResponsibleActor: MerchantSheet.#onToggleStorageTradeResponsibleActor,
       addProductToSession: MerchantSheet.#onAddProductToSession,
       addServiceToSession: MerchantSheet.#onAddServiceToSession,
       toggleClientAccess: MerchantSheet.#onToggleClientAccess,
@@ -159,6 +180,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       refuseSessionTransaction: MerchantSheet.#onRefuseSessionTransaction,
       increaseSessionItemQuantity: MerchantSheet.#onIncreaseSessionItemQuantity,
       decreaseSessionItemQuantity: MerchantSheet.#onDecreaseSessionItemQuantity,
+      increaseStorageMoney: MerchantSheet.#onIncreaseStorageMoney,
+      decreaseStorageMoney: MerchantSheet.#onDecreaseStorageMoney,
       removeSessionItem: MerchantSheet.#onRemoveSessionItem,
       submitNegotiationOffer: MerchantSheet.#onSubmitNegotiationOffer,
       acceptNegotiationOffer: MerchantSheet.#onAcceptNegotiationOffer,
@@ -170,7 +193,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       selectTab: MerchantSheet.#onSelectTab,
       sortJournal: MerchantSheet.#onSortJournal,
       saveReferenceState: MerchantSheet.#onSaveReferenceState,
-      restoreReferenceState: MerchantSheet.#onRestoreReferenceState
+      restoreReferenceState: MerchantSheet.#onRestoreReferenceState,
+      toggleStorageTag: MerchantSheet.#onToggleStorageTag
     }
   }
 
@@ -181,7 +205,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   get title() {
-    return game.i18n.format("mtt.sheets.merchantTitle", {
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const titleKey = entityType === MTT.ENTITY_TYPES.STORAGE ? "mtt.sheets.storageTitle" : "mtt.sheets.merchantTitle"
+    return game.i18n.format(titleKey, {
       name: this.actor?.name ?? ""
     })
   }
@@ -191,25 +217,46 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (this.#activeTab === "sessions") this.#activeTab = "products"
 
+    // MTT base — utilisé par les types MTT partageant la feuille
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const isShop = entityType === MTT.ENTITY_TYPES.MERCHANT
+    const storageData = isStorage ? getStorageData(this.actor) : null
+    const merchantContext = isStorage ? this.#buildStorageMerchantContext(storageData) : getMerchantData(this.actor)
+
+    // MTT base — édition de la feuille commune merchant-* selon verrouillage et droits Foundry
     const isEditable = this.isEditable
-    const isLocked = getMerchantSheetLockedState(this.actor)
+    const isLocked = this.#getSheetLockedState(entityType)
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
     const isLimited = getMerchantLimitedState(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
+    const sheetPermissions = isStorage
+      ? {
+          ...permissions,
+          canViewConfigTab: true,
+          canOpenProduct: true,
+          canInteractWithSession: true
+        }
+      : permissions
 
-    if (this.#activeTab === "configuration" && !permissions.canViewConfigTab) this.#activeTab = "products"
+    if (this.#activeTab === "services" && !isShop) this.#activeTab = "products"
+    if (this.#activeTab === "configuration" && !sheetPermissions.canViewConfigTab) this.#activeTab = "products"
 
     context.mtt = {
       css: MTT.CSS,
+      entityType,
+      isShop,
+      isStorage,
       activeTab: this.#activeTab,
       isEditable,
       isLocked,
       isUnlocked,
       canEditMerchant,
+      canDragProductToSeller: this.#canDragProductToSeller(),
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
-      configurablePermissions: permissions,
+      configurablePermissions: sheetPermissions,
       labels: {
         merchantSheet: "mtt.sheets.merchant",
         lock: "mtt.sheet.lock",
@@ -218,14 +265,31 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
+    context.entityType = entityType
+    context.isShop = isShop
+    context.isStorage = isStorage
     context.actor = this.actor
-    context.merchant = getMerchantData(this.actor)
-    context.permissions = permissions
+    context.merchant = merchantContext
+    context.permissions = sheetPermissions
+    context.storageTradeWithMerchant = isStorage ? this.#prepareStorageTradeWithMerchantContext(storageData) : null
 
     const activeSession = this.#getActiveSession()
+    const canEditActiveSession = Boolean(isStorage && this.#canEditStorageTagsForSession(activeSession))
+    context.canEditActiveSession = canEditActiveSession
+    const canEditActiveSessionItems = this.#prepareActiveSessionAccess(activeSession).canEditActiveSession
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
-    context.items = prepareItems(this.actor, effectiveRates.productSellPercent, { includeHidden: isEditable })
-    context.productCategories = prepareProductCategories(this.actor, context.items, { includeHidden: isEditable })
+    context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
+      includeHidden: isEditable,
+      sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null,
+      activeSessionId: isStorage ? (activeSession?.id ?? "") : "",
+      canEditActiveSession: canEditActiveSessionItems,
+      voterActorUuid: canEditActiveSession ? activeSession.actorUuid : "",
+      isEditable
+    })
+    context.productCategories = prepareProductCategories(this.actor, context.items, {
+      includeHidden: isEditable,
+      collapsedCategories: Object.fromEntries(this.#localProductCategoryCollapseState)
+    })
     context.services = prepareServices(this.actor, effectiveRates.serviceSellPercent, { includeHidden: isEditable })
     context.trade = prepareTrade(this.actor)
     context.wallet = context.merchant?.wallet ?? {}
@@ -234,15 +298,185 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.hasHeaderCurrencies = context.mtt.headerCurrencies.length > 0
     context.mtt.currencyOptions = prepareCurrencyOptions()
     context.mtt.access = this.#prepareAccessContext()
-    context.mtt.session = this.#prepareSessionContext()
+    context.mtt.session = isStorage ? this.#prepareStorageSessionContext() : this.#prepareSessionContext()
     context.mtt.referenceState = this.#prepareReferenceStateContext()
-    context.mtt.journal = prepareMerchantJournalContext(this.actor, {
-      user: game.user,
-      sort: this.#journalSort,
-      permissions
-    })
+    context.mtt.journal = isStorage
+      ? this.#prepareNeutralJournalContext()
+      : prepareMerchantJournalContext(this.actor, {
+          user: game.user,
+          sort: this.#journalSort,
+          permissions: sheetPermissions
+        })
 
     return context
+  }
+
+  #getSheetLockedState(entityType) {
+    // MTT base — lecture du verrouillage actif selon le type de feuille MTT
+    if (entityType === MTT.ENTITY_TYPES.STORAGE) return this.#storageSheetLocked
+    return getMerchantSheetLockedState(this.actor)
+  }
+
+  #buildStorageMerchantContext(storageData = null) {
+    const storage = storageData?.storage ?? {}
+    const name = String(storage.name ?? "").trim() || (this.actor?.name ?? "")
+    const img = String(storage.img ?? "").trim() || (this.actor?.img ?? "")
+
+    return {
+      enabled: true,
+      sheet: {
+        isLocked: this.#storageSheetLocked
+      },
+      shop: {
+        name,
+        img,
+        description: storage.description ?? ""
+      },
+      manager: {
+        mode: "actor",
+        actorUuid: this.actor?.uuid ?? null,
+        displayName: "",
+        img
+      },
+      trade: {
+        buyPercent: 50,
+        sellPercent: 100,
+        serviceSellPercent: 100,
+        negotiationFormula: ""
+      },
+      wallet: storageData?.wallet ?? { currencies: {} },
+      referenceState: null,
+      journal: {
+        nextTransactionNumber: 1,
+        transactions: []
+      },
+      access: {
+        clients: []
+      },
+      catalog: {
+        keepEmptyItems: true,
+        collapsedCategories: {},
+        hiddenCategories: {},
+        productCategories: [],
+        products: [],
+        services: []
+      },
+      sessions: {
+        entries: []
+      }
+    }
+  }
+
+  #prepareStorageSessionContext() {
+    // MTT base — la session storage réutilise le contexte de session commun sans logique commerciale dans le HBS
+    const accessClients = this.#prepareAccessClients()
+    const session = this.#getActiveSession()
+    this.#normalizeStorageExchangeSession(session)
+    const buyerActor = session?.actorUuid ? game.actors.find((actor) => actor.uuid === session.actorUuid) : null
+
+    const sessionContext = prepareSessionContext(this.actor, {
+      session,
+      selectedClient: this.#getSelectedClient(),
+      sessionCheckResult: this.#sessionCheckResult,
+      accessClients,
+      buyerActor
+    })
+    const referenceCurrency = getReferenceCurrency()
+    const referenceCurrencyLabel = String(
+      referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.name ?? ""
+    ).trim()
+    const moneyTakeItem = session?.sellerItems?.find(
+      (item) => item.id === STORAGE_MONEY_TAKE_ID && item.type === "money"
+    )
+    const moneyDepositItem = session?.buyerItems?.find(
+      (item) => item.id === STORAGE_MONEY_DEPOSIT_ID && item.type === "money"
+    )
+    const takeValue = Number(moneyTakeItem?.unitPriceValue ?? 0)
+    const depositValue = Number(moneyDepositItem?.unitPriceValue ?? 0)
+    const buyerItems = sessionContext.buyerItems.filter((item) => item.type !== "money")
+    const sellerItems = sessionContext.sellerItems.filter((item) => item.type !== "money")
+
+    return {
+      ...sessionContext,
+      ...this.#prepareActiveSessionAccess(session),
+      buyerItems,
+      sellerItems,
+      hasBuyerItems: buyerItems.length > 0,
+      hasSellerItems: sellerItems.length > 0,
+      hasAnyItems:
+        buyerItems.length > 0 ||
+        sellerItems.length > 0 ||
+        (Number.isFinite(takeValue) && takeValue > 0) ||
+        (Number.isFinite(depositValue) && depositValue > 0),
+      storageMoney: {
+        referenceCurrencyLabel,
+        takeItemId: STORAGE_MONEY_TAKE_ID,
+        depositItemId: STORAGE_MONEY_DEPOSIT_ID,
+        takeValue: Number.isFinite(takeValue) && takeValue >= 0 ? takeValue : 0,
+        depositValue: Number.isFinite(depositValue) && depositValue >= 0 ? depositValue : 0
+      }
+    }
+  }
+
+  #prepareNeutralJournalContext() {
+    return {
+      canSeeAll: Boolean(game.user?.isGM),
+      canSeeSecretIndicators: Boolean(game.user?.isGM),
+      hasTransactions: false,
+      transactions: [],
+      sort: this.#journalSort
+    }
+  }
+
+  #prepareStorageTradeWithMerchantContext(storageData = null) {
+    // MTT storage — configuration des responsables de marchandage du stockage
+    const responsibleActorUuids = new Set(storageData?.tradeWithMerchant?.responsibleActorUuids ?? [])
+    const actorsByUuid = new Map()
+
+    for (const entry of this.#prepareAccessClients()) {
+      const actorUuid = String(entry.actorUuid ?? "").trim()
+      if (!actorUuid) continue
+
+      const existing = actorsByUuid.get(actorUuid)
+      actorsByUuid.set(actorUuid, {
+        ...entry,
+        actorName: String(entry.actorName ?? "").trim() || existing?.actorName || actorUuid,
+        actorImg: String(entry.actorImg ?? "").trim() || existing?.actorImg || "icons/svg/mystery-man.svg"
+      })
+    }
+
+    const actors = Array.from(actorsByUuid.values()).map((actor) => {
+      const actorUuid = String(actor.actorUuid ?? "").trim()
+      const actorName = String(actor.actorName ?? "").trim() || actorUuid
+      const actorImg = String(actor.actorImg ?? "").trim() || "icons/svg/mystery-man.svg"
+      const isResponsible = responsibleActorUuids.has(actorUuid)
+
+      return {
+        actorUuid,
+        actorName,
+        actorImg,
+        isResponsible,
+        cardClasses: [
+          "mtt-storage-trade-responsible-card",
+          isResponsible ? "mtt-storage-trade-responsible-card-active" : ""
+        ]
+          .filter(Boolean)
+          .join(" "),
+        tooltip: game.i18n.format(
+          isResponsible
+            ? "mtt.storage.tradeWithMerchant.responsibleTooltip"
+            : "mtt.storage.tradeWithMerchant.notResponsibleTooltip",
+          { actorName }
+        )
+      }
+    })
+
+    return {
+      actors,
+      hasActors: actors.length > 0,
+      canConfigure: this.isEditable,
+      description: game.i18n.localize("mtt.storage.tradeWithMerchant.description")
+    }
   }
 
   async _preRender(context, options) {
@@ -402,6 +636,125 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return false
   }
 
+  #canUserManageCurrentSheet(user = game.user) {
+    if (user?.isGM) return true
+    if (this.actor?.testUserPermission?.(user, "OWNER")) return true
+    const level = this.actor?.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    return level >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+  }
+
+  #getActorByUuid(actorUuid) {
+    const uuid = String(actorUuid ?? "").trim()
+    if (!uuid) return null
+    return (
+      game.actors?.find?.((actor) => actor.uuid === uuid) ??
+      game.actors?.get?.(uuid) ??
+      game.actors?.get?.(uuid.replace(/^Actor\./, "")) ??
+      null
+    )
+  }
+
+  #userOwnsActorUuid(actorUuid, user = game.user) {
+    const actor = this.#getActorByUuid(actorUuid)
+    if (!actor) return false
+    return (
+      Boolean(actor.testUserPermission?.(user, "OWNER")) ||
+      (actor.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE) >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    )
+  }
+
+  #canUserViewStorageMerchantSession(storageActor, user = game.user) {
+    if (user?.isGM) return true
+    if (this.#canUserManageCurrentSheet(user)) return true
+
+    return getStorageAccessActorUuids(storageActor).some((actorUuid) => this.#userOwnsActorUuid(actorUuid, user))
+  }
+
+  #canUserTradeWithMerchantAsStorage(storageActor, user = game.user) {
+    if (user?.isGM) return true
+    if (this.#canUserManageCurrentSheet(user)) return true
+
+    return getStorageTradeResponsibleActorUuids(storageActor).some(
+      (actorUuid) =>
+        canActorTradeWithMerchantAsStorage(storageActor, actorUuid) && this.#userOwnsActorUuid(actorUuid, user)
+    )
+  }
+
+  #canDragProductToSeller() {
+    if (game.user?.isGM) return true
+    if (this.isEditable) return true
+    if (this.#isStorageEntity()) return this.#canUserTradeWithMerchantAsStorage(this.actor)
+    return false
+  }
+
+  #getSessionActorAccess(sessionOrActorUuid, user = game.user) {
+    const actorUuid =
+      typeof sessionOrActorUuid === "string" ? sessionOrActorUuid : String(sessionOrActorUuid?.actorUuid ?? "").trim()
+    const actor = this.#getActorByUuid(actorUuid)
+    const ownershipLevel = actor?.getUserLevel?.(user) ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
+    const isGM = Boolean(user?.isGM)
+    const canManageSheet = this.#canUserManageCurrentSheet(user)
+    const isOwner =
+      Boolean(actor?.testUserPermission?.(user, "OWNER")) || ownershipLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+    const isObserver = ownershipLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER
+    const isLimited = ownershipLevel >= CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+    const permissions = getMerchantPermissions(this.actor, { user })
+    const canViewOtherSessions = Boolean(permissions.canViewObserverActorSessions)
+    const canInteractWithSession = Boolean(permissions.canInteractWithSession)
+
+    const baseAccess = {
+      actor,
+      actorUuid,
+      ownershipLevel,
+      isOwner,
+      isObserver,
+      isLimited,
+      canViewOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
+      canSelectOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
+      canInteractWithOtherSession: isGM || canManageSheet || (isOwner && canInteractWithSession)
+    }
+
+    if (!isMTTStorage(actor)) return baseAccess
+
+    const canViewStorageSession = this.#canUserViewStorageMerchantSession(actor, user)
+    const canTradeAsStorage = this.#canUserTradeWithMerchantAsStorage(actor, user)
+
+    return {
+      ...baseAccess,
+      canViewOtherSession: baseAccess.canViewOtherSession || canViewStorageSession,
+      canSelectOtherSession: baseAccess.canSelectOtherSession || canViewStorageSession,
+      canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || canTradeAsStorage
+    }
+  }
+
+  #canInteractWithSession(session, { notify = true } = {}) {
+    if (this.#getSessionActorAccess(session).canInteractWithOtherSession) return true
+    if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+    return false
+  }
+
+  #getActiveSessionForInteraction({ notify = true } = {}) {
+    const session = this.#getActiveSession()
+    if (!session) return null
+    if (!this.#canInteractWithSession(session, { notify })) return null
+    return session
+  }
+
+  #prepareActiveSessionAccess(session) {
+    // MTT base — droits communs de consultation et d'interaction sur la session/actor actif.
+    const access = this.#getSessionActorAccess(session ?? this.#getSelectedClient()?.actorUuid)
+    return {
+      ...access,
+      canEditActiveSession: access.canInteractWithOtherSession
+    }
+  }
+
+  #canEditStorageTagsForSession(session) {
+    if (!session?.actorUuid) return false
+    if (["submitted", "validated", "refused"].includes(session.status)) return false
+    return this.#getSessionActorAccess(session).canInteractWithOtherSession
+  }
+
   #canAnswerNegotiation(negotiation) {
     if (!negotiation || negotiation.status !== "active") return false
     return negotiation.currentTurn === this.#getNegotiationOfferSide()
@@ -467,6 +820,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return normalizeSessionItem({
       id: foundry.utils.randomID(),
       type: negotiation.type,
+      sourceKind: negotiation.sourceKind,
       sourceId: negotiation.sourceId,
       sourceUuid: negotiation.sourceUuid,
       sourceActorUuid: negotiation.sourceActorUuid,
@@ -587,6 +941,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Wrappers for imported trade functions ────────────────────────────────
 
   #getSessions() {
+    if (this.#isStorageEntity()) return foundry.utils.deepClone(getStorageData(this.actor)?.sessions?.entries ?? [])
     return getSessions(this.actor)
   }
   #setSessionItemQuantity(item, quantity) {
@@ -598,8 +953,107 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #removeSessionItemById(session, itemId, side) {
     return removeSessionItemById(session, itemId, side)
   }
+  #setStorageSessionMoneyValue(session, side, amount) {
+    // MTT storage — lignes permanentes de monnaie dans la session de stockage
+    if (!this.#isStorageEntity() || !session) return null
+
+    const isDeposit = side === "deposit"
+    const itemId = isDeposit ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
+    const itemsKey = isDeposit ? "buyerItems" : "sellerItems"
+    const referenceCurrency = getReferenceCurrency()
+    const referenceCurrencyLabel = String(
+      referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.name ?? ""
+    ).trim()
+    const normalizedAmount = Number(Number(Math.max(0, Number(amount) || 0)).toFixed(2))
+
+    session[itemsKey] = Array.isArray(session[itemsKey]) ? session[itemsKey] : []
+    let item = session[itemsKey].find((entry) => entry.id === itemId && entry.type === "money")
+
+    if (!item) {
+      item = normalizeSessionItem({
+        id: itemId,
+        type: "money",
+        sourceKind: "storageMoney",
+        sourceUuid: "",
+        sourceActorUuid: "",
+        sourceId: itemId,
+        name: game.i18n.localize(isDeposit ? "mtt.storage.session.money.deposit" : "mtt.storage.session.money.take"),
+        img: STORAGE_MONEY_ICON,
+        quantity: 1,
+        unitPriceValue: normalizedAmount,
+        totalPriceValue: normalizedAmount,
+        priceCurrency: referenceCurrencyLabel,
+        sourceLabel: ""
+      })
+      session[itemsKey].push(item)
+      return item
+    }
+
+    item.quantity = 1
+    item.unitPriceValue = normalizedAmount
+    item.totalPriceValue = normalizedAmount
+    item.priceCurrency = referenceCurrencyLabel
+    item.sourceKind = "storageMoney"
+    item.sourceId = itemId
+    item.name = game.i18n.localize(isDeposit ? "mtt.storage.session.money.deposit" : "mtt.storage.session.money.take")
+    item.img = item.img || STORAGE_MONEY_ICON
+    return item
+  }
+  #normalizeStorageExchangeSession(session) {
+    // MTT storage — prépare les lignes de session pour le moteur commun MTT
+    if (!this.#isStorageEntity() || !session) return session
+
+    session.buyerItems = Array.isArray(session.buyerItems) ? session.buyerItems : []
+    session.sellerItems = Array.isArray(session.sellerItems) ? session.sellerItems : []
+
+    const findMoneyItem = (itemId) => {
+      const matchingItems = [...session.buyerItems, ...session.sellerItems].filter(
+        (item) => item?.id === itemId && item?.type === "money"
+      )
+      return (
+        matchingItems.find((item) => {
+          const amount = Number(item.unitPriceValue)
+          return Number.isFinite(amount) && amount > 0
+        }) ??
+        matchingItems[0] ??
+        null
+      )
+    }
+
+    const moneyTakeItem = findMoneyItem(STORAGE_MONEY_TAKE_ID)
+    const moneyDepositItem = findMoneyItem(STORAGE_MONEY_DEPOSIT_ID)
+
+    session.buyerItems = session.buyerItems.filter(
+      (item) => !(item?.type === "money" && [STORAGE_MONEY_TAKE_ID, STORAGE_MONEY_DEPOSIT_ID].includes(item?.id))
+    )
+    session.sellerItems = session.sellerItems.filter(
+      (item) => !(item?.type === "money" && [STORAGE_MONEY_TAKE_ID, STORAGE_MONEY_DEPOSIT_ID].includes(item?.id))
+    )
+
+    if (moneyDepositItem) {
+      recalculateSessionItemTotal(moneyDepositItem)
+      session.buyerItems.push(moneyDepositItem)
+    }
+    if (moneyTakeItem) {
+      recalculateSessionItemTotal(moneyTakeItem)
+      session.sellerItems.push(moneyTakeItem)
+    }
+
+    const refCurrency = getReferenceCurrency()
+    const refCurrencyLabel = String(refCurrency?.abbreviation ?? refCurrency?.id ?? "").trim()
+    for (const item of [...session.buyerItems, ...session.sellerItems]) {
+      if (!item || item.type === "money") continue
+      item.unitPriceValue = 0
+      item.priceCurrency = String(item.priceCurrency ?? "").trim() || refCurrencyLabel
+      recalculateSessionItemTotal(item)
+    }
+
+    return session
+  }
   #getProductAvailability(productId, options = {}) {
-    return buildProductAvailabilityMap(getCatalogProducts(this.actor), this.#getSessions(), options).get(productId) ?? null
+    return (
+      buildProductAvailabilityMap(getCatalogProducts(this.actor), this.#getSessions(), options).get(productId) ?? null
+    )
   }
   #getProductSessionItemQuantityLimit(item, session) {
     if (!item || item.type !== "product") return null
@@ -612,9 +1066,107 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!availability?.hasLimitedQuantity) return null
     return availability.availableQuantity
   }
-  #canAcceptSessionQuantity(item, quantity) {
+  #getStorageSessionItemClaimState(item, session, requestedQuantity) {
+    // MTT storage — limite temporaire de récupération par acteur want
+    if (!this.#isStorageEntity() || item?.type !== "product" || !session) {
+      return {
+        applies: false,
+        canAccept: true,
+        reasonKey: "",
+        limit: null,
+        acceptedQuantity: requestedQuantity
+      }
+    }
+
+    const product = getCatalogProduct(this.actor, item.sourceId)
+    if (!product) {
+      return {
+        applies: false,
+        canAccept: true,
+        reasonKey: "",
+        limit: null,
+        acceptedQuantity: requestedQuantity
+      }
+    }
+
+    const availability = this.#getProductAvailability(product.id)
+    const storageIntentState = buildStorageItemIntentState({
+      rawTags: product.rawStorageTags ?? {},
+      sessions: this.#getSessions(),
+      activeSession: session,
+      activeSessionActorUuid: session.actorUuid ?? "",
+      availableQuantity: availability?.availableQuantity ?? 0,
+      product
+    })
+    const reasonKey = getStorageClaimQuantityBlockReasonKey(storageIntentState, requestedQuantity)
+    const limit = storageIntentState.claimLimitPerWantActor
+    const requested = Number(requestedQuantity)
+    const acceptedQuantity =
+      storageIntentState.hasWant && Number.isFinite(requested) && Number.isFinite(limit)
+        ? Math.min(requested, limit)
+        : requestedQuantity
+
+    return {
+      applies: storageIntentState.hasWant || storageIntentState.activeActorTag === "ignore",
+      canAccept: !reasonKey || game.user?.isGM === true,
+      reasonKey,
+      limit,
+      acceptedQuantity,
+      intentState: storageIntentState
+    }
+  }
+  #getStorageSessionClaimLimitErrors(session) {
+    // MTT storage — sécurité finale avant transfert réel
+    if (!this.#isStorageEntity() || game.user?.isGM === true || !session) return []
+
+    const errors = []
+    const checkedProductIds = new Set()
+    for (const item of session.buyerItems ?? []) {
+      if (item?.type !== "product" || checkedProductIds.has(item.sourceId)) continue
+
+      checkedProductIds.add(item.sourceId)
+      const product = getCatalogProduct(this.actor, item.sourceId)
+      if (product?.isBlocked) {
+        errors.push(game.i18n.localize("mtt.storage.intent.block.blockedItem"))
+        continue
+      }
+
+      const totalClaimQuantity = (session.buyerItems ?? []).reduce((total, entry) => {
+        if (entry?.type !== "product" || entry.sourceId !== item.sourceId) return total
+
+        const quantity = Number(entry.quantity)
+        return Number.isFinite(quantity) && quantity > 0 ? total + quantity : total
+      }, 0)
+      const storageClaimState = this.#getStorageSessionItemClaimState(item, session, totalClaimQuantity)
+      if (!storageClaimState.applies || storageClaimState.canAccept) continue
+
+      errors.push(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
+    }
+
+    return [...new Set(errors)]
+  }
+  #canAcceptSessionQuantity(item, quantity, { session = null, side = "" } = {}) {
+    if (side === "buyer") {
+      const requestedQuantity = Number(quantity)
+      const currentQuantity = Number(item?.quantity ?? 0)
+      const storageClaimState = this.#getStorageSessionItemClaimState(
+        item,
+        session ?? this.#getActiveSession(),
+        quantity
+      )
+      if (
+        storageClaimState.applies &&
+        Number.isFinite(requestedQuantity) &&
+        Number.isFinite(currentQuantity) &&
+        requestedQuantity > currentQuantity &&
+        !storageClaimState.canAccept
+      ) {
+        return false
+      }
+    }
+
     if (item?.type === "product") {
-      const session = this.#getActiveSession()
+      session = session ?? this.#getActiveSession()
       const quantityLimit = this.#getProductSessionItemQuantityLimit(item, session)
       const requestedQuantity = Number(quantity)
 
@@ -638,10 +1190,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   #prepareAccessClients() {
+    // MTT base — rail d’acteurs autorisés partagé par les types MTT
     return prepareAccessClients(this.actor, {
       selectedSession: this.#getSelectedSession(),
       selectedClientActorUuid: this.#selectedClientActorUuid,
-      isEditable: this.isEditable
+      isEditable: this.isEditable,
+      accessClients: this.#getAccessEntries(),
+      sessions: this.#getSessions()
     })
   }
 
@@ -649,18 +1204,35 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const accessClients = this.#prepareAccessClients()
     const session = this.#getActiveSession()
     const buyerActor = session?.actorUuid ? game.actors.find((actor) => actor.uuid === session.actorUuid) : null
-    return prepareSessionContext(this.actor, {
+    const sessionContext = prepareSessionContext(this.actor, {
       session,
       selectedClient: this.#getSelectedClient(),
       sessionCheckResult: this.#sessionCheckResult,
       accessClients,
       buyerActor
     })
+    return {
+      ...sessionContext,
+      ...this.#prepareActiveSessionAccess(session)
+    }
   }
 
   async #checkSessionTransaction(session) {
-    const preparedSession = this.#prepareSessionContext()
-    return checkSessionTransaction(this.actor, session, preparedSession)
+    const isStorage = this.#isStorageEntity()
+    if (isStorage) this.#normalizeStorageExchangeSession(session)
+    const preparedSession = isStorage ? this.#prepareStorageSessionContext() : this.#prepareSessionContext()
+    return checkSessionTransaction(
+      this.actor,
+      session,
+      preparedSession,
+      isStorage
+        ? {
+            accessClients: this.#prepareAccessClients(),
+            includeCurrencyTransfers: true,
+            skipCommercialDeliveryText: true
+          }
+        : {}
+    )
   }
 
   // ─── Session field change handler ─────────────────────────────────────────
@@ -668,10 +1240,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   async #onSessionFieldChange(event) {
     const input = event.currentTarget
     const field = input.dataset.mttSessionField
-    const session = this.#getActiveSession()
+    const session = this.#getActiveSessionForInteraction()
     if (!session) return
-
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     if (field === "label") {
       const label = input.value?.trim() ?? ""
@@ -682,6 +1252,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
 
       session.label = label
+      await this.#saveSession(session)
+      this.render()
+      return
+    }
+
+    if (field === "storageMoney") {
+      const side = input.dataset.storageMoneySide
+      if (!["take", "deposit"].includes(side)) return
+
+      const amount = Number(input.value)
+      if (!Number.isFinite(amount) || amount < 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidWalletAmount"))
+        input.value = 0
+        this.#setStorageSessionMoneyValue(session, side, 0)
+        await this.#saveSession(session)
+        this.render()
+        return
+      }
+
+      const roundedAmount = Number(amount.toFixed(2))
+      this.#setStorageSessionMoneyValue(session, side, roundedAmount)
       await this.#saveSession(session)
       this.render()
       return
@@ -709,7 +1300,30 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!this.#canAcceptSessionQuantity(item, requested)) {
+    const storageClaimState =
+      side === "buyer" && requested > Number(item.quantity)
+        ? this.#getStorageSessionItemClaimState(item, session, requested)
+        : null
+    if (storageClaimState?.applies && !storageClaimState.canAccept) {
+      ui.notifications.warn(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
+      const acceptedQuantity = Number(storageClaimState.acceptedQuantity)
+      if (
+        storageClaimState.reasonKey === "mtt.storage.intent.block.claimLimitReached" &&
+        Number.isFinite(acceptedQuantity) &&
+        acceptedQuantity > 0 &&
+        acceptedQuantity !== Number(item.quantity)
+      ) {
+        this.#setSessionItemQuantity(item, acceptedQuantity)
+        await this.#saveSession(session)
+        this.render()
+        return
+      }
+
+      input.value = item.quantity
+      return
+    }
+
+    if (!this.#canAcceptSessionQuantity(item, requested, { session, side })) {
       ui.notifications.warn(
         game.i18n.localize(
           side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity"
@@ -780,7 +1394,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #onProductDragStart(event) {
     const target = event.currentTarget
     const productId = target.dataset.mttProductId
-    if (!productId || !this.isEditable) return
+    if (!productId || !this.#canDragProductToSeller()) return
 
     const product = getCatalogProduct(this.actor, productId)
     const sourceCategory = product?.category ?? ""
@@ -789,7 +1403,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       "application/json",
       JSON.stringify({ type: "mtt.product", itemId: productId, actorUuid: this.actor.uuid, sourceCategory })
     )
-    event.dataTransfer.effectAllowed = "move"
+    event.dataTransfer.effectAllowed = "copyMove"
   }
 
   #onCategoryDragOver(event) {
@@ -875,7 +1489,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Session seller drag/drop ─────────────────────────────────────────────
 
   #onSessionSellerDragOver(event) {
-    if (!this.#requireMerchantPermission("canInteractWithSession", { notify: false })) return
+    const activeSession = this.#getActiveSession()
+    if (activeSession && !this.#canInteractWithSession(activeSession, { notify: false })) return
+    if (!activeSession && !this.#requireMerchantPermission("canInteractWithSession", { notify: false })) return
 
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
@@ -885,32 +1501,38 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
     event.stopPropagation()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
+    const activeSession = this.#getActiveSession()
+    if (activeSession && !this.#canInteractWithSession(activeSession)) return
+    if (!activeSession && !this.#requireMerchantPermission("canInteractWithSession")) return
 
-    try {
-      const rawPayload = event.dataTransfer.getData("application/json")
-      if (rawPayload) {
-        const payload = JSON.parse(rawPayload)
-        if (isMerchantSellerDropBlocked(payload, this.actor.uuid)) {
-          ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotGiveMerchantProduct"))
-          return
-        }
-      }
-    } catch {
-      // not a JSON payload, continue
-    }
+    if (!this.#isStorageEntity() && !this.#requireSelectedSessionForItemAddition()) return
 
-    if (!this.#requireSelectedSessionForItemAddition()) return
-
-    const item = await this.#getDroppedItemDocument(event)
-    if (!item) {
+    const droppedItem = await this.#getDroppedItemDocument(event)
+    if (!droppedItem) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyItemsCanBeSold"))
       return
     }
 
-    // Refuse items belonging to the merchant actor
-    if (item.parent?.uuid === this.actor.uuid || item.parent?.id === this.actor.id) {
-      ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotGiveMerchantProduct"))
+    if (this.#isStorageEntity()) {
+      const session = await this.#getOrCreateStorageSessionForAddingItem()
+      if (!session) return
+
+      if (session.actorUuid && droppedItem.sourceActor?.uuid !== session.actorUuid) {
+        ui.notifications.warn(game.i18n.localize("mtt.storage.session.dropSelectedActorOnly"))
+        return
+      }
+
+      const sellerData = prepareSellerItemDropData(this.actor, droppedItem, { buyPercent: 100 })
+      const sessionItem = await this.#addSessionSellerItem({
+        ...sellerData,
+        quantity: 1,
+        unitPriceValue: 0,
+        priceCurrency: "",
+        sourceLabel: game.i18n.localize("mtt.storage.session.item.actor")
+      })
+      if (!sessionItem) return
+
+      this.render()
       return
     }
 
@@ -921,7 +1543,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     const rates = this.#getEffectiveRatesForSession(session)
-    const sellerData = prepareSellerItemDropData(this.actor, item, { buyPercent: rates.itemBuyPercent })
+    const sellerData = prepareSellerItemDropData(this.actor, droppedItem, { buyPercent: rates.itemBuyPercent })
     const dialogData = await this.#openSellerItemDialog({
       ...sellerData,
       availableQuantity: sellerData.availableQuantity
@@ -955,6 +1577,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         this.#createNegotiation({
           side: "seller",
           type: "item",
+          sourceKind: sellerData.sourceKind,
           sourceUuid: sellerData.sourceUuid,
           sourceActorUuid: sellerData.sourceActorUuid,
           sourceId: sellerData.sourceId,
@@ -986,7 +1609,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   // ─── Client drag/drop and context menu ───────────────────────────────────
 
   #onClientDragOver(event) {
-    if (!this.#requireMerchantPermission("canAddActorToMerchantRail", { notify: false })) return
+    if (!this.#canModifyAccessRail({ notify: false })) return
 
     event.preventDefault()
     event.dataTransfer.dropEffect = "copy"
@@ -996,13 +1619,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
     event.stopPropagation()
 
-    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
-
     const actor = await this.#getDroppedActorDocument(event)
     if (!actor) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.onlyActorsCanBeClients"))
       return
     }
+
+    if (!this.#canModifyAccessRail()) return
 
     await this.#upsertAccessClient(buildAccessClientFromActor(actor, { isAuthorized: true }))
     this.render()
@@ -1100,8 +1723,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       await this.#removeAccessClient(client)
     })
 
-    menu.append(openActor, customRates)
-    if (resetCustomRates) menu.append(resetCustomRates)
+    menu.append(openActor)
+    if (!this.#isStorageEntity()) {
+      menu.append(customRates)
+      if (resetCustomRates) menu.append(resetCustomRates)
+    }
     menu.append(removeAuthorization, removeActor)
     applicationElement.append(menu)
 
@@ -1144,6 +1770,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         hasSecrets: productHasSecretInfo(product),
         requiresApproval: Boolean(product.requiresApproval),
         isObserverOwnership: product.ownershipLevel === CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
+        isBlocked: Boolean(product.isBlocked),
+        hasWarningGM: Boolean(product.hasWarningGM),
         productId: product.id,
         data: product
       }
@@ -1183,28 +1811,57 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     menu.style.top = `${event.clientY}px`
     menu.setAttribute("aria-label", game.i18n.localize("mtt.catalog.context.title"))
 
+    const isStorage = this.#isStorageEntity()
+
     if (catalogItem.kind === "category") {
       const setLimited = this.#createCatalogContextButton({
-        icon: "fa-eye-slash",
+        icon: "fa-file-slash",
         label: game.i18n.localize("mtt.catalog.context.categorySetProductsLimited"),
         onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED)
       })
       const setObserver = this.#createCatalogContextButton({
-        icon: "fa-eye",
+        icon: "fa-file-plus",
         label: game.i18n.localize("mtt.catalog.context.categorySetProductsObserver"),
         onClick: async () => this.#setCategoryProductsOwnership(catalogItem, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)
       })
-      const requireApproval = this.#createCatalogContextButton({
-        icon: "fa-user-check",
-        label: game.i18n.localize("mtt.catalog.context.categoryRequireApprovalForProducts"),
-        onClick: async () => this.#setCategoryProductsApproval(catalogItem, true)
-      })
-      const removeApproval = this.#createCatalogContextButton({
-        icon: "fa-user-minus",
-        label: game.i18n.localize("mtt.catalog.context.categoryRemoveApprovalForProducts"),
-        onClick: async () => this.#setCategoryProductsApproval(catalogItem, false)
-      })
-      menu.append(setLimited, setObserver, requireApproval, removeApproval)
+      menu.append(setLimited, setObserver)
+
+      if (isStorage) {
+        const setWarningGM = this.#createCatalogContextButton({
+          icon: "fa-triangle-exclamation",
+          label: game.i18n.localize("mtt.catalog.context.categorySetWarningGM"),
+          onClick: async () => this.#setCategoryItemsWarningGM(catalogItem, true)
+        })
+        const removeWarningGM = this.#createCatalogContextButton({
+          icon: "fa-triangle-exclamation",
+          label: game.i18n.localize("mtt.catalog.context.categoryRemoveWarningGM"),
+          onClick: async () => this.#setCategoryItemsWarningGM(catalogItem, false)
+        })
+        const setBlocked = this.#createCatalogContextButton({
+          icon: "fa-lock",
+          label: game.i18n.localize("mtt.catalog.context.categorySetBlocked"),
+          onClick: async () => this.#setCategoryItemsBlocked(catalogItem, true)
+        })
+        const removeBlocked = this.#createCatalogContextButton({
+          icon: "fa-lock-open",
+          label: game.i18n.localize("mtt.catalog.context.categoryRemoveBlocked"),
+          onClick: async () => this.#setCategoryItemsBlocked(catalogItem, false)
+        })
+        menu.append(setWarningGM, removeWarningGM, setBlocked, removeBlocked)
+      } else {
+        const requireApproval = this.#createCatalogContextButton({
+          icon: "fa-user-check",
+          label: game.i18n.localize("mtt.catalog.context.categoryRequireApprovalForProducts"),
+          onClick: async () => this.#setCategoryProductsApproval(catalogItem, true)
+        })
+        const removeApproval = this.#createCatalogContextButton({
+          icon: "fa-user-minus",
+          label: game.i18n.localize("mtt.catalog.context.categoryRemoveApprovalForProducts"),
+          onClick: async () => this.#setCategoryProductsApproval(catalogItem, false)
+        })
+        menu.append(requireApproval, removeApproval)
+      }
+
       applicationElement.append(menu)
       window.setTimeout(() => {
         const closeMenu = (closeEvent) => {
@@ -1216,54 +1873,84 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    const secretInfo = this.#createCatalogContextButton({
-      icon: "fa-mask",
-      label: game.i18n.localize("mtt.catalog.context.secretInfo"),
-      onClick: async () => this.#editCatalogItemSecrets(catalogItem)
-    })
-    menu.append(secretInfo)
-
-    if (catalogItem.hasSecrets) {
-      const deleteSecrets = this.#createCatalogContextButton({
-        icon: "fa-eraser",
-        label: game.i18n.localize("mtt.catalog.context.deleteSecretInfo"),
-        onClick: async () => this.#deleteCatalogItemSecrets(catalogItem)
+    if (isStorage) {
+      if (catalogItem.kind === "product") {
+        const warningGMLabel = catalogItem.hasWarningGM
+          ? game.i18n.localize("mtt.catalog.context.removeWarningGM")
+          : game.i18n.localize("mtt.catalog.context.setWarningGM")
+        const warningGM = this.#createCatalogContextButton({
+          icon: "fa-triangle-exclamation",
+          label: warningGMLabel,
+          onClick: async () => this.#toggleStorageItemWarningGM(catalogItem)
+        })
+        const blockedLabel = catalogItem.isBlocked
+          ? game.i18n.localize("mtt.catalog.context.removeBlocked")
+          : game.i18n.localize("mtt.catalog.context.setBlocked")
+        const blocked = this.#createCatalogContextButton({
+          icon: catalogItem.isBlocked ? "fa-lock-open" : "fa-lock",
+          label: blockedLabel,
+          onClick: async () => this.#toggleStorageItemBlocked(catalogItem)
+        })
+        const ownershipLabel = catalogItem.isObserverOwnership
+          ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
+          : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
+        const ownership = this.#createCatalogContextButton({
+          icon: catalogItem.isObserverOwnership ? "fa-file-slash" : "fa-file-plus",
+          label: ownershipLabel,
+          onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
+        })
+        menu.append(warningGM, blocked, ownership)
+      }
+    } else {
+      const secretInfo = this.#createCatalogContextButton({
+        icon: "fa-mask",
+        label: game.i18n.localize("mtt.catalog.context.secretInfo"),
+        onClick: async () => this.#editCatalogItemSecrets(catalogItem)
       })
-      menu.append(deleteSecrets)
-    }
+      menu.append(secretInfo)
 
-    const approvalLabel = catalogItem.requiresApproval
-      ? game.i18n.localize("mtt.catalog.context.removeApproval")
-      : game.i18n.localize("mtt.catalog.context.requestApproval")
-    const approval = this.#createCatalogContextButton({
-      icon: catalogItem.requiresApproval ? "fa-user-minus" : "fa-user-check",
-      label: approvalLabel,
-      onClick: async () => this.#toggleCatalogItemApproval(catalogItem)
-    })
-    menu.append(approval)
+      if (catalogItem.hasSecrets) {
+        const deleteSecrets = this.#createCatalogContextButton({
+          icon: "fa-eraser",
+          label: game.i18n.localize("mtt.catalog.context.deleteSecretInfo"),
+          onClick: async () => this.#deleteCatalogItemSecrets(catalogItem)
+        })
+        menu.append(deleteSecrets)
+      }
 
-    if (catalogItem.kind === "product") {
-      const ownershipLabel = catalogItem.isObserverOwnership
-        ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
-        : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
-      const ownership = this.#createCatalogContextButton({
-        icon: catalogItem.isObserverOwnership ? "fa-eye-slash" : "fa-eye",
-        label: ownershipLabel,
-        onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
+      const approvalLabel = catalogItem.requiresApproval
+        ? game.i18n.localize("mtt.catalog.context.removeApproval")
+        : game.i18n.localize("mtt.catalog.context.requestApproval")
+      const approval = this.#createCatalogContextButton({
+        icon: catalogItem.requiresApproval ? "fa-user-minus" : "fa-user-check",
+        label: approvalLabel,
+        onClick: async () => this.#toggleCatalogItemApproval(catalogItem)
       })
-      menu.append(ownership)
-    }
+      menu.append(approval)
 
-    const copyLabel =
-      catalogItem.kind === "product"
-        ? game.i18n.localize("mtt.catalog.context.copyProduct")
-        : game.i18n.localize("mtt.catalog.context.copyService")
-    const copy = this.#createCatalogContextButton({
-      icon: "fa-copy",
-      label: copyLabel,
-      onClick: async () => this.#copyCatalogItem(catalogItem)
-    })
-    menu.append(copy)
+      if (catalogItem.kind === "product") {
+        const ownershipLabel = catalogItem.isObserverOwnership
+          ? game.i18n.localize("mtt.catalog.context.switchToLimitedOwnership")
+          : game.i18n.localize("mtt.catalog.context.switchToObserverOwnership")
+        const ownership = this.#createCatalogContextButton({
+          icon: catalogItem.isObserverOwnership ? "fa-file-slash" : "fa-file-plus",
+          label: ownershipLabel,
+          onClick: async () => this.#toggleCatalogProductOwnership(catalogItem)
+        })
+        menu.append(ownership)
+      }
+
+      const copyLabel =
+        catalogItem.kind === "product"
+          ? game.i18n.localize("mtt.catalog.context.copyProduct")
+          : game.i18n.localize("mtt.catalog.context.copyService")
+      const copy = this.#createCatalogContextButton({
+        icon: "fa-copy",
+        label: copyLabel,
+        onClick: async () => this.#copyCatalogItem(catalogItem)
+      })
+      menu.append(copy)
+    }
 
     applicationElement.append(menu)
 
@@ -1483,6 +2170,137 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render()
   }
 
+  // ─── Statuts stockage sur les items ──────────────────────────────────────
+
+  async #toggleStorageItemWarningGM(catalogItem) {
+    if (!this.isEditable || catalogItem.kind !== "product") return
+    const item = this.actor.items.get(catalogItem.productId)
+    if (!item) return
+    this.#saveScrollPositions()
+    await setStorageItemWarningGM(item, !catalogItem.hasWarningGM)
+    this.render()
+  }
+
+  async #toggleStorageItemBlocked(catalogItem) {
+    if (!this.isEditable || catalogItem.kind !== "product") return
+    const item = this.actor.items.get(catalogItem.productId)
+    if (!item) return
+    this.#saveScrollPositions()
+    await setStorageItemBlocked(item, !catalogItem.isBlocked)
+    this.render()
+  }
+
+  async #setCategoryItemsWarningGM(catalogItem, warningGM) {
+    if (!this.isEditable) return
+    const products = getCatalogProducts(this.actor).filter((p) => p.category === catalogItem.categoryValue)
+    if (!products.length) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.noProductsInCategory"))
+      return
+    }
+    this.#saveScrollPositions()
+    for (const product of products) {
+      const item = this.actor.items.get(product.id)
+      if (item) await setStorageItemWarningGM(item, warningGM)
+    }
+    this.render()
+  }
+
+  async #setCategoryItemsBlocked(catalogItem, blocked) {
+    if (!this.isEditable) return
+    const products = getCatalogProducts(this.actor).filter((p) => p.category === catalogItem.categoryValue)
+    if (!products.length) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.noProductsInCategory"))
+      return
+    }
+    this.#saveScrollPositions()
+    for (const product of products) {
+      const item = this.actor.items.get(product.id)
+      if (item) await setStorageItemBlocked(item, blocked)
+    }
+    this.render()
+  }
+
+  // ─── Tags de vote rapides storage ────────────────────────────────────────
+
+  static async #onToggleStorageTag(event, target) {
+    event.preventDefault()
+
+    if (!this.#isStorageEntity()) return
+
+    const activeSession = this.#getActiveSession()
+    if (!this.#canEditStorageTagsForSession(activeSession)) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noEditableSession"))
+      return
+    }
+
+    const voterActorUuid = String(activeSession.actorUuid ?? "").trim()
+    if (!voterActorUuid) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.tags.noActiveActor"))
+      return
+    }
+
+    const productId =
+      target.dataset.itemId ??
+      target.closest("[data-product-id]")?.dataset.productId ??
+      target.closest("[data-item-id]")?.dataset.itemId
+    if (!productId) return
+
+    const tagType = String(target.dataset.tagType ?? "").trim()
+    if (!tagType) return
+
+    const item = this.actor.items.get(productId)
+    if (!item) return
+
+    this.#saveScrollPositions()
+    if (this.#canUserManageCurrentSheet()) {
+      const updatedTags = await toggleStorageItemTag(item, voterActorUuid, tagType)
+      if (updatedTags) {
+        item.updateSource?.({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: updatedTags })
+        await applyStorageIgnoreAutoCategory(this.actor, item, {
+          sessions: this.#getSessions(),
+          activeSessionActorUuid: voterActorUuid
+        })
+        this.render()
+      }
+      return
+    }
+
+    try {
+      const response = await requestStorageTagUpdate(this.actor, {
+        itemId: productId,
+        sessionId: activeSession.id,
+        voterActorUuid,
+        tagType
+      })
+      if (response?.ok && response.itemId && response.updatedTags) {
+        const updatedItem = this.actor.items.get(response.itemId)
+        updatedItem?.updateSource?.({ [`flags.${MTT.ID}.${MTT.FLAGS.STORAGE}.tags`]: response.updatedTags })
+        this.render()
+      }
+    } catch (error) {
+      ui.notifications.warn(error?.message ?? game.i18n.localize("mtt.notifications.sessionSocketRequestDenied"))
+    }
+  }
+
+  static async #onToggleStorageTradeResponsibleActor(event, target) {
+    event.preventDefault()
+
+    if (!this.#isStorageEntity()) return
+    if (!this.isEditable) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+      return
+    }
+
+    const actorUuid = String(target.dataset.actorUuid ?? "").trim()
+    if (!actorUuid) return
+
+    const current = getStorageTradeResponsibleActorUuids(this.actor)
+    const next = current.includes(actorUuid) ? current.filter((uuid) => uuid !== actorUuid) : [...current, actorUuid]
+
+    await setStorageTradeResponsibleActorUuids(this.actor, next)
+    this.render()
+  }
+
   // ─── Dropped document helpers ─────────────────────────────────────────────
 
   async #getDroppedActorDocument(event) {
@@ -1513,24 +2331,71 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #getDroppedItemDocument(event) {
+    try {
+      // MTT base — logique commune de résolution des sources Item classiques et produits MTT.
+      const rawJson = event.dataTransfer?.getData("application/json")
+      const payload = rawJson ? JSON.parse(rawJson) : null
+      if (payload?.type === "mtt.product") {
+        const sourceActor = payload.actorUuid ? await fromUuid(payload.actorUuid) : null
+        if (sourceActor?.documentName !== "Actor") return null
+
+        const itemId = String(payload.itemId ?? payload.productId ?? payload.sourceId ?? payload.id ?? "").trim()
+        const item = itemId ? (sourceActor.items?.get(itemId) ?? null) : null
+        if (item?.documentName !== "Item") return null
+
+        const product = getCatalogProduct(sourceActor, item.id)
+        if (!product && !item.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT)?.enabled) return null
+
+        return {
+          kind: "mttProduct",
+          item,
+          sourceActor,
+          product
+        }
+      }
+    } catch {
+      // Ne pas bloquer les drops Foundry classiques si le JSON MTT est absent ou invalide.
+    }
+
     const dragData = foundry.applications.ux.TextEditor.implementation.getDragEventData(event)
     if (!dragData) return null
 
     try {
       if (dragData.uuid) {
         const document = await fromUuid(dragData.uuid)
-        return document?.documentName === "Item" ? document : null
+        return document?.documentName === "Item"
+          ? {
+              kind: "actorItem",
+              item: document,
+              sourceActor: document.parent?.documentName === "Actor" ? document.parent : null,
+              product: null
+            }
+          : null
       }
 
       if (dragData.pack && dragData.id) {
         const pack = game.packs.get(dragData.pack)
         const document = pack ? await pack.getDocument(dragData.id) : null
-        return document?.documentName === "Item" ? document : null
+        return document?.documentName === "Item"
+          ? {
+              kind: "actorItem",
+              item: document,
+              sourceActor: document.parent?.documentName === "Actor" ? document.parent : null,
+              product: null
+            }
+          : null
       }
 
       if (dragData.type === "Item" && dragData.id) {
         const document = game.items.get(dragData.id) ?? null
-        return document?.documentName === "Item" ? document : null
+        return document?.documentName === "Item"
+          ? {
+              kind: "actorItem",
+              item: document,
+              sourceActor: document.parent?.documentName === "Actor" ? document.parent : null,
+              product: null
+            }
+          : null
       }
     } catch {
       return null
@@ -1570,15 +2435,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onToggleProductCategory(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable) return
-
     const categoryValue = target.dataset.category ?? ""
-    const collapsedCategories = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.collapsedCategories ?? {})
-    collapsedCategories[categoryValue] = !collapsedCategories[categoryValue]
+    const isCollapsed = this.#localProductCategoryCollapseState.get(categoryValue) === true
+    this.#localProductCategoryCollapseState.set(categoryValue, !isCollapsed)
 
     this.#saveScrollPositions()
-    await updateMerchantData(this.actor, { catalog: { collapsedCategories } })
-
     this.render()
   }
 
@@ -1691,10 +2552,67 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return actor.testUserPermission(game.user, "OWNER")
   }
 
+  #isStorageEntity() {
+    return getMTTEntityType(this.actor) === MTT.ENTITY_TYPES.STORAGE
+  }
+
+  #normalizeStorageAccessActor(entry = {}) {
+    const normalized = normalizeAccessClient({
+      ...entry,
+      isAuthorized: entry.isAuthorized ?? true
+    })
+    if (!normalized.actorUuid) return null
+
+    const actor = this.#getClientActor(normalized.actorUuid)
+    if (!actor) return normalized
+
+    return normalizeAccessClient({
+      ...normalized,
+      actorId: actor.id ?? normalized.actorId,
+      actorName: actor.name ?? normalized.actorName,
+      actorImg: actor.img ?? normalized.actorImg,
+      actorType: actor.type ?? normalized.actorType
+    })
+  }
+
+  #getStoredStorageAccessActors() {
+    const actors = getStorageData(this.actor)?.access?.actors ?? []
+    const actorsByUuid = new Map()
+
+    actors.forEach((entry) => {
+      const normalized = this.#normalizeStorageAccessActor(entry)
+      if (!normalized?.actorUuid) return
+      actorsByUuid.set(normalized.actorUuid, normalized)
+    })
+
+    return Array.from(actorsByUuid.values())
+  }
+
+  #getAccessEntries() {
+    // MTT base — adapte uniquement le chemin de données du rail commun
+    if (this.#isStorageEntity()) return this.#getStoredStorageAccessActors()
+    return getStoredAccessClients(this.actor)
+  }
+
+  async #setAccessEntries(entries, changes = {}) {
+    // MTT base — écrit les entrées du rail commun dans le type MTT actif
+    if (this.#isStorageEntity()) {
+      await updateStorageData(this.actor, {
+        ...changes,
+        access: { actors: entries }
+      })
+      return
+    }
+
+    await updateMerchantData(this.actor, {
+      ...changes,
+      access: { clients: entries }
+    })
+  }
+
   #userCanViewSession(session) {
     if (!session) return false
-    const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    return canUserViewClientSession(this.#getClientActor(session.actorUuid), permissions, game.user)
+    return this.#getSessionActorAccess(session).canViewOtherSession
   }
 
   #getPreferredPlayerSession(sessions) {
@@ -1710,16 +2628,22 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #prepareAccessContext() {
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    const canSeeAccessDropZone = permissions.canAddActorToMerchantRail
+    const isStorage = this.#isStorageEntity()
+    const canSeeAccessDropZone = isStorage ? this.isEditable : permissions.canAddActorToMerchantRail
 
     const rawClients = this.#prepareAccessClients()
     const clients = rawClients
       .map((client) => {
         const clientActor = this.#getClientActor(client.actorUuid)
+        const sessionActorAccess = this.#getSessionActorAccess(client.actorUuid)
         const isOwnClientCard = this.#userControlsActor(client.actorUuid)
-        const canSeeCard = canUserViewClientActor(clientActor, permissions, game.user)
-        const canViewSession = canUserViewClientSession(clientActor, permissions, game.user)
-        const canClickCard = canViewSession || (!client.isAuthorized && permissions.canAddActorToMerchantRail)
+        // MTT base — la permission "Voir les autres acteurs du rail" filtre les cards communes.
+        const canSeeCard =
+          this.#canUserManageCurrentSheet() || canUserViewClientActor(clientActor, permissions, game.user)
+        const canClickCard =
+          (client.hasSession && sessionActorAccess.canSelectOtherSession) ||
+          (!client.hasSession && sessionActorAccess.canInteractWithOtherSession) ||
+          (!client.isAuthorized && canSeeAccessDropZone)
         const cardClasses = [
           "mtt-merchant-access-card",
           client.isAuthorized ? "mtt-merchant-access-card-authorized" : "mtt-merchant-access-card-unauthorized",
@@ -1731,7 +2655,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         const sessionBadgeClasses = client.hasSession
           ? `fas ${client.sessionBadgeIcon} mtt-merchant-access-session-badge mtt-merchant-access-session-${client.sessionStatus}`
           : ""
-        return { ...client, isOwnClientCard, canSeeCard, canClickCard, cardClasses, sessionBadgeClasses }
+        return {
+          ...client,
+          ...sessionActorAccess,
+          isOwnClientCard,
+          canSeeCard,
+          canClickCard,
+          cardClasses,
+          sessionBadgeClasses
+        }
       })
       .filter((client) => client.canSeeCard)
 
@@ -1739,6 +2671,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       clients,
       hasClients: clients.length > 0,
       canSeeAccessDropZone,
+      isStorage,
       railAriaLabel: game.i18n.localize("mtt.access.title"),
       dropZoneTooltip: game.i18n.localize("mtt.access.dropTooltip")
     }
@@ -1771,7 +2704,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedClient = normalizeAccessClient(client)
     if (!normalizedClient.actorUuid) return null
 
-    const clients = getStoredAccessClients(this.actor)
+    const clients = this.#getAccessEntries()
     const index = clients.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid)
 
     if (index === -1) {
@@ -1785,9 +2718,22 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       }
     }
 
-    await updateMerchantData(this.actor, { access: { clients } })
+    await this.#setAccessEntries(clients)
 
     return normalizedClient
+  }
+
+  #canModifyAccessRail({ notify = true } = {}) {
+    if (this.#isStorageEntity()) {
+      if (!this.isEditable) {
+        if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+        return false
+      }
+
+      return true
+    }
+
+    return this.#requireMerchantPermission("canAddActorToMerchantRail", { notify })
   }
 
   async #setClientAuthorization(client, isAuthorized, { removeOpenSessions = false } = {}) {
@@ -1797,7 +2743,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     })
     if (!normalizedClient.actorUuid) return
 
-    const clients = getStoredAccessClients(this.actor)
+    const clients = this.#getAccessEntries()
     const clientIndex = clients.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid)
 
     if (clientIndex === -1) {
@@ -1824,7 +2770,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this.#sessionCheckResult = null
     }
 
-    await updateMerchantData(this.actor, changes)
+    await this.#setAccessEntries(clients, changes)
   }
 
   async #removeClientAuthorization(client) {
@@ -1917,17 +2863,27 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return false
 
-    const clients = getStoredAccessClients(this.actor).filter((entry) => entry.actorUuid !== client.actorUuid)
+    const removedActorUuid = String(client.actorUuid ?? "").trim()
+    const clients = this.#getAccessEntries().filter((entry) => entry.actorUuid !== removedActorUuid)
     const removedSessionIds = new Set(openSessions.map((session) => session.id))
     const sessions = this.#getSessions().filter((session) => !removedSessionIds.has(session.id))
     if (removedSessionIds.has(this.#activeSessionId)) this.#activeSessionId = null
-    if (this.#selectedClientActorUuid === client.actorUuid) this.#selectedClientActorUuid = ""
+    if (this.#selectedClientActorUuid === removedActorUuid) this.#selectedClientActorUuid = ""
     this.#sessionCheckResult = null
 
-    await updateMerchantData(this.actor, {
-      access: { clients },
+    const changes = {
       sessions: { entries: sessions }
-    })
+    }
+
+    if (this.#isStorageEntity()) {
+      changes.tradeWithMerchant = {
+        responsibleActorUuids: getStorageTradeResponsibleActorUuids(this.actor).filter(
+          (actorUuid) => actorUuid !== removedActorUuid
+        )
+      }
+    }
+
+    await this.#setAccessEntries(clients, changes)
 
     this.render()
     return true
@@ -1980,7 +2936,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    if (!this.#userCanViewSession(session)) {
+    if (!this.#getSessionActorAccess(session).canSelectOtherSession) {
       this.#activeSessionId = null
       this.#selectedClientActorUuid = ""
       return null
@@ -2002,7 +2958,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    if (!this.#userCanViewSession(session)) {
+    if (!this.#getSessionActorAccess(session).canSelectOtherSession) {
       this.#activeSessionId = null
       this.#selectedClientActorUuid = ""
       ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
@@ -2013,27 +2969,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#selectedClientActorUuid = session.actorUuid ?? ""
     this.#sessionCheckResult = null
     return normalizeSession(session)
-  }
-
-  #findExternalOpenSessionForClient(actorUuid) {
-    const normalizedActorUuid = String(actorUuid ?? "").trim()
-    if (!normalizedActorUuid) return null
-
-    return (
-      game.actors.find((actor) => {
-        if (actor.id === this.actor.id) return false
-        if (!this.#isMerchantActor(actor)) return false
-
-        return (getMerchantData(actor)?.sessions?.entries ?? []).some(
-          (session) =>
-            session.actorUuid === normalizedActorUuid && ["active", "pending", "submitted"].includes(session.status)
-        )
-      }) ?? null
-    )
-  }
-
-  #isMerchantActor(actor) {
-    return isMTTMerchant(actor)
   }
 
   #getActiveSession() {
@@ -2067,7 +3002,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
-    const visibleSessions = sessions.filter((session) => this.#userCanViewSession(session))
+    const visibleSessions = sessions.filter((session) => this.#getSessionActorAccess(session).canSelectOtherSession)
     const activeSession = visibleSessions.find((s) => s.status === "active")
     if (activeSession) {
       this.#activeSessionId = activeSession.id
@@ -2085,13 +3020,38 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return null
   }
 
-  #getOrCreateActiveSession() {
+  async #getOrCreateActiveSession() {
+    if (this.#isStorageEntity()) return this.#getOrCreateStorageSessionForAddingItem()
     return this.#getSessionForAddingItem()
+  }
+
+  async #getOrCreateStorageSessionForAddingItem() {
+    const selectedSession = this.#getSelectedSession()
+    if (selectedSession) {
+      if (!this.#canInteractWithSession(selectedSession)) return null
+      return selectedSession
+    }
+
+    const client = this.#getSelectedClient()
+    if (!client?.actorUuid) {
+      ui.notifications.warn(game.i18n.localize("mtt.storage.session.selectActorBeforeAdding"))
+      return null
+    }
+    if (!this.#getSessionActorAccess(client.actorUuid).canInteractWithOtherSession) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
+      return null
+    }
+
+    return this.#createSessionForClient({
+      ...client,
+      isAuthorized: true
+    })
   }
 
   #getSessionForAddingItem() {
     const selectedSession = this.#getSelectedSession()
     if (selectedSession) {
+      if (!this.#canInteractWithSession(selectedSession)) return null
       const client = this.#getAccessClientForSession(selectedSession)
       if (selectedSession.actorUuid && !client?.isAuthorized) {
         ui.notifications.warn(game.i18n.localize("mtt.access.notAuthorizedForTrade"))
@@ -2112,6 +3072,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   #requireSelectedSessionForItemAddition() {
     return Boolean(this.#getSessionForAddingItem())
+  }
+
+  #getBestSessionForClientActor(actorUuid) {
+    const normalizedActorUuid = String(actorUuid ?? "").trim()
+    if (!normalizedActorUuid) return null
+
+    let sessions = this.#getSessions()
+      .filter((session) => session.actorUuid === normalizedActorUuid)
+      .map((session) => normalizeSession(session))
+    if (sessions.length === 0) return null
+
+    const statusOrder = ["active", "pending", "submitted"]
+    sessions = sessions.filter((session) => statusOrder.includes(session.status))
+    if (sessions.length === 0) return null
+
+    sessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
+    return sessions[0]
   }
 
   // ─── Session quantity helpers ─────────────────────────────────────────────
@@ -2266,23 +3243,36 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
+    const pricesMatchForMerge = (item) => {
+      if (Number(item.unitPriceValue) === 0 && normalizedUnitPrice === 0) return true
+      return item.priceCurrency === normalizedCurrency
+    }
     const existingItem = session.buyerItems.find(
       (item) =>
         item.type === type &&
         item.sourceId === sourceId &&
         item.unitPriceValue === normalizedUnitPrice &&
-        item.priceCurrency === normalizedCurrency &&
+        pricesMatchForMerge(item) &&
         normalizeEffectiveDeliveryQuantityPerLot(item.deliveryQuantityPerLot) === normalizedDeliveryQuantityPerLot
     )
 
     if (existingItem) {
       const existingQuantityLimit =
-        type === "product" ? this.#getProductSessionItemQuantityLimit(existingItem, session) : normalizedAvailableQuantity
+        type === "product"
+          ? this.#getProductSessionItemQuantityLimit(existingItem, session)
+          : normalizedAvailableQuantity
       const hasExistingQuantityLimit = Number.isFinite(existingQuantityLimit) && existingQuantityLimit >= 0
 
       existingItem.availableQuantity = hasExistingQuantityLimit ? existingQuantityLimit : null
       existingItem.hasLimitedQuantity = type === "product" ? hasExistingQuantityLimit : hasLimitedStock
-      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
+      if (
+        !this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, {
+          session,
+          side: "buyer"
+        })
+      ) {
+        return null
+      }
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
       recalculateSessionItemTotal(existingItem)
@@ -2323,6 +3313,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #createNegotiation({
     side,
     type,
+    sourceKind = "",
     sourceId = "",
     sourceUuid = "",
     sourceActorUuid = "",
@@ -2354,6 +3345,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       id: foundry.utils.randomID(),
       side: side === "seller" ? "seller" : "buyer",
       type: ["product", "service", "item"].includes(type) ? type : "product",
+      sourceKind: String(sourceKind ?? "").trim(),
       sourceId: String(sourceId ?? "").trim(),
       sourceUuid: String(sourceUuid ?? "").trim(),
       sourceActorUuid: String(sourceActorUuid ?? "").trim(),
@@ -2402,6 +3394,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   async #addSessionSellerItem({
     type,
+    sourceKind = "",
     sourceUuid,
     sourceActorUuid,
     sourceId,
@@ -2422,6 +3415,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const convertedPrice = convertPriceToReferenceCurrency(unitPriceValue, priceCurrency)
     const normalizedUnitPrice = Number(convertedPrice.value)
     const normalizedCurrency = convertedPrice.currency
+    const normalizedSourceKind = String(sourceKind ?? "").trim()
     const normalizedSourceUuid = String(sourceUuid ?? "").trim()
     const normalizedAvailableQuantity = Number(availableQuantity)
     const hasLimitedStock =
@@ -2436,17 +3430,29 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return null
     }
 
+    const pricesMatchForMerge = (item) => {
+      if (Number(item.unitPriceValue) === 0 && normalizedUnitPrice === 0) return true
+      return item.priceCurrency === normalizedCurrency
+    }
     const existingItem = session.sellerItems.find(
       (item) =>
         (normalizedSourceUuid ? item.sourceUuid === normalizedSourceUuid : item.sourceId === sourceId) &&
         item.unitPriceValue === normalizedUnitPrice &&
-        item.priceCurrency === normalizedCurrency
+        pricesMatchForMerge(item)
     )
 
     if (existingItem) {
+      if (normalizedSourceKind && !existingItem.sourceKind) existingItem.sourceKind = normalizedSourceKind
       existingItem.availableQuantity = hasLimitedStock ? normalizedAvailableQuantity : null
       existingItem.hasLimitedQuantity = hasLimitedStock
-      if (!this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity)) return null
+      if (
+        !this.#canAcceptSessionQuantity(existingItem, existingItem.quantity + normalizedQuantity, {
+          session,
+          side: "seller"
+        })
+      ) {
+        return null
+      }
 
       existingItem.quantity = Number((existingItem.quantity + normalizedQuantity).toFixed(2))
       recalculateSessionItemTotal(existingItem)
@@ -2457,6 +3463,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const sessionItem = {
       id: foundry.utils.randomID(),
       type,
+      sourceKind: normalizedSourceKind,
       sourceUuid: normalizedSourceUuid,
       sourceActorUuid: sourceActorUuid ?? "",
       sourceId,
@@ -2478,28 +3485,24 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return sessionItem
   }
 
-  async #createSessionForClient(client, { skipExternalSessionCheck = false } = {}) {
+  async #createSessionForClient(client) {
     if (!client?.actorUuid || !client.isAuthorized) {
       ui.notifications.warn(game.i18n.localize("mtt.access.notAuthorizedForTrade"))
       return null
     }
 
-    const existingSession = getBestSessionForClient(this.actor, client.actorUuid)
+    const existingSession = this.#getBestSessionForClientActor(client.actorUuid)
     if (existingSession) {
       this.#selectSession(existingSession.id)
       return existingSession
     }
 
-    if (!skipExternalSessionCheck) {
-      const externalMerchant = this.#findExternalOpenSessionForClient(client.actorUuid)
-      if (externalMerchant) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.clientAlreadyTrading"))
-        return null
-      }
-    }
-
     const sessions = this.#getSessions().map((session) => normalizeSession(session))
     const session = buildSessionData(client)
+    if (this.#isStorageEntity()) {
+      this.#setStorageSessionMoneyValue(session, "take", 0)
+      this.#setStorageSessionMoneyValue(session, "deposit", 0)
+    }
     sessions.push(session)
     this.#activeSessionId = session.id
     this.#selectedClientActorUuid = client.actorUuid
@@ -2515,6 +3518,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.#sessionCheckResult = null
 
     const normalizedSession = normalizeSession(session)
+    this.#normalizeStorageExchangeSession(normalizedSession)
     normalizedSession.updatedAt = new Date().toISOString()
     normalizedSession.buyerItems.forEach((item) => recalculateSessionItemTotal(item))
     normalizedSession.sellerItems.forEach((item) => recalculateSessionItemTotal(item))
@@ -2535,8 +3539,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async #updateSessionEntries(sessions) {
+    if (!this.#canUserManageCurrentSheet()) {
+      const currentSessions = new Map(this.#getSessions().map((session) => [session.id, normalizeSession(session)]))
+      const changedSessions = sessions
+        .map((session) => normalizeSession(session))
+        .filter((session) => {
+          const current = currentSessions.get(session.id)
+          return !current || JSON.stringify(current) !== JSON.stringify(session)
+        })
+
+      if (changedSessions.some((session) => !this.#canInteractWithSession(session))) return
+    }
+
+    const sessionEntriesPath = this.#isStorageEntity()
+      ? getStorageFlagPath("sessions.entries")
+      : getMerchantFlagPath("sessions.entries")
     const updateData = {
-      [getMerchantFlagPath("sessions.entries")]: sessions
+      [sessionEntriesPath]: sessions
     }
 
     if (game.user?.isGM) {
@@ -2562,7 +3581,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #canModifyMerchant() {
     if (!this.isEditable) return false
 
-    if (getMerchantSheetLockedState(this.actor)) {
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isLocked = this.#getSheetLockedState(entityType)
+
+    if (isLocked) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.sheetLocked"))
       return false
     }
@@ -2651,11 +3673,69 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onAddProductToSession(event, target) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
     const productId =
       target.closest("[data-product-id]")?.dataset.productId ?? target.closest("[data-item-id]")?.dataset.itemId
     if (!productId) return
+
+    if (getMTTEntityType(this.actor) === MTT.ENTITY_TYPES.STORAGE) {
+      // MTT storage — ajout direct d’un exemplaire à la session d’échange
+      if (!this.#requireMerchantPermission("canInteractWithSession")) return
+
+      const product = getCatalogProduct(this.actor, productId)
+      if (!product) return
+      if (product.isHidden && !this.isEditable) return
+      if (product.isBlocked && game.user?.isGM !== true && !this.isEditable) {
+        ui.notifications.warn(game.i18n.localize("mtt.storage.intent.block.blockedItem"))
+        return
+      }
+
+      const availability = this.#getProductAvailability(product.id)
+      const hasLimitedAvailableQuantity = Boolean(availability?.hasLimitedQuantity)
+      const availableQuantity = hasLimitedAvailableQuantity ? availability.availableQuantity : null
+      const activeSession = this.#getActiveSession()
+
+      const storageIntentState = buildStorageItemIntentState({
+        rawTags: product.rawStorageTags ?? {},
+        sessions: this.#getSessions(),
+        activeSession,
+        activeSessionActorUuid: activeSession?.actorUuid ?? "",
+        availableQuantity: availability?.availableQuantity ?? 0,
+        product
+      })
+      const storageAddIntentBlockState = buildStorageAddIntentBlockState(storageIntentState, {
+        canOverride: game.user?.isGM === true
+      })
+
+      if (storageAddIntentBlockState.isStorageAddBlockedForCurrentUser) {
+        const reasonKey = storageAddIntentBlockState.storageAddBlockReasonKey || "mtt.storage.intent.block.generic"
+        ui.notifications.warn(game.i18n.localize(reasonKey))
+        return
+      }
+
+      if (hasLimitedAvailableQuantity && availableQuantity <= 0) {
+        ui.notifications.warn(game.i18n.localize("mtt.notifications.productUnavailableQuantity"))
+        return
+      }
+
+      const sessionItem = await this.#addSessionBuyerItem({
+        type: "product",
+        sourceId: product.id,
+        name: product.name,
+        img: product.img,
+        quantity: 1,
+        availableQuantity,
+        hasLimitedQuantity: !isUnlimitedQuantity(product.quantity) && availableQuantity !== null,
+        unitPriceValue: 0,
+        priceCurrency: "",
+        sourceLabel: game.i18n.localize("mtt.storage.session.item.storage")
+      })
+      if (!sessionItem) return
+
+      this.render()
+      return
+    }
+
+    if (!this.#requireMerchantPermission("canInteractWithSession")) return
 
     this.render()
     await new Promise((resolve) => requestAnimationFrame(resolve))
@@ -2663,7 +3743,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const product = getCatalogProduct(this.actor, productId)
     if (!product) return
 
-    if (product.isHidden) return
+    if (product.isHidden && !this.isEditable) return
+    if (product.isBlocked && !this.isEditable) return
     if (!this.#requireSelectedSessionForItemAddition()) return
 
     const availability = this.#getProductAvailability(product.id)
@@ -2767,9 +3848,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRemoveSessionItem(event, target) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
-    const session = this.#getActiveSession()
+    const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
@@ -2785,10 +3864,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onSubmitNegotiationOffer(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable && !this.#requireMerchantPermission("canInteractWithSession")) return
-
     const session = this.#getActiveSession()
     if (!session) return
+    if (!this.isEditable && !this.#canInteractWithSession(session)) return
 
     const negotiation = this.#getNegotiationFromEvent(target, session)
     if (!negotiation || negotiation.status !== "active") return
@@ -2820,10 +3898,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onAcceptNegotiationOffer(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable && !this.#requireMerchantPermission("canInteractWithSession")) return
-
     const session = this.#getActiveSession()
     if (!session) return
+    if (!this.isEditable && !this.#canInteractWithSession(session)) return
 
     const negotiation = this.#getNegotiationFromEvent(target, session)
     if (!negotiation || negotiation.status !== "active") return
@@ -2858,10 +3935,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onRefuseNegotiationOffer(event, target) {
     event.preventDefault()
 
-    if (!this.isEditable && !this.#requireMerchantPermission("canInteractWithSession")) return
-
     const session = this.#getActiveSession()
     if (!session) return
+    if (!this.isEditable && !this.#canInteractWithSession(session)) return
 
     const negotiation = this.#getNegotiationFromEvent(target, session)
     if (!negotiation || negotiation.status !== "active") return
@@ -2875,12 +3951,55 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render()
   }
 
+  static async #onIncreaseStorageMoney(event, target) {
+    event.preventDefault()
+
+    const session = this.#getActiveSessionForInteraction()
+    if (!session) return
+
+    const side = target.dataset.storageMoneySide
+    if (!["take", "deposit"].includes(side)) return
+
+    this.#normalizeStorageExchangeSession(session)
+    const items = side === "deposit" ? (session.buyerItems ?? []) : (session.sellerItems ?? [])
+    const itemId = side === "deposit" ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
+    const current = items.find((item) => item.id === itemId && item.type === "money")
+    const currentAmount = Number(current?.unitPriceValue ?? 0)
+    const nextAmount = Number(((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) + 1).toFixed(2))
+
+    this.#setStorageSessionMoneyValue(session, side, nextAmount)
+    await this.#saveSession(session)
+    this.render()
+  }
+
+  static async #onDecreaseStorageMoney(event, target) {
+    event.preventDefault()
+
+    const session = this.#getActiveSessionForInteraction()
+    if (!session) return
+
+    const side = target.dataset.storageMoneySide
+    if (!["take", "deposit"].includes(side)) return
+
+    this.#normalizeStorageExchangeSession(session)
+    const items = side === "deposit" ? (session.buyerItems ?? []) : (session.sellerItems ?? [])
+    const itemId = side === "deposit" ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
+    const current = items.find((item) => item.id === itemId && item.type === "money")
+    const currentAmount = Number(current?.unitPriceValue ?? 0)
+    const nextAmount = Math.max(
+      0,
+      Number(((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) - 1).toFixed(2))
+    )
+
+    this.#setStorageSessionMoneyValue(session, side, nextAmount)
+    await this.#saveSession(session)
+    this.render()
+  }
+
   static async #onIncreaseSessionItemQuantity(event, target) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
-    const session = this.#getActiveSession()
+    const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
@@ -2890,7 +4009,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const item = getSessionItemsForSide(session, side).find((it) => it.id === itemId)
     if (!item) return
 
-    if (!this.#canAcceptSessionQuantity(item, item.quantity + 1)) {
+    const storageClaimState =
+      side === "buyer" ? this.#getStorageSessionItemClaimState(item, session, item.quantity + 1) : null
+    if (storageClaimState?.applies && !storageClaimState.canAccept) {
+      ui.notifications.warn(game.i18n.localize(storageClaimState.reasonKey || "mtt.storage.intent.block.generic"))
+      return
+    }
+
+    if (!this.#canAcceptSessionQuantity(item, item.quantity + 1, { session, side })) {
       ui.notifications.warn(
         game.i18n.localize(
           side === "seller" ? "mtt.notifications.notEnoughSellerItemQuantity" : "mtt.notifications.notEnoughQuantity"
@@ -2907,9 +4033,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onDecreaseSessionItemQuantity(event, target) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
-    const session = this.#getActiveSession()
+    const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
     const itemId = target.closest("[data-session-item-id]")?.dataset.sessionItemId
@@ -2935,12 +4059,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   static async #onClearSessionDraft(event) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
-    const session = this.#getActiveSession()
+    const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
-    const hasItems = session.buyerItems.length > 0 || session.sellerItems.length > 0
+    const isStorage = this.#isStorageEntity()
+    const hasItems = isStorage
+      ? [...(session.buyerItems ?? []), ...(session.sellerItems ?? [])].some((item) => {
+          if (item.type !== "money") return true
+          const amount = Number(item.unitPriceValue)
+          return Number.isFinite(amount) && amount > 0
+        })
+      : session.buyerItems.length > 0 || session.sellerItems.length > 0
     if (!hasItems) return
 
     const content = await this.#renderMttDialogContent({
@@ -2965,8 +4094,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!confirmed) return
 
-    session.buyerItems = []
-    session.sellerItems = []
+    if (isStorage) {
+      session.buyerItems = (session.buyerItems ?? []).filter((item) => item.type === "money")
+      session.sellerItems = (session.sellerItems ?? []).filter((item) => item.type === "money")
+      this.#setStorageSessionMoneyValue(session, "take", 0)
+      this.#setStorageSessionMoneyValue(session, "deposit", 0)
+    } else {
+      session.buyerItems = []
+      session.sellerItems = []
+    }
     session.status = "active"
     await this.#saveSession(session)
 
@@ -2982,26 +4118,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!client) return
 
     if (!client.isAuthorized) {
-      if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
-
-      if (
-        !getBestSessionForClient(this.actor, client.actorUuid) &&
-        this.#findExternalOpenSessionForClient(client.actorUuid)
-      ) {
-        ui.notifications.warn(game.i18n.localize("mtt.notifications.clientAlreadyTrading"))
-        return
-      }
+      if (!this.#canModifyAccessRail()) return
 
       await this.#setClientAuthorization(client, true)
-      const session = await this.#createSessionForClient(
-        {
-          ...client,
-          isAuthorized: true
-        },
-        {
-          skipExternalSessionCheck: true
-        }
-      )
+      const session = await this.#createSessionForClient({
+        ...client,
+        isAuthorized: true
+      })
       if (!session) return
 
       this.render()
@@ -3009,9 +4132,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     this.#selectedClientActorUuid = client.actorUuid
-    const session = getBestSessionForClient(this.actor, client.actorUuid)
+    this.#sessionCheckResult = null
+    const sessionActorAccess = this.#getSessionActorAccess(client.actorUuid)
+    const session = this.#getBestSessionForClientActor(client.actorUuid)
     if (session) {
-      if (!this.#userCanViewSession(session)) {
+      if (!sessionActorAccess.canSelectOtherSession) {
         this.#activeSessionId = null
         this.#selectedClientActorUuid = ""
         ui.notifications.warn(game.i18n.localize("mtt.notifications.permissionDenied"))
@@ -3023,7 +4148,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
-    if (!this.#requireMerchantPermission("canAddActorToMerchantRail")) return
+    if (!this.#canModifyAccessRail()) return
 
     const repairedSession = await this.#createSessionForClient(client)
     if (!repairedSession) return
@@ -3041,7 +4166,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!["active", "pending", "submitted", "validated", "refused"].includes(status)) return
     if (["validated", "refused"].includes(status)) {
       if (!this.#requireMerchantPermission("canValidateOrRefuseSessions")) return
-    } else if (!this.#requireMerchantPermission("canInteractWithSession")) {
+    } else if (!this.#canInteractWithSession(session)) {
       return
     }
 
@@ -3070,8 +4195,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const session = this.#getActiveSession()
     if (!session) return
+    if (this.#isStorageEntity()) this.#normalizeStorageExchangeSession(session)
 
-    const preview = await buildExecutionPreview(this.actor, session)
+    const preview = await buildExecutionPreview(
+      this.actor,
+      session,
+      this.#isStorageEntity()
+        ? {
+            accessClients: this.#prepareAccessClients(),
+            includeCurrencyTransfers: true,
+            skipCommercialDeliveryText: true
+          }
+        : {}
+    )
 
     this.#sessionCheckResult = {
       checked: true,
@@ -3098,15 +4234,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     this.render()
-    await openPreviewDialog(preview)
+    await openPreviewDialog(preview, { isStorage: this.#isStorageEntity() })
   }
 
   static async #onSubmitSession(event) {
     event.preventDefault()
 
-    if (!this.#requireMerchantPermission("canInteractWithSession")) return
-
-    const session = this.#getActiveSession()
+    const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
     session.status = "submitted"
@@ -3136,6 +4270,117 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     const session = this.#getActiveSession()
     if (!session) return
+
+    if (this.#isStorageEntity()) {
+      // MTT storage — transfert réel des Items et des lignes money, sans journal commercial
+      this.#normalizeStorageExchangeSession(session)
+      const storageExecutionOptions = {
+        accessClients: this.#prepareAccessClients(),
+        includeCurrencyTransfers: true,
+        skipCommercialDeliveryText: true
+      }
+      const storageClaimErrors = this.#getStorageSessionClaimLimitErrors(session)
+      if (storageClaimErrors.length > 0) {
+        const blockedPreview = {
+          canExecute: false,
+          warnings: [],
+          errors: storageClaimErrors
+        }
+        this.#sessionCheckResult = {
+          checked: true,
+          canProceed: false,
+          infos: [],
+          warnings: [],
+          errors: storageClaimErrors.map((error, i) => ({
+            id: `storage-claim-limit-err-${i}`,
+            level: "error",
+            text: error,
+            icon: "fa-circle-xmark"
+          }))
+        }
+        this.render()
+        await openSessionExecutionErrorsDialog(blockedPreview)
+        return
+      }
+
+      const preview = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
+
+      this.#sessionCheckResult = {
+        checked: true,
+        canProceed: preview.canExecute,
+        infos: [],
+        warnings: preview.warnings.map((w, i) => ({
+          id: `storage-preview-warn-${i}`,
+          level: "warning",
+          text: w,
+          icon: "fa-triangle-exclamation"
+        })),
+        errors: preview.errors.map((e, i) => ({
+          id: `storage-preview-err-${i}`,
+          level: "error",
+          text: e,
+          icon: "fa-circle-xmark"
+        }))
+      }
+
+      if (!preview.canExecute) {
+        this.render()
+        await openSessionExecutionErrorsDialog(preview)
+        return
+      }
+
+      const confirmed = await openSessionValidationDialog(preview, { isStorage: true })
+      if (!confirmed) return
+
+      try {
+        const executionPlan = await buildSessionItemExecutionPlan(this.actor, session, storageExecutionOptions)
+        if (!executionPlan.canExecute) {
+          this.#sessionCheckResult = {
+            checked: true,
+            canProceed: false,
+            infos: [],
+            warnings: executionPlan.warnings.map((w, i) => ({
+              id: `storage-execution-warn-${i}`,
+              level: "warning",
+              text: w,
+              icon: "fa-triangle-exclamation"
+            })),
+            errors: executionPlan.errors.map((e, i) => ({
+              id: `storage-execution-err-${i}`,
+              level: "error",
+              text: e,
+              icon: "fa-circle-xmark"
+            }))
+          }
+          await openSessionExecutionErrorsDialog(executionPlan)
+          this.render()
+          return
+        }
+
+        await executeSessionItemTransfers(this.actor, executionPlan)
+        if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
+          await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan)
+        }
+        clearSessionAfterExecution(session)
+        this.#setStorageSessionMoneyValue(session, "take", 0)
+        this.#setStorageSessionMoneyValue(session, "deposit", 0)
+        await this.#saveSession(session)
+        this.#sessionCheckResult = null
+        this.render()
+      } catch (error) {
+        const failurePreview = {
+          ...preview,
+          canExecute: false,
+          errors: [
+            ...(preview.errors ?? []),
+            error?.message || game.i18n.localize("mtt.sessions.execution.executionErrorTitle")
+          ]
+        }
+        await openSessionExecutionErrorsDialog(failurePreview)
+        this.render()
+      }
+      return
+    }
 
     const preview = await buildSessionItemExecutionPlan(this.actor, session)
 
@@ -3231,6 +4476,19 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const session = this.#getActiveSession()
     if (!session) return
 
+    if (this.#isStorageEntity()) {
+      // MTT storage — refus sans transfert ni journal commercial
+      const confirmed = await openRefuseConfirmDialog()
+      if (!confirmed) return
+
+      clearSessionAfterExecution(session)
+      this.#setStorageSessionMoneyValue(session, "take", 0)
+      this.#setStorageSessionMoneyValue(session, "deposit", 0)
+      await this.#saveSession(session)
+      this.render()
+      return
+    }
+
     const confirmed = await openRefuseConfirmDialog()
     if (!confirmed) return
 
@@ -3259,15 +4517,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.isEditable) return
 
-    const isLocked = getMerchantSheetLockedState(this.actor)
+    // MTT base — verrouillage de feuille selon le type MTT actif
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const isLocked = this.#getSheetLockedState(entityType)
 
-    if (!isLocked) {
+    if (!isLocked && !isStorage) {
       await this.#saveMerchantTextFieldsFromDom()
       await this.#saveMerchantConfigFieldsFromDom()
     }
 
-    // Use updateSource to avoid triggering the full actor data-preparation cycle for actors converted by flags.
-    this.actor.updateSource({ [getMerchantFlagPath("sheet.isLocked")]: !isLocked })
+    if (isStorage) {
+      this.#storageSheetLocked = !isLocked
+    } else {
+      // Use updateSource to avoid triggering the full actor data-preparation cycle for actors converted by flags.
+      const lockPath = getMerchantFlagPath("sheet.isLocked")
+      this.actor.updateSource({ [lockPath]: !isLocked })
+    }
     await this.render({ force: true })
   }
 
@@ -3301,14 +4567,22 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (!this.#canModifyMerchant()) return
 
-    const current = getMerchantData(this.actor)?.shop?.img ?? "icons/svg/hanging-sign.svg"
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const current = isStorage
+      ? (getStorageData(this.actor)?.storage?.img ?? this.actor.img ?? "icons/svg/chest.svg")
+      : (getMerchantData(this.actor)?.shop?.img ?? "icons/svg/hanging-sign.svg")
     const FilePickerApp = foundry.applications.apps.FilePicker.implementation
     const picker = new FilePickerApp({
       type: "image",
       current,
       callback: async (path) => {
         if (!path) return
-        await updateMerchantData(this.actor, { shop: { img: path } })
+        if (isStorage) {
+          await updateStorageData(this.actor, { storage: { img: path } })
+        } else {
+          await updateMerchantData(this.actor, { shop: { img: path } })
+        }
         this.render()
       }
     })
@@ -3371,7 +4645,10 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!tab || tab === "sessions") return
 
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
-    if (tab === "configuration" && !permissions.canViewConfigTab) return
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    if (tab === "services" && isStorage) return
+    if (tab === "configuration" && !isStorage && !permissions.canViewConfigTab) return
 
     this.#activeTab = tab
     this.render()
@@ -3515,6 +4792,15 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
     if (field === "shop.name") {
       const name = target.value?.trim() ?? ""
+      const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+
+      if (entityType === MTT.ENTITY_TYPES.STORAGE) {
+        const current = getStorageData(this.actor)?.storage?.name ?? ""
+        if (name === current) return null
+
+        return { [getStorageFlagPath("storage.name")]: name }
+      }
+
       const current = getMerchantData(this.actor)?.shop?.name ?? ""
       if (name === current) return null
 
@@ -3612,16 +4898,25 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const currencyId = target.dataset.mttWalletCurrency
     if (!currencyId) return
 
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const wallet = isStorage ? getStorageData(this.actor)?.wallet : getMerchantData(this.actor)?.wallet
+    const currentCurrencies = wallet?.currencies ?? {}
     const amount = Number(target.value)
 
     if (!Number.isFinite(amount) || amount < 0) {
       ui.notifications.warn(game.i18n.localize("mtt.notifications.invalidWalletAmount"))
-      target.value = getMerchantData(this.actor)?.wallet?.currencies?.[currencyId] ?? 0
+      target.value = currentCurrencies[currencyId] ?? 0
       return
     }
 
-    const currencies = foundry.utils.deepClone(getMerchantData(this.actor)?.wallet?.currencies ?? {})
+    const currencies = foundry.utils.deepClone(currentCurrencies)
     currencies[currencyId] = amount
+
+    if (isStorage) {
+      await updateStorageData(this.actor, { wallet: { currencies } })
+      return
+    }
 
     await updateMerchantData(this.actor, { wallet: { currencies } })
   }

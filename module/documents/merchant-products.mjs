@@ -1,4 +1,5 @@
 import { MTT } from "../config/constants.mjs"
+import { getStorageItemFlags, getStorageItemTags, hasStorageItemTagType } from "./storage-flags.mjs"
 import {
   getConfiguredItemValue,
   parseQuantityValue,
@@ -75,6 +76,9 @@ export function normalizeProductFlags(flags = {}) {
 
 function buildProductContextFromItem(item) {
   const flags = normalizeProductFlags(item.getFlag(MTT.ID, MTT.FLAGS.PRODUCT))
+  const storageFlags = getStorageItemFlags(item)
+  const rawStorageTags = getStorageItemTags(item)
+  const isBlockedByStorageTag = hasStorageItemTagType(rawStorageTags, "blocked")
 
   const priceRef = readItemReferencePrice(item)
   const priceValue = priceRef !== null ? priceRef.value : (getItemPrice(item) ?? 0)
@@ -106,6 +110,10 @@ function buildProductContextFromItem(item) {
     secretDescription: flags.secretDescription,
     isCommerciallyModified: flags.isCommerciallyModified,
     isSecretExpanded: flags.isSecretExpanded,
+    isBlocked: storageFlags.blocked || isBlockedByStorageTag,
+    isBlockedByStorageTag,
+    hasWarningGM: storageFlags.warningGM,
+    rawStorageTags,
     itemData: item.toObject()
   }
 }
@@ -142,6 +150,7 @@ export function buildCatalogProductFromItem(sourceItem, options = {}) {
   const sourceUuid = String(options.sourceUuid ?? sourceItem?.uuid ?? "").trim()
   const categoryValue = String(options.categoryValue ?? "").trim()
   const automaticCategory = options.automaticCategory ?? null
+  const sourceProductFlags = normalizeProductFlags(sourceItem?.getFlag?.(MTT.ID, MTT.FLAGS.PRODUCT) ?? {})
 
   const rawItemData = sourceItem?.toObject ? sourceItem.toObject() : foundry.utils.deepClone(sourceItem ?? {})
   delete rawItemData._id
@@ -172,8 +181,8 @@ export function buildCatalogProductFromItem(sourceItem, options = {}) {
       systemCategoryLabel: automaticCategory?.label ?? "",
       systemCategoryPath: automaticCategory?.path ?? "",
       systemSubcategory: rawSubcategory,
-      ownershipLevel: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER,
-      isHidden: false,
+      ownershipLevel: sourceProductFlags.ownershipLevel,
+      isHidden: sourceProductFlags.isHidden,
       requiresApproval: false,
       hasFreePrice: false,
       minimumPriceValue: 0

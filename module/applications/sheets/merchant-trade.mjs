@@ -2726,7 +2726,15 @@ export async function executeSessionItemTransfers(actor, plan) {
     executionResult.deliveries.push(delivery)
 
     if (transfer.hasLimitedQuantity) {
-      await updateCatalogProduct(actor, transfer.catalogProduct.id, { quantity: transfer.nextQuantity })
+      const actorEntityType = getMTTEntityType(actor)
+      const actorIsShop = actorEntityType === MTT.ENTITY_TYPES.MERCHANT
+      const nextQuantity = Number(transfer.nextQuantity)
+      const shouldHideEmptyShopProduct = actorIsShop && Number.isFinite(nextQuantity) && nextQuantity <= 0
+
+      await updateCatalogProduct(actor, transfer.catalogProduct.id, {
+        quantity: transfer.nextQuantity,
+        ...(shouldHideEmptyShopProduct ? { isHidden: true } : {})
+      })
     }
 
     executionResult.merchantStockUpdates.push({
@@ -2843,9 +2851,19 @@ export async function executeSessionItemTransfers(actor, plan) {
         nextQuantity <= 0 &&
         isGameSystemActor(sourceActor) &&
         game.settings.get(MTT.ID, "deleteEmptySystemActorItems") === true
+      const sourceEntityType = getMTTEntityType(sourceActor)
+      const sourceIsShop = sourceEntityType === MTT.ENTITY_TYPES.MERCHANT
+      const sourceIsMttProduct = isMerchantProductItem(transfer.sourceItem)
+      const shouldHideEmptySourceShopProduct =
+        sourceIsShop && sourceIsMttProduct && Number.isFinite(nextQuantity) && nextQuantity <= 0
 
       if (shouldDeleteSystemActorItem) {
         await sourceActor.deleteEmbeddedDocuments("Item", [transfer.sourceItem.id])
+      } else if (sourceIsShop && sourceIsMttProduct) {
+        await updateCatalogProduct(sourceActor, transfer.sourceItem.id, {
+          quantity: Math.max(0, nextQuantity),
+          ...(shouldHideEmptySourceShopProduct ? { isHidden: true } : {})
+        })
       } else {
         await transfer.sourceItem.update({
           [transfer.quantityPath]: Math.max(0, nextQuantity)

@@ -3241,3 +3241,29 @@ Résultat : des clics répétés sur `Ajouter à la session` pour le même Item 
 **Périmètre** : seuls les acteurs du système de jeu sont concernés. Les boutiques MTT et les stockages MTT ne sont pas modifiés dans cette étape.
 
 ---
+
+## Étape — Stock shop à 0 : conservation et masquage
+
+**Todo**
+
+- [x] Identifier les décréments de produits shop dans `executeSessionItemTransfers`.
+- [x] Masquer les produits du shop quand leur quantité finale arrive à `0`.
+- [x] Conserver les Items embedded du shop au lieu de les supprimer.
+- [x] Réutiliser `updateCatalogProduct` et le flag existant `isHidden`.
+- [x] Conserver la suppression optionnelle des Items des acteurs du système de jeu.
+- [x] Ne pas modifier les règles storage.
+
+**Résumé**
+
+Les produits d'un shop qui arrivent à quantité `0` après validation sont maintenant conservés dans le catalogue et rendus invisibles avec `isHidden: true`.
+
+La règle s'applique aux produits vendus depuis le catalogue du shop (`productTransfers`) et aux produits MTT appartenant à un shop utilisés comme source seller (`sellerTransfers`).
+
+**Non modifié volontairement**
+
+- Aucun produit shop n'est supprimé automatiquement.
+- Aucun changement du setting des acteurs du système de jeu.
+- Aucune règle storage ajoutée.
+- Aucun changement du journal, des templates, des styles ou des langues.
+
+---

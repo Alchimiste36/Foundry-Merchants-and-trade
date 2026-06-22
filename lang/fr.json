@@ -36,6 +36,10 @@
         "name": "Autoriser la fusion étendue des items livrés",
         "hint": "Permet à MTT de fusionner un item acheté avec un item déjà présent sur l’acteur lorsqu’aucune origine MTT fiable commune n’est trouvée, en comparant son nom, son type, son sous-type, son prix initial et sa monnaie. Désactivé par défaut."
       },
+      "deleteEmptySystemActorItems": {
+        "name": "Supprimer les Items à 0 sur les acteurs du système de jeu",
+        "hint": "Si cette option est activée, MTT supprime automatiquement un Item d’un acteur du système de jeu quand sa quantité atteint 0 après une validation de session. Les boutiques et stockages MTT ne sont pas concernés par cette option."
+      },
       "writeDeliveryDescriptionInfo": {
         "name": "Écrire la provenance et les informations secrètes dans la description des objets livrés",
         "hint": "Si cette option est activée, MTT ajoute au début de la description des objets livrés une ligne visible indiquant le marchand et la transaction, ainsi qu’un bloc secret Foundry si le produit avait des informations secrètes. Si elle est désactivée, la description de l’objet livré n’est pas modifiée."

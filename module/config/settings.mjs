@@ -213,6 +213,15 @@ export function registerSettings() {
     default: JSON.stringify(MERCHANT_DEFAULT_PERMISSION_PROFILES)
   })
 
+  game.settings.register(MTT.ID, "deleteEmptySystemActorItems", {
+    name: "mtt.settings.deleteEmptySystemActorItems.name",
+    hint: "mtt.settings.deleteEmptySystemActorItems.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false
+  })
+
   game.settings.registerMenu(MTT.ID, "openConfigWindow", {
     name: "mtt.settings.openConfigWindow.name",
     label: "mtt.settings.openConfigWindow.label",

@@ -36,6 +36,10 @@
         "name": "Allow extended merge of delivered items",
         "hint": "Allows MTT to merge a purchased item with one already on the actor when no reliable common MTT origin is found, by comparing name, type, subtype, base price and currency. Disabled by default."
       },
+      "deleteEmptySystemActorItems": {
+        "name": "Delete 0-quantity Items on game system actors",
+        "hint": "If enabled, MTT automatically deletes an Item from a game system actor when its quantity reaches 0 after a session validation. MTT shops and storages are not affected by this option."
+      },
       "writeDeliveryDescriptionInfo": {
         "name": "Write origin and secret info in delivered item descriptions",
         "hint": "If enabled, MTT adds a visible line at the start of delivered item descriptions indicating the merchant and transaction, along with a Foundry secret block if the product had secret information. If disabled, the delivered item description is not modified."

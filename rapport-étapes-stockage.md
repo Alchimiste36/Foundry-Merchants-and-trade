@@ -3229,3 +3229,15 @@ Résultat : des clics répétés sur `Ajouter à la session` pour le même Item 
 - Le moteur de validation et les transferts d'Items ne sont pas modifiés.
 
 ---
+
+## Étape — Suppression optionnelle des Items à 0 sur les acteurs du système de jeu
+
+**Option Foundry ajoutée** : `deleteEmptySystemActorItems` (`scope: "world"`, `config: true`, `default: false`). Visible dans les options Foundry du module, pas dans la fenêtre de configuration MTT.
+
+**Point de décrément modifié** : boucle `sellerTransfers` dans `executeSessionItemTransfers`, après la livraison côté destination. Si `nextQuantity <= 0`, que la source appartient à un acteur du système de jeu et que l'option est activée, l'Item source est supprimé via `deleteEmbeddedDocuments`. Sinon, la quantité est mise à jour normalement avec `Math.max(0, nextQuantity)`.
+
+**Helper ajouté** : `isGameSystemActor(actor)` — retourne `true` si l'acteur n'est ni un marchand MTT ni un stockage MTT.
+
+**Périmètre** : seuls les acteurs du système de jeu sont concernés. Les boutiques MTT et les stockages MTT ne sont pas modifiés dans cette étape.
+
+---

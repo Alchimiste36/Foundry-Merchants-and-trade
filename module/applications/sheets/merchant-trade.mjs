@@ -2671,6 +2671,12 @@ export async function buildSessionItemExecutionPlan(actor, session, options = {}
   }
 }
 
+function isGameSystemActor(actor) {
+  if (!actor || actor.documentName !== "Actor") return false
+  const entityType = getMTTEntityType(actor)
+  return ![MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(entityType)
+}
+
 export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"))
@@ -2830,9 +2836,21 @@ export async function executeSessionItemTransfers(actor, plan) {
     }
 
     if (transfer.hasLimitedQuantity) {
-      await transfer.sourceItem.update({
-        [transfer.quantityPath]: transfer.nextQuantity
-      })
+      const nextQuantity = Number(transfer.nextQuantity)
+      const sourceActor = transfer.sourceItem?.parent?.documentName === "Actor" ? transfer.sourceItem.parent : null
+      const shouldDeleteSystemActorItem =
+        Number.isFinite(nextQuantity) &&
+        nextQuantity <= 0 &&
+        isGameSystemActor(sourceActor) &&
+        game.settings.get(MTT.ID, "deleteEmptySystemActorItems") === true
+
+      if (shouldDeleteSystemActorItem) {
+        await sourceActor.deleteEmbeddedDocuments("Item", [transfer.sourceItem.id])
+      } else {
+        await transfer.sourceItem.update({
+          [transfer.quantityPath]: Math.max(0, nextQuantity)
+        })
+      }
     }
   }
 

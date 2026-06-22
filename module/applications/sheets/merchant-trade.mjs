@@ -37,6 +37,7 @@ import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../
 import {
   getCatalogProduct,
   updateCatalogProduct,
+  removeCatalogProduct,
   addCatalogProduct,
   buildCatalogProductFromItem,
   isMerchantProductItem,
@@ -2677,6 +2678,24 @@ function isGameSystemActor(actor) {
   return ![MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(entityType)
 }
 
+async function finalizeMttProductQuantity(actor, productId, nextQuantity, { hideWhenEmpty = false } = {}) {
+  const normalizedNextQuantity = Number(nextQuantity)
+  const quantity = Number.isFinite(normalizedNextQuantity) ? Math.max(0, normalizedNextQuantity) : 0
+  const isEmpty = quantity <= 0
+  const entityType = getMTTEntityType(actor)
+
+  if (entityType === MTT.ENTITY_TYPES.STORAGE && isEmpty) {
+    await removeCatalogProduct(actor, productId)
+    return
+  }
+
+  const changes = { quantity }
+  if (entityType === MTT.ENTITY_TYPES.MERCHANT && isEmpty && hideWhenEmpty) {
+    changes.isHidden = true
+  }
+  await updateCatalogProduct(actor, productId, changes)
+}
+
 export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"))
@@ -2709,6 +2728,13 @@ export async function executeSessionItemTransfers(actor, plan) {
     throw new Error(deliveryPreflightErrors.join(" "))
   }
 
+  const warningGMTransfers = isMTTStorage(actor)
+    ? plan.operations.productTransfers.filter((t) => {
+        const item = actor.items.get(t.catalogProduct.id)
+        return item ? Boolean(getStorageItemFlags(item).warningGM) : false
+      })
+    : []
+
   for (const transfer of plan.operations.productTransfers) {
     const delivery = clientIsMtt
       ? await deliverPurchasedProductToMttDestination(clientActor, transfer)
@@ -2726,15 +2752,7 @@ export async function executeSessionItemTransfers(actor, plan) {
     executionResult.deliveries.push(delivery)
 
     if (transfer.hasLimitedQuantity) {
-      const actorEntityType = getMTTEntityType(actor)
-      const actorIsShop = actorEntityType === MTT.ENTITY_TYPES.MERCHANT
-      const nextQuantity = Number(transfer.nextQuantity)
-      const shouldHideEmptyShopProduct = actorIsShop && Number.isFinite(nextQuantity) && nextQuantity <= 0
-
-      await updateCatalogProduct(actor, transfer.catalogProduct.id, {
-        quantity: transfer.nextQuantity,
-        ...(shouldHideEmptyShopProduct ? { isHidden: true } : {})
-      })
+      await finalizeMttProductQuantity(actor, transfer.catalogProduct.id, transfer.nextQuantity, { hideWhenEmpty: true })
     }
 
     executionResult.merchantStockUpdates.push({
@@ -2746,22 +2764,16 @@ export async function executeSessionItemTransfers(actor, plan) {
     })
   }
 
-  if (isMTTStorage(actor)) {
-    for (const transfer of plan.operations.productTransfers) {
-      const item = actor.items.get(transfer.catalogProduct.id)
-      if (!item) continue
-      const storageFlags = getStorageItemFlags(item)
-      if (!storageFlags.warningGM) continue
-      await ChatMessage.create({
-        content: game.i18n.format("mtt.storage.statuses.warningGM.chatMessage", {
-          itemName: transfer.catalogProduct.name,
-          storageName: actor.name,
-          clientName: clientActor.name
-        }),
-        whisper: ChatMessage.getWhisperRecipients("GM"),
-        speaker: { alias: game.i18n.localize("mtt.storage.statuses.warningGM.speaker") }
-      })
-    }
+  for (const transfer of warningGMTransfers) {
+    await ChatMessage.create({
+      content: game.i18n.format("mtt.storage.statuses.warningGM.chatMessage", {
+        itemName: transfer.catalogProduct.name,
+        storageName: actor.name,
+        clientName: clientActor.name
+      }),
+      whisper: ChatMessage.getWhisperRecipients("GM"),
+      speaker: { alias: game.i18n.localize("mtt.storage.statuses.warningGM.speaker") }
+    })
   }
 
   if (plan.operations.serviceTransfers.length > 0) {
@@ -2851,19 +2863,11 @@ export async function executeSessionItemTransfers(actor, plan) {
         nextQuantity <= 0 &&
         isGameSystemActor(sourceActor) &&
         game.settings.get(MTT.ID, "deleteEmptySystemActorItems") === true
-      const sourceEntityType = getMTTEntityType(sourceActor)
-      const sourceIsShop = sourceEntityType === MTT.ENTITY_TYPES.MERCHANT
-      const sourceIsMttProduct = isMerchantProductItem(transfer.sourceItem)
-      const shouldHideEmptySourceShopProduct =
-        sourceIsShop && sourceIsMttProduct && Number.isFinite(nextQuantity) && nextQuantity <= 0
 
       if (shouldDeleteSystemActorItem) {
         await sourceActor.deleteEmbeddedDocuments("Item", [transfer.sourceItem.id])
-      } else if (sourceIsShop && sourceIsMttProduct) {
-        await updateCatalogProduct(sourceActor, transfer.sourceItem.id, {
-          quantity: Math.max(0, nextQuantity),
-          ...(shouldHideEmptySourceShopProduct ? { isHidden: true } : {})
-        })
+      } else if (sourceActor && isMerchantProductItem(transfer.sourceItem)) {
+        await finalizeMttProductQuantity(sourceActor, transfer.sourceItem.id, nextQuantity, { hideWhenEmpty: true })
       } else {
         await transfer.sourceItem.update({
           [transfer.quantityPath]: Math.max(0, nextQuantity)

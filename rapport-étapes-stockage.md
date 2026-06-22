@@ -3267,3 +3267,31 @@ La règle s'applique aux produits vendus depuis le catalogue du shop (`productTr
 - Aucun changement du journal, des templates, des styles ou des langues.
 
 ---
+
+## Étape — Suppression des Items à 0 sur les stockages MTT
+
+**Todo**
+
+- [x] Réutiliser le helper existant de suppression catalogue.
+- [x] Supprimer une ligne storage quand sa quantité persistée arrive à 0 après validation.
+- [x] Conserver les règles des acteurs du système de jeu.
+- [x] Conserver les règles shop : pas de suppression, masquage éventuel.
+- [x] Adapter les deux décréments possibles : source feuille MTT et source sellerItem MTT.
+- [x] Ne pas supprimer pendant les calculs temporaires de session.
+
+**Résumé**
+
+Les stockages MTT suppriment maintenant réellement une ligne produit quand sa quantité finale validée atteint 0. Les shops conservent leurs lignes à 0 selon la règle déjà en place, et les acteurs du système de jeu conservent leur option dédiée.
+
+Le helper `finalizeMttProductQuantity(actor, productId, nextQuantity, { hideWhenEmpty })` centralise la logique : suppression pour storage vide, masquage optionnel pour shop vide, mise à jour simple sinon. Les `warningGMTransfers` sont pré-capturés avant toute suppression pour garantir l'envoi des notifications storage.
+
+**Non modifié volontairement**
+
+- Aucun changement HBS.
+- Aucun changement CSS.
+- Aucune nouvelle option de module.
+- Aucun helper storage parallèle.
+- Aucun changement de journal.
+- Aucun changement des calculs temporaires de disponibilité.
+
+---

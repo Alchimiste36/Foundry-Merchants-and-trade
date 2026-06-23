@@ -11,6 +11,12 @@
 .mtt-merchant-window {
   overflow: visible;
   min-width: 650px;
+
+  .window-content {
+    padding: 0;
+    background: var(--mtt-bg-main);
+    color: var(--mtt-text);
+  }
 }
 
 .mtt-merchant-sheet {
@@ -47,7 +53,7 @@
   background: var(--mtt-bg-panel);
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.5rem;
-  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.24);
+  box-shadow: var(--mtt-panel-shadow);
 }
 
 /* ─── En-tête ─────────────────────────────────────────────────────────────── */
@@ -398,6 +404,7 @@
 
 .mtt-merchant-field-input,
 .mtt-merchant-product-name-input,
+.mtt-merchant-product-lot-quantity-input,
 .mtt-merchant-product-quantity-input,
 .mtt-merchant-product-price-value-input,
 .mtt-merchant-product-price-currency-input,
@@ -448,6 +455,7 @@
 
 .mtt-merchant-field-input:focus,
 .mtt-merchant-product-name-input:focus,
+.mtt-merchant-product-lot-quantity-input:focus,
 .mtt-merchant-product-quantity-input:focus,
 .mtt-merchant-product-price-value-input:focus,
 .mtt-merchant-product-price-currency-input:focus,

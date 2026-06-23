@@ -279,7 +279,7 @@
                               {{#if item.hasFreePrice}}
                                 <label class="mtt-merchant-product-price-field">
                                   <input
-                                    class="mtt-merchant-product-price-value"
+                                    class="mtt-merchant-product-price-value-input"
                                     type="number"
                                     min="0"
                                     step="1"
@@ -290,7 +290,7 @@
                               {{else}}
                                 <label class="mtt-merchant-product-price-field">
                                   <input
-                                    class="mtt-merchant-product-price-value"
+                                    class="mtt-merchant-product-price-value-input"
                                     type="number"
                                     min="0"
                                     step="1"
@@ -301,7 +301,7 @@
                                 </label>
                               {{/if}}
                               <select
-                                class="mtt-merchant-product-price-currency"
+                                class="mtt-merchant-product-price-currency-input"
                                 data-mtt-product-field="priceCurrency"
                               >
                                 {{#each @root.mtt.currencyOptions as |opt|}}

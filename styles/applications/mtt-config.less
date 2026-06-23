@@ -4,6 +4,7 @@
     overflow-y: auto;
     background: var(--mtt-bg-main);
     color: var(--mtt-text);
+    scrollbar-color: var(--mtt-border) var(--mtt-bg-main);
   }
 }
 
@@ -28,7 +29,7 @@
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.5rem;
   background: var(--mtt-bg-panel);
-  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.18);
+  box-shadow: var(--mtt-panel-shadow);
 }
 
 .mtt-config-section-title {
@@ -132,7 +133,7 @@
 }
 
 .mtt-config-import-export {
-  border-color: rgba(199, 154, 72, 0.45);
+  border-color: color-mix(in srgb, var(--mtt-accent) 45%, transparent);
 }
 
 .mtt-config-section-hint {
@@ -188,7 +189,7 @@
 .mtt-permissions-row {
   padding: 0.35rem 0.4rem;
   border-radius: 0.35rem;
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-field);
 }
 
 .mtt-permissions-label {
@@ -234,7 +235,7 @@
 .mtt-config-currency-row {
   padding: 0.25rem;
   border-radius: 0.35rem;
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-field);
 }
 
 .mtt-config-currency-delete {

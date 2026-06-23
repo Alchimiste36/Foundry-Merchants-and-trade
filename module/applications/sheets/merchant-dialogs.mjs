@@ -103,6 +103,7 @@ export async function openSessionPreparationDialog({
   try {
     result = await foundry.applications.api.DialogV2.wait({
       window: { title },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -182,6 +183,7 @@ export async function openCatalogItemSecretsDialog({
   try {
     return await foundry.applications.api.DialogV2.wait({
       window: { title },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -225,6 +227,7 @@ export async function openClientRatesDialog({ clientName = "", rates = {} } = {}
   try {
     return await foundry.applications.api.DialogV2.wait({
       window: { title },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -331,6 +334,7 @@ export async function openPreviewDialog(preview, { isStorage = false } = {}) {
   try {
     await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.localize("mtt.sessions.preview.title") },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -359,6 +363,7 @@ export async function openPreviewErrorDialog(preview) {
   try {
     await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.localize("mtt.sessions.preview.errorTitle") },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -388,6 +393,7 @@ export async function openSessionValidationDialog(preview, { isStorage = false }
   try {
     result = await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.localize("mtt.sessions.execution.validateTitle") },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -423,6 +429,7 @@ export async function openSessionExecutionErrorsDialog(preview) {
   try {
     await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.localize("mtt.sessions.execution.executionErrorTitle") },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -452,6 +459,7 @@ export async function openRefuseConfirmDialog() {
   try {
     result = await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.localize("mtt.sessions.confirm.refuseTitle") },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [
@@ -506,6 +514,7 @@ export async function openSellerItemDialog({
   try {
     result = await foundry.applications.api.DialogV2.wait({
       window: { title: game.i18n.localize("mtt.dialog.sellerItemTitle") },
+      classes: ["mtt-dialog-window"],
       content,
       rejectClose: false,
       buttons: [

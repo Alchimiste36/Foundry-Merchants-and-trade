@@ -3545,3 +3545,42 @@ Modifié :
 - Ajout d'un helper commun de validation du rail dans `merchant-sheet.mjs` (`#canAddActorToAccessRail`).
 - Sécurisation du drop (`#onClientDrop`) et de l'ajout interne (`#upsertAccessClient`).
 - Ajout des notifications FR/EN (`cannotAddSelfToRail`, `cannotAddMerchantToMerchantRail`).
+
+## Étape CSS 1 — Base commune thème MTT
+
+Todo utilisé :
+- Compléter les variables CSS MTT communes.
+- Forcer le fond et la couleur de base des feuilles MTT.
+- Forcer le fond et la couleur de base de la configuration MTT.
+- Forcer le fond et la couleur de base des journaux globaux.
+- Préparer la classe CSS commune des dialogs MTT.
+
+Éléments modifiés :
+- `styles/applications/merchant-variables.less`
+- `styles/applications/merchant-sheet.less`
+- `styles/applications/mtt-config.less`
+- `styles/applications/merchant-journal.less`
+- `styles/applications/merchant-dialogs.less`
+
+Résumé :
+- Le thème sombre MTT est renforcé comme base commune.
+- Les fenêtres MTT principales héritent moins du thème clair/sombre Foundry.
+- La classe CSS `mtt-dialog-window` est prête pour le branchement des dialogs dans l'étape suivante.
+
+## Étape CSS 2 — Dialogs MTT et titres de sections de session
+
+Modifié :
+- `module/applications/sheets/merchant-dialogs.mjs` : `classes: ["mtt-dialog-window"]` ajouté dans les 9 appels `DialogV2.wait`.
+- `styles/applications/merchant-dialogs.less` : `.mtt-dialog-window` étendu avec règles inputs/button ; `rgba(0,0,0,0.12)`, `rgba(255,255,255,0.04)` et `rgba(0,0,0,0.14)` remplacés par variables MTT.
+- `styles/applications/merchant-session.less` : `color: var(--mtt-text)` ajouté sur `.mtt-merchant-session-section-title` (header/icon déjà corrects).
+
+## Étape CSS 3 — Éléments visibles restants
+
+Modifié :
+- `styles/applications/merchant-variables.less` : ajout `--mtt-info`, `--mtt-info-soft`, `--mtt-row-soft`, `--mtt-secret-text`.
+- `styles/applications/merchant-catalog.less` : `--color-level-warning` → `--mtt-warning` ; `#d36b5f36` → `--mtt-danger-soft` ; `#363b42` → `--mtt-bg-hover` ; bordures ownership → variables danger/success ; `#d9ccff` → `--mtt-secret-text` ; tags storage : `color` et `i { color: inherit }` ajoutés pour tag-button et tag-active.
+- `styles/applications/merchant-session.less` : couleurs `#d6b45b/#6fbf8f/#b00020` → variables MTT ; `rgba(0,0,0,0.12)` → `--mtt-bg-field` ; `rgba(255,255,255,0.03/0.12)` → `--mtt-row-soft`.
+- `styles/applications/merchant-journal.less` : `#b33939` → `--mtt-danger` ; `#6fbf8f` → `--mtt-success` ; `#c79a4817` → `--mtt-row-selected`.
+- `styles/applications/merchant-access-rail.less` : `#ffffff/rgba(0,0,0,0.55)/rgba(0,0,0,0.45)/#5f86d3/#d6a84f/#2f8f55/#b00020` → variables MTT.
+- `styles/applications/mtt-config.less` : `rgba(0,0,0,0.12)` → `--mtt-bg-field` ; `rgba(199,154,72,0.45)` → `color-mix(in srgb, var(--mtt-accent) 45%, transparent)`.
+- `styles/applications/merchant-sheet.less` : `.mtt-merchant-product-lot-quantity-input` ajouté aux groupes `border/background/color` et `:focus` des inputs produits.

@@ -18,6 +18,8 @@
   --mtt-access-card-radius: 0 0.4rem 0.4rem 0;
   --mtt-access-hover-shift: -0.2rem;
   --mtt-access-selected-shift: -0.25rem;
+  --mtt-accent: #5ba3bf;
+  --mtt-accent-soft: rgba(91, 163, 191, 0.18);
 }
 
 /* MTT storage — position gauche du rail commun */
@@ -90,6 +92,12 @@
   text-align: left;
   cursor: pointer;
   justify-content: flex-start;
+  .fa-trash {
+    color: var(--mtt-danger);
+  }
+  .fa-user-slash {
+    color: var(--mtt-warning);
+  }
 }
 
 .mtt-merchant-access-context-menu-button:hover {
@@ -139,7 +147,9 @@
 .mtt-merchant-access-card-authorized {
   opacity: 1;
 }
-
+.mtt-storage-access-rail.mtt-merchant-access-card-authorized {
+  color: var(--mtt-secret);
+}
 .mtt-merchant-access-card-authorized .mtt-merchant-access-card-image {
   filter: none;
 }
@@ -159,7 +169,7 @@
   width: 1.05rem;
   height: 1.05rem;
   border-radius: 999px;
-  color: #ffffff;
+  color: var(--mtt-text);
   font-size: 0.68rem;
   display: inline-flex;
   align-items: center;
@@ -173,8 +183,8 @@
   width: 1.05rem;
   height: 1.05rem;
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  color: #d6a84f;
+  background: var(--mtt-bg-field);
+  color: var(--mtt-warning);
   font-size: 0.62rem;
   display: inline-flex;
   align-items: center;
@@ -182,16 +192,16 @@
 }
 
 .mtt-merchant-access-session-active {
-  background: #5f86d3;
+  background: var(--mtt-info);
 }
 
 .mtt-merchant-access-session-pending {
-  background: #d6a84f;
+  background: var(--mtt-warning);
   color: #261b0a;
 }
 
 .mtt-merchant-access-session-validated {
-  background: #2f8f55;
+  background: var(--mtt-success);
 }
 
 .mtt-merchant-access-session-refused {
@@ -199,13 +209,13 @@
 }
 
 .mtt-merchant-access-session-submitted {
-  color: #b00020;
+  color: var(--mtt-danger);
 }
 
 .mtt-merchant-access-drop-card {
   border: 1px dashed var(--mtt-border);
   color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--mtt-bg-field);
 }
 
 .mtt-merchant-access-drop-card i {

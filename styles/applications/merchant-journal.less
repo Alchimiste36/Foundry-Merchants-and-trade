@@ -1,5 +1,13 @@
 /* MTT — Journal marchand */
 
+.mtt-global-journal-app {
+  .window-content {
+    background: var(--mtt-bg-main);
+    color: var(--mtt-text);
+    scrollbar-color: var(--mtt-border) var(--mtt-bg-main);
+  }
+}
+
 .mtt-merchant-journal {
   display: flex;
   flex-direction: column;
@@ -116,7 +124,7 @@
 }
 
 .mtt-merchant-journal-status-refused {
-  color: #b33939;
+  color: var(--mtt-danger);
   font-weight: 700;
 }
 
@@ -139,7 +147,7 @@
   display: grid;
   color: var(--mtt-text-muted);
   font-size: 0.82rem;
-  background-color: #c79a4817;
+  background-color: var(--mtt-row-selected);
 }
 
 .mtt-merchant-journal-item-row {
@@ -161,10 +169,10 @@
 }
 
 .mtt-storage-direction-recovered {
-  color: #b33939;
+  color: var(--mtt-danger);
 }
 .mtt-storage-direction-deposited {
-  color: #6fbf8f;
+  color: var(--mtt-success);
 }
 
 .mtt-journal-secret-indicator {
@@ -201,11 +209,11 @@
 }
 
 .mtt-merchant-journal-item-type i.mtt-storage-direction-deposited {
-  color: #6fbf8f;
+  color: var(--mtt-success);
 }
 
 .mtt-merchant-journal-item-negotiation .fa-check {
-  color: #6fbf8f;
+  color: var(--mtt-success);
 }
 
 .mtt-merchant-journal-item-negotiation .fa-times {

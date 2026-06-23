@@ -70,7 +70,10 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('OK'\\)\")",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('JSON OK'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('JSON OK'\\)\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/sheets/merchant-dialogs.mjs\")",
+      "Bash(grep -v \"//\\\\|data-\\\\|type=\")",
+      "Bash(grep -v \"//\\\\|box-shadow\\\\|rgba\\(143\\\\|rgba\\(211\\\\|rgba\\(199\\\\|rgba\\(95\")"
     ],
     "additionalDirectories": [
       "\\tmp"

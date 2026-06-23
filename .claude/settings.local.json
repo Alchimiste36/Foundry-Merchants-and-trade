@@ -68,7 +68,8 @@
       "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/mtt-global-journal-app.mjs\")",
       "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/config/constants.mjs\")",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('OK'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp"

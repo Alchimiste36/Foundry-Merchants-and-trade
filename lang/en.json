@@ -221,6 +221,9 @@
         "responsibleTooltip": "{actorName} can trade on behalf of the storage.",
         "notResponsibleTooltip": "{actorName} can view the storage session at a merchant, but cannot trade on its behalf yet."
       },
+      "configuration": {
+        "walletSection": "Storage wallet"
+      },
       "session": {
         "title": "Exchange session",
         "take": "The player takes / retrieves",

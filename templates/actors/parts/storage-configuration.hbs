@@ -29,4 +29,32 @@
       <p class="mtt-merchant-configuration-empty">{{localize "mtt.storage.tradeWithMerchant.noActors"}}</p>
     {{/if}}
   </section>
+
+  <section class="mtt-merchant-configuration-section">
+    <h2 class="mtt-merchant-section-title">{{localize "mtt.storage.configuration.walletSection"}}</h2>
+
+    {{#if mtt.walletCurrencies.length}}
+      <div class="mtt-merchant-wallet-grid">
+        {{#each mtt.walletCurrencies as |currency|}}
+          <label class="mtt-merchant-wallet-currency">
+            <span class="mtt-merchant-wallet-currency-code">{{currency.label}}</span>
+            {{#if @root.mtt.canEditMerchant}}
+              <input
+                class="mtt-merchant-wallet-currency-input"
+                type="number"
+                min="0"
+                step="1"
+                value="{{currency.amount}}"
+                data-mtt-wallet-currency="{{currency.id}}"
+              />
+            {{else}}
+              <span class="mtt-merchant-wallet-readonly">{{currency.amount}}</span>
+            {{/if}}
+          </label>
+        {{/each}}
+      </div>
+    {{else}}
+      <p class="mtt-merchant-configuration-empty">{{localize "mtt.configuration.walletNoCurrencies"}}</p>
+    {{/if}}
+  </section>
 </section>

@@ -1349,6 +1349,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _onDropDocument(event, document) {
+    const target = event.target instanceof Element ? event.target : null
+    if (!target?.closest("[data-mtt-product-document-drop]")) return
+
     if (!this.isEditable) return
 
     if (document.documentName !== "Item") {
@@ -3962,7 +3965,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const itemId = side === "deposit" ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
     const current = items.find((item) => item.id === itemId && item.type === "money")
     const currentAmount = Number(current?.unitPriceValue ?? 0)
-    const nextAmount = Number(((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) + 1).toFixed(2))
+    const nextAmount = Number(
+      ((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) + 1).toFixed(2)
+    )
 
     this.#setStorageSessionMoneyValue(session, side, nextAmount)
     await this.#saveSession(session)

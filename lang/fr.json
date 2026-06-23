@@ -221,6 +221,9 @@
         "responsibleTooltip": "{actorName} peut marchander au nom du stockage.",
         "notResponsibleTooltip": "{actorName} peut voir la session du stockage chez un marchand, mais ne peut pas encore marchander en son nom."
       },
+      "configuration": {
+        "walletSection": "Monnaie du stockage"
+      },
       "session": {
         "title": "Session d’Échange",
         "take": "Le PJ prend / récupère",

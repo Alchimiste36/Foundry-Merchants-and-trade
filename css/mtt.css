@@ -2533,6 +2533,7 @@
 }
 .mtt-merchant-session-side-seller {
   border-color: rgba(111, 191, 143, 0.4);
+  height: stretch;
 }
 .mtt-merchant-session-total strong {
   color: var(--mtt-text);

@@ -3492,3 +3492,19 @@ Modifications :
 - `module/applications/sheets/merchant-catalog.mjs` : ajout de `storageInlinePriceLabel` et `hasStorageInlinePrice` dans le contexte produit (basé sur `itemPriceValue` + `priceCurrency` déjà calculés).
 - `templates/actors/parts/merchant-products.hbs` : ajout du prix dans le bloc lecture uniquement (`{{#if @root.isStorage}} {{#if item.hasStorageInlinePrice}}`), après `{{item.displayName}}`.
 - `styles/applications/merchant-catalog.less` : ajout de `.mtt-storage-product-inline-price { flex: 0 0 auto; white-space: nowrap; }`.
+
+## Étape — Bloc monnaie dans la configuration Storage
+
+### Todo utilisée
+- Ajouter le bloc monnaie dans `storage-configuration.hbs`.
+- Réutiliser `mtt.walletCurrencies` et `data-mtt-wallet-currency`.
+- Ajouter une localisation de titre Storage.
+- Vérifier que `#onWalletCurrencyChange()` reste commun shop/storage.
+
+### Éléments modifiés
+- `templates/actors/parts/storage-configuration.hbs` : bloc `mtt-merchant-wallet-grid` ajouté après `mtt-storage-trade-with-merchant`, réutilisant les classes `mtt-merchant-*` et `data-mtt-wallet-currency`.
+- `lang/fr.json` : ajout de `mtt.storage.configuration.walletSection = "Monnaie du stockage"`.
+- `lang/en.json` : ajout de `mtt.storage.configuration.walletSection = "Storage wallet"`.
+
+### Résultat
+Le stockage affiche et permet d'éditer sa monnaie dans l'onglet Configuration avec le même bloc visuel et le même handler que le shop.

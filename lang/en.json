@@ -469,6 +469,8 @@
       "sessionCheckSuccess": "Check complete: no blocking issues detected.",
       "sessionCheckFailed": "Check complete: blocking issues were detected.",
       "onlyActorsCanBeClients": "Only actors can be added as clients.",
+      "cannotAddSelfToRail": "This actor cannot be added to its own rail.",
+      "cannotAddMerchantToMerchantRail": "An MTT shop cannot be added to another MTT shop rail.",
       "clientAdded": "Client added to merchant.",
       "clientAuthorized": "Client authorized to trade.",
       "clientUnauthorized": "Client authorization removed.",

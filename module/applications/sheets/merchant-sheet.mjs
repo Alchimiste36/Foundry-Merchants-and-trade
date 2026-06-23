@@ -3,7 +3,8 @@ import {
   getMerchantData,
   getMerchantFlagPath,
   updateMerchantData,
-  createLocalMerchantCategory
+  createLocalMerchantCategory,
+  isMTTMerchant
 } from "../../documents/merchant-flags.mjs"
 import {
   getMTTEntityType,
@@ -1643,6 +1644,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (!this.#canModifyAccessRail()) return
+    if (!this.#canAddActorToAccessRail(actor)) return
 
     await this.#upsertAccessClient(buildAccessClientFromActor(actor, { isAuthorized: true }))
     this.render()
@@ -2721,6 +2723,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedClient = normalizeAccessClient(client)
     if (!normalizedClient.actorUuid) return null
 
+    const actor = await fromUuid(normalizedClient.actorUuid)
+    if (!this.#canAddActorToAccessRail(actor, { notify: false })) return null
+
     const clients = this.#getAccessEntries()
     const index = clients.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid)
 
@@ -2738,6 +2743,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.#setAccessEntries(clients)
 
     return normalizedClient
+  }
+
+  #canAddActorToAccessRail(actor, { notify = true } = {}) {
+    if (!actor) return false
+
+    if (actor.uuid === this.actor.uuid) {
+      if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotAddSelfToRail"))
+      return false
+    }
+
+    const currentEntityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    if (currentEntityType === MTT.ENTITY_TYPES.MERCHANT && isMTTMerchant(actor)) {
+      if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotAddMerchantToMerchantRail"))
+      return false
+    }
+
+    return true
   }
 
   #canModifyAccessRail({ notify = true } = {}) {

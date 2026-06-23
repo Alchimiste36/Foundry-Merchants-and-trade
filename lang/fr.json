@@ -468,6 +468,8 @@
       "sessionCheckSuccess": "Vérification terminée : aucun problème bloquant détecté.",
       "sessionCheckFailed": "Vérification terminée : des problèmes bloquants ont été détectés.",
       "onlyActorsCanBeClients": "Seuls les acteurs peuvent être ajoutés comme clients.",
+      "cannotAddSelfToRail": "Impossible d'ajouter cet acteur dans son propre rail.",
+      "cannotAddMerchantToMerchantRail": "Impossible d'ajouter une boutique MTT dans le rail d'une autre boutique MTT.",
       "clientAdded": "Client ajouté au marchand.",
       "clientAuthorized": "Client autorisé à commercer.",
       "clientUnauthorized": "Autorisation du client retirée.",

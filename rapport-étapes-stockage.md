@@ -3533,3 +3533,15 @@ Le stockage affiche et permet d'éditer sa monnaie dans l'onglet Configuration a
 - Bouton commun shop/storage dans le header, icône `fa-shop` (ouvert) / `fa-shop-lock` (fermé).
 - État mémorisé dans `flags.mtt-merchants.{merchant|storage}.sheet.sessionInteractionsOpen`.
 - `canInteractWithSession` reste la permission centrale ; `isEditable`, MJ et gestionnaires ne sont pas bloqués.
+
+## Étape — Règles d'ajout des acteurs dans les rails MTT
+
+Todo :
+- Bloquer l'ajout d'un acteur dans son propre rail.
+- Bloquer l'ajout d'un shop MTT dans le rail d'un autre shop MTT.
+- Conserver tous les autres sens d'ajout autorisés.
+
+Modifié :
+- Ajout d'un helper commun de validation du rail dans `merchant-sheet.mjs` (`#canAddActorToAccessRail`).
+- Sécurisation du drop (`#onClientDrop`) et de l'ajout interne (`#upsertAccessClient`).
+- Ajout des notifications FR/EN (`cannotAddSelfToRail`, `cannotAddMerchantToMerchantRail`).

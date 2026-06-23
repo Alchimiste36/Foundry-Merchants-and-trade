@@ -302,7 +302,7 @@
 
 .mtt-merchant-session-item {
   display: grid;
-  grid-template-columns: 30px 2fr 1fr 70px;
+  grid-template-columns: 30px 2fr 1fr 60px;
   align-items: center;
   gap: 0.45rem;
   min-width: 0;
@@ -310,6 +310,10 @@
   font-size: 0.78rem;
   margin: 0;
   height: 28px;
+}
+
+.mtt-merchant-session-item.storage {
+  grid-template-columns: 30px 2fr 1fr;
 }
 
 .mtt-merchant-session-item-image {
@@ -336,6 +340,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mtt-storage-session-money-currency {
+  margin-left: 0.3rem;
 }
 
 .mtt-merchant-session-item-price,

@@ -3480,3 +3480,15 @@ La structure de `#onValidateSessionTransaction` côté storage est correcte : tr
 - Fonctions du journal shop et du journal global shop.
 - Données enregistrées dans les entrées de journal storage.
 - Classes HBS `mtt-merchant-journal-*` dans les templates.
+
+## Étape — Affichage du prix informatif des Items storage
+
+Todo :
+- Ajouter le prix informatif dans la ligne du nom des produits storage.
+- Garder le nom éditable indépendant du prix.
+- Ne pas créer de nouveau flag MTT.
+
+Modifications :
+- `module/applications/sheets/merchant-catalog.mjs` : ajout de `storageInlinePriceLabel` et `hasStorageInlinePrice` dans le contexte produit (basé sur `itemPriceValue` + `priceCurrency` déjà calculés).
+- `templates/actors/parts/merchant-products.hbs` : ajout du prix dans le bloc lecture uniquement (`{{#if @root.isStorage}} {{#if item.hasStorageInlinePrice}}`), après `{{item.displayName}}`.
+- `styles/applications/merchant-catalog.less` : ajout de `.mtt-storage-product-inline-price { flex: 0 0 auto; white-space: nowrap; }`.

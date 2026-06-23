@@ -255,6 +255,13 @@
                               class="mtt-merchant-product-name"
                             >
                               {{item.displayName}}
+                              {{#if @root.isStorage}}
+                                {{#if item.hasStorageInlinePrice}}
+                                  <span class="mtt-storage-product-inline-price mtt-merchant-product-price-display">
+                                    | {{item.storageInlinePriceLabel}}
+                                  </span>
+                                {{/if}}
+                              {{/if}}
                             </span>
                           </span>
                         {{/if}}

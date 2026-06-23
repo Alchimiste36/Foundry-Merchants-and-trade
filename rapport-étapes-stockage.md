@@ -3508,3 +3508,28 @@ Modifications :
 
 ### Résultat
 Le stockage affiche et permet d'éditer sa monnaie dans l'onglet Configuration avec le même bloc visuel et le même handler que le shop.
+
+## Étape — Bouton commun d'ouverture/fermeture des interactions de session
+
+### Todo utilisée
+- Ajouter l'action `toggleSessionInteractions` dans `DEFAULT_OPTIONS`.
+- Préparer `sessionInteractionsOpen` et `canToggleSessionInteractions` dans `_prepareContext`.
+- Supprimer le forçage de `canInteractWithSession: true` pour le storage.
+- Ajouter les helpers privés `#getSessionInteractionsOpenState` et `#getSessionInteractionsOpenPath`.
+- Ajouter le handler `#onToggleSessionInteractions` (écrit dans les flags acteur via `actor.update`).
+- Intégrer `canUseSessionInteraction` dans `#getSessionActorAccess`.
+- Ajouter le bouton dans `merchant-header.hbs` (commun shop/storage).
+- Étendre les règles CSS existantes à `.mtt-merchant-session-lock-button`.
+- Ajouter les clés de langue `openSessionInteractions`/`closeSessionInteractions`.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/merchant-header.hbs`
+- `styles/applications/merchant-sheet.less`
+- `lang/fr.json`
+- `lang/en.json`
+
+### Résultat
+- Bouton commun shop/storage dans le header, icône `fa-shop` (ouvert) / `fa-shop-lock` (fermé).
+- État mémorisé dans `flags.mtt-merchants.{merchant|storage}.sheet.sessionInteractionsOpen`.
+- `canInteractWithSession` reste la permission centrale ; `isEditable`, MJ et gestionnaires ne sont pas bloqués.

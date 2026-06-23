@@ -48,6 +48,20 @@
             {{/if}}
           </button>
         {{/if}}
+        {{#if mtt.canToggleSessionInteractions}}
+          <button
+            class="mtt-merchant-session-lock-button {{#if mtt.sessionInteractionsOpen}}mtt-session-interactions-open{{else}}mtt-session-interactions-closed{{/if}}"
+            type="button"
+            data-action="toggleSessionInteractions"
+            data-tooltip="{{#if mtt.sessionInteractionsOpen}}{{localize 'mtt.sheet.closeSessionInteractions'}}{{else}}{{localize 'mtt.sheet.openSessionInteractions'}}{{/if}}"
+          >
+            {{#if mtt.sessionInteractionsOpen}}
+              <i class="fas fa-shop"></i>
+            {{else}}
+              <i class="fas fa-shop-lock"></i>
+            {{/if}}
+          </button>
+        {{/if}}
       </div>
 
       {{#if isStorage}}

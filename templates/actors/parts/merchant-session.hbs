@@ -441,7 +441,7 @@
           <li class="mtt-merchant-session-empty">{{localize "mtt.sessions.emptySeller"}}</li>
         {{/if}}
       </ol>
-
+    </section>
 
         {{#if mtt.session.checkResult.checked}}
           <p class="mtt-merchant-session-check-status {{#if mtt.session.checkResult.canProceed}}mtt-merchant-session-check-info{{else}}mtt-merchant-session-check-error{{/if}}">
@@ -490,7 +490,7 @@
             <span>{{localize "mtt.sessions.check.none"}}</span>
           </p>
         {{/if}}
-      </section>
+      
     {{else}}
       <section class="mtt-merchant-session-empty-state">
         <i class="fas fa-receipt"></i>

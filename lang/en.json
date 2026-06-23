@@ -175,7 +175,9 @@
       "lock": "Lock",
       "unlock": "Unlock",
       "locked": "Locked",
-      "unlocked": "Unlocked"
+      "unlocked": "Unlocked",
+      "openSessionInteractions": "Open session interactions",
+      "closeSessionInteractions": "Close session interactions"
     },
     "merchant": {
       "name": {

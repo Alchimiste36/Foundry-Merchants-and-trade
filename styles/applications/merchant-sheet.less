@@ -261,6 +261,7 @@
 /* ─── Boutons et navigation partagés ─────────────────────────────────────── */
 
 .mtt-merchant-lock-button,
+.mtt-merchant-session-lock-button,
 .mtt-merchant-product-create-button,
 .mtt-merchant-product-action,
 .mtt-merchant-secret-toggle {
@@ -274,6 +275,7 @@
 }
 
 .mtt-merchant-lock-button,
+.mtt-merchant-session-lock-button,
 .mtt-merchant-product-action,
 .mtt-merchant-secret-toggle {
   width: 2.25rem;
@@ -283,6 +285,7 @@
 }
 
 .mtt-merchant-lock-button:hover,
+.mtt-merchant-session-lock-button:hover,
 .mtt-merchant-product-create-button:hover,
 .mtt-merchant-product-action:hover,
 .mtt-merchant-secret-toggle:hover {
@@ -290,8 +293,17 @@
   border-color: var(--mtt-accent);
 }
 
-.mtt-merchant-lock-button span {
+.mtt-merchant-lock-button span,
+.mtt-merchant-session-lock-button span {
   display: none;
+}
+
+.mtt-session-interactions-open {
+  color: var(--mtt-accent);
+}
+
+.mtt-session-interactions-closed {
+  color: var(--mtt-danger);
 }
 
 .mtt-is-locked .mtt-merchant-lock-button {

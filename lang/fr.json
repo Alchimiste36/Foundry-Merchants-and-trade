@@ -175,7 +175,9 @@
       "lock": "Verrouiller",
       "unlock": "Déverrouiller",
       "locked": "Verrouillé",
-      "unlocked": "Déverrouillé"
+      "unlocked": "Déverrouillé",
+      "openSessionInteractions": "Ouvrir les interactions avec les sessions",
+      "closeSessionInteractions": "Fermer les interactions avec les sessions"
     },
     "merchant": {
       "name": {

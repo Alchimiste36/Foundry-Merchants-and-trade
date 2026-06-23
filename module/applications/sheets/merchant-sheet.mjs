@@ -166,6 +166,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
       toggleLock: MerchantSheet.#onToggleLock,
+      toggleSessionInteractions: MerchantSheet.#onToggleSessionInteractions,
       toggleProductSecret: MerchantSheet.#onToggleProductSecret,
       toggleProductCategory: MerchantSheet.#onToggleProductCategory,
       toggleProductFreePrice: MerchantSheet.#onToggleProductFreePrice,
@@ -232,14 +233,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isLocked = this.#getSheetLockedState(entityType)
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
+    const sessionInteractionsOpen = this.#getSessionInteractionsOpenState(entityType)
     const isLimited = getMerchantLimitedState(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
     const sheetPermissions = isStorage
       ? {
           ...permissions,
           canViewConfigTab: true,
-          canOpenProduct: true,
-          canInteractWithSession: true
+          canOpenProduct: true
         }
       : permissions
 
@@ -256,6 +257,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLocked,
       isUnlocked,
       canEditMerchant,
+      sessionInteractionsOpen,
+      canToggleSessionInteractions: isEditable,
       canDragProductToSeller: this.#canDragProductToSeller(),
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
@@ -322,6 +325,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // MTT base — lecture du verrouillage actif selon le type de feuille MTT
     if (entityType === MTT.ENTITY_TYPES.STORAGE) return this.#storageSheetLocked
     return getMerchantSheetLockedState(this.actor)
+  }
+
+  #getSessionInteractionsOpenState(entityType) {
+    const data = entityType === MTT.ENTITY_TYPES.STORAGE ? getStorageData(this.actor) : getMerchantData(this.actor)
+    return data?.sheet?.sessionInteractionsOpen !== false
+  }
+
+  #getSessionInteractionsOpenPath(entityType) {
+    return entityType === MTT.ENTITY_TYPES.STORAGE
+      ? getStorageFlagPath("sheet.sessionInteractionsOpen")
+      : getMerchantFlagPath("sheet.sessionInteractionsOpen")
   }
 
   #buildStorageMerchantContext(storageData = null) {
@@ -698,6 +712,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const permissions = getMerchantPermissions(this.actor, { user })
     const canViewOtherSessions = Boolean(permissions.canViewObserverActorSessions)
     const canInteractWithSession = Boolean(permissions.canInteractWithSession)
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const sessionInteractionsOpen = this.#getSessionInteractionsOpenState(entityType)
+    const canUseSessionInteraction = sessionInteractionsOpen || this.isEditable || canManageSheet || isGM
 
     const baseAccess = {
       actor,
@@ -708,7 +725,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLimited,
       canViewOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
       canSelectOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
-      canInteractWithOtherSession: isGM || canManageSheet || (isOwner && canInteractWithSession)
+      canInteractWithOtherSession: isGM || canManageSheet || (canUseSessionInteraction && isOwner && canInteractWithSession)
     }
 
     if (!isMTTStorage(actor)) return baseAccess
@@ -720,7 +737,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ...baseAccess,
       canViewOtherSession: baseAccess.canViewOtherSession || canViewStorageSession,
       canSelectOtherSession: baseAccess.canSelectOtherSession || canViewStorageSession,
-      canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || canTradeAsStorage
+      canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || (canUseSessionInteraction && canTradeAsStorage)
     }
   }
 
@@ -4548,6 +4565,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this.actor.updateSource({ [lockPath]: !isLocked })
     }
     await this.render({ force: true })
+  }
+
+  static async #onToggleSessionInteractions(event) {
+    event.preventDefault()
+
+    if (!this.isEditable) return
+
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isOpen = this.#getSessionInteractionsOpenState(entityType)
+    const path = this.#getSessionInteractionsOpenPath(entityType)
+
+    await this.actor.update({ [path]: !isOpen })
   }
 
   static async #onSaveReferenceState(event) {

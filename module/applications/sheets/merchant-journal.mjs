@@ -1,6 +1,7 @@
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getStorageData, updateStorageData } from "../../documents/storage-flags.mjs"
 import { getCatalogProduct } from "../../documents/merchant-products.mjs"
 import { canUserViewClientJournalEntries } from "../../documents/merchant-access.mjs"
 
@@ -474,7 +475,145 @@ export function prepareJournalEntryDisplay(entry) {
       moneyAdjustmentSign
     ),
     hasEntries: entries.length > 0,
-    entries
+    entries,
+    recoveredDifferentItemCount: entries.filter((line) => line.side === "buyer" && line.type !== "money").length,
+    depositedDifferentItemCount: entries.filter((line) => line.side === "seller" && line.type !== "money").length,
+    recoveredDifferentItemCountLabel: String(
+      entries.filter((line) => line.side === "buyer" && line.type !== "money").length
+    ),
+    depositedDifferentItemCountLabel: String(
+      entries.filter((line) => line.side === "seller" && line.type !== "money").length
+    )
+  }
+}
+
+// ─── Helpers direction storage ────────────────────────────────────────────────
+
+function isStorageMoneyTakeLine(line) {
+  return line?.type === "money" && String(line?.sourceId ?? "") === "storage-money-take"
+}
+
+function isStorageMoneyDepositLine(line) {
+  return line?.type === "money" && String(line?.sourceId ?? "") === "storage-money-deposit"
+}
+
+function getStorageJournalDirection(line) {
+  if (isStorageMoneyTakeLine(line)) return "recovered"
+  if (isStorageMoneyDepositLine(line)) return "deposited"
+  return line?.side === "buyer" ? "recovered" : "deposited"
+}
+
+// ─── Journal storage ──────────────────────────────────────────────────────────
+
+export function buildStorageJournalEntryFromSession(actor, session, options = {}) {
+  const status = options.status === "refused" ? "refused" : "validated"
+  const buyerName = String(session?.actorName ?? session?.label ?? "")
+  const buyerItems = Array.isArray(session?.buyerItems) ? session.buyerItems : []
+  const sellerItems = Array.isArray(session?.sellerItems) ? session.sellerItems : []
+  const emptyNegotiations = new Map()
+
+  const neutralizeLine = (line) => {
+    line.hadSecrets = false
+    line.isNegotiated = false
+    line.negotiationStatus = ""
+    line.referenceUnitPriceValue = null
+    line.percentOfReference = null
+    return line
+  }
+
+  const buildStorageLine = (item, side) => {
+    const line = neutralizeLine(buildJournalLineFromSessionItem(actor, item, side, emptyNegotiations))
+    if (item.type === "money" && item.id) line.sourceId = String(item.id)
+    return line
+  }
+
+  const entries = [
+    ...buyerItems.map((item) => buildStorageLine(item, "buyer")),
+    ...sellerItems.map((item) => buildStorageLine(item, "seller"))
+  ]
+  entries.sort((a, b) => {
+    const order = { recovered: 0, deposited: 1 }
+    return order[getStorageJournalDirection(a)] - order[getStorageJournalDirection(b)]
+  })
+  const executableEntries = entries.filter((entry) => isExecutableJournalLine(entry, status))
+  const referenceCurrency = getJournalReferenceCurrency(executableEntries) || getJournalReferenceCurrency(entries)
+  const storageName = getStorageData(actor)?.storage?.name || actor?.name || ""
+
+  return normalizeJournalEntry({
+    id: foundry.utils.randomID(),
+    createdAt: new Date().toISOString(),
+    status,
+    merchantActorUuid: actor?.uuid ?? "",
+    merchantName: storageName,
+    buyerActorUuid: session?.actorUuid ?? "",
+    buyerName,
+    buyerImg: session?.actorImg ?? getJournalBuyerImg(session),
+    referenceCurrency,
+    totalReferenceValue: 0,
+    summaryLabel: status === "refused" ? `${buyerName} - échange refusé` : buyerName,
+    entries,
+    moneyAdjustments: options.moneyAdjustments ?? prepareJournalMoneyAdjustments(executableEntries),
+    secrets: [],
+    transactionNumber: options.exchangeNumber
+  })
+}
+
+export function getStorageJournalEntries(actor) {
+  const entries = getStorageData(actor)?.journal?.entries
+  return Array.isArray(entries) ? entries : []
+}
+
+export async function appendStorageJournalEntry(actor, entry) {
+  if (!actor) return null
+
+  const entries = foundry.utils.deepClone(getStorageJournalEntries(actor))
+  const nextExchangeNumber = normalizeJournalTransactionNumber(
+    getStorageData(actor)?.journal?.nextExchangeNumber,
+    1
+  )
+  const entryExchangeNumber = normalizeJournalTransactionNumber(entry?.transactionNumber)
+  const exchangeNumber = entryExchangeNumber ?? nextExchangeNumber
+  const nextValue = entryExchangeNumber
+    ? Math.max(nextExchangeNumber, entryExchangeNumber + 1)
+    : exchangeNumber + 1
+  const normalizedEntry = normalizeJournalEntry({
+    merchantActorUuid: actor.uuid,
+    merchantName: getStorageData(actor)?.storage?.name || actor?.name || "",
+    ...entry,
+    transactionNumber: exchangeNumber
+  })
+
+  entries.unshift(normalizedEntry)
+
+  await updateStorageData(actor, {
+    journal: {
+      entries,
+      nextExchangeNumber: nextValue
+    }
+  })
+
+  return normalizedEntry
+}
+
+export function prepareStorageJournalContext(actor, options = {}) {
+  const user = options.user ?? game.user
+  const sort = normalizeJournalSort(options.sort)
+  const permissions = options.permissions ?? {}
+  const transactions = getStorageJournalEntries(actor)
+    .map((entry) => normalizeJournalEntry(entry))
+    .filter((entry) => canUserViewClientJournalEntries(getJournalBuyerActor(entry), permissions, user))
+    .map((entry) => prepareJournalEntryDisplay(entry))
+
+  transactions.sort((a, b) => compareJournalTransactions(a, b, sort))
+
+  const canSeeAll = Boolean(user?.isGM)
+
+  return {
+    canSeeAll,
+    canSeeSecretIndicators: false,
+    hasTransactions: transactions.length > 0,
+    transactions,
+    sort
   }
 }
 
@@ -483,9 +622,21 @@ function prepareJournalLineDisplay(line) {
   const sign = normalized.side === "seller" ? "+" : "-"
   const negotiationStatus = String(normalized.negotiationStatus ?? "")
   const hasNegotiationIcon = Boolean(normalized.isNegotiated) && ["accepted", "refused"].includes(negotiationStatus)
+  const storageDirection = getStorageJournalDirection(normalized)
+  const isStorageRecovered = storageDirection === "recovered"
+  const displayName = isStorageMoneyTakeLine(normalized)
+    ? game.i18n.localize("mtt.storage.session.money.take")
+    : isStorageMoneyDepositLine(normalized)
+      ? game.i18n.localize("mtt.storage.session.money.deposit")
+      : normalized.name
+  const displayQuantityLabel =
+    normalized.type === "money"
+      ? formatPriceLabel(normalized.totalPriceValue, normalized.priceCurrency)
+      : String(normalized.quantity)
 
   return {
     ...normalized,
+    name: displayName,
     typeIcon:
       {
         product: "fas fa-box",
@@ -502,6 +653,12 @@ function prepareJournalLineDisplay(line) {
     hasNegotiationIcon,
     negotiationIcon: negotiationStatus === "accepted" ? "fas fa-check" : "fas fa-times",
     negotiationTooltipKey: `mtt.journal.negotiation.${negotiationStatus}`,
-    canShowSecretIndicator: Boolean(normalized.hadSecrets)
+    canShowSecretIndicator: Boolean(normalized.hadSecrets),
+    displayQuantityLabel,
+    storageDirectionIcon: isStorageRecovered ? "fas fa-arrow-up" : "fas fa-arrow-down",
+    storageDirectionClass: isStorageRecovered ? "mtt-storage-direction-recovered" : "mtt-storage-direction-deposited",
+    storageDirectionTooltipKey: isStorageRecovered
+      ? "mtt.storage.journal.direction.recovered"
+      : "mtt.storage.journal.direction.deposited"
   }
 }

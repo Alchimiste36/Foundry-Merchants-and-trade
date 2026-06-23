@@ -63,7 +63,12 @@
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\applications\\\\sheets\\\\merchant-sheet.mjs\")",
       "Bash(node --check \"f:\\\\dataPath\\\\dataPath14dev\\\\Data\\\\modules\\\\mtt-merchants\\\\module\\\\documents\\\\merchant-products.mjs\")",
       "Bash(git -C \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants\" log --oneline -20)",
-      "Read(//e/# TELECHARGEMENTS #/**)"
+      "Read(//e/# TELECHARGEMENTS #/**)",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/sheets/merchant-journal.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/applications/mtt-global-journal-app.mjs\")",
+      "Bash(node --check \"f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/module/config/constants.mjs\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('f:/dataPath/dataPath14dev/Data/modules/mtt-merchants/lang/en.json','utf8'\\)\\); console.log\\('fr.json OK'\\); console.log\\('en.json OK'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp"

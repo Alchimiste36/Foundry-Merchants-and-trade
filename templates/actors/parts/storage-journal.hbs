@@ -1,4 +1,130 @@
-{{!-- MTT storage — contenu de journal propre au stockage --}}
+{{!-- MTT storage — journal des échanges du stockage --}}
 <section class="mtt-merchant-journal">
-  <p class="mtt-merchant-journal-empty">{{localize "mtt.storage.placeholder.journal"}}</p>
+
+  {{#unless mtt.journal.hasTransactions}}
+    <p class="mtt-merchant-journal-empty">
+      {{localize "mtt.storage.journal.empty"}}
+    </p>
+  {{/unless}}
+
+  {{#if mtt.journal.hasTransactions}}
+    <header class="mtt-merchant-journal-sortbar">
+      <button type="button" data-action="sortJournal" data-sort-key="date">
+        <span>{{localize "mtt.journal.columns.number"}}</span>
+        {{#if (eq mtt.journal.sort.key "date")}}
+          {{#if (eq mtt.journal.sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortJournal" data-sort-key="buyer">
+        <span>{{localize "mtt.storage.journal.columns.actor"}}</span>
+        {{#if (eq mtt.journal.sort.key "buyer")}}
+          {{#if (eq mtt.journal.sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <button type="button" data-action="sortJournal" data-sort-key="status">
+        <span>{{localize "mtt.journal.columns.status"}}</span>
+        {{#if (eq mtt.journal.sort.key "status")}}
+          {{#if (eq mtt.journal.sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+
+      <span class="mtt-merchant-journal-paid">{{localize "mtt.storage.journal.columns.recovered"}}</span>
+      <span class="mtt-merchant-journal-received">{{localize "mtt.storage.journal.columns.deposited"}}</span>
+
+      <button type="button" data-action="sortJournal" data-sort-key="total">
+        <span class="mtt-merchant-journal-adjustment">{{localize "mtt.journal.columns.adjustment"}}</span>
+        {{#if (eq mtt.journal.sort.key "total")}}
+          {{#if (eq mtt.journal.sort.direction "asc")}}
+            <i class="fas fa-arrow-up"></i>
+          {{else}}
+            <i class="fas fa-arrow-down"></i>
+          {{/if}}
+        {{/if}}
+      </button>
+    </header>
+
+    <ol class="mtt-merchant-journal-list">
+      {{#each mtt.journal.transactions as |transaction|}}
+        <li class="mtt-merchant-journal-entry" data-journal-entry-id="{{transaction.id}}">
+          <details>
+            <summary class="mtt-merchant-journal-summary">
+              <span
+                class="mtt-merchant-journal-transaction-number"
+                data-tooltip="{{transaction.createdAtShortLabel}}"
+              >{{transaction.transactionNumberLabel}}</span>
+              <span
+                class="mtt-merchant-journal-buyer"
+                title="{{transaction.buyerName}}"
+              >{{transaction.buyerName}}</span>
+              <span class="mtt-merchant-journal-status {{transaction.statusClass}}">
+                {{localize transaction.statusLabelKey}}
+              </span>
+              <span class="mtt-merchant-journal-paid">{{transaction.recoveredDifferentItemCountLabel}}</span>
+              <span class="mtt-merchant-journal-received">{{transaction.depositedDifferentItemCountLabel}}</span>
+              <span class="mtt-merchant-journal-adjustment">{{transaction.moneyAdjustmentLabel}}</span>
+            </summary>
+
+            <div class="mtt-merchant-journal-details">
+              {{#if transaction.hasEntries}}
+                <div class="mtt-merchant-journal-items" role="table">
+                  <div class="mtt-merchant-journal-item-row mtt-merchant-journal-item-head" role="row">
+                    <div class="mtt-merchant-journal-item-type" role="columnheader">
+                      {{localize "mtt.storage.journal.columns.direction"}}
+                    </div>
+                    <div class="mtt-merchant-journal-item-name" role="columnheader">
+                      {{localize "mtt.journal.columns.name"}}
+                    </div>
+                    <div class="mtt-merchant-journal-item-quantity" role="columnheader">
+                      {{localize "mtt.journal.columns.quantity"}}
+                    </div>
+                    <div role="columnheader"></div>
+                    <div role="columnheader"></div>
+                    <div role="columnheader"></div>
+                  </div>
+
+                  {{#each transaction.entries as |entry|}}
+                    <div class="mtt-merchant-journal-item-row" role="row">
+                      <span class="mtt-merchant-journal-item-type" role="cell">
+                        <i
+                          class="{{entry.storageDirectionIcon}} {{entry.storageDirectionClass}} mtt-merchant-journal-item-row-center"
+                          data-tooltip="{{localize entry.storageDirectionTooltipKey}}"
+                        ></i>
+                      </span>
+                      <span class="mtt-merchant-journal-item-name" title="{{entry.name}}" role="cell">
+                        {{entry.name}}
+                      </span>
+                      <span class="mtt-merchant-journal-item-quantity" role="cell">
+                        {{entry.displayQuantityLabel}}
+                      </span>
+                      <span role="cell"></span>
+                      <span role="cell"></span>
+                      <span role="cell"></span>
+                    </div>
+                  {{/each}}
+                </div>
+              {{else}}
+                <p class="mtt-merchant-journal-no-detail">
+                  {{localize "mtt.journal.noDetail"}}
+                </p>
+              {{/if}}
+            </div>
+          </details>
+        </li>
+      {{/each}}
+    </ol>
+  {{/if}}
 </section>

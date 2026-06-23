@@ -1,6 +1,6 @@
 import { MTT } from "./constants.mjs"
 import { MttConfigApp } from "../applications/mtt-config-app.mjs"
-import { MttGlobalJournalApp } from "../applications/mtt-global-journal-app.mjs"
+import { MttGlobalJournalApp, MttGlobalStorageJournalApp } from "../applications/mtt-global-journal-app.mjs"
 import { MERCHANT_DEFAULT_PERMISSION_PROFILES } from "../documents/merchant-access.mjs"
 
 export function registerSettings() {
@@ -237,6 +237,15 @@ export function registerSettings() {
     hint: "mtt.settings.openGlobalJournal.hint",
     icon: "fas fa-book",
     type: MttGlobalJournalApp,
+    restricted: false
+  })
+
+  game.settings.registerMenu(MTT.ID, "openGlobalStorageJournalWindow", {
+    name: "mtt.settings.openGlobalStorageJournal.name",
+    label: "mtt.settings.openGlobalStorageJournal.label",
+    hint: "mtt.settings.openGlobalStorageJournal.hint",
+    icon: "fas fa-warehouse",
+    type: MttGlobalStorageJournalApp,
     restricted: false
   })
 }

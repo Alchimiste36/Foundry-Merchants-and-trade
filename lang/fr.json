@@ -91,8 +91,13 @@
       },
       "openGlobalJournal": {
         "name": "Journal global des transactions",
-        "label": "Ouvrir le journal global",
+        "label": "Journal global des transactions",
         "hint": "Ouvre le journal global des transactions MTT pour tous les marchands."
+      },
+      "openGlobalStorageJournal": {
+        "name": "Journal global des échanges MTT",
+        "label": "Journal global des échanges",
+        "hint": "Affiche les échanges enregistrés dans les stockages MTT."
       },
       "currencies": {
         "name": "Devises configurées",
@@ -272,13 +277,26 @@
       },
       "intent": {
         "block": {
-          "activeActorIgnored": "Retirez “Sans intérêt pour moi” pour récupérer cet objet.",
+          "activeActorIgnored": "Retirez <Sans intérêt pour moi> pour récupérer cet objet.",
           "activeActorMustWant": "Cet objet est demandé. Cet acteur doit choisir « Je le veux » pour le récupérer.",
           "missingVotes": "Cet objet est demandé. Tous les acteurs activés sur ce stockage doivent choisir « Je le veux » ou « Sans intérêt pour moi ».",
-          "notEnoughQuantity": "Cet objet est demandé par plus d’acteurs qu’il n’y a d’exemplaires disponibles.",
+          "notEnoughQuantity": "Cet objet est demandé par plus d’acteurs qu’il n’y a d'exemplaires disponibles.",
           "claimLimitReached": "Cet acteur a atteint sa quantité maximale pour cet objet.",
           "blockedItem": "Un objet est bloqué dans le stockage. Validation impossible.",
           "generic": "Cet objet est en cours de décision et ne peut pas être ajouté librement."
+        }
+      },
+      "journal": {
+        "empty": "Aucun échange enregistré.",
+        "columns": {
+          "actor": "Acteur",
+          "recovered": "Récupérés",
+          "deposited": "Déposés",
+          "direction": "Sens"
+        },
+        "direction": {
+          "recovered": "Récupéré depuis le stockage",
+          "deposited": "Déposé dans le stockage"
         }
       }
     },
@@ -380,6 +398,26 @@
         "status": "Statut",
         "paid": "Payé",
         "received": "Reçu",
+        "adjustment": "Ajustement"
+      }
+    },
+    "globalStorageJournal": {
+      "title": "Journal global des échanges",
+      "empty": "Aucun échange enregistré.",
+      "filters": {
+        "storage": "Stockage",
+        "actor": "Acteur",
+        "allStorages": "Tous les stockages",
+        "allActors": "Tous les acteurs",
+        "clear": "Réinitialiser"
+      },
+      "columns": {
+        "exchangeNumber": "N°",
+        "storage": "Stockage",
+        "actor": "Acteur",
+        "status": "Statut",
+        "recovered": "Récupérés",
+        "deposited": "Déposés",
         "adjustment": "Ajustement"
       }
     },

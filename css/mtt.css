@@ -1997,6 +1997,12 @@
 .mtt-merchant-journal-item-name {
   text-align: left;
 }
+.mtt-storage-direction-recovered {
+  color: #b33939;
+}
+.mtt-storage-direction-deposited {
+  color: #6fbf8f;
+}
 .mtt-journal-secret-indicator {
   color: var(--mtt-danger);
   font-size: 0.85rem;
@@ -2021,6 +2027,12 @@
 .mtt-merchant-journal-item-negotiation i {
   color: var(--mtt-accent);
 }
+.mtt-merchant-journal-item-type i.mtt-storage-direction-recovered {
+  color: var(--mtt-danger);
+}
+.mtt-merchant-journal-item-type i.mtt-storage-direction-deposited {
+  color: #6fbf8f;
+}
 .mtt-merchant-journal-item-negotiation .fa-check {
   color: #6fbf8f;
 }
@@ -2036,6 +2048,7 @@
   display: grid;
   gap: 0.75rem;
   color: var(--mtt-text);
+  min-height: 0;
 }
 .mtt-global-journal-header {
   display: flex;
@@ -2109,6 +2122,9 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow-y: auto;
+  min-height: 0;
+  height: 100%;
 }
 .mtt-global-journal-entry {
   border: 1px solid var(--mtt-border-soft);
@@ -2921,6 +2937,15 @@
   color: var(--mtt-accent);
   font-size: 1rem;
   font-weight: 700;
+}
+.mtt-config-actor-types-global {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+}
+.mtt-config-actor-types {
+  display: flex;
+  justify-content: space-around;
 }
 .mtt-config-grid {
   display: grid;

@@ -114,7 +114,10 @@ import {
 import {
   prepareMerchantJournalContext,
   buildMerchantJournalEntryFromSession,
-  appendMerchantJournalEntry
+  appendMerchantJournalEntry,
+  prepareStorageJournalContext,
+  buildStorageJournalEntryFromSession,
+  appendStorageJournalEntry
 } from "./merchant-journal.mjs"
 import { requestMerchantSessionUpdate, requestStorageTagUpdate } from "./merchant-session-socket.mjs"
 
@@ -301,7 +304,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.session = isStorage ? this.#prepareStorageSessionContext() : this.#prepareSessionContext()
     context.mtt.referenceState = this.#prepareReferenceStateContext()
     context.mtt.journal = isStorage
-      ? this.#prepareNeutralJournalContext()
+      ? prepareStorageJournalContext(this.actor, {
+          user: game.user,
+          sort: this.#journalSort,
+          permissions: sheetPermissions
+        })
       : prepareMerchantJournalContext(this.actor, {
           user: game.user,
           sort: this.#journalSort,
@@ -415,16 +422,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         takeValue: Number.isFinite(takeValue) && takeValue >= 0 ? takeValue : 0,
         depositValue: Number.isFinite(depositValue) && depositValue >= 0 ? depositValue : 0
       }
-    }
-  }
-
-  #prepareNeutralJournalContext() {
-    return {
-      canSeeAll: Boolean(game.user?.isGM),
-      canSeeSecretIndicators: Boolean(game.user?.isGM),
-      hasTransactions: false,
-      transactions: [],
-      sort: this.#journalSort
     }
   }
 
@@ -4272,7 +4269,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — transfert réel des Items et des lignes money, sans journal commercial
+      // MTT storage — transfert réel des Items et des lignes money, avec journal storage
       this.#normalizeStorageExchangeSession(session)
       const storageExecutionOptions = {
         accessClients: this.#prepareAccessClients(),
@@ -4361,6 +4358,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
           await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan)
         }
+        await appendStorageJournalEntry(
+          this.actor,
+          buildStorageJournalEntryFromSession(this.actor, session, {
+            status: "validated",
+            executionPlan
+          })
+        )
         clearSessionAfterExecution(session)
         this.#setStorageSessionMoneyValue(session, "take", 0)
         this.#setStorageSessionMoneyValue(session, "deposit", 0)
@@ -4477,10 +4481,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — refus sans transfert ni journal commercial
+      // MTT storage — refus sans transfert, avec journal storage
       const confirmed = await openRefuseConfirmDialog()
       if (!confirmed) return
 
+      await appendStorageJournalEntry(
+        this.actor,
+        buildStorageJournalEntryFromSession(this.actor, session, { status: "refused" })
+      )
       clearSessionAfterExecution(session)
       this.#setStorageSessionMoneyValue(session, "take", 0)
       this.#setStorageSessionMoneyValue(session, "deposit", 0)

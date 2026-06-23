@@ -15,6 +15,7 @@
       </div>
     </section>
 
+    <section class="mtt-config-actor-types-global">
     <section class="mtt-config-section">
       <h2 class="mtt-config-section-title">{{localize "mtt.config.actorTypes.title"}}</h2>
       <p class="mtt-config-section-hint">{{localize "mtt.config.actorTypes.hint"}}</p>
@@ -66,6 +67,8 @@
         <p class="mtt-config-section-hint">{{localize "mtt.config.storageActorTypes.noneAvailable"}}</p>
       {{/if}}
     </section>
+    </section>
+
 
     <section class="mtt-config-section mtt-config-permissions">
       <h2 class="mtt-config-section-title">{{localize "mtt.permissions.merchant.config.title"}}</h2>
@@ -83,12 +86,12 @@
           {{#each merchantPermissionRows as |permission|}}
             <div class="mtt-permissions-row">
               <div class="mtt-permissions-label">
-                <span>{{localize permission.label}}</span>
                 <i
                   class="fas fa-circle-info mtt-config-info-icon"
                   data-tooltip="{{localize permission.hint}}"
                   aria-hidden="true"
                 ></i>
+                <span>{{localize permission.label}}</span>
               </div>
               <label class="mtt-permissions-check">
                 {{#if permission.canConfigureLimited}}

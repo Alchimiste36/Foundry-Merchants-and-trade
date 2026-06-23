@@ -3384,3 +3384,99 @@ La vérification de quantité disponible reste inchangée et bloque toujours tou
 - Aucun contournement de la limite de stock.
 
 ---
+
+# Étape 1 — Journal local des échanges storage
+
+## Todo
+
+- [x] `storage-flags.mjs` — Ajouter `nextExchangeNumber` à `buildDefaultStorageData` et normaliser dans `normalizeStorageData`.
+- [x] `merchant-journal.mjs` — Importer `getStorageData`, `updateStorageData`. Ajouter `buildStorageJournalEntryFromSession`, `getStorageJournalEntries`, `appendStorageJournalEntry`, `prepareStorageJournalContext`. Étendre `prepareJournalEntryDisplay` avec `recoveredDifferentItemCount*` / `depositedDifferentItemCount*`. Étendre `prepareJournalLineDisplay` avec `displayQuantityLabel`, `storageDirectionIcon`, `storageDirectionClass`, `storageDirectionTooltipKey`.
+- [x] `merchant-sheet.mjs` — Importer les 3 nouvelles fonctions storage. Remplacer `#prepareNeutralJournalContext()` par `prepareStorageJournalContext(...)`. Ajouter `appendStorageJournalEntry` après validation storage. Ajouter `appendStorageJournalEntry` après refus storage.
+- [x] `storage-journal.hbs` — Remplacer le placeholder par un template réel calqué sur `merchant-journal.hbs`, avec colonnes récupérés/déposés et détail direction+nom+quantité.
+- [x] `lang/fr.json` + `lang/en.json` — Ajouter bloc `storage.journal` (empty, columns, direction).
+- [x] `css/mtt.css` — Ajouter `.mtt-storage-direction-recovered` (rouge) et `.mtt-storage-direction-deposited` (vert).
+
+## Fichiers modifiés
+
+- `module/documents/storage-flags.mjs`
+- `module/applications/sheets/merchant-journal.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/storage-journal.hbs`
+- `lang/fr.json`
+- `lang/en.json`
+- `css/mtt.css`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Le journal local storage est opérationnel. Chaque validation et chaque refus d'échange storage écrit une entrée dans `flags.mtt-merchants.storage.journal.entries`. L'onglet Journal du stockage affiche ces échanges avec les colonnes : N° échange, acteur, statut, récupérés (nombre d'Items différents), déposés (nombre d'Items différents), ajustement monétaire. Le détail déplié montre la direction (flèche rouge = récupéré, verte = déposé), le nom et la quantité de chaque ligne. Le tri local fonctionne sur les mêmes actions que le journal shop. Le journal shop n'est pas modifié fonctionnellement : les extensions `prepareJournalEntryDisplay` et `prepareJournalLineDisplay` ajoutent des champs non utilisés par le template shop.
+
+## Non modifié volontairement
+
+- Logique de transfert (Items et monnaie) : inchangée.
+- Journal shop : aucune modification fonctionnelle.
+- `#prepareNeutralJournalContext` : conservée (non supprimée au cas où elle serait encore utilisée ailleurs).
+- Aucun journal global storage ajouté dans cette étape.
+
+---
+
+# Étape 2 — Journal global des échanges storage
+
+## Todo
+
+- [x] `constants.mjs` — Ajouter `MTT_GLOBAL_STORAGE_JOURNAL` dans `MTT.TEMPLATES`.
+- [x] `mtt-global-journal-app.mjs` — Importer `isMTTStorage`, `getStorageData`. Ajouter `GLOBAL_STORAGE_JOURNAL_SORT_KEYS`, `normalizeGlobalStorageJournalSort`, `compareGlobalStorageJournalTransactions`, `canUserViewGlobalStorageJournalEntry`. Ajouter classe `MttGlobalStorageJournalApp` avec filtres `storageUuid`/`buyerUuid`, tri sur 7 clés, `_prepareContext`, `_onRender`, actions sort/filter/clear.
+- [x] `mtt-global-storage-journal.hbs` — Créer le template en partant de `mtt-global-journal.hbs`, avec colonnes : N°, Stockage, Acteur, Statut, Récupérés, Déposés, Ajustement. Détail : direction + nom + quantité (même structure que `storage-journal.hbs`).
+- [x] `settings.mjs` — Importer `MttGlobalStorageJournalApp`. Ajouter `registerMenu` sous le menu global shop.
+- [x] `lang/fr.json` — Ajouter `settings.openGlobalStorageJournal` et `mtt.globalStorageJournal`.
+- [x] `lang/en.json` — Idem en anglais.
+
+## Fichiers modifiés
+
+- `module/config/constants.mjs`
+- `module/config/settings.mjs`
+- `module/applications/mtt-global-journal-app.mjs`
+- `templates/apps/mtt-global-storage-journal.hbs` (nouveau)
+- `lang/fr.json`
+- `lang/en.json`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Un nouveau menu apparaît dans les options Foundry du module (icône entrepôt) permettant d'ouvrir le journal global des échanges storage. La classe `MttGlobalStorageJournalApp` collecte les entrées de `flags.mtt-merchants.storage.journal.entries` de tous les acteurs storage actifs, normalise chaque entrée avec `normalizeJournalEntry` et prépare l'affichage avec `prepareJournalEntryDisplay`. Les colonnes Récupérés/Déposés réutilisent `mtt-global-journal-paid/received` (même position CSS 7 colonnes), le détail reprend les classes `mtt-merchant-journal-item-*` de l'étape 1. Aucune nouvelle classe CSS ajoutée.
+
+## Non modifié volontairement
+
+- `MttGlobalJournalApp` (journal global shop) : inchangée.
+- `appendStorageJournalEntry`, `buildStorageJournalEntryFromSession` : inchangés.
+- Validation/refus des sessions : inchangés.
+- Aucun nouveau CSS ajouté (réutilisation des classes `mtt-global-journal-*` et `mtt-merchant-journal-item-*` existantes).
+
+---
+
+# Étape 3 — Stabilisation des journaux storage
+
+## Todo
+
+- [x] `merchant-sheet.mjs` — Vérifier la structure try/catch/return de la branche storage dans `#onValidateSessionTransaction`. Corriger le commentaire obsolète ("sans journal commercial" → "avec journal storage"). Vérifier les imports (un seul bloc, 3 fonctions storage incluses). `node --check` OK.
+- [x] `merchant-journal.less` — Ajouter après `.mtt-merchant-journal-item-type i { color: var(--mtt-accent); }` les surcharges spécifiques : `.mtt-merchant-journal-item-type i.mtt-storage-direction-recovered` et `i.mtt-storage-direction-deposited` avec spécificité (0,3,1) > (0,1,1).
+- [x] `css/mtt.css` — Mis à jour automatiquement par le compilateur LESS. Les deux nouvelles règles spécifiques sont présentes aux lignes 2030-2035.
+- [x] Journal global storage vérifié : `MttGlobalStorageJournalApp` réutilise `normalizeJournalEntry`/`prepareJournalEntryDisplay`, classes `mtt-merchant-journal-*` pour le détail, `storageDirectionClass` sur le `<i>`, menu sous le journal global shop.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs` (commentaire)
+- `styles/applications/merchant-journal.less` (surcharges spécificité direction)
+- `css/mtt.css` (compilé automatiquement)
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+La structure de `#onValidateSessionTransaction` côté storage est correcte : try/catch/return propre, aucun code orphelin, journal écrit avant `clearSessionAfterExecution`. Les icônes de direction storage (flèche haut rouge = récupéré, flèche bas verte = déposé) s'affichent maintenant avec les bonnes couleurs grâce aux sélecteurs `i.mtt-storage-direction-*` qui surchargent correctement `.mtt-merchant-journal-item-type i`.
+
+## Non modifié volontairement
+
+- Logique de transfert d'Items et de monnaie.
+- Fonctions du journal shop et du journal global shop.
+- Données enregistrées dans les entrées de journal storage.
+- Classes HBS `mtt-merchant-journal-*` dans les templates.

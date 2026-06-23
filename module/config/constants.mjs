@@ -128,6 +128,7 @@ export const MTT = {
     STORAGE_JOURNAL: "modules/mtt-merchants/templates/actors/parts/storage-journal.hbs",
     MTT_CONFIG: "modules/mtt-merchants/templates/apps/mtt-config.hbs",
     MTT_GLOBAL_JOURNAL: "modules/mtt-merchants/templates/apps/mtt-global-journal.hbs",
+    MTT_GLOBAL_STORAGE_JOURNAL: "modules/mtt-merchants/templates/apps/mtt-global-storage-journal.hbs",
     MTT_DIALOG: "modules/mtt-merchants/templates/apps/mtt-dialog.hbs",
     CONFIRM_DIALOG: "modules/mtt-merchants/templates/dialogs/confirm-dialog.hbs",
     SECRET_INFO_DIALOG: "modules/mtt-merchants/templates/dialogs/secret-info-dialog.hbs",

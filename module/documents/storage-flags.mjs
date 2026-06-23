@@ -73,7 +73,8 @@ export function buildDefaultStorageData(actor = null) {
       responsibleActorUuids: []
     },
     journal: {
-      entries: []
+      entries: [],
+      nextExchangeNumber: 1
     }
   }
 }
@@ -123,6 +124,10 @@ export function normalizeStorageData(data = {}, actor = null) {
   )
   merged.journal ??= {}
   merged.journal.entries ??= []
+  merged.journal.nextExchangeNumber =
+    Number.isFinite(Number(merged.journal.nextExchangeNumber)) && Number(merged.journal.nextExchangeNumber) > 0
+      ? Math.floor(Number(merged.journal.nextExchangeNumber))
+      : 1
 
   return merged
 }

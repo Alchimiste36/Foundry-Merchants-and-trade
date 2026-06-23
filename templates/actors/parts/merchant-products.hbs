@@ -356,7 +356,11 @@
                               data-action="addProductToSession"
                               data-tooltip="{{item.addToSessionTooltip}}"
                             >
-                              <i class="fas fa-cart-plus"></i>
+                            {{#if item.isAddToSessionDangerVisible}}
+                              <i class="fas fa-bag-shopping"></i>
+                            {{else}}
+                              <i class="fas fa-bag-shopping-plus"></i>
+                            {{/if}}
                             </button>
                           {{/if}}
                         {{/if}}

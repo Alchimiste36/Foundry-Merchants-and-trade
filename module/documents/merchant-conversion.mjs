@@ -1,4 +1,11 @@
-import { isMTTMerchant, getMerchantData, buildDefaultMerchantData, setMerchantData, unsetMerchantData, updateMerchantData } from "./merchant-flags.mjs"
+import {
+  isMTTMerchant,
+  getMerchantData,
+  buildDefaultMerchantData,
+  setMerchantData,
+  unsetMerchantData,
+  updateMerchantData
+} from "./merchant-flags.mjs"
 import {
   buildDefaultStorageData,
   buildInitialLocalStorageCategories,
@@ -18,8 +25,8 @@ const _managerBypassActorIds = new Set()
 // WeakSet = pas de fuite mémoire quand l'app est détruite.
 const _managerBypassApps = new WeakSet()
 
-const SHOP_WINDOW_LEFT = 380
-const STORAGE_WINDOW_LEFT = 50
+const SHOP_WINDOW_LEFT = 620
+const STORAGE_WINDOW_LEFT = 290
 
 // ─── Actions de conversion ───────────────────────────────────────────────────
 

@@ -1621,7 +1621,337 @@ Quand Codex ou Claude Code modifie les fichiers :
 - respecter le fait que la partie marchand fonctionne ;
 - ne pas casser une fonction marchand validée ;
 - traiter `merchant-*` comme base historique commune quand c’est pertinent ;
-- créer `storage-*` uniquement pour les fonctions propres au stockage ;
+- créer `storage-*` uniquement pou# Agents — Nettoyage organisationnel MJS MTT 1.0
+
+## 1. Contexte de cette branche
+
+Cette branche sert à réorganiser et nettoyer le code JavaScript du module **Merchants, Trades and Transactions** avant les tests profonds de la version 1.0.
+
+Le module fonctionne déjà dans son état actuel. Le but de cette branche n’est pas d’ajouter des fonctionnalités, ni de modifier l’ergonomie, ni de corriger des comportements non demandés.
+
+Objectif unique :
+
+```text
+Rendre les fichiers MJS plus cohérents, plus lisibles et plus maintenables,
+sans changer le comportement fonctionnel validé du shop et du storage.
+```
+
+Le module est encore en développement local. Il n’y a pas de compatibilité legacy à préserver, mais il faut préserver le comportement actuel validé.
+
+---
+
+## 2. Fichiers d’instructions à lire avant toute modification
+
+Avant toute modification, lire dans cet ordre :
+
+```text
+agents.md
+structure-finale.md
+```
+
+`agents.md` définit la méthode de travail.
+
+`structure-finale.md` définit la structure MJS attendue, les responsabilités de chaque fichier et les fonctions à déplacer ou conserver.
+
+Ne pas improviser une autre architecture sans validation explicite.
+
+---
+
+## 3. Périmètre strict du nettoyage
+
+Cette phase concerne uniquement les fichiers JavaScript `.mjs`.
+
+Ne pas modifier sauf demande explicite :
+
+```text
+templates/**/*.hbs
+styles/**/*.less
+css/mtt.css
+lang/fr.json
+lang/en.json
+module.json
+package.json
+gulpfile.mjs
+```
+
+Exception : si un import doit être corrigé dans un fichier MJS à cause d’un renommage, le faire. Ne pas toucher aux HBS/LESS/lang pour accompagner le refactor.
+
+---
+
+## 4. Règle principale : refactor sans changement fonctionnel
+
+Chaque étape doit être un déplacement, un renommage ou un nettoyage structurel.
+
+Interdit dans cette phase :
+
+```text
+ajouter une nouvelle fonctionnalité
+modifier une règle métier
+changer l’interface utilisateur
+changer les classes CSS
+changer les textes localisés
+changer les permissions fonctionnelles
+changer les comportements de session
+changer les comportements de transfert
+changer la journalisation
+changer les règles de storage/shop
+```
+
+Si une erreur est trouvée pendant le nettoyage, ne pas la corriger dans la même étape sauf si elle bloque la compilation. La signaler dans le résumé de l’étape.
+
+---
+
+## 5. Méthode de travail attendue
+
+Travailler par petites étapes.
+
+Pour chaque étape :
+
+1. lire `agents.md` et `structure-finale.md` ;
+2. identifier les fichiers concernés ;
+3. déplacer ou renommer uniquement le bloc demandé ;
+4. adapter les imports/exports ;
+5. vérifier qu’aucun comportement n’a été réécrit ;
+6. vérifier la syntaxe JS ;
+7. faire un diff lisible ;
+8. ne pas créer de rapport `.md` sauf demande explicite de l’utilisateur.
+
+Commande minimale de vérification conseillée après modification d’un MJS :
+
+```powershell
+node --check .\module\applications\sheets\merchant-sheet.mjs
+```
+
+Adapter le chemin aux fichiers modifiés.
+
+Si plusieurs fichiers sont modifiés, vérifier chacun des fichiers MJS touchés.
+
+---
+
+## 6. Pas de fichiers temporaires doublons
+
+Ne pas créer de copies temporaires du type :
+
+```text
+merchant-sheet-new.mjs
+merchant-sheet-refactor.mjs
+merchant-trade-clean.mjs
+merchant-session-temp.mjs
+```
+
+La sécurité du refactor doit venir de Git, pas de doublons dans le module.
+
+La méthode attendue est :
+
+```text
+commit stable avant refactor
+petite étape
+vérification
+diff lisible
+commit si tout va bien
+```
+
+---
+
+## 7. Nommage cible
+
+La structure cible distingue mieux les domaines.
+
+### 7.1. Documents / flags
+
+```text
+mtt-flags.mjs      = helpers communs d’identification MTT
+shop-flags.mjs     = données flags boutique/shop
+storage-flags.mjs  = données flags stockage
+```
+
+`merchant-flags.mjs` doit progressivement devenir `shop-flags.mjs`.
+
+### 7.2. Permissions, rail et session
+
+```text
+merchant-permissions.mjs = matrice de droits et permissions configurables
+merchant-rail.mjs        = rail acteurs, accès rail, sélection, cartes, helpers rail
+merchant-session.mjs     = modèle et manipulation commune des sessions
+merchant-session-socket.mjs = socket uniquement
+```
+
+Ne pas multiplier les fichiers avec `access` dans le nom.
+
+Le terme `access` peut rester dans le nom des fonctions quand il décrit les acteurs autorisés, mais le fichier principal de permissions doit s’appeler `merchant-permissions.mjs`.
+
+---
+
+## 8. Décision structurelle importante
+
+Ne pas créer :
+
+```text
+merchant-sheet-shop.mjs
+merchant-sheet-storage.mjs
+storage-sheet.mjs
+```
+
+La feuille reste une feuille MTT commune :
+
+```text
+merchant-sheet.mjs
+```
+
+Le découpage doit se faire par domaine fonctionnel :
+
+```text
+sheet
+session
+rail
+permissions
+trade
+catalog
+journal
+dialogs
+flags
+```
+
+Pas par duplication shop/storage.
+
+---
+
+## 9. Responsabilité finale de `merchant-sheet.mjs`
+
+`merchant-sheet.mjs` doit rester la classe principale de feuille.
+
+Il peut contenir :
+
+```text
+classe MerchantSheet
+DEFAULT_OPTIONS
+PARTS
+préparation globale du contexte
+rendu Application V2
+handlers Application V2
+orchestration des appels aux fonctions importées
+manipulation directe de this.actor, this.element, this.render
+```
+
+Il ne doit plus contenir autant que possible :
+
+```text
+modèle pur de session
+normalisation de session
+logique pure de rail
+construction détaillée du DOM rail
+matrice de permissions
+helpers de flags shop/storage
+exécution métier des transferts
+```
+
+Une méthode privée peut rester dans `merchant-sheet.mjs` si elle dépend fortement de `this`, du DOM ou du cycle de vie Foundry.
+
+---
+
+## 10. Commentaires de bloc obligatoires
+
+Le nettoyage doit ajouter des commentaires utiles au début des grands blocs déplacés ou clarifiés.
+
+Commentaires recommandés :
+
+```js
+// MTT base — logique commune shop/storage
+// MTT shop — logique propre à la boutique
+// MTT storage — logique propre au stockage
+// MTT sheet — orchestration de feuille
+// MTT session — modèle et manipulation de session
+// MTT rail — acteurs autorisés et rail visuel
+// MTT trade — validation et exécution des transferts
+```
+
+Ne pas commenter chaque ligne. Commenter les blocs pour aider la maintenance.
+
+---
+
+## 11. Imports et exports
+
+Après chaque déplacement :
+
+- importer depuis le nouveau fichier cible ;
+- supprimer les imports devenus inutiles ;
+- supprimer les exports inutiles uniquement s’ils sont confirmés inutilisés ;
+- ne pas laisser de fonction exportée dans l’ancien fichier si elle a été déplacée ;
+- ne pas créer d’exports “au cas où”.
+
+Éviter les dépendances circulaires.
+
+Si un déplacement crée une dépendance circulaire, arrêter et revoir le découpage.
+
+---
+
+## 12. Renommages autorisés
+
+Renommages prévus et acceptés :
+
+```text
+module/documents/merchant-access.mjs  → module/applications/sheets/merchant-permissions.mjs ou module/documents/merchant-permissions.mjs selon imports existants
+module/documents/merchant-flags.mjs   → module/documents/shop-flags.mjs
+```
+
+Le fichier `merchant-permissions.mjs` peut rester dans `module/documents/` si cela correspond mieux à son usage actuel, car les permissions ne dépendent pas du DOM.
+
+Ne pas renommer massivement tous les fichiers `merchant-*`. Plusieurs fichiers `merchant-*` restent la base historique commune du module.
+
+---
+
+## 13. Style JavaScript
+
+Respecter le style existant :
+
+- pas de point-virgule final systématique ;
+- `async` / `await` ;
+- `const` / `let` ;
+- APIs Foundry VTT v14 modernes ;
+- `foundry.utils.*` au lieu des anciens globals dépréciés ;
+- pas de dépendance npm supplémentaire ;
+- pas de bundler ;
+- pas de transpiler.
+
+Ne pas reformater tout un fichier si seules quelques fonctions sont déplacées.
+
+---
+
+## 14. Priorité comportementale
+
+Le comportement actuel validé doit rester identique :
+
+- shop ;
+- storage ;
+- rail commun ;
+- sessions ;
+- monnaie ;
+- validation/refus ;
+- transferts ;
+- journaux ;
+- dialogs ;
+- conversion MTT.
+
+Si une étape nécessite une décision fonctionnelle, elle doit être arrêtée et signalée. Ne pas décider à la place de l’utilisateur.
+
+---
+
+## 15. Résumé attendu après une étape
+
+À la fin d’une étape, répondre simplement avec :
+
+```text
+fichiers modifiés
+fonctions déplacées / renommées
+imports adaptés
+vérification syntaxe effectuée
+points non traités volontairement
+```
+
+Ne pas créer de fichier rapport sauf demande explicite.
+
+r les fonctions propres au stockage ;
+
 - créer `shop-*` uniquement pour les fonctions propres à la boutique ;
 - rechercher une fonction existante avant d’en créer une nouvelle ;
 - ne pas dupliquer une fonction existante ;

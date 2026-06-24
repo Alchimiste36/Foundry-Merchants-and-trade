@@ -143,3 +143,27 @@ Création du fichier central du rail d'acteurs MTT et déplacement des helpers d
 - Pas de déplacement des permissions configurables depuis `merchant-permissions.mjs`.
 - Pas de déplacement de logique de session depuis `merchant-session.mjs`.
 - Pas de changement fonctionnel volontaire.
+
+---
+
+## Étape 06 — Nettoyage de `merchant-trade.mjs`
+
+### Todo
+- [x] Vérifier les imports de `merchant-trade.mjs`
+- [x] Conserver `prepareSessionContext(...)` dans `merchant-trade.mjs`
+- [x] Ajouter ou ajuster les commentaires de grands blocs
+- [x] Vérifier les fonctions déjà déplacées vers `merchant-session.mjs` et `merchant-rail.mjs`
+- [x] Vérifier qu'aucune modification hors périmètre n'a été faite
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+`merchant-trade.mjs` est clarifiée et recentrée sur validation / preview / exécution par l'ajout de commentaires de blocs MTT sans aucun changement fonctionnel. Les imports sont propres (shop-flags.mjs, mtt-flags.mjs, merchant-session.mjs, merchant-rail.mjs). Aucune référence à d'anciens fichiers (merchant-flags.mjs, merchant-access.mjs) ne subsiste.
+
+### Hors périmètre volontaire
+- Pas de déplacement de fonctions vers `merchant-session.mjs`.
+- Pas de déplacement de fonctions vers `merchant-rail.mjs`.
+- Pas de modification HBS / LESS / lang.
+- Pas de changement de logique métier.

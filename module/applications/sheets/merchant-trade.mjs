@@ -61,7 +61,7 @@ import {
   getStoredAccessClients
 } from "./merchant-rail.mjs"
 
-// ─── Session totals and adjustments ──────────────────────────────────────────
+// ─── MTT base — totaux de session et ajustements monétaires ──────────────────
 
 function isSessionMoneyItem(item) {
   return item?.type === "money"
@@ -142,7 +142,7 @@ function getSessionStatusNotice(status) {
   return game.i18n.localize("mtt.sessions.activeNotice")
 }
 
-// ─── Session context preparation ─────────────────────────────────────────────
+// ─── MTT base — préparation du contexte d'affichage de session ───────────────
 
 function prepareSessionCheckContext(sessionCheckResult) {
   if (!sessionCheckResult?.checked) {
@@ -271,6 +271,7 @@ function prepareNegotiationForDisplay(negotiation) {
   }
 }
 
+// MTT base — contexte d'affichage session conservé ici car il dépend du contexte trade/monnaie/rail.
 export function prepareSessionContext(
   actor,
   { session, selectedClient, sessionCheckResult, accessClients, buyerActor }
@@ -425,7 +426,7 @@ export function prepareSessionContext(
   }
 }
 
-// ─── Check logic ──────────────────────────────────────────────────────────────
+// ─── MTT base — fortune et transferts monétaires ─────────────────────────────
 
 function getConfiguredCurrency(currency) {
   if (currency && typeof currency === "object") {
@@ -876,6 +877,8 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
   await applyCurrencyDeltasToActor(merchantActor, merchantDeltas, currencyById)
 }
 
+// MTT base — vérifications avant validation/refus
+
 function getProductCheckAvailableQuantity(actor, item) {
   const product = getCatalogProduct(actor, item.sourceId)
   if (!product) {
@@ -1187,7 +1190,7 @@ export function isMerchantSellerDropBlocked(payload, actorUuid) {
   return false
 }
 
-// ─── Execution preview ────────────────────────────────────────────────────────
+// ─── MTT base — preview d'exécution transaction/échange ─────────────────────
 
 function getExecutionAccessClients(actor, options = {}) {
   return Array.isArray(options.accessClients) ? options.accessClients : getStoredAccessClients(actor)
@@ -1515,7 +1518,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
   return preview
 }
 
-// ─── Real item execution ─────────────────────────────────────────────────────
+// ─── MTT base — préparation des données d'Item livré ─────────────────────────
 
 function getQuantityPathForItem(item) {
   const configuredPath = String(game.settings.get(MTT.ID, "itemQuantityPath") ?? "").trim()
@@ -1780,6 +1783,7 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   return result
 }
 
+// MTT base — livraison vers acteur du système de jeu
 async function deliverPurchasedItemToActor(actor, productData, deliveredItemData, quantityToDeliver) {
   const simulation = simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver)
   if (!simulation.ok) return simulation
@@ -1836,7 +1840,7 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
   return result
 }
 
-// MTT base — livraison d'un achat marchand vers une destination MTT avec les règles communes de fusion
+// MTT base — livraison vers entité MTT
 async function deliverPurchasedProductToMttDestination(destinationActor, transfer) {
   const productData = transfer?.deliveryProductData
   const deliveredItemData = transfer?.deliveredItemData
@@ -2171,6 +2175,7 @@ function isGameSystemActor(actor) {
   return ![MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(entityType)
 }
 
+// MTT shop — masquage de stock boutique à quantité 0 / MTT storage — suppression de ligne stockage à quantité 0
 async function finalizeMttProductQuantity(actor, productId, nextQuantity, { hideWhenEmpty = false } = {}) {
   const normalizedNextQuantity = Number(nextQuantity)
   const quantity = Number.isFinite(normalizedNextQuantity) ? Math.max(0, normalizedNextQuantity) : 0
@@ -2189,6 +2194,7 @@ async function finalizeMttProductQuantity(actor, productId, nextQuantity, { hide
   await updateCatalogProduct(actor, productId, changes)
 }
 
+// MTT base — exécution finale des transferts
 export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"))

@@ -1182,14 +1182,6 @@ export async function checkSessionTransaction(actor, session, preparedSession, o
   return result
 }
 
-// ─── Seller drop protection ───────────────────────────────────────────────────
-
-export function isMerchantSellerDropBlocked(payload, actorUuid) {
-  void payload
-  void actorUuid
-  return false
-}
-
 // ─── MTT base — preview d'exécution transaction/échange ─────────────────────
 
 function getExecutionAccessClients(actor, options = {}) {

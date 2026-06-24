@@ -20,7 +20,7 @@ function parsePositiveNumberValue(value) {
   return null
 }
 
-export function parsePriceValue(value) {
+function parsePriceValue(value) {
   return parsePositiveNumberValue(value)
 }
 

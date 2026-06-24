@@ -90,7 +90,10 @@
       "Bash(node --check module/applications/sheets/merchant-rail.mjs)",
       "Bash(node --check module/documents/mtt-flags.mjs)",
       "Bash(node --check module/applications/sheets/merchant-catalog.mjs)",
-      "Bash(node --check module/applications/sheets/merchant-journal.mjs)"
+      "Bash(node --check module/applications/sheets/merchant-journal.mjs)",
+      "Bash(node --check module/applications/sheets/merchant-dialogs.mjs)",
+      "Bash(node --check module/applications/sheets/merchant-utils.mjs)",
+      "Bash(node --check module/documents/merchant-products.mjs)"
     ],
     "additionalDirectories": [
       "\\tmp"

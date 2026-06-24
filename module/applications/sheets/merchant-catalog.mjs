@@ -619,10 +619,6 @@ export function resolveDroppedItemSourceUuid(event, document) {
   return String(document?.uuid ?? "").trim()
 }
 
-export function findMergeableMerchantItemBySourceUuid(actor, sourceUuid) {
-  return findMergeableCatalogItemBySourceUuid(actor, sourceUuid)
-}
-
 export async function addOrMergeProduct(
   actor,
   sourceItem,
@@ -659,16 +655,6 @@ export async function addOrMergeProduct(
 
 export async function moveProductToCategory(actor, productId, categoryValue) {
   await updateCatalogProduct(actor, productId, { category: categoryValue ?? "" })
-}
-
-// TODO étape 9 : supprimer quand l'exécution des transactions sera adaptée au catalogue flags.
-// Utilisé uniquement dans buildMerchantReceivedItemData (merchant-trade.mjs) pour la vente PJ→marchand.
-export function prepareMerchantCatalogItemData(sourceItem, _options = {}) {
-  const rawItemData = sourceItem?.toObject ? sourceItem.toObject() : foundry.utils.deepClone(sourceItem ?? {})
-  delete rawItemData._id
-  delete rawItemData.uuid
-  if (rawItemData.flags?.[MTT.ID]) delete rawItemData.flags[MTT.ID]
-  return rawItemData
 }
 
 export async function createServiceFromItem(actor, item) {

@@ -170,7 +170,7 @@ function formatAccessClientTooltip(client, { isEditable }) {
   return parts.join(" - ")
 }
 
-export function getBestSessionForClient(actor, actorUuid) {
+function getBestSessionForClient(actor, actorUuid) {
   const normalizedActorUuid = String(actorUuid ?? "").trim()
   if (!normalizedActorUuid) return null
 

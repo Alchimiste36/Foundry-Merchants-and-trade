@@ -310,7 +310,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
   })
 }
 
-export function getMerchantJournalTransactions(actor) {
+function getMerchantJournalTransactions(actor) {
   const transactions = getMerchantData(actor)?.journal?.transactions
   return Array.isArray(transactions) ? transactions : []
 }
@@ -564,7 +564,7 @@ export function buildStorageJournalEntryFromSession(actor, session, options = {}
   })
 }
 
-export function getStorageJournalEntries(actor) {
+function getStorageJournalEntries(actor) {
   const entries = getStorageData(actor)?.journal?.entries
   return Array.isArray(entries) ? entries : []
 }

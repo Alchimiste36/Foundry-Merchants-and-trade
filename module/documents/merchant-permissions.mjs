@@ -202,17 +202,6 @@ export function canUserViewClientActor(actor, permissions = {}, user = game.user
   return Boolean(permissions.canViewOtherActorsInRail)
 }
 
-export function canUserViewClientSession(actor, permissions = {}, user = game.user) {
-  if (user?.isGM) return true
-  if (!actor) return false
-  if (userOwnsActorByCharacter(actor, user)) return true
-
-  const accessLevel = getUserActorAccessLevel(actor, user)
-  if (accessLevel === "owner") return true
-  if (accessLevel === "observer") return Boolean(permissions.canViewObserverActorSessions)
-  return false
-}
-
 export function canUserViewClientJournalEntries(actor, permissions = {}, user = game.user) {
   if (user?.isGM) return true
   if (!actor) return false

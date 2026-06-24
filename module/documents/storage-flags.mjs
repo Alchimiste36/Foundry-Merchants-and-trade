@@ -203,12 +203,6 @@ export function getStorageAccessActorUuids(actor) {
     })
 }
 
-export function isStorageTradeResponsibleActor(actor, actorUuid) {
-  const normalizedActorUuid = String(actorUuid ?? "").trim()
-  if (!normalizedActorUuid) return false
-  return getStorageTradeResponsibleActorUuids(actor).includes(normalizedActorUuid)
-}
-
 export function canActorTradeWithMerchantAsStorage(storageActor, actorUuid) {
   const normalizedActorUuid = String(actorUuid ?? "").trim()
   if (!normalizedActorUuid) return false
@@ -232,14 +226,6 @@ export function getStorageItemFlags(item) {
     blocked: Boolean(raw.blocked),
     ignoreOriginalCategory: String(raw.ignoreOriginalCategory ?? "").trim()
   }
-}
-
-export function isStorageItemBlocked(item) {
-  return getStorageItemFlags(item).blocked
-}
-
-export function isStorageItemWarningGM(item) {
-  return getStorageItemFlags(item).warningGM
 }
 
 export async function setStorageItemBlocked(item, blocked) {
@@ -413,7 +399,7 @@ export function getStorageClaimQuantityBlockReasonKey(intentState, requestedQuan
   return ""
 }
 
-export function getStorageAddBlockReasonKey(intentState) {
+function getStorageAddBlockReasonKey(intentState) {
   if (intentState?.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
   if (!intentState?.hasWant) return ""
 

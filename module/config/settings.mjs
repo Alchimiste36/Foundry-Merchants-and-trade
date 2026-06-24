@@ -258,17 +258,4 @@ export function getCurrencies() {
   }
 }
 
-export function parseDefaultCustomCategories(value) {
-  const seen = new Set()
 
-  return String(value ?? "")
-    .split(/\r?\n/)
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .filter((entry) => {
-      const key = entry.toLocaleLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-}

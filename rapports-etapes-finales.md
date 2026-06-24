@@ -219,3 +219,37 @@ Commentaires d'architecture ajoutés dans les fichiers MJS principaux : en-tête
 - Pas de nettoyage imports/exports/fonctions mortes.
 - Pas de modification HBS / LESS / lang.
 - Pas de changement fonctionnel volontaire.
+
+---
+
+## Étape 09 — Nettoyage imports / exports / fonctions mortes MJS
+
+### Todo
+- [x] Vérifier les anciens imports `merchant-flags.mjs` / `merchant-access.mjs`
+- [x] Nettoyer les imports inutilisés confirmés
+- [x] Rétrograder les exports utilisés uniquement localement
+- [x] Supprimer les fonctions mortes confirmées
+- [x] Vérifier les TODO obsolètes
+- [x] Vérifier l'absence de modification HBS / LESS / lang
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-dialogs.mjs`
+- `module/applications/sheets/merchant-journal.mjs`
+- `module/applications/sheets/merchant-rail.mjs`
+- `module/applications/sheets/merchant-utils.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+- `module/config/settings.mjs`
+- `module/documents/merchant-permissions.mjs`
+- `module/documents/merchant-products.mjs`
+- `module/documents/storage-flags.mjs`
+
+### Résumé
+Nettoyage confirmé sans changement fonctionnel : 6 exports rétrogradés en fonctions internes (`renderSessionPreparationDialog`, `getMerchantJournalTransactions`, `getStorageJournalEntries`, `getBestSessionForClient`, `parsePriceValue`, `getStorageAddBlockReasonKey`) ; 9 fonctions mortes supprimées après vérification globale (`findMergeableMerchantItemBySourceUuid`, `prepareMerchantCatalogItemData`, `isMerchantSellerDropBlocked`, `parseDefaultCustomCategories`, `canUserViewClientSession`, `findMergeableCatalogProduct`, `isStorageTradeResponsibleActor`, `isStorageItemBlocked`, `isStorageItemWarningGM`) ; le bloc de section `// ─── Seller drop protection ───` et le TODO étape 9 dans `merchant-catalog.mjs` ont été supprimés avec les fonctions concernées. Aucun import vers `merchant-flags.mjs` ni `merchant-access.mjs` n'a été trouvé. `node --check` validé sur les 10 fichiers.
+
+### Hors périmètre volontaire
+- Pas de déplacement de fonctions.
+- Pas de renommage de fichiers.
+- Pas de modification HBS / LESS / lang.
+- Pas de changement métier volontaire.
+- `TODO MTT services secrets:` conservé dans `merchant-trade.mjs` : fonctionnalité future explicite (description secrète de service dans le journal).

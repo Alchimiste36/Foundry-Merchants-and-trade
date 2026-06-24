@@ -221,6 +221,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     })
   }
 
+  // ─── MTT base — contexte et état de feuille ──────────────────────────────
+
   async _prepareContext(options) {
     const context = await super._prepareContext(options)
 
@@ -882,7 +884,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
   }
 
-  // ─── Access rail (DOM building, stays in sheet) ───────────────────────────
+  // ─── MTT base — rendu et activation du rail ──────────────────────────────
 
   async #renderAccessRail(context) {
     const applicationElement = this.#getApplicationElement()
@@ -972,6 +974,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   #removeSessionItemById(session, itemId, side) {
     return removeSessionItemById(session, itemId, side)
   }
+  // ─── MTT storage — helpers de session d'échange ──────────────────────────
+
   #setStorageSessionMoneyValue(session, side, amount) {
     // MTT storage — lignes permanentes de monnaie dans la session de stockage
     if (!this.#isStorageEntity() || !session) return null
@@ -2932,7 +2936,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     return true
   }
 
-  // ─── Session state management ─────────────────────────────────────────────
+  // ─── MTT base — accès session et sélection d'acteur ─────────────────────
 
   async #editClientCustomRates(client) {
     const defaults = getMerchantDefaultClientRates(this.actor)
@@ -4308,6 +4312,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     this.render()
   }
 
+  // ─── MTT base — validation/refus de session ───────────────────────────────
+
   static async #onValidateSessionTransaction(event) {
     event.preventDefault()
 
@@ -4989,7 +4995,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await updateMerchantData(this.actor, { wallet: { currencies } })
   }
 
-  // ─── Free price toggle handlers ───────────────────────────────────────────
+  // ─── MTT shop — services, prix libres et négociation ────────────────────
 
   static async #onToggleProductFreePrice(event, target) {
     event.preventDefault()

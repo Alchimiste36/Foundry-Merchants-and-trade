@@ -167,3 +167,55 @@ Création du fichier central du rail d'acteurs MTT et déplacement des helpers d
 - Pas de déplacement de fonctions vers `merchant-rail.mjs`.
 - Pas de modification HBS / LESS / lang.
 - Pas de changement de logique métier.
+
+---
+
+## Étape 07 — Nettoyage de `merchant-sheet.mjs`
+
+### Todo
+- [x] Vérifier les imports de `merchant-sheet.mjs`
+- [x] Recentrer les commentaires de grands blocs
+- [x] Vérifier les helpers purs éventuellement déplaçables
+- [x] Conserver les handlers Application V2 dans `merchant-sheet.mjs`
+- [x] Vérifier l'absence de modification hors périmètre
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Ajout de 6 commentaires de grands blocs MTT dans `merchant-sheet.mjs` pour rendre lisible la structure de l'orchestrateur : contexte/état, rail, helpers storage d'échange, accès session, validation/refus, et shop services/négociation. Aucun helper pur n'a été déplacé : toutes les fonctions restantes dépendent de `this.actor`, `this.element`, `this.render()`, du DOM Foundry, des dialogs ou de l'état de la classe. Les imports ne référencent plus `merchant-flags.mjs` ni `merchant-access.mjs`.
+
+### Hors périmètre volontaire
+- Pas de modification HBS / LESS / lang.
+- Pas de création de `merchant-sheet-shop.mjs` ou `merchant-sheet-storage.mjs`.
+- Pas de déplacement de validation / preview / exécution métier.
+- Pas de changement fonctionnel volontaire.
+
+---
+
+## Étape 08 — Commentaires d'architecture MJS
+
+### Todo
+- [x] Lire `rapports-etapes-finales.md` et vérifier les rapports 01–07
+- [x] Vérifier les commentaires existants après les étapes 06 et 07
+- [x] Ajouter ou ajuster les commentaires d'architecture MJS sans changement fonctionnel
+- [x] Vérifier qu'aucun fichier HBS / LESS / lang n'a été modifié
+
+### Fichiers modifiés
+- `module/documents/mtt-flags.mjs`
+- `module/documents/shop-flags.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `module/applications/sheets/merchant-journal.mjs`
+- `module/applications/sheets/merchant-rail.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Commentaires d'architecture ajoutés dans les fichiers MJS principaux : en-têtes de fichiers (`mtt-flags.mjs`, `shop-flags.mjs`, `merchant-catalog.mjs`, `merchant-journal.mjs`), note d'isolation dans `mtt-flags.mjs`, note sur les noms historiques dans `shop-flags.mjs`, et sous-sections `MTT base` / `MTT shop` / `MTT storage` dans `merchant-catalog.mjs`, `merchant-journal.mjs` et `merchant-rail.mjs`. Les fichiers déjà bien commentés après les étapes 06 et 07 (`merchant-trade.mjs`, `merchant-sheet.mjs`, `merchant-session.mjs`, `storage-flags.mjs`) n'ont pas été modifiés.
+
+### Hors périmètre volontaire
+- Pas de déplacement de fonctions.
+- Pas de renommage de fichiers ou de fonctions.
+- Pas de nettoyage imports/exports/fonctions mortes.
+- Pas de modification HBS / LESS / lang.
+- Pas de changement fonctionnel volontaire.

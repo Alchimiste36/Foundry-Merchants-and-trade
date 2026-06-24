@@ -1,3 +1,7 @@
+// MTT base — journaux locaux shop et storage : normalisation et affichage commun.
+// MTT shop — construction et contexte des entrées de transaction boutique.
+// MTT storage — construction et contexte des entrées d'échange stockage.
+
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
 import { getMerchantData, updateMerchantData } from "../../documents/shop-flags.mjs"
@@ -260,6 +264,8 @@ function getJournalReferenceCurrency(entries) {
   const entry = entries.find((line) => String(line.priceCurrency ?? "").trim())
   return String(entry?.priceCurrency ?? "")
 }
+
+// MTT shop — journal des transactions boutique
 
 export function buildMerchantJournalEntryFromSession(actor, session, options = {}) {
   const status = options.status === "refused" ? "refused" : "validated"

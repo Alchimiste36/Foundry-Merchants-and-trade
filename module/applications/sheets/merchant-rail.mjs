@@ -5,6 +5,7 @@ import { getSessions, normalizeSession } from "./merchant-session.mjs"
 
 // ─── Access / client helpers ──────────────────────────────────────────────────
 
+// MTT base — normalisation acteur du rail
 export function normalizeAccessClient(client) {
   const customRates =
     client.customRates && typeof client.customRates === "object"
@@ -66,6 +67,7 @@ function getMerchantTradePercent(actor, key, fallback) {
   return fallback
 }
 
+// MTT shop — taux client personnalisés (non disponibles pour le storage)
 export function getMerchantDefaultClientRates(actor) {
   return {
     productSellPercent: getMerchantTradePercent(actor, "sellPercent", 100),
@@ -141,6 +143,7 @@ export function getStoredAccessClients(actor) {
   return Array.from(clientsByUuid.values())
 }
 
+// MTT base — statuts, tooltips et icônes de session rail
 function getAccessSessionBadgeIcon(status) {
   if (status === "active") return "fa-hourglass-half"
   if (status === "pending") return "fa-triangle-exclamation"
@@ -189,6 +192,7 @@ function getBestAccessSessionForClient(sessions, actorUuid) {
   return relevantSessions[0]
 }
 
+// MTT base — préparation des cards du rail (commun shop/storage)
 export function prepareAccessClients(
   actor,
   { selectedSession, selectedClientActorUuid, isEditable, accessClients = null, sessions = null } = {}

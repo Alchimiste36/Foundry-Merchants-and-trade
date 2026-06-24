@@ -1,6 +1,6 @@
 import { MTT } from "./constants.mjs"
 import { normalizeAllowedMerchantActorTypes, normalizeAllowedStorageActorTypes } from "./actor-types.mjs"
-import { normalizeMerchantPermissionProfiles } from "../documents/merchant-access.mjs"
+import { normalizeMerchantPermissionProfiles } from "../documents/merchant-permissions.mjs"
 
 export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemQuantityPath",

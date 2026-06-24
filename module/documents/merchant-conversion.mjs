@@ -5,7 +5,7 @@ import {
   setMerchantData,
   unsetMerchantData,
   updateMerchantData
-} from "./merchant-flags.mjs"
+} from "./shop-flags.mjs"
 import {
   buildDefaultStorageData,
   buildInitialLocalStorageCategories,

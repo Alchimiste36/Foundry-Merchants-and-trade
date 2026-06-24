@@ -1,6 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
-import { getMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData } from "../../documents/shop-flags.mjs"
 
 // ─── Parsing / quantités ─────────────────────────────────────────────────────
 

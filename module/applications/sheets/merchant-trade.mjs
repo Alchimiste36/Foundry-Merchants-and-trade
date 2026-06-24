@@ -33,7 +33,7 @@ import {
   getOrCreateAutomaticProductCategory,
   getItemAvailableQuantity
 } from "./merchant-catalog.mjs"
-import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/shop-flags.mjs"
 import {
   getCatalogProduct,
   updateCatalogProduct,
@@ -43,8 +43,8 @@ import {
   isMerchantProductItem,
   getMerchantProductFlags
 } from "../../documents/merchant-products.mjs"
+import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {
-  getMTTEntityType,
   isMTTStorage,
   getStorageItemFlags,
   getStorageData,

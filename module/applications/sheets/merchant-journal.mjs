@@ -1,9 +1,9 @@
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
-import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/shop-flags.mjs"
 import { getStorageData, updateStorageData } from "../../documents/storage-flags.mjs"
 import { getCatalogProduct } from "../../documents/merchant-products.mjs"
-import { canUserViewClientJournalEntries } from "../../documents/merchant-access.mjs"
+import { canUserViewClientJournalEntries } from "../../documents/merchant-permissions.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]

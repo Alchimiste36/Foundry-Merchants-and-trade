@@ -13,7 +13,7 @@ import {
   MERCHANT_PERMISSION_PROFILE_KEYS,
   canConfigureMerchantPermission,
   normalizeMerchantPermissionProfiles
-} from "../documents/merchant-access.mjs"
+} from "../documents/merchant-permissions.mjs"
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api
 

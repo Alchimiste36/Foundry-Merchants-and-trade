@@ -5,9 +5,9 @@ import {
   updateMerchantData,
   createLocalMerchantCategory,
   isMTTMerchant
-} from "../../documents/merchant-flags.mjs"
+} from "../../documents/shop-flags.mjs"
+import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {
-  getMTTEntityType,
   getStorageData,
   getStorageFlagPath,
   updateStorageData,
@@ -28,7 +28,7 @@ import {
   getMerchantAccessContext,
   getMerchantPermissions,
   canUserViewClientActor
-} from "../../documents/merchant-access.mjs"
+} from "../../documents/merchant-permissions.mjs"
 import {
   isUnlimitedQuantity,
   isFreePriceCurrency,

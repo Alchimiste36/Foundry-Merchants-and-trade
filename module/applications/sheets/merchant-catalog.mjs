@@ -1,6 +1,6 @@
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
-import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/shop-flags.mjs"
 import {
   getCatalogProducts,
   getCatalogProduct,
@@ -13,11 +13,11 @@ import {
   updateCatalogProduct,
   sanitizeItemDataForMerchantProductCopy
 } from "../../documents/merchant-products.mjs"
+import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {
   STORAGE_IGNORE_CATEGORY_ID,
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
-  getMTTEntityType,
   getStorageData,
   getStorageItemTagForActor
 } from "../../documents/storage-flags.mjs"

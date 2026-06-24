@@ -1,7 +1,7 @@
 import { MTT } from "./constants.mjs"
 import { MttConfigApp } from "../applications/mtt-config-app.mjs"
 import { MttGlobalJournalApp, MttGlobalStorageJournalApp } from "../applications/mtt-global-journal-app.mjs"
-import { MERCHANT_DEFAULT_PERMISSION_PROFILES } from "../documents/merchant-access.mjs"
+import { MERCHANT_DEFAULT_PERMISSION_PROFILES } from "../documents/merchant-permissions.mjs"
 
 export function registerSettings() {
   game.settings.register(MTT.ID, "debug", {

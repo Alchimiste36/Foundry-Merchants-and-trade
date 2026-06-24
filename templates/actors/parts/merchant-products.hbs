@@ -1,5 +1,5 @@
 <section class="mtt-merchant-products">
-  <div class="mtt-merchant-products-drop-zone">
+  <div class="mtt-merchant-products-drop-zone" data-mtt-product-document-drop>
 
     {{#if productCategories.length}}
       <div class="mtt-merchant-product-categories">
@@ -255,6 +255,13 @@
                               class="mtt-merchant-product-name"
                             >
                               {{item.displayName}}
+                              {{#if @root.isStorage}}
+                                {{#if item.hasStorageInlinePrice}}
+                                  <span class="mtt-storage-product-inline-price mtt-merchant-product-price-display">
+                                    | {{item.storageInlinePriceLabel}}
+                                  </span>
+                                {{/if}}
+                              {{/if}}
                             </span>
                           </span>
                         {{/if}}
@@ -272,7 +279,7 @@
                               {{#if item.hasFreePrice}}
                                 <label class="mtt-merchant-product-price-field">
                                   <input
-                                    class="mtt-merchant-product-price-value"
+                                    class="mtt-merchant-product-price-value-input"
                                     type="number"
                                     min="0"
                                     step="1"
@@ -283,7 +290,7 @@
                               {{else}}
                                 <label class="mtt-merchant-product-price-field">
                                   <input
-                                    class="mtt-merchant-product-price-value"
+                                    class="mtt-merchant-product-price-value-input"
                                     type="number"
                                     min="0"
                                     step="1"
@@ -294,7 +301,7 @@
                                 </label>
                               {{/if}}
                               <select
-                                class="mtt-merchant-product-price-currency"
+                                class="mtt-merchant-product-price-currency-input"
                                 data-mtt-product-field="priceCurrency"
                               >
                                 {{#each @root.mtt.currencyOptions as |opt|}}
@@ -349,7 +356,11 @@
                               data-action="addProductToSession"
                               data-tooltip="{{item.addToSessionTooltip}}"
                             >
-                              <i class="fas fa-cart-plus"></i>
+                            {{#if item.isAddToSessionDangerVisible}}
+                              <i class="fas fa-bag-shopping"></i>
+                            {{else}}
+                              <i class="fas fa-bag-shopping-plus"></i>
+                            {{/if}}
                             </button>
                           {{/if}}
                         {{/if}}

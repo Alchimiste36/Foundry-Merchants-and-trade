@@ -1,5 +1,30 @@
 /* MTT — Dialogues */
 
+.mtt-dialog-window {
+  .window-content {
+    background: var(--mtt-bg-main);
+    color: var(--mtt-text);
+    scrollbar-color: var(--mtt-border) var(--mtt-bg-main);
+  }
+
+  input,
+  select,
+  textarea {
+    background: var(--mtt-bg-field);
+    color: var(--mtt-text);
+    border-color: var(--mtt-border);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--mtt-text-soft);
+  }
+
+  button {
+    color: var(--mtt-text);
+  }
+}
+
 .mtt-dialog {
   display: grid;
   gap: 0.75rem;
@@ -29,7 +54,7 @@
 
 .mtt-dialog-title {
   margin: 0;
-  color: var(--mtt-text);
+  color: var(--mtt-accent);
   font-size: 1rem;
   font-weight: 700;
 }
@@ -50,14 +75,14 @@
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.4rem;
-  background: rgba(0, 0, 0, 0.14);
+  background: var(--mtt-bg-field);
   color: var(--mtt-text-soft);
   font-size: 0.85rem;
 }
 
 .mtt-dialog-warning .mtt-dialog-icon {
-  border-color: #d6a84f;
-  color: #d6a84f;
+  border-color: var(--mtt-warning);
+  color: var(--mtt-warning);
 }
 
 .mtt-dialog-danger .mtt-dialog-icon {
@@ -141,7 +166,7 @@
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.45rem;
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-panel-soft);
 }
 
 .mtt-dialog-preview-header p {
@@ -188,7 +213,7 @@
 }
 
 .mtt-dialog-preview-table th {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--mtt-bg-panel-soft);
   color: var(--mtt-text-soft);
   font-size: 0.72rem;
   font-weight: 700;
@@ -235,7 +260,7 @@
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.45rem;
   color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-panel-soft);
 }
 
 .mtt-dialog-preview-money {
@@ -252,7 +277,7 @@
   border: 1px solid var(--mtt-border-soft);
   border-radius: 0.45rem;
   color: var(--mtt-text-muted);
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-panel-soft);
   font-size: 1rem;
 }
 
@@ -303,7 +328,7 @@
 .mtt-dialog-preview-notice {
   border: 1px solid var(--mtt-border-soft);
   color: var(--mtt-text-soft);
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-panel-soft);
 }
 
 .mtt-session-dialog-form {
@@ -318,7 +343,7 @@
 
 .mtt-session-dialog-title {
   margin: 0;
-  color: var(--mtt-text);
+  color: var(--mtt-accent);
   font-size: 1rem;
   font-weight: 700;
 }
@@ -346,7 +371,6 @@
   font-size: 0.82rem;
   font-weight: 600;
 }
-
 
 .mtt-secret-info-dialog {
   display: flex;

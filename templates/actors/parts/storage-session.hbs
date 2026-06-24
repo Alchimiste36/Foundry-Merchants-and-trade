@@ -33,7 +33,7 @@
       </header>
 
       <ol class="mtt-merchant-session-list">
-        <li class="mtt-merchant-session-item" data-session-side="buyer" data-session-item-id="{{mtt.session.storageMoney.takeItemId}}">
+        <li class="mtt-merchant-session-item storage" data-session-side="buyer" data-session-item-id="{{mtt.session.storageMoney.takeItemId}}">
           <div>
             <img class="mtt-merchant-session-item-image" src="icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp" alt="{{localize 'mtt.storage.session.money.take'}}" />
           </div>
@@ -85,7 +85,7 @@
 
         {{#if mtt.session.hasBuyerItems}}
           {{#each mtt.session.buyerItems as |item|}}
-            <li class="mtt-merchant-session-item" data-session-side="buyer" data-session-item-id="{{item.id}}">
+            <li class="mtt-merchant-session-item storage" data-session-side="buyer" data-session-item-id="{{item.id}}">
               <div>
                 <img class="mtt-merchant-session-item-image" src="{{item.img}}" alt="{{item.name}}" />
               </div>
@@ -146,7 +146,7 @@
       </header>
 
       <ol class="mtt-merchant-session-list">
-        <li class="mtt-merchant-session-item" data-session-side="seller" data-session-item-id="{{mtt.session.storageMoney.depositItemId}}">
+        <li class="mtt-merchant-session-item storage" data-session-side="seller" data-session-item-id="{{mtt.session.storageMoney.depositItemId}}">
           <div>
             <img class="mtt-merchant-session-item-image" src="icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp" alt="{{localize 'mtt.storage.session.money.deposit'}}" />
           </div>
@@ -198,7 +198,7 @@
 
         {{#if mtt.session.hasSellerItems}}
           {{#each mtt.session.sellerItems as |item|}}
-            <li class="mtt-merchant-session-item mtt-merchant-session-item-object" data-session-side="seller" data-session-item-id="{{item.id}}">
+            <li class="mtt-merchant-session-item storage" data-session-side="seller" data-session-item-id="{{item.id}}">
               <div>
                 <img class="mtt-merchant-session-item-image" src="{{item.img}}" alt="{{item.name}}" />
               </div>

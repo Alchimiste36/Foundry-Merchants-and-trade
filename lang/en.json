@@ -94,6 +94,11 @@
         "label": "Open global journal",
         "hint": "Opens the MTT global transaction journal for all merchants."
       },
+      "openGlobalStorageJournal": {
+        "name": "Global storage exchange journal",
+        "label": "Open global exchange journal",
+        "hint": "Displays exchanges recorded in MTT storages."
+      },
       "currencies": {
         "name": "Configured currencies",
         "hint": "List of MTT module currencies. Managed through the MTT configuration window."
@@ -170,7 +175,9 @@
       "lock": "Lock",
       "unlock": "Unlock",
       "locked": "Locked",
-      "unlocked": "Unlocked"
+      "unlocked": "Unlocked",
+      "openSessionInteractions": "Open session interactions",
+      "closeSessionInteractions": "Close session interactions"
     },
     "merchant": {
       "name": {
@@ -215,6 +222,9 @@
         "noActors": "No actor is linked to this storage.",
         "responsibleTooltip": "{actorName} can trade on behalf of the storage.",
         "notResponsibleTooltip": "{actorName} can view the storage session at a merchant, but cannot trade on its behalf yet."
+      },
+      "configuration": {
+        "walletSection": "Storage wallet"
       },
       "session": {
         "title": "Exchange session",
@@ -272,13 +282,27 @@
       },
       "intent": {
         "block": {
-          "activeActorIgnored": "Remove “Not interested” to claim this item.",
-          "activeActorMustWant": "This item is claimed. This actor must choose “I want it” to take it.",
-          "missingVotes": "This item is claimed. Every active actor on this storage must choose “I want it” or “Not interested”.",
+          "activeActorIgnored": "Remove \"Not interested\" to claim this item.",
+          "activeActorMustWant": "This item is claimed. This actor must choose \"I want it\" to take it.",
+          "missingVotes": "This item is claimed. Every active actor on this storage must choose \"I want it\" or \"Not interested\".",
           "notEnoughQuantity": "More actors want this item than there are available copies.",
           "claimLimitReached": "This actor has reached their maximum quantity for this item.",
           "blockedItem": "An item is blocked in the storage. Validation is impossible.",
           "generic": "This item is under decision and cannot be freely added."
+        }
+      },
+      "journal": {
+        "empty": "No recorded exchange.",
+        "columns": {
+          "exchange": "Exchange",
+          "actor": "Actor",
+          "recovered": "Recovered",
+          "deposited": "Deposited",
+          "direction": "Direction"
+        },
+        "direction": {
+          "recovered": "Recovered from storage",
+          "deposited": "Deposited into storage"
         }
       }
     },
@@ -383,6 +407,26 @@
         "adjustment": "Adjustment"
       }
     },
+    "globalStorageJournal": {
+      "title": "Global exchange journal",
+      "empty": "No recorded exchange.",
+      "filters": {
+        "storage": "Storage",
+        "actor": "Actor",
+        "allStorages": "All storages",
+        "allActors": "All actors",
+        "clear": "Reset"
+      },
+      "columns": {
+        "exchangeNumber": "No.",
+        "storage": "Storage",
+        "actor": "Actor",
+        "status": "Status",
+        "recovered": "Recovered",
+        "deposited": "Deposited",
+        "adjustment": "Adjustment"
+      }
+    },
     "notifications": {
       "permissionDenied": "You are not allowed to perform this action.",
       "sheetLocked": "The merchant sheet is locked.",
@@ -425,6 +469,8 @@
       "sessionCheckSuccess": "Check complete: no blocking issues detected.",
       "sessionCheckFailed": "Check complete: blocking issues were detected.",
       "onlyActorsCanBeClients": "Only actors can be added as clients.",
+      "cannotAddSelfToRail": "This actor cannot be added to its own rail.",
+      "cannotAddMerchantToMerchantRail": "An MTT shop cannot be added to another MTT shop rail.",
       "clientAdded": "Client added to merchant.",
       "clientAuthorized": "Client authorized to trade.",
       "clientUnauthorized": "Client authorization removed.",

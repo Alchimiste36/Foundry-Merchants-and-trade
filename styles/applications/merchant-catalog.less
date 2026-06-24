@@ -38,12 +38,13 @@
 }
 
 .mtt-merchant-product-category-header-hidden {
-  background: #d36b5f36;
+  background: var(--mtt-danger-soft);
 }
 
 .mtt-merchant-product-category-toggle {
   border: 2px solid var(--mtt-border);
   width: 30px;
+  color: var(--mtt-text);
 }
 
 .mtt-merchant-product-category-header-main {
@@ -100,7 +101,7 @@
 
 .mtt-merchant-product-category-item-list-hidden {
   border-color: var(--mtt-danger);
-  background: #d36b5f36;
+  background: var(--mtt-danger-soft);
 }
 
 .mtt-merchant-products-drop-help {
@@ -146,12 +147,12 @@
 
 .mtt-merchant-product-row:hover {
   border-color: var(--mtt-border);
-  background: #363b42;
+  background: var(--mtt-bg-hover);
 }
 
 .mtt-merchant-catalog-item-hidden {
   opacity: 0.45;
-  background: #d36b5f36;
+  background: var(--mtt-danger-soft);
 }
 
 /* MTT storage — effets visuels des tags actifs */
@@ -184,11 +185,11 @@
 }
 
 .mtt-merchant-product-main.mtt-merchant-product-ownership-limited {
-  border-left: 4px solid #a33;
+  border-left: 4px solid var(--mtt-danger);
 }
 
 .mtt-merchant-product-main.mtt-merchant-product-ownership-observer {
-  border-left: 4px solid #2f8f46;
+  border-left: 4px solid var(--mtt-success);
 }
 
 .mtt-merchant-product-identity {
@@ -232,7 +233,7 @@
 }
 
 .mtt-storage-item-warning-gm {
-  color: var(--color-level-warning, #e69900);
+  color: var(--mtt-warning);
 }
 
 .mtt-storage-tags {
@@ -251,19 +252,30 @@
   border: none;
   background: transparent;
   cursor: pointer;
+  color: var(--mtt-text-soft);
   opacity: 0.45;
   font-size: 0.78rem;
   line-height: 1;
   transition: opacity 0.12s;
 
+  i {
+    color: inherit;
+  }
+
   &:hover {
+    color: var(--mtt-text-muted);
     opacity: 0.8;
   }
 }
 
 .mtt-storage-tag-active {
+  color: var(--mtt-accent);
   opacity: 1;
   transform: scale(1.1);
+
+  i {
+    color: inherit;
+  }
 }
 
 .mtt-storage-add-blocked {
@@ -287,6 +299,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.mtt-storage-product-inline-price {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  color: var(--mtt-text-soft);
+  font-weight: 100;
 }
 
 .mtt-merchant-product-name-input {
@@ -312,12 +330,7 @@
 }
 
 .mtt-merchant-product-price-value-input {
-  width: 5.5rem;
-  text-align: center;
-}
-
-.mtt-merchant-product-price-currency-input {
-  width: 4.5rem;
+  text-align: right;
 }
 
 .mtt-merchant-product-price-currency {
@@ -385,7 +398,7 @@
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  color: #d9ccff;
+  color: var(--mtt-secret-text, #d9ccff);
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -407,7 +420,7 @@
   border-radius: 999px;
   background: var(--mtt-secret-soft);
   border: 1px solid rgba(143, 117, 201, 0.45);
-  color: #d9ccff;
+  color: var(--mtt-secret-text, #d9ccff);
   font-size: 0.72rem;
   font-weight: 700;
 }
@@ -771,7 +784,7 @@
 
   &:hover {
     border-color: var(--mtt-border);
-    background: #363b42;
+    background: var(--mtt-bg-hover);
   }
 }
 
@@ -840,7 +853,7 @@
   padding-left: 10px;
   margin-left: 30px;
   border-radius: 0.35rem;
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--mtt-bg-field);
   color: var(--mtt-text-muted);
 }
 

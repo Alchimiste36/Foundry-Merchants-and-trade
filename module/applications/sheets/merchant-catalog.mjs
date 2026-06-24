@@ -325,7 +325,12 @@ export function prepareItems(
         canShowAddToSessionButton,
         isAddToSessionDangerVisible,
         addToSessionTooltip,
-        storageTags: buildStorageTagsContext(rawStorageTags, { canEditActiveSession, voterActorUuid })
+        storageTags: buildStorageTagsContext(rawStorageTags, { canEditActiveSession, voterActorUuid }),
+        storageInlinePriceLabel: formatPriceLabel(itemPriceValue, priceCurrency),
+        hasStorageInlinePrice:
+          Number.isFinite(Number(itemPriceValue)) &&
+          Number(itemPriceValue) > 0 &&
+          Boolean(String(formatPriceLabel(itemPriceValue, priceCurrency) ?? "").trim())
       }
     })
     .filter((item) => includeHidden || item.isVisible)

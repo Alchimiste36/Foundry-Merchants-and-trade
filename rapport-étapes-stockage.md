@@ -3384,3 +3384,203 @@ La vérification de quantité disponible reste inchangée et bloque toujours tou
 - Aucun contournement de la limite de stock.
 
 ---
+
+# Étape 1 — Journal local des échanges storage
+
+## Todo
+
+- [x] `storage-flags.mjs` — Ajouter `nextExchangeNumber` à `buildDefaultStorageData` et normaliser dans `normalizeStorageData`.
+- [x] `merchant-journal.mjs` — Importer `getStorageData`, `updateStorageData`. Ajouter `buildStorageJournalEntryFromSession`, `getStorageJournalEntries`, `appendStorageJournalEntry`, `prepareStorageJournalContext`. Étendre `prepareJournalEntryDisplay` avec `recoveredDifferentItemCount*` / `depositedDifferentItemCount*`. Étendre `prepareJournalLineDisplay` avec `displayQuantityLabel`, `storageDirectionIcon`, `storageDirectionClass`, `storageDirectionTooltipKey`.
+- [x] `merchant-sheet.mjs` — Importer les 3 nouvelles fonctions storage. Remplacer `#prepareNeutralJournalContext()` par `prepareStorageJournalContext(...)`. Ajouter `appendStorageJournalEntry` après validation storage. Ajouter `appendStorageJournalEntry` après refus storage.
+- [x] `storage-journal.hbs` — Remplacer le placeholder par un template réel calqué sur `merchant-journal.hbs`, avec colonnes récupérés/déposés et détail direction+nom+quantité.
+- [x] `lang/fr.json` + `lang/en.json` — Ajouter bloc `storage.journal` (empty, columns, direction).
+- [x] `css/mtt.css` — Ajouter `.mtt-storage-direction-recovered` (rouge) et `.mtt-storage-direction-deposited` (vert).
+
+## Fichiers modifiés
+
+- `module/documents/storage-flags.mjs`
+- `module/applications/sheets/merchant-journal.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/storage-journal.hbs`
+- `lang/fr.json`
+- `lang/en.json`
+- `css/mtt.css`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Le journal local storage est opérationnel. Chaque validation et chaque refus d'échange storage écrit une entrée dans `flags.mtt-merchants.storage.journal.entries`. L'onglet Journal du stockage affiche ces échanges avec les colonnes : N° échange, acteur, statut, récupérés (nombre d'Items différents), déposés (nombre d'Items différents), ajustement monétaire. Le détail déplié montre la direction (flèche rouge = récupéré, verte = déposé), le nom et la quantité de chaque ligne. Le tri local fonctionne sur les mêmes actions que le journal shop. Le journal shop n'est pas modifié fonctionnellement : les extensions `prepareJournalEntryDisplay` et `prepareJournalLineDisplay` ajoutent des champs non utilisés par le template shop.
+
+## Non modifié volontairement
+
+- Logique de transfert (Items et monnaie) : inchangée.
+- Journal shop : aucune modification fonctionnelle.
+- `#prepareNeutralJournalContext` : conservée (non supprimée au cas où elle serait encore utilisée ailleurs).
+- Aucun journal global storage ajouté dans cette étape.
+
+---
+
+# Étape 2 — Journal global des échanges storage
+
+## Todo
+
+- [x] `constants.mjs` — Ajouter `MTT_GLOBAL_STORAGE_JOURNAL` dans `MTT.TEMPLATES`.
+- [x] `mtt-global-journal-app.mjs` — Importer `isMTTStorage`, `getStorageData`. Ajouter `GLOBAL_STORAGE_JOURNAL_SORT_KEYS`, `normalizeGlobalStorageJournalSort`, `compareGlobalStorageJournalTransactions`, `canUserViewGlobalStorageJournalEntry`. Ajouter classe `MttGlobalStorageJournalApp` avec filtres `storageUuid`/`buyerUuid`, tri sur 7 clés, `_prepareContext`, `_onRender`, actions sort/filter/clear.
+- [x] `mtt-global-storage-journal.hbs` — Créer le template en partant de `mtt-global-journal.hbs`, avec colonnes : N°, Stockage, Acteur, Statut, Récupérés, Déposés, Ajustement. Détail : direction + nom + quantité (même structure que `storage-journal.hbs`).
+- [x] `settings.mjs` — Importer `MttGlobalStorageJournalApp`. Ajouter `registerMenu` sous le menu global shop.
+- [x] `lang/fr.json` — Ajouter `settings.openGlobalStorageJournal` et `mtt.globalStorageJournal`.
+- [x] `lang/en.json` — Idem en anglais.
+
+## Fichiers modifiés
+
+- `module/config/constants.mjs`
+- `module/config/settings.mjs`
+- `module/applications/mtt-global-journal-app.mjs`
+- `templates/apps/mtt-global-storage-journal.hbs` (nouveau)
+- `lang/fr.json`
+- `lang/en.json`
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+Un nouveau menu apparaît dans les options Foundry du module (icône entrepôt) permettant d'ouvrir le journal global des échanges storage. La classe `MttGlobalStorageJournalApp` collecte les entrées de `flags.mtt-merchants.storage.journal.entries` de tous les acteurs storage actifs, normalise chaque entrée avec `normalizeJournalEntry` et prépare l'affichage avec `prepareJournalEntryDisplay`. Les colonnes Récupérés/Déposés réutilisent `mtt-global-journal-paid/received` (même position CSS 7 colonnes), le détail reprend les classes `mtt-merchant-journal-item-*` de l'étape 1. Aucune nouvelle classe CSS ajoutée.
+
+## Non modifié volontairement
+
+- `MttGlobalJournalApp` (journal global shop) : inchangée.
+- `appendStorageJournalEntry`, `buildStorageJournalEntryFromSession` : inchangés.
+- Validation/refus des sessions : inchangés.
+- Aucun nouveau CSS ajouté (réutilisation des classes `mtt-global-journal-*` et `mtt-merchant-journal-item-*` existantes).
+
+---
+
+# Étape 3 — Stabilisation des journaux storage
+
+## Todo
+
+- [x] `merchant-sheet.mjs` — Vérifier la structure try/catch/return de la branche storage dans `#onValidateSessionTransaction`. Corriger le commentaire obsolète ("sans journal commercial" → "avec journal storage"). Vérifier les imports (un seul bloc, 3 fonctions storage incluses). `node --check` OK.
+- [x] `merchant-journal.less` — Ajouter après `.mtt-merchant-journal-item-type i { color: var(--mtt-accent); }` les surcharges spécifiques : `.mtt-merchant-journal-item-type i.mtt-storage-direction-recovered` et `i.mtt-storage-direction-deposited` avec spécificité (0,3,1) > (0,1,1).
+- [x] `css/mtt.css` — Mis à jour automatiquement par le compilateur LESS. Les deux nouvelles règles spécifiques sont présentes aux lignes 2030-2035.
+- [x] Journal global storage vérifié : `MttGlobalStorageJournalApp` réutilise `normalizeJournalEntry`/`prepareJournalEntryDisplay`, classes `mtt-merchant-journal-*` pour le détail, `storageDirectionClass` sur le `<i>`, menu sous le journal global shop.
+
+## Fichiers modifiés
+
+- `module/applications/sheets/merchant-sheet.mjs` (commentaire)
+- `styles/applications/merchant-journal.less` (surcharges spécificité direction)
+- `css/mtt.css` (compilé automatiquement)
+- `rapport-étapes-stockage.md`
+
+## Résumé
+
+La structure de `#onValidateSessionTransaction` côté storage est correcte : try/catch/return propre, aucun code orphelin, journal écrit avant `clearSessionAfterExecution`. Les icônes de direction storage (flèche haut rouge = récupéré, flèche bas verte = déposé) s'affichent maintenant avec les bonnes couleurs grâce aux sélecteurs `i.mtt-storage-direction-*` qui surchargent correctement `.mtt-merchant-journal-item-type i`.
+
+## Non modifié volontairement
+
+- Logique de transfert d'Items et de monnaie.
+- Fonctions du journal shop et du journal global shop.
+- Données enregistrées dans les entrées de journal storage.
+- Classes HBS `mtt-merchant-journal-*` dans les templates.
+
+## Étape — Affichage du prix informatif des Items storage
+
+Todo :
+- Ajouter le prix informatif dans la ligne du nom des produits storage.
+- Garder le nom éditable indépendant du prix.
+- Ne pas créer de nouveau flag MTT.
+
+Modifications :
+- `module/applications/sheets/merchant-catalog.mjs` : ajout de `storageInlinePriceLabel` et `hasStorageInlinePrice` dans le contexte produit (basé sur `itemPriceValue` + `priceCurrency` déjà calculés).
+- `templates/actors/parts/merchant-products.hbs` : ajout du prix dans le bloc lecture uniquement (`{{#if @root.isStorage}} {{#if item.hasStorageInlinePrice}}`), après `{{item.displayName}}`.
+- `styles/applications/merchant-catalog.less` : ajout de `.mtt-storage-product-inline-price { flex: 0 0 auto; white-space: nowrap; }`.
+
+## Étape — Bloc monnaie dans la configuration Storage
+
+### Todo utilisée
+- Ajouter le bloc monnaie dans `storage-configuration.hbs`.
+- Réutiliser `mtt.walletCurrencies` et `data-mtt-wallet-currency`.
+- Ajouter une localisation de titre Storage.
+- Vérifier que `#onWalletCurrencyChange()` reste commun shop/storage.
+
+### Éléments modifiés
+- `templates/actors/parts/storage-configuration.hbs` : bloc `mtt-merchant-wallet-grid` ajouté après `mtt-storage-trade-with-merchant`, réutilisant les classes `mtt-merchant-*` et `data-mtt-wallet-currency`.
+- `lang/fr.json` : ajout de `mtt.storage.configuration.walletSection = "Monnaie du stockage"`.
+- `lang/en.json` : ajout de `mtt.storage.configuration.walletSection = "Storage wallet"`.
+
+### Résultat
+Le stockage affiche et permet d'éditer sa monnaie dans l'onglet Configuration avec le même bloc visuel et le même handler que le shop.
+
+## Étape — Bouton commun d'ouverture/fermeture des interactions de session
+
+### Todo utilisée
+- Ajouter l'action `toggleSessionInteractions` dans `DEFAULT_OPTIONS`.
+- Préparer `sessionInteractionsOpen` et `canToggleSessionInteractions` dans `_prepareContext`.
+- Supprimer le forçage de `canInteractWithSession: true` pour le storage.
+- Ajouter les helpers privés `#getSessionInteractionsOpenState` et `#getSessionInteractionsOpenPath`.
+- Ajouter le handler `#onToggleSessionInteractions` (écrit dans les flags acteur via `actor.update`).
+- Intégrer `canUseSessionInteraction` dans `#getSessionActorAccess`.
+- Ajouter le bouton dans `merchant-header.hbs` (commun shop/storage).
+- Étendre les règles CSS existantes à `.mtt-merchant-session-lock-button`.
+- Ajouter les clés de langue `openSessionInteractions`/`closeSessionInteractions`.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `templates/actors/parts/merchant-header.hbs`
+- `styles/applications/merchant-sheet.less`
+- `lang/fr.json`
+- `lang/en.json`
+
+### Résultat
+- Bouton commun shop/storage dans le header, icône `fa-shop` (ouvert) / `fa-shop-lock` (fermé).
+- État mémorisé dans `flags.mtt-merchants.{merchant|storage}.sheet.sessionInteractionsOpen`.
+- `canInteractWithSession` reste la permission centrale ; `isEditable`, MJ et gestionnaires ne sont pas bloqués.
+
+## Étape — Règles d'ajout des acteurs dans les rails MTT
+
+Todo :
+- Bloquer l'ajout d'un acteur dans son propre rail.
+- Bloquer l'ajout d'un shop MTT dans le rail d'un autre shop MTT.
+- Conserver tous les autres sens d'ajout autorisés.
+
+Modifié :
+- Ajout d'un helper commun de validation du rail dans `merchant-sheet.mjs` (`#canAddActorToAccessRail`).
+- Sécurisation du drop (`#onClientDrop`) et de l'ajout interne (`#upsertAccessClient`).
+- Ajout des notifications FR/EN (`cannotAddSelfToRail`, `cannotAddMerchantToMerchantRail`).
+
+## Étape CSS 1 — Base commune thème MTT
+
+Todo utilisé :
+- Compléter les variables CSS MTT communes.
+- Forcer le fond et la couleur de base des feuilles MTT.
+- Forcer le fond et la couleur de base de la configuration MTT.
+- Forcer le fond et la couleur de base des journaux globaux.
+- Préparer la classe CSS commune des dialogs MTT.
+
+Éléments modifiés :
+- `styles/applications/merchant-variables.less`
+- `styles/applications/merchant-sheet.less`
+- `styles/applications/mtt-config.less`
+- `styles/applications/merchant-journal.less`
+- `styles/applications/merchant-dialogs.less`
+
+Résumé :
+- Le thème sombre MTT est renforcé comme base commune.
+- Les fenêtres MTT principales héritent moins du thème clair/sombre Foundry.
+- La classe CSS `mtt-dialog-window` est prête pour le branchement des dialogs dans l'étape suivante.
+
+## Étape CSS 2 — Dialogs MTT et titres de sections de session
+
+Modifié :
+- `module/applications/sheets/merchant-dialogs.mjs` : `classes: ["mtt-dialog-window"]` ajouté dans les 9 appels `DialogV2.wait`.
+- `styles/applications/merchant-dialogs.less` : `.mtt-dialog-window` étendu avec règles inputs/button ; `rgba(0,0,0,0.12)`, `rgba(255,255,255,0.04)` et `rgba(0,0,0,0.14)` remplacés par variables MTT.
+- `styles/applications/merchant-session.less` : `color: var(--mtt-text)` ajouté sur `.mtt-merchant-session-section-title` (header/icon déjà corrects).
+
+## Étape CSS 3 — Éléments visibles restants
+
+Modifié :
+- `styles/applications/merchant-variables.less` : ajout `--mtt-info`, `--mtt-info-soft`, `--mtt-row-soft`, `--mtt-secret-text`.
+- `styles/applications/merchant-catalog.less` : `--color-level-warning` → `--mtt-warning` ; `#d36b5f36` → `--mtt-danger-soft` ; `#363b42` → `--mtt-bg-hover` ; bordures ownership → variables danger/success ; `#d9ccff` → `--mtt-secret-text` ; tags storage : `color` et `i { color: inherit }` ajoutés pour tag-button et tag-active.
+- `styles/applications/merchant-session.less` : couleurs `#d6b45b/#6fbf8f/#b00020` → variables MTT ; `rgba(0,0,0,0.12)` → `--mtt-bg-field` ; `rgba(255,255,255,0.03/0.12)` → `--mtt-row-soft`.
+- `styles/applications/merchant-journal.less` : `#b33939` → `--mtt-danger` ; `#6fbf8f` → `--mtt-success` ; `#c79a4817` → `--mtt-row-selected`.
+- `styles/applications/merchant-access-rail.less` : `#ffffff/rgba(0,0,0,0.55)/rgba(0,0,0,0.45)/#5f86d3/#d6a84f/#2f8f55/#b00020` → variables MTT.
+- `styles/applications/mtt-config.less` : `rgba(0,0,0,0.12)` → `--mtt-bg-field` ; `rgba(199,154,72,0.45)` → `color-mix(in srgb, var(--mtt-accent) 45%, transparent)`.
+- `styles/applications/merchant-sheet.less` : `.mtt-merchant-product-lot-quantity-input` ajouté aux groupes `border/background/color` et `:focus` des inputs produits.

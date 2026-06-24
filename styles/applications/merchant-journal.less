@@ -1,5 +1,13 @@
 /* MTT — Journal marchand */
 
+.mtt-global-journal-app {
+  .window-content {
+    background: var(--mtt-bg-main);
+    color: var(--mtt-text);
+    scrollbar-color: var(--mtt-border) var(--mtt-bg-main);
+  }
+}
+
 .mtt-merchant-journal {
   display: flex;
   flex-direction: column;
@@ -116,7 +124,7 @@
 }
 
 .mtt-merchant-journal-status-refused {
-  color: #b33939;
+  color: var(--mtt-danger);
   font-weight: 700;
 }
 
@@ -139,7 +147,7 @@
   display: grid;
   color: var(--mtt-text-muted);
   font-size: 0.82rem;
-  background-color: #c79a4817;
+  background-color: var(--mtt-row-selected);
 }
 
 .mtt-merchant-journal-item-row {
@@ -158,6 +166,13 @@
 
 .mtt-merchant-journal-item-name {
   text-align: left;
+}
+
+.mtt-storage-direction-recovered {
+  color: var(--mtt-danger);
+}
+.mtt-storage-direction-deposited {
+  color: var(--mtt-success);
 }
 
 .mtt-journal-secret-indicator {
@@ -189,8 +204,16 @@
   color: var(--mtt-accent);
 }
 
+.mtt-merchant-journal-item-type i.mtt-storage-direction-recovered {
+  color: var(--mtt-danger);
+}
+
+.mtt-merchant-journal-item-type i.mtt-storage-direction-deposited {
+  color: var(--mtt-success);
+}
+
 .mtt-merchant-journal-item-negotiation .fa-check {
-  color: #6fbf8f;
+  color: var(--mtt-success);
 }
 
 .mtt-merchant-journal-item-negotiation .fa-times {
@@ -207,6 +230,8 @@
   display: grid;
   gap: 0.75rem;
   color: var(--mtt-text);
+  min-height: 0;
+  //height: 100%;
 }
 
 .mtt-global-journal-header {
@@ -290,6 +315,9 @@
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow-y: auto;
+  min-height: 0;
+  height: 100%;
 }
 
 .mtt-global-journal-entry {
@@ -367,4 +395,3 @@
     text-align: left;
   }
 }
-

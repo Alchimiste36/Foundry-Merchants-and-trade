@@ -1,5 +1,6 @@
 import { MTT } from "../config/constants.mjs"
 import { isMTTMerchant, getMerchantData } from "../documents/merchant-flags.mjs"
+import { isMTTStorage, getStorageData } from "../documents/storage-flags.mjs"
 import { canUserViewClientJournalEntries, getMerchantPermissions } from "../documents/merchant-access.mjs"
 import { normalizeJournalEntry, prepareJournalEntryDisplay } from "./sheets/merchant-journal.mjs"
 
@@ -83,6 +84,192 @@ function canUserViewGlobalJournalEntry(entry, user = game.user) {
   const permissions = getMerchantPermissions(merchantActor, { user })
   return canUserViewClientJournalEntries(getActorByUuid(entry?.buyerActorUuid), permissions, user)
 }
+
+// ─── Journal global storage ───────────────────────────────────────────────────
+
+const GLOBAL_STORAGE_JOURNAL_SORT_KEYS = ["date", "storage", "buyer", "status", "recovered", "deposited", "adjustment"]
+
+function normalizeGlobalStorageJournalSort(sort = {}) {
+  const key = GLOBAL_STORAGE_JOURNAL_SORT_KEYS.includes(sort.key) ? sort.key : "date"
+  const direction = sort.direction === "asc" ? "asc" : "desc"
+  return { key, direction }
+}
+
+function compareGlobalStorageJournalTransactions(a, b, sort) {
+  const direction = sort.direction === "asc" ? 1 : -1
+
+  if (sort.key === "storage") {
+    return (
+      String(a.merchantName ?? "").localeCompare(String(b.merchantName ?? ""), undefined, { sensitivity: "base" }) *
+      direction
+    )
+  }
+  if (sort.key === "buyer") {
+    return (
+      String(a.buyerName ?? "").localeCompare(String(b.buyerName ?? ""), undefined, { sensitivity: "base" }) * direction
+    )
+  }
+  if (sort.key === "status") {
+    return String(a.status ?? "").localeCompare(String(b.status ?? ""), undefined, { sensitivity: "base" }) * direction
+  }
+  if (sort.key === "recovered") {
+    return (Number(a.recoveredDifferentItemCount ?? 0) - Number(b.recoveredDifferentItemCount ?? 0)) * direction
+  }
+  if (sort.key === "deposited") {
+    return (Number(a.depositedDifferentItemCount ?? 0) - Number(b.depositedDifferentItemCount ?? 0)) * direction
+  }
+  if (sort.key === "adjustment") {
+    return (Number(a.moneyAdjustmentValue ?? 0) - Number(b.moneyAdjustmentValue ?? 0)) * direction
+  }
+
+  const dateA = Date.parse(a.createdAt ?? "") || 0
+  const dateB = Date.parse(b.createdAt ?? "") || 0
+  return (dateA - dateB) * direction
+}
+
+function canUserViewGlobalStorageJournalEntry(entry, user = game.user) {
+  if (user?.isGM) return true
+
+  const storageActor = getActorByUuid(entry?.merchantActorUuid)
+  if (!storageActor) return false
+
+  const permissions = getMerchantPermissions(storageActor, { user })
+  return canUserViewClientJournalEntries(getActorByUuid(entry?.buyerActorUuid), permissions, user)
+}
+
+export class MttGlobalStorageJournalApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  #filters = {
+    storageUuid: "",
+    buyerUuid: ""
+  }
+
+  #sort = {
+    key: "date",
+    direction: "desc"
+  }
+
+  static DEFAULT_OPTIONS = {
+    id: "mtt-global-storage-journal",
+    classes: ["mtt-global-journal-app"],
+    window: {
+      title: "mtt.globalStorageJournal.title",
+      icon: "fas fa-warehouse",
+      resizable: true
+    },
+    position: {
+      width: 980,
+      height: 720
+    },
+    actions: {
+      sortGlobalStorageJournal: MttGlobalStorageJournalApp.#onSortGlobalStorageJournal,
+      setGlobalStorageJournalFilter: MttGlobalStorageJournalApp.#onSetGlobalStorageJournalFilter,
+      clearGlobalStorageJournalFilters: MttGlobalStorageJournalApp.#onClearGlobalStorageJournalFilters
+    }
+  }
+
+  static PARTS = {
+    body: {
+      template: MTT.TEMPLATES.MTT_GLOBAL_STORAGE_JOURNAL
+    }
+  }
+
+  async _prepareContext(options) {
+    const context = await super._prepareContext(options)
+    const filters = {
+      storageUuid: String(this.#filters.storageUuid ?? ""),
+      buyerUuid: String(this.#filters.buyerUuid ?? "")
+    }
+    const sort = normalizeGlobalStorageJournalSort(this.#sort)
+    const storages = game.actors.filter((actor) => isMTTStorage(actor))
+    const collectedEntries = storages.flatMap((storage) => {
+      const storageData = getStorageData(storage)
+      const storageName = storageData?.storage?.name || storage.name
+      return (storageData?.journal?.entries ?? []).map((entry) =>
+        normalizeJournalEntry({
+          ...entry,
+          merchantActorUuid: entry.merchantActorUuid || storage.uuid,
+          merchantName: entry.merchantName || storageName
+        })
+      )
+    })
+    const visibleEntries = collectedEntries.filter((entry) =>
+      canUserViewGlobalStorageJournalEntry(entry, game.user)
+    )
+    const filteredEntries = visibleEntries
+      .filter((entry) => !filters.storageUuid || entry.merchantActorUuid === filters.storageUuid)
+      .filter((entry) => !filters.buyerUuid || entry.buyerActorUuid === filters.buyerUuid)
+      .map((entry) => prepareJournalEntryDisplay(entry))
+
+    filteredEntries.sort((a, b) => compareGlobalStorageJournalTransactions(a, b, sort))
+
+    return {
+      ...context,
+      transactions: filteredEntries,
+      canSeeSecretIndicators: false,
+      hasTransactions: filteredEntries.length > 0,
+      hasCollectedEntries: visibleEntries.length > 0,
+      storages: storages
+        .filter((storage) => visibleEntries.some((entry) => entry.merchantActorUuid === storage.uuid))
+        .map((storage) => ({
+          uuid: storage.uuid,
+          name: getStorageData(storage)?.storage?.name || storage.name,
+          selected: storage.uuid === filters.storageUuid
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })),
+      buyers: getUniqueNamedOptions(visibleEntries, "buyerActorUuid", "buyerName", filters.buyerUuid),
+      filters,
+      sort
+    }
+  }
+
+  _onRender(context, options) {
+    super._onRender(context, options)
+
+    for (const select of this.element.querySelectorAll("select[data-action='setGlobalStorageJournalFilter']")) {
+      select.addEventListener("change", (event) => {
+        this.#setGlobalStorageJournalFilterFromTarget(event.currentTarget)
+      })
+    }
+  }
+
+  static async #onSortGlobalStorageJournal(event, target) {
+    const key = target.dataset.sortKey
+    if (!GLOBAL_STORAGE_JOURNAL_SORT_KEYS.includes(key)) return
+
+    const current = normalizeGlobalStorageJournalSort(this.#sort)
+    this.#sort = {
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }
+    this.render()
+  }
+
+  static async #onSetGlobalStorageJournalFilter(event, target) {
+    if (target.tagName === "SELECT" && event.type !== "change") return
+    this.#setGlobalStorageJournalFilterFromTarget(target)
+  }
+
+  #setGlobalStorageJournalFilterFromTarget(target) {
+    const key = target.dataset.filterKey
+    if (!(key in this.#filters)) return
+
+    this.#filters = {
+      ...this.#filters,
+      [key]: String(target.value ?? "")
+    }
+    this.render()
+  }
+
+  static async #onClearGlobalStorageJournalFilters() {
+    this.#filters = {
+      storageUuid: "",
+      buyerUuid: ""
+    }
+    this.render()
+  }
+}
+
+// ─── Journal global shop ──────────────────────────────────────────────────────
 
 export class MttGlobalJournalApp extends HandlebarsApplicationMixin(ApplicationV2) {
   #filters = {

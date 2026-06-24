@@ -3,7 +3,8 @@ import {
   getMerchantData,
   getMerchantFlagPath,
   updateMerchantData,
-  createLocalMerchantCategory
+  createLocalMerchantCategory,
+  isMTTMerchant
 } from "../../documents/merchant-flags.mjs"
 import {
   getMTTEntityType,
@@ -114,7 +115,10 @@ import {
 import {
   prepareMerchantJournalContext,
   buildMerchantJournalEntryFromSession,
-  appendMerchantJournalEntry
+  appendMerchantJournalEntry,
+  prepareStorageJournalContext,
+  buildStorageJournalEntryFromSession,
+  appendStorageJournalEntry
 } from "./merchant-journal.mjs"
 import { requestMerchantSessionUpdate, requestStorageTagUpdate } from "./merchant-session-socket.mjs"
 
@@ -163,6 +167,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
       toggleLock: MerchantSheet.#onToggleLock,
+      toggleSessionInteractions: MerchantSheet.#onToggleSessionInteractions,
       toggleProductSecret: MerchantSheet.#onToggleProductSecret,
       toggleProductCategory: MerchantSheet.#onToggleProductCategory,
       toggleProductFreePrice: MerchantSheet.#onToggleProductFreePrice,
@@ -229,14 +234,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const isLocked = this.#getSheetLockedState(entityType)
     const isUnlocked = !isLocked
     const canEditMerchant = isEditable && isUnlocked
+    const sessionInteractionsOpen = this.#getSessionInteractionsOpenState(entityType)
     const isLimited = getMerchantLimitedState(this.actor)
     const permissions = getMerchantPermissions(this.actor, { user: game.user })
     const sheetPermissions = isStorage
       ? {
           ...permissions,
           canViewConfigTab: true,
-          canOpenProduct: true,
-          canInteractWithSession: true
+          canOpenProduct: true
         }
       : permissions
 
@@ -253,6 +258,8 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLocked,
       isUnlocked,
       canEditMerchant,
+      sessionInteractionsOpen,
+      canToggleSessionInteractions: isEditable,
       canDragProductToSeller: this.#canDragProductToSeller(),
       isLimited,
       permissions: getMerchantAccessContext(this.actor),
@@ -301,7 +308,11 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.mtt.session = isStorage ? this.#prepareStorageSessionContext() : this.#prepareSessionContext()
     context.mtt.referenceState = this.#prepareReferenceStateContext()
     context.mtt.journal = isStorage
-      ? this.#prepareNeutralJournalContext()
+      ? prepareStorageJournalContext(this.actor, {
+          user: game.user,
+          sort: this.#journalSort,
+          permissions: sheetPermissions
+        })
       : prepareMerchantJournalContext(this.actor, {
           user: game.user,
           sort: this.#journalSort,
@@ -315,6 +326,17 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     // MTT base — lecture du verrouillage actif selon le type de feuille MTT
     if (entityType === MTT.ENTITY_TYPES.STORAGE) return this.#storageSheetLocked
     return getMerchantSheetLockedState(this.actor)
+  }
+
+  #getSessionInteractionsOpenState(entityType) {
+    const data = entityType === MTT.ENTITY_TYPES.STORAGE ? getStorageData(this.actor) : getMerchantData(this.actor)
+    return data?.sheet?.sessionInteractionsOpen !== false
+  }
+
+  #getSessionInteractionsOpenPath(entityType) {
+    return entityType === MTT.ENTITY_TYPES.STORAGE
+      ? getStorageFlagPath("sheet.sessionInteractionsOpen")
+      : getMerchantFlagPath("sheet.sessionInteractionsOpen")
   }
 
   #buildStorageMerchantContext(storageData = null) {
@@ -415,16 +437,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         takeValue: Number.isFinite(takeValue) && takeValue >= 0 ? takeValue : 0,
         depositValue: Number.isFinite(depositValue) && depositValue >= 0 ? depositValue : 0
       }
-    }
-  }
-
-  #prepareNeutralJournalContext() {
-    return {
-      canSeeAll: Boolean(game.user?.isGM),
-      canSeeSecretIndicators: Boolean(game.user?.isGM),
-      hasTransactions: false,
-      transactions: [],
-      sort: this.#journalSort
     }
   }
 
@@ -701,6 +713,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const permissions = getMerchantPermissions(this.actor, { user })
     const canViewOtherSessions = Boolean(permissions.canViewObserverActorSessions)
     const canInteractWithSession = Boolean(permissions.canInteractWithSession)
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const sessionInteractionsOpen = this.#getSessionInteractionsOpenState(entityType)
+    const canUseSessionInteraction = sessionInteractionsOpen || this.isEditable || canManageSheet || isGM
 
     const baseAccess = {
       actor,
@@ -711,7 +726,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       isLimited,
       canViewOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
       canSelectOtherSession: isGM || canManageSheet || isOwner || (canViewOtherSessions && isObserver),
-      canInteractWithOtherSession: isGM || canManageSheet || (isOwner && canInteractWithSession)
+      canInteractWithOtherSession: isGM || canManageSheet || (canUseSessionInteraction && isOwner && canInteractWithSession)
     }
 
     if (!isMTTStorage(actor)) return baseAccess
@@ -723,7 +738,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       ...baseAccess,
       canViewOtherSession: baseAccess.canViewOtherSession || canViewStorageSession,
       canSelectOtherSession: baseAccess.canSelectOtherSession || canViewStorageSession,
-      canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || canTradeAsStorage
+      canInteractWithOtherSession: baseAccess.canInteractWithOtherSession || (canUseSessionInteraction && canTradeAsStorage)
     }
   }
 
@@ -1352,6 +1367,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
   }
 
   async _onDropDocument(event, document) {
+    const target = event.target instanceof Element ? event.target : null
+    if (!target?.closest("[data-mtt-product-document-drop]")) return
+
     if (!this.isEditable) return
 
     if (document.documentName !== "Item") {
@@ -1626,6 +1644,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     }
 
     if (!this.#canModifyAccessRail()) return
+    if (!this.#canAddActorToAccessRail(actor)) return
 
     await this.#upsertAccessClient(buildAccessClientFromActor(actor, { isAuthorized: true }))
     this.render()
@@ -2704,6 +2723,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const normalizedClient = normalizeAccessClient(client)
     if (!normalizedClient.actorUuid) return null
 
+    const actor = await fromUuid(normalizedClient.actorUuid)
+    if (!this.#canAddActorToAccessRail(actor, { notify: false })) return null
+
     const clients = this.#getAccessEntries()
     const index = clients.findIndex((entry) => entry.actorUuid === normalizedClient.actorUuid)
 
@@ -2721,6 +2743,23 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await this.#setAccessEntries(clients)
 
     return normalizedClient
+  }
+
+  #canAddActorToAccessRail(actor, { notify = true } = {}) {
+    if (!actor) return false
+
+    if (actor.uuid === this.actor.uuid) {
+      if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotAddSelfToRail"))
+      return false
+    }
+
+    const currentEntityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    if (currentEntityType === MTT.ENTITY_TYPES.MERCHANT && isMTTMerchant(actor)) {
+      if (notify) ui.notifications.warn(game.i18n.localize("mtt.notifications.cannotAddMerchantToMerchantRail"))
+      return false
+    }
+
+    return true
   }
 
   #canModifyAccessRail({ notify = true } = {}) {
@@ -3965,7 +4004,9 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     const itemId = side === "deposit" ? STORAGE_MONEY_DEPOSIT_ID : STORAGE_MONEY_TAKE_ID
     const current = items.find((item) => item.id === itemId && item.type === "money")
     const currentAmount = Number(current?.unitPriceValue ?? 0)
-    const nextAmount = Number(((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) + 1).toFixed(2))
+    const nextAmount = Number(
+      ((Number.isFinite(currentAmount) && currentAmount >= 0 ? currentAmount : 0) + 1).toFixed(2)
+    )
 
     this.#setStorageSessionMoneyValue(session, side, nextAmount)
     await this.#saveSession(session)
@@ -4272,7 +4313,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — transfert réel des Items et des lignes money, sans journal commercial
+      // MTT storage — transfert réel des Items et des lignes money, avec journal storage
       this.#normalizeStorageExchangeSession(session)
       const storageExecutionOptions = {
         accessClients: this.#prepareAccessClients(),
@@ -4361,6 +4402,13 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
         if (executionPlan.currencyTransferPlan?.canExecute && !executionPlan.currencyTransferPlan?.noTransferNeeded) {
           await applyCurrencyTransferPlan(this.actor, executionPlan.clientActor, executionPlan.currencyTransferPlan)
         }
+        await appendStorageJournalEntry(
+          this.actor,
+          buildStorageJournalEntryFromSession(this.actor, session, {
+            status: "validated",
+            executionPlan
+          })
+        )
         clearSessionAfterExecution(session)
         this.#setStorageSessionMoneyValue(session, "take", 0)
         this.#setStorageSessionMoneyValue(session, "deposit", 0)
@@ -4477,10 +4525,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     if (!session) return
 
     if (this.#isStorageEntity()) {
-      // MTT storage — refus sans transfert ni journal commercial
+      // MTT storage — refus sans transfert, avec journal storage
       const confirmed = await openRefuseConfirmDialog()
       if (!confirmed) return
 
+      await appendStorageJournalEntry(
+        this.actor,
+        buildStorageJournalEntryFromSession(this.actor, session, { status: "refused" })
+      )
       clearSessionAfterExecution(session)
       this.#setStorageSessionMoneyValue(session, "take", 0)
       this.#setStorageSessionMoneyValue(session, "deposit", 0)
@@ -4535,6 +4587,18 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       this.actor.updateSource({ [lockPath]: !isLocked })
     }
     await this.render({ force: true })
+  }
+
+  static async #onToggleSessionInteractions(event) {
+    event.preventDefault()
+
+    if (!this.isEditable) return
+
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isOpen = this.#getSessionInteractionsOpenState(entityType)
+    const path = this.#getSessionInteractionsOpenPath(entityType)
+
+    await this.actor.update({ [path]: !isOpen })
   }
 
   static async #onSaveReferenceState(event) {

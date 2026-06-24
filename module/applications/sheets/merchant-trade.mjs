@@ -10,7 +10,6 @@ import {
   isUnlimitedQuantity,
   isFreePriceService,
   normalizeFiniteQuantity,
-  getReferenceSessionCurrency,
   getConfiguredItemQuantity,
   getConfiguredItemMaxQuantity,
   normalizeMaxQuantity,
@@ -51,10 +50,10 @@ import {
   getStorageFlagPath
 } from "../../documents/storage-flags.mjs"
 import {
-  normalizeSession,
-  getSessions,
   syncSessionItemAvailability,
-  recalculateSessionItemTotal
+  recalculateSessionItemTotal,
+  getSellerSourceItemFromSessionItem,
+  getSellerSourceAvailableQuantity
 } from "./merchant-session.mjs"
 import {
   normalizeAccessClient,

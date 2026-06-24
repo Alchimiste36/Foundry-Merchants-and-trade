@@ -214,7 +214,7 @@ export function removeSessionItemById(session, itemId, side = "") {
   return initialBuyerCount !== session.buyerItems.length || initialSellerCount !== session.sellerItems.length
 }
 
-function getSellerSourceItemFromSessionItem(item) {
+export function getSellerSourceItemFromSessionItem(item) {
   const sourceActorUuid = String(item?.sourceActorUuid ?? "").trim()
   const sourceId = String(item?.sourceId ?? "").trim()
   if (!sourceActorUuid || !sourceId) return null
@@ -227,7 +227,7 @@ function getSellerSourceItemFromSessionItem(item) {
   return sourceItem?.documentName === "Item" ? sourceItem : null
 }
 
-function getSellerSourceAvailableQuantity(sourceItem, fallbackItem = null) {
+export function getSellerSourceAvailableQuantity(sourceItem, fallbackItem = null) {
   if (sourceItem && isMerchantProductItem(sourceItem)) {
     const productFlags = getMerchantProductFlags(sourceItem)
     if (isUnlimitedQuantity(productFlags.quantity)) return null

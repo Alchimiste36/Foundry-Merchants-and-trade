@@ -252,4 +252,73 @@ Nettoyage confirmé sans changement fonctionnel : 6 exports rétrogradés en fon
 - Pas de renommage de fichiers.
 - Pas de modification HBS / LESS / lang.
 - Pas de changement métier volontaire.
+
+---
+
+## Étape 10 — Contrôle final MJS
+
+### Todo
+- [x] Vérifier la structure MJS finale
+- [x] Vérifier les anciens imports
+- [x] Vérifier la syntaxe des fichiers MJS
+- [x] Vérifier la cohérence de `structure-finale.md`
+- [x] Vérifier la cohérence de `agents.md`
+- [x] Vérifier l'absence de modification hors périmètre
+
+### Fichiers modifiés
+- `structure-finale.md`
+- `agents.md`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Contrôle final validé. Structure MJS cohérente : 15 fichiers attendus présents, anciens fichiers `merchant-flags.mjs` et `merchant-access.mjs` absents, aucun import résiduel vers ces chemins, `node --check` OK sur tous les MJS du module. `structure-finale.md` mis à jour pour refléter l'étape 09 : fonctions `isMTTEntity`/`getMTTEntityFlagRoot`/`getMTTEntityFlagPath` déplacées en "éventuel futur" dans mtt-flags.mjs ; fonctions supprimées (`isStorageTradeResponsibleActor`, `isStorageItemBlocked`, `isStorageItemWarningGM`, `findMergeableCatalogProduct`, `canUserViewClientSession`, `isMerchantSellerDropBlocked`, `findMergeableMerchantItemBySourceUuid`, `prepareMerchantCatalogItemData`) retirées des listes de fonctions attendues ; `getStorageAddBlockReasonKey` annotée comme interne. `agents.md` corrigé pour les chemins `merchant-flags.mjs` → `shop-flags.mjs` et `merchant-access.mjs` → `merchant-permissions.mjs` dans les sections normatives (section 18 et section 22). Les mentions historiques de transition dans les notes de renommage sont conservées.
+
+### Hors périmètre volontaire
+- Pas de déplacement de fonctions.
+- Pas de renommage de fichiers.
+- Pas de nouvelle réorganisation.
+- Pas de modification HBS / LESS / CSS / lang.
+- Pas de changement fonctionnel volontaire.
+- Aucun fichier MJS modifié — corrections uniquement dans les documents de référence.
 - `TODO MTT services secrets:` conservé dans `merchant-trade.mjs` : fonctionnalité future explicite (description secrète de service dans le journal).
+
+---
+
+## Correction post-nettoyage — Helpers source vendeur session
+
+### Todo
+- [x] Exporter `getSellerSourceItemFromSessionItem` depuis `merchant-session.mjs`.
+- [x] Exporter `getSellerSourceAvailableQuantity` depuis `merchant-session.mjs`.
+- [x] Importer les deux helpers dans `merchant-trade.mjs`.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-session.mjs`
+- `module/applications/sheets/merchant-trade.mjs`
+
+### Résumé
+Correction d'un oubli d'export/import après l'extraction des fonctions de session à l'étape 04. `getSellerSourceItemFromSessionItem` et `getSellerSourceAvailableQuantity` étaient restées privées dans `merchant-session.mjs` alors que `merchant-trade.mjs` les utilise dans `checkSessionSellerItems`, `buildExecutionPreview` et `buildSessionItemExecutionPlan`. La preview et la validation des sessions peuvent de nouveau résoudre ces helpers.
+
+### Hors périmètre volontaire
+- Aucun changement de logique métier.
+- Aucun déplacement supplémentaire de fonctions.
+- Aucun changement HBS / LESS / lang.
+
+---
+
+## Correction — Warnings `merchant-trade.mjs`
+
+### Todo
+- [x] Supprimer les imports inutilisés dans `merchant-trade.mjs`
+- [x] Vérifier que les helpers encore utilisés restent importés
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-trade.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Suppression de trois imports inutilisés après le nettoyage MJS : `getReferenceSessionCurrency` (depuis `merchant-utils.mjs`), `normalizeSession` et `getSessions` (depuis `merchant-session.mjs`). Ces symboles restent disponibles dans leurs fichiers d'origine mais ne sont plus appelés directement par `merchant-trade.mjs`. Les imports `syncSessionItemAvailability`, `recalculateSessionItemTotal`, `getSellerSourceItemFromSessionItem` et `getSellerSourceAvailableQuantity` restent en place.
+
+### Hors périmètre volontaire
+- Pas de déplacement de fonctions
+- Pas de modification de la preview, validation ou exécution des sessions
+- Pas de modification HBS / LESS / lang

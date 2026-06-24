@@ -86,7 +86,8 @@
       "Bash(node --check module/config/settings.mjs)",
       "Bash(node --check module/config/config-export.mjs)",
       "Bash(node --check module/applications/sheets/merchant-session.mjs)",
-      "Bash(node --check module/applications/sheets/merchant-session-socket.mjs)"
+      "Bash(node --check module/applications/sheets/merchant-session-socket.mjs)",
+      "Bash(node --check module/applications/sheets/merchant-rail.mjs)"
     ],
     "additionalDirectories": [
       "\\tmp"

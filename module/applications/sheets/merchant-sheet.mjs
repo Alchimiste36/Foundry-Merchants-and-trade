@@ -102,12 +102,14 @@ import {
 import {
   normalizeAccessClient,
   buildAccessClientFromActor,
-  prepareSessionContext,
   getStoredAccessClients,
   getEffectiveClientRates,
   getMerchantDefaultClientRates,
   normalizeClientCustomRates,
-  prepareAccessClients,
+  prepareAccessClients
+} from "./merchant-rail.mjs"
+import {
+  prepareSessionContext,
   checkSessionTransaction,
   buildExecutionPreview,
   buildSessionItemExecutionPlan,

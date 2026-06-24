@@ -116,3 +116,30 @@ Création du fichier central de sessions MTT et déplacement des fonctions de mo
 - Pas de déplacement des fonctions d'accès rail/client.
 - Pas de modification HBS / LESS / lang.
 - Pas de changement fonctionnel volontaire.
+
+---
+
+## Étape 05 — Création de `merchant-rail.mjs`
+
+### Todo
+- [x] Créer `merchant-rail.mjs`
+- [x] Déplacer les helpers rail/access depuis `merchant-trade.mjs`
+- [x] Adapter les imports dans `merchant-sheet.mjs`
+- [x] Adapter les imports dans `merchant-trade.mjs`
+- [x] Vérifier l'absence de déplacement hors périmètre
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-rail.mjs` (créé)
+- `module/applications/sheets/merchant-trade.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Création du fichier central du rail d'acteurs MTT et déplacement des helpers de préparation des acteurs du rail, taux personnalisés, statuts, tooltips et icônes depuis `merchant-trade.mjs`. `merchant-trade.mjs` importe `normalizeAccessClient` et `getStoredAccessClients` depuis `merchant-rail.mjs` pour ses besoins internes (`prepareSessionClientContext` et `getExecutionAccessClients`). `merchant-sheet.mjs` importe les 7 fonctions rail depuis `merchant-rail.mjs` et les 6 fonctions trade depuis `merchant-trade.mjs`.
+
+### Hors périmètre volontaire
+- Pas de modification HBS / LESS / lang.
+- Pas de déplacement des handlers du rail dépendants de `this.actor`, `this.element` ou des événements Foundry.
+- Pas de déplacement des permissions configurables depuis `merchant-permissions.mjs`.
+- Pas de déplacement de logique de session depuis `merchant-session.mjs`.
+- Pas de changement fonctionnel volontaire.

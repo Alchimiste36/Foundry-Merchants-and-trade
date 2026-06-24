@@ -1,5 +1,5 @@
 import { MTT } from "../../config/constants.mjs"
-import { normalizeSession } from "./merchant-trade.mjs"
+import { normalizeSession } from "./merchant-session.mjs"
 import { getMerchantData, getMerchantFlagPath } from "../../documents/shop-flags.mjs"
 import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {

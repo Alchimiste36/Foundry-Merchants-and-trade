@@ -90,8 +90,6 @@ import {
   normalizeSessionItem,
   normalizeNegotiationOffer,
   normalizeSessionNegotiation,
-  normalizeAccessClient,
-  buildAccessClientFromActor,
   buildSessionData,
   getSessions,
   recalculateSessionItemTotal,
@@ -99,6 +97,11 @@ import {
   getSessionItemsForSide,
   removeSessionItemById,
   canAcceptSessionQuantity,
+  clearSessionAfterExecution
+} from "./merchant-session.mjs"
+import {
+  normalizeAccessClient,
+  buildAccessClientFromActor,
   prepareSessionContext,
   getStoredAccessClients,
   getEffectiveClientRates,
@@ -109,8 +112,7 @@ import {
   buildExecutionPreview,
   buildSessionItemExecutionPlan,
   executeSessionItemTransfers,
-  applyCurrencyTransferPlan,
-  clearSessionAfterExecution
+  applyCurrencyTransferPlan
 } from "./merchant-trade.mjs"
 import {
   prepareMerchantJournalContext,

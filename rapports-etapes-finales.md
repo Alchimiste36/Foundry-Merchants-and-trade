@@ -89,3 +89,30 @@ Renommage ciblé du fichier des permissions et adaptation des imports. L'alias `
 - Pas de déplacement de logique vers `merchant-session.mjs`.
 - Pas de modification HBS / LESS / lang.
 - Pas de renommage des fonctions de permissions existantes.
+
+---
+
+## Étape 04 — Création de `merchant-session.mjs`
+
+### Todo
+- [x] Créer `merchant-session.mjs`
+- [x] Déplacer les fonctions de modèle/manipulation de session
+- [x] Adapter les imports dans les fichiers concernés
+- [x] Vérifier l'absence de déplacement hors périmètre
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-session.mjs` (créé)
+- `module/applications/sheets/merchant-trade.mjs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-session-socket.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Création du fichier central de sessions MTT et déplacement des fonctions de modèle/manipulation de session depuis `merchant-trade.mjs` : `normalizeSessionItem`, `normalizeNegotiationOffer`, `normalizeSessionNegotiation`, `normalizeSession`, `buildSessionData`, `getSessions`, `recalculateSessionItemTotal`, `setSessionItemQuantity`, `getSessionItemsForSide`, `removeSessionItemById`, `canAcceptSessionQuantity`, `clearSessionAfterExecution`. Les helpers privés `getSellerSourceItemFromSessionItem`, `getSellerSourceAvailableQuantity` sont déplacés avec eux. `syncSessionItemAvailability` est exportée car `prepareSessionContext` (resté dans trade) l'utilise.
+
+### Hors périmètre volontaire
+- `prepareSessionContext` laissé dans `merchant-trade.mjs` : appelle `prepareBuyerFortune` et `normalizeAccessClient` qui restent dans trade — déplacer créerait une dépendance circulaire.
+- Pas de création de `merchant-rail.mjs`.
+- Pas de déplacement des fonctions d'accès rail/client.
+- Pas de modification HBS / LESS / lang.
+- Pas de changement fonctionnel volontaire.

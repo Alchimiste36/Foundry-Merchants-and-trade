@@ -10,7 +10,6 @@ import {
   isUnlimitedQuantity,
   isFreePriceService,
   normalizeFiniteQuantity,
-  getReferenceSessionCurrency,
   getConfiguredItemQuantity,
   getConfiguredItemMaxQuantity,
   normalizeMaxQuantity,
@@ -33,7 +32,7 @@ import {
   getOrCreateAutomaticProductCategory,
   getItemAvailableQuantity
 } from "./merchant-catalog.mjs"
-import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData, getMerchantFlagPath, updateMerchantData } from "../../documents/shop-flags.mjs"
 import {
   getCatalogProduct,
   updateCatalogProduct,
@@ -43,298 +42,25 @@ import {
   isMerchantProductItem,
   getMerchantProductFlags
 } from "../../documents/merchant-products.mjs"
+import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {
-  getMTTEntityType,
   isMTTStorage,
   getStorageItemFlags,
   getStorageData,
   getStorageFlagPath
 } from "../../documents/storage-flags.mjs"
+import {
+  syncSessionItemAvailability,
+  recalculateSessionItemTotal,
+  getSellerSourceItemFromSessionItem,
+  getSellerSourceAvailableQuantity
+} from "./merchant-session.mjs"
+import {
+  normalizeAccessClient,
+  getStoredAccessClients
+} from "./merchant-rail.mjs"
 
-// ─── Session normalization ────────────────────────────────────────────────────
-
-export function normalizeSessionItem(item) {
-  const quantity = Number(item.quantity)
-  const unitPriceValue = Number(item.unitPriceValue)
-  const availableQuantity = Number(item.availableQuantity)
-  const hasLimitedQuantity =
-    Boolean(item.hasLimitedQuantity) && Number.isFinite(availableQuantity) && availableQuantity >= 0
-  const normalizedQuantity = Number.isFinite(quantity) && quantity >= 0 ? quantity : 1
-  const normalizedUnitPrice = Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0
-  const normalizedDeliveryQuantityPerLot = normalizeEffectiveDeliveryQuantityPerLot(item.deliveryQuantityPerLot)
-  const type = ["product", "service", "item", "money"].includes(item.type) ? item.type : "product"
-  const referenceCurrency = getReferenceSessionCurrency()
-  const referenceCurrencyLabel = String(
-    referenceCurrency?.abbreviation ?? referenceCurrency?.id ?? referenceCurrency?.name ?? ""
-  ).trim()
-
-  return {
-    id: item.id || foundry.utils.randomID(),
-    type,
-    sourceKind: String(item.sourceKind ?? "").trim(),
-    sourceUuid: item.sourceUuid ?? "",
-    sourceActorUuid: item.sourceActorUuid ?? "",
-    sourceId: item.sourceId ?? "",
-    name: item.name ?? "",
-    img: item.img ?? "",
-    quantity: type === "money" ? 1 : normalizedQuantity,
-    deliveryQuantityPerLot:
-      item.type === "product" && normalizedDeliveryQuantityPerLot > 1 ? normalizedDeliveryQuantityPerLot : null,
-    availableQuantity: hasLimitedQuantity ? availableQuantity : null,
-    hasLimitedQuantity,
-    unitPriceValue: normalizedUnitPrice,
-    priceCurrency: type === "money" ? referenceCurrencyLabel : String(item.priceCurrency ?? "").trim(),
-    totalPriceValue: Number(((type === "money" ? 1 : normalizedQuantity) * normalizedUnitPrice).toFixed(2)),
-    sourceLabel: item.sourceLabel ?? "",
-    proposedUnitPriceValue:
-      item.proposedUnitPriceValue !== null &&
-      item.proposedUnitPriceValue !== undefined &&
-      Number.isFinite(Number(item.proposedUnitPriceValue))
-        ? Number(item.proposedUnitPriceValue)
-        : null,
-    isFromActor: Boolean(item.isFromActor),
-    isFreePrice: Boolean(item.isFreePrice),
-    minimumPriceValue:
-      item.minimumPriceValue !== null &&
-      item.minimumPriceValue !== undefined &&
-      Number.isFinite(Number(item.minimumPriceValue)) &&
-      Number(item.minimumPriceValue) >= 0
-        ? Number(item.minimumPriceValue)
-        : null
-  }
-}
-
-export function normalizeNegotiationOffer(offer = {}) {
-  const quantity = Number(offer.quantity)
-  const unitPriceValue = Number(offer.unitPriceValue)
-  const totalPriceValue = Number(offer.totalPriceValue)
-  const percentOfReference = Number(offer.percentOfReference)
-
-  return {
-    id: offer.id || foundry.utils.randomID(),
-    side: ["buyer", "merchant"].includes(offer.side) ? offer.side : "buyer",
-    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
-    unitPriceValue: Number.isFinite(unitPriceValue) && unitPriceValue >= 0 ? unitPriceValue : 0,
-    totalPriceValue: Number.isFinite(totalPriceValue) && totalPriceValue >= 0 ? totalPriceValue : 0,
-    percentOfReference: Number.isFinite(percentOfReference) && percentOfReference >= 0 ? percentOfReference : 100,
-    status: ["draft", "submitted"].includes(offer.status) ? offer.status : "submitted",
-    createdAt: offer.createdAt || new Date().toISOString()
-  }
-}
-
-export function normalizeSessionNegotiation(negotiation = {}) {
-  const referenceUnitPriceValue = Number(negotiation.referenceUnitPriceValue)
-  const proposedUnitPriceValue = Number(negotiation.proposedUnitPriceValue)
-  const minimumPriceValue = Number(negotiation.minimumPriceValue)
-
-  return {
-    id: negotiation.id || foundry.utils.randomID(),
-    side: ["buyer", "seller"].includes(negotiation.side) ? negotiation.side : "buyer",
-    type: ["product", "service", "item"].includes(negotiation.type) ? negotiation.type : "product",
-    sourceId: String(negotiation.sourceId ?? "").trim(),
-    sourceKind: String(negotiation.sourceKind ?? "").trim(),
-    sourceUuid: String(negotiation.sourceUuid ?? "").trim(),
-    sourceActorUuid: String(negotiation.sourceActorUuid ?? "").trim(),
-    name: String(negotiation.name ?? "").trim(),
-    img: negotiation.img ?? "",
-    priceCurrency: String(negotiation.priceCurrency ?? "").trim(),
-    referenceUnitPriceValue:
-      Number.isFinite(referenceUnitPriceValue) && referenceUnitPriceValue >= 0 ? referenceUnitPriceValue : 0,
-    proposedUnitPriceValue:
-      Number.isFinite(proposedUnitPriceValue) && proposedUnitPriceValue >= 0 ? proposedUnitPriceValue : null,
-    isFreePrice: Boolean(negotiation.isFreePrice),
-    minimumPriceValue:
-      negotiation.minimumPriceValue !== null &&
-      negotiation.minimumPriceValue !== undefined &&
-      Number.isFinite(minimumPriceValue) &&
-      minimumPriceValue >= 0
-        ? minimumPriceValue
-        : null,
-    status: ["active", "accepted", "refused"].includes(negotiation.status) ? negotiation.status : "active",
-    currentTurn: ["buyer", "merchant"].includes(negotiation.currentTurn) ? negotiation.currentTurn : "merchant",
-    offers: Array.isArray(negotiation.offers)
-      ? negotiation.offers.map((offer) => normalizeNegotiationOffer(offer))
-      : [],
-    createdAt: negotiation.createdAt || new Date().toISOString(),
-    updatedAt: negotiation.updatedAt || new Date().toISOString()
-  }
-}
-
-export function normalizeSession(session) {
-  const normalizedStatus = ["active", "pending", "validated", "refused", "submitted"].includes(session.status)
-    ? session.status
-    : session.isSubmitted
-      ? "submitted"
-      : "active"
-
-  return {
-    id: session.id || foundry.utils.randomID(),
-    status: normalizedStatus,
-    isSubmitted: normalizedStatus === "submitted",
-    label: session.label || game.i18n.localize("mtt.sessions.newLabel"),
-    actorUuid: session.actorUuid ?? "",
-    actorName: session.actorName ?? "",
-    userId: session.userId ?? "",
-    userName: session.userName ?? "",
-    buyerItems: Array.isArray(session.buyerItems) ? session.buyerItems.map((item) => normalizeSessionItem(item)) : [],
-    sellerItems: Array.isArray(session.sellerItems)
-      ? session.sellerItems.map((item) => normalizeSessionItem(item))
-      : [],
-    negotiations: Array.isArray(session.negotiations)
-      ? session.negotiations.map((negotiation) => normalizeSessionNegotiation(negotiation))
-      : [],
-    createdAt: session.createdAt || new Date().toISOString(),
-    updatedAt: session.updatedAt || new Date().toISOString()
-  }
-}
-
-export function buildSessionData(client = null) {
-  const now = new Date().toISOString()
-  const actorName = client?.actorName ?? ""
-
-  return {
-    id: foundry.utils.randomID(),
-    status: "active",
-    isSubmitted: false,
-    label: actorName
-      ? game.i18n.format("mtt.sessions.sessionForActor", { name: actorName })
-      : game.i18n.localize("mtt.sessions.newLabel"),
-    actorUuid: client?.actorUuid ?? "",
-    actorName,
-    userId: client?.userId ?? "",
-    userName: client?.userName ?? "",
-    buyerItems: [],
-    sellerItems: [],
-    negotiations: [],
-    createdAt: now,
-    updatedAt: now
-  }
-}
-
-export function getSessions(actor) {
-  return foundry.utils.deepClone(getMerchantData(actor)?.sessions?.entries ?? [])
-}
-
-// ─── Session item helpers ─────────────────────────────────────────────────────
-
-export function recalculateSessionItemTotal(item) {
-  const quantity = Number(item.quantity)
-  const unitPriceValue = Number(item.unitPriceValue)
-
-  item.totalPriceValue =
-    Number.isFinite(quantity) && Number.isFinite(unitPriceValue) ? Number((quantity * unitPriceValue).toFixed(2)) : 0
-}
-
-export function setSessionItemQuantity(item, quantity) {
-  item.quantity = Number(Number(quantity).toFixed(2))
-  recalculateSessionItemTotal(item)
-}
-
-export function getSessionItemsForSide(session, side) {
-  return side === "seller" ? session.sellerItems : session.buyerItems
-}
-
-export function removeSessionItemById(session, itemId, side = "") {
-  const initialBuyerCount = session.buyerItems.length
-  const initialSellerCount = session.sellerItems.length
-
-  if (side === "buyer") {
-    session.buyerItems = session.buyerItems.filter((item) => item.id !== itemId)
-  } else if (side === "seller") {
-    session.sellerItems = session.sellerItems.filter((item) => item.id !== itemId)
-  } else {
-    session.buyerItems = session.buyerItems.filter((item) => item.id !== itemId)
-    session.sellerItems = session.sellerItems.filter((item) => item.id !== itemId)
-  }
-
-  return initialBuyerCount !== session.buyerItems.length || initialSellerCount !== session.sellerItems.length
-}
-
-function getSellerSourceItemFromSessionItem(item) {
-  const sourceActorUuid = String(item?.sourceActorUuid ?? "").trim()
-  const sourceId = String(item?.sourceId ?? "").trim()
-  if (!sourceActorUuid || !sourceId) return null
-
-  const sourceActor =
-    game.actors?.find?.((actor) => actor.uuid === sourceActorUuid) ??
-    game.actors?.get?.(sourceActorUuid.replace(/^Actor\./, "")) ??
-    null
-  const sourceItem = sourceActor?.items?.get(sourceId) ?? null
-  return sourceItem?.documentName === "Item" ? sourceItem : null
-}
-
-function getSellerSourceAvailableQuantity(sourceItem, fallbackItem = null) {
-  if (sourceItem && isMerchantProductItem(sourceItem)) {
-    const productFlags = getMerchantProductFlags(sourceItem)
-    if (isUnlimitedQuantity(productFlags.quantity)) return null
-
-    const productQuantity = normalizeFiniteQuantity(productFlags.quantity)
-    if (productQuantity !== null) return productQuantity
-  }
-
-  if (sourceItem?.documentName === "Item") return getItemAvailableQuantity(sourceItem)
-
-  const fallbackQuantity = Number(fallbackItem?.availableQuantity)
-  return Number.isFinite(fallbackQuantity) && fallbackQuantity >= 0 ? fallbackQuantity : null
-}
-
-function syncSessionItemAvailability(actor, item) {
-  if (!item) return
-
-  if (item.type === "product") {
-    const product = getCatalogProduct(actor, item.sourceId)
-    const quantity = product?.quantity
-    const availableQuantity = normalizeFiniteQuantity(quantity)
-    const hasLimitedQuantity = !isUnlimitedQuantity(quantity) && availableQuantity !== null
-
-    item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
-    item.hasLimitedQuantity = hasLimitedQuantity
-    return
-  }
-
-  if (item.type === "service") {
-    const service = getMerchantData(actor)?.catalog?.services?.find((entry) => entry.id === item.sourceId)
-    const quantity = service?.quantity
-    const availableQuantity = Number(quantity)
-    const hasLimitedQuantity =
-      quantity !== null &&
-      quantity !== undefined &&
-      quantity !== "" &&
-      Number.isFinite(availableQuantity) &&
-      availableQuantity >= 0
-
-    item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
-    item.hasLimitedQuantity = hasLimitedQuantity
-    return
-  }
-
-  if (item.type === "item") {
-    const sourceItem = getSellerSourceItemFromSessionItem(item)
-    if (sourceItem && isMerchantProductItem(sourceItem)) {
-      const productFlags = getMerchantProductFlags(sourceItem)
-      const availableQuantity = normalizeFiniteQuantity(productFlags.quantity)
-      const hasLimitedQuantity = !isUnlimitedQuantity(productFlags.quantity) && availableQuantity !== null
-
-      item.availableQuantity = hasLimitedQuantity ? availableQuantity : null
-      item.hasLimitedQuantity = hasLimitedQuantity
-    }
-  }
-}
-
-export function canAcceptSessionQuantity(actor, item, quantity) {
-  syncSessionItemAvailability(actor, item)
-
-  const requestedQuantity = Number(quantity)
-  if (!Number.isFinite(requestedQuantity) || requestedQuantity < 0) return false
-  if (!item.hasLimitedQuantity) return true
-
-  const availableQuantity = Number(item.availableQuantity)
-  if (!Number.isFinite(availableQuantity) || availableQuantity < 0) return true
-
-  return requestedQuantity <= availableQuantity
-}
-
-// ─── Session totals and adjustments ──────────────────────────────────────────
+// ─── MTT base — totaux de session et ajustements monétaires ──────────────────
 
 function isSessionMoneyItem(item) {
   return item?.type === "money"
@@ -415,7 +141,7 @@ function getSessionStatusNotice(status) {
   return game.i18n.localize("mtt.sessions.activeNotice")
 }
 
-// ─── Session context preparation ─────────────────────────────────────────────
+// ─── MTT base — préparation du contexte d'affichage de session ───────────────
 
 function prepareSessionCheckContext(sessionCheckResult) {
   if (!sessionCheckResult?.checked) {
@@ -544,6 +270,7 @@ function prepareNegotiationForDisplay(negotiation) {
   }
 }
 
+// MTT base — contexte d'affichage session conservé ici car il dépend du contexte trade/monnaie/rail.
 export function prepareSessionContext(
   actor,
   { session, selectedClient, sessionCheckResult, accessClients, buyerActor }
@@ -698,241 +425,7 @@ export function prepareSessionContext(
   }
 }
 
-// ─── Access / client helpers ──────────────────────────────────────────────────
-
-export function normalizeAccessClient(client) {
-  const customRates =
-    client.customRates && typeof client.customRates === "object"
-      ? normalizeAccessClientCustomRates(client.customRates)
-      : null
-
-  return {
-    actorUuid: String(client.actorUuid ?? "").trim(),
-    actorId: String(client.actorId ?? "").trim(),
-    actorName: String(client.actorName ?? "").trim(),
-    actorImg: String(client.actorImg ?? "").trim(),
-    actorType: String(client.actorType ?? "").trim(),
-    userId: String(client.userId ?? "").trim(),
-    userName: String(client.userName ?? "").trim(),
-    isAuthorized: Boolean(client.isAuthorized),
-    isFromPlayerCharacter: Boolean(client.isFromPlayerCharacter),
-    customRates
-  }
-}
-
-function normalizeOptionalClientRateValue(value) {
-  if (value === null || value === undefined || String(value).trim() === "") return null
-
-  const number = Number(value)
-  if (Number.isFinite(number) && number >= 0) return Number(number.toFixed(2))
-
-  return null
-}
-
-function normalizeAccessClientCustomRates(customRates) {
-  const productSellPercent = normalizeOptionalClientRateValue(customRates.productSellPercent)
-  const serviceSellPercent = normalizeOptionalClientRateValue(customRates.serviceSellPercent)
-  const itemBuyPercent = normalizeOptionalClientRateValue(customRates.itemBuyPercent)
-  const note = String(customRates.note ?? "").trim()
-
-  if (productSellPercent === null && serviceSellPercent === null && itemBuyPercent === null && !note) return null
-
-  return {
-    productSellPercent,
-    serviceSellPercent,
-    itemBuyPercent,
-    note
-  }
-}
-
-function normalizeClientRateValue(value, fallback) {
-  if (value === null || value === undefined || String(value).trim() === "") return fallback
-
-  const number = Number(value)
-  if (Number.isFinite(number) && number >= 0) return Number(number.toFixed(2))
-
-  return fallback
-}
-
-function getMerchantTradePercent(actor, key, fallback) {
-  const value = Number(getMerchantData(actor)?.trade?.[key])
-  if (Number.isFinite(value) && value >= 0) return value
-
-  return fallback
-}
-
-export function getMerchantDefaultClientRates(actor) {
-  return {
-    productSellPercent: getMerchantTradePercent(actor, "sellPercent", 100),
-    serviceSellPercent: getMerchantTradePercent(actor, "serviceSellPercent", 100),
-    itemBuyPercent: getMerchantTradePercent(actor, "buyPercent", 50),
-    note: ""
-  }
-}
-
-export function normalizeClientCustomRates(customRates, defaults) {
-  if (!customRates || typeof customRates !== "object") return null
-
-  return {
-    productSellPercent: normalizeClientRateValue(customRates.productSellPercent, defaults.productSellPercent),
-    serviceSellPercent: normalizeClientRateValue(customRates.serviceSellPercent, defaults.serviceSellPercent),
-    itemBuyPercent: normalizeClientRateValue(customRates.itemBuyPercent, defaults.itemBuyPercent),
-    note: String(customRates.note ?? "").trim()
-  }
-}
-
-export function getEffectiveClientRates(actor, actorUuid) {
-  const defaults = getMerchantDefaultClientRates(actor)
-  const client = getStoredAccessClients(actor).find((entry) => entry.actorUuid === String(actorUuid ?? "").trim())
-  const customRates = normalizeClientCustomRates(client?.customRates, defaults)
-
-  return {
-    ...defaults,
-    ...(customRates ?? {}),
-    hasCustomRates: Boolean(customRates)
-  }
-}
-
-function formatClientCustomRatesTooltip(customRates) {
-  if (!customRates) return ""
-
-  const parts = [
-    game.i18n.format("mtt.clientRates.tooltip.product", { value: customRates.productSellPercent }),
-    game.i18n.format("mtt.clientRates.tooltip.service", { value: customRates.serviceSellPercent }),
-    game.i18n.format("mtt.clientRates.tooltip.itemBuy", { value: customRates.itemBuyPercent })
-  ]
-  if (customRates.note) parts.push(game.i18n.format("mtt.clientRates.tooltip.note", { note: customRates.note }))
-
-  return parts.join(" - ")
-}
-
-export function buildAccessClientFromActor(
-  actor,
-  { user = null, isAuthorized = false, isFromPlayerCharacter = false } = {}
-) {
-  return normalizeAccessClient({
-    actorUuid: actor.uuid ?? "",
-    actorId: actor.id ?? "",
-    actorName: actor.name ?? "",
-    actorImg: actor.img ?? "",
-    actorType: actor.type ?? "",
-    userId: user?.id ?? "",
-    userName: user?.name ?? "",
-    isAuthorized,
-    isFromPlayerCharacter
-  })
-}
-
-export function getStoredAccessClients(actor) {
-  const clients = getMerchantData(actor)?.access?.clients ?? []
-  const clientsByUuid = new Map()
-
-  clients.forEach((client) => {
-    const normalized = normalizeAccessClient(client)
-    if (!normalized.actorUuid) return
-    clientsByUuid.set(normalized.actorUuid, normalized)
-  })
-
-  return Array.from(clientsByUuid.values())
-}
-
-function getAccessSessionBadgeIcon(status) {
-  if (status === "active") return "fa-hourglass-half"
-  if (status === "pending") return "fa-triangle-exclamation"
-  if (status === "submitted") return "fa-thumbs-up"
-  return ""
-}
-
-function getAccessSessionTooltipLabel(status) {
-  if (status === "submitted") return game.i18n.localize("mtt.access.sessionSubmitted")
-  if (status === "active") return game.i18n.localize("mtt.access.sessionActive")
-  if (status === "pending") return game.i18n.localize("mtt.access.sessionPending")
-  if (status === "validated") return game.i18n.localize("mtt.access.sessionValidated")
-  if (status === "refused") return game.i18n.localize("mtt.access.sessionRefused")
-  return game.i18n.localize("mtt.access.noSession")
-}
-
-function formatAccessClientTooltip(client, { isEditable }) {
-  const parts = [client.actorName, client.userName || client.sourceLabel, client.statusLabel].filter(Boolean)
-  if (client.hasSession) parts.push(getAccessSessionTooltipLabel(client.sessionStatus))
-  parts.push(
-    game.i18n.localize(client.isAuthorized ? "mtt.access.leftClickOpenSession" : "mtt.access.leftClickAuthorize")
-  )
-  if (isEditable) parts.push(game.i18n.localize("mtt.access.rightClickManage"))
-  return parts.join(" - ")
-}
-
-export function getBestSessionForClient(actor, actorUuid) {
-  const normalizedActorUuid = String(actorUuid ?? "").trim()
-  if (!normalizedActorUuid) return null
-
-  return getBestAccessSessionForClient(getSessions(actor), normalizedActorUuid)
-}
-
-function getBestAccessSessionForClient(sessions, actorUuid) {
-  const normalizedActorUuid = String(actorUuid ?? "").trim()
-  if (!normalizedActorUuid) return null
-
-  const relevantSessions = (sessions ?? [])
-    .filter((session) => session.actorUuid === normalizedActorUuid)
-    .map((session) => normalizeSession(session))
-    .filter((session) => ["active", "pending", "submitted"].includes(session.status))
-  if (relevantSessions.length === 0) return null
-
-  const statusOrder = ["active", "pending", "submitted"]
-  relevantSessions.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status))
-  return relevantSessions[0]
-}
-
-export function prepareAccessClients(
-  actor,
-  { selectedSession, selectedClientActorUuid, isEditable, accessClients = null, sessions = null } = {}
-) {
-  const clientsByUuid = new Map()
-  const defaultRates = getMerchantDefaultClientRates(actor)
-  const storedClients = Array.isArray(accessClients) ? accessClients : getStoredAccessClients(actor)
-
-  storedClients.forEach((client) => {
-    if (!client.actorUuid) return
-    clientsByUuid.set(client.actorUuid, client)
-  })
-
-  return Array.from(clientsByUuid.values())
-    .map((client) => {
-      const session = Array.isArray(sessions)
-        ? getBestAccessSessionForClient(sessions, client.actorUuid)
-        : getBestSessionForClient(actor, client.actorUuid)
-      const sessionStatus = session?.status ?? ""
-      const hasCustomRates = Boolean(client.customRates)
-      const customRates = normalizeClientCustomRates(client.customRates, defaultRates)
-      const preparedClient = {
-        ...client,
-        hasCustomRates,
-        canShowCustomRates: Boolean(isEditable && hasCustomRates),
-        customRatesTooltip: isEditable ? formatClientCustomRatesTooltip(customRates) : "",
-        statusLabel: game.i18n.localize(client.isAuthorized ? "mtt.access.authorized" : "mtt.access.unauthorized"),
-        sourceLabel: game.i18n.localize(
-          client.isFromPlayerCharacter ? "mtt.access.playerCharacter" : "mtt.access.manualActor"
-        ),
-        hasSession: Boolean(session),
-        sessionId: session?.id ?? "",
-        sessionStatus,
-        sessionLabel: session
-          ? game.i18n.localize(`mtt.sessions.status.${sessionStatus}`)
-          : game.i18n.localize("mtt.access.noSession"),
-        sessionBadgeIcon: getAccessSessionBadgeIcon(sessionStatus),
-        isSelected: Boolean(
-          (session && selectedSession?.id === session.id) ||
-          (!session && selectedClientActorUuid && client.actorUuid === selectedClientActorUuid)
-        )
-      }
-      preparedClient.tooltip = formatAccessClientTooltip(preparedClient, { isEditable })
-      return preparedClient
-    })
-    .sort((a, b) => a.actorName.localeCompare(b.actorName, undefined, { sensitivity: "base" }))
-}
-
-// ─── Check logic ──────────────────────────────────────────────────────────────
+// ─── MTT base — fortune et transferts monétaires ─────────────────────────────
 
 function getConfiguredCurrency(currency) {
   if (currency && typeof currency === "object") {
@@ -1383,6 +876,8 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
   await applyCurrencyDeltasToActor(merchantActor, merchantDeltas, currencyById)
 }
 
+// MTT base — vérifications avant validation/refus
+
 function getProductCheckAvailableQuantity(actor, item) {
   const product = getCatalogProduct(actor, item.sourceId)
   if (!product) {
@@ -1686,15 +1181,7 @@ export async function checkSessionTransaction(actor, session, preparedSession, o
   return result
 }
 
-// ─── Seller drop protection ───────────────────────────────────────────────────
-
-export function isMerchantSellerDropBlocked(payload, actorUuid) {
-  void payload
-  void actorUuid
-  return false
-}
-
-// ─── Execution preview ────────────────────────────────────────────────────────
+// ─── MTT base — preview d'exécution transaction/échange ─────────────────────
 
 function getExecutionAccessClients(actor, options = {}) {
   return Array.isArray(options.accessClients) ? options.accessClients : getStoredAccessClients(actor)
@@ -2022,7 +1509,7 @@ export async function buildExecutionPreview(actor, session, options = {}) {
   return preview
 }
 
-// ─── Real item execution ─────────────────────────────────────────────────────
+// ─── MTT base — préparation des données d'Item livré ─────────────────────────
 
 function getQuantityPathForItem(item) {
   const configuredPath = String(game.settings.get(MTT.ID, "itemQuantityPath") ?? "").trim()
@@ -2287,6 +1774,7 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   return result
 }
 
+// MTT base — livraison vers acteur du système de jeu
 async function deliverPurchasedItemToActor(actor, productData, deliveredItemData, quantityToDeliver) {
   const simulation = simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver)
   if (!simulation.ok) return simulation
@@ -2343,7 +1831,7 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
   return result
 }
 
-// MTT base — livraison d'un achat marchand vers une destination MTT avec les règles communes de fusion
+// MTT base — livraison vers entité MTT
 async function deliverPurchasedProductToMttDestination(destinationActor, transfer) {
   const productData = transfer?.deliveryProductData
   const deliveredItemData = transfer?.deliveredItemData
@@ -2678,6 +2166,7 @@ function isGameSystemActor(actor) {
   return ![MTT.ENTITY_TYPES.MERCHANT, MTT.ENTITY_TYPES.STORAGE].includes(entityType)
 }
 
+// MTT shop — masquage de stock boutique à quantité 0 / MTT storage — suppression de ligne stockage à quantité 0
 async function finalizeMttProductQuantity(actor, productId, nextQuantity, { hideWhenEmpty = false } = {}) {
   const normalizedNextQuantity = Number(nextQuantity)
   const quantity = Number.isFinite(normalizedNextQuantity) ? Math.max(0, normalizedNextQuantity) : 0
@@ -2696,6 +2185,7 @@ async function finalizeMttProductQuantity(actor, productId, nextQuantity, { hide
   await updateCatalogProduct(actor, productId, changes)
 }
 
+// MTT base — exécution finale des transferts
 export async function executeSessionItemTransfers(actor, plan) {
   const clientActor = plan.clientActor
   if (!clientActor) throw new Error(game.i18n.localize("mtt.sessions.errors.clientMissing"))
@@ -2880,12 +2370,3 @@ export async function executeSessionItemTransfers(actor, plan) {
   return executionResult
 }
 
-export function clearSessionAfterExecution(session) {
-  session.buyerItems = []
-  session.sellerItems = []
-  session.negotiations = []
-  session.status = "active"
-  session.isSubmitted = false
-  session.updatedAt = new Date().toISOString()
-  return session
-}

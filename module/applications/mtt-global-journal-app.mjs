@@ -1,7 +1,7 @@
 import { MTT } from "../config/constants.mjs"
-import { isMTTMerchant, getMerchantData } from "../documents/merchant-flags.mjs"
+import { isMTTMerchant, getMerchantData } from "../documents/shop-flags.mjs"
 import { isMTTStorage, getStorageData } from "../documents/storage-flags.mjs"
-import { canUserViewClientJournalEntries, getMerchantPermissions } from "../documents/merchant-access.mjs"
+import { canUserViewClientJournalEntries, getMerchantPermissions } from "../documents/merchant-permissions.mjs"
 import { normalizeJournalEntry, prepareJournalEntryDisplay } from "./sheets/merchant-journal.mjs"
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api

@@ -1,9 +1,13 @@
+// MTT base — journaux locaux shop et storage : normalisation et affichage commun.
+// MTT shop — construction et contexte des entrées de transaction boutique.
+// MTT storage — construction et contexte des entrées d'échange stockage.
+
 import { MTT } from "../../config/constants.mjs"
 import { formatPriceLabel, productHasSecretInfo } from "./merchant-utils.mjs"
-import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/shop-flags.mjs"
 import { getStorageData, updateStorageData } from "../../documents/storage-flags.mjs"
 import { getCatalogProduct } from "../../documents/merchant-products.mjs"
-import { canUserViewClientJournalEntries } from "../../documents/merchant-access.mjs"
+import { canUserViewClientJournalEntries } from "../../documents/merchant-permissions.mjs"
 
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
@@ -261,6 +265,8 @@ function getJournalReferenceCurrency(entries) {
   return String(entry?.priceCurrency ?? "")
 }
 
+// MTT shop — journal des transactions boutique
+
 export function buildMerchantJournalEntryFromSession(actor, session, options = {}) {
   const status = options.status === "refused" ? "refused" : "validated"
   const buyerName = String(session?.actorName ?? session?.label ?? "")
@@ -304,7 +310,7 @@ export function buildMerchantJournalEntryFromSession(actor, session, options = {
   })
 }
 
-export function getMerchantJournalTransactions(actor) {
+function getMerchantJournalTransactions(actor) {
   const transactions = getMerchantData(actor)?.journal?.transactions
   return Array.isArray(transactions) ? transactions : []
 }
@@ -558,7 +564,7 @@ export function buildStorageJournalEntryFromSession(actor, session, options = {}
   })
 }
 
-export function getStorageJournalEntries(actor) {
+function getStorageJournalEntries(actor) {
   const entries = getStorageData(actor)?.journal?.entries
   return Array.isArray(entries) ? entries : []
 }

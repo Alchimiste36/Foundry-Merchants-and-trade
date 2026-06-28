@@ -52,7 +52,7 @@ export async function renderConfirmDialogContent({
   })
 }
 
-export async function renderSessionPreparationDialog({
+async function renderSessionPreparationDialog({
   name,
   priceLabel,
   availableQuantityLabel,

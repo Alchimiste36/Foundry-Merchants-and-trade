@@ -1,5 +1,8 @@
+// MTT shop — flags persistés de la boutique dans flags.mtt-merchants.merchant.
+// Les noms de fonctions historiques `Merchant` sont conservés pendant ce nettoyage pour limiter les risques.
+
 import { MTT } from "../config/constants.mjs"
-import { getMTTEntityType } from "./storage-flags.mjs"
+import { getMTTEntityType } from "./mtt-flags.mjs"
 
 const DEFAULT_SHOP_IMAGE = "icons/svg/hanging-sign.svg"
 const DEFAULT_MANAGER_IMAGE = "icons/svg/mystery-man.svg"

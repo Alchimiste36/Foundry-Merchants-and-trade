@@ -335,29 +335,6 @@ export async function replaceCatalogProducts(actor, products) {
   }
 }
 
-// ─── Fusion ───────────────────────────────────────────────────────────────────
-
-/**
- * Cherche un produit existant dans le catalogue par sourceUuid, fusionnable.
- * Un produit est non-fusionnable s'il est commercialement modifié ou possède des infos secrètes.
- *
- * @param {object[]} products - Tableau de contextes produit (retour de getCatalogProducts).
- * @param {string} sourceUuid
- * @returns {object|null}
- */
-export function findMergeableCatalogProduct(products, sourceUuid) {
-  const normalized = String(sourceUuid ?? "").trim()
-  if (!normalized) return null
-  return (
-    products.find((p) => {
-      if (String(p.sourceUuid ?? "").trim() !== normalized) return false
-      if (p.isCommerciallyModified) return false
-      if (p.secretName || p.secretPrice || p.secretCurrency || p.secretDescription) return false
-      return true
-    }) ?? null
-  )
-}
-
 /**
  * Cherche le vrai Embedded Item fusionnable dans actor.items par sourceUuid.
  * Retourne l'Item Foundry réel (avec getFlag/setFlag/update) ou null.

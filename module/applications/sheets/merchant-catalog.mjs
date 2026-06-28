@@ -1,6 +1,10 @@
+// MTT base — préparation du catalogue, items, catégories, wallet et disponibilité communs shop/storage.
+// MTT shop — services boutique, prix libres, secrets, approbation et logique commerciale.
+// MTT storage — tags, intentions de récupération et catégorie ignore.
+
 import { MTT } from "../../config/constants.mjs"
 import { getCurrencies } from "../../config/settings.mjs"
-import { getMerchantData, updateMerchantData } from "../../documents/merchant-flags.mjs"
+import { getMerchantData, updateMerchantData } from "../../documents/shop-flags.mjs"
 import {
   getCatalogProducts,
   getCatalogProduct,
@@ -13,11 +17,11 @@ import {
   updateCatalogProduct,
   sanitizeItemDataForMerchantProductCopy
 } from "../../documents/merchant-products.mjs"
+import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {
   STORAGE_IGNORE_CATEGORY_ID,
   buildStorageAddIntentBlockState,
   buildStorageItemIntentState,
-  getMTTEntityType,
   getStorageData,
   getStorageItemTagForActor
 } from "../../documents/storage-flags.mjs"
@@ -99,6 +103,8 @@ export function getReferenceCurrency() {
   return getReferenceSessionCurrency()
 }
 
+// MTT shop — secrets et visibilité produit
+
 function buildSecretTooltip({ secretName = "", secretPrice = "", secretCurrency = "", secretDescription = "" } = {}) {
   const description = String(secretDescription ?? "").trim()
   const shortDescription = description.length > 180 ? `${description.slice(0, 177)}...` : description
@@ -127,6 +133,8 @@ const STORAGE_TAG_DEFS = [
   { type: "blocked", icon: "fa-lock" }
 ]
 const STORAGE_TAG_TYPES = new Set(STORAGE_TAG_DEFS.map((def) => def.type))
+
+// MTT storage — tags et intention de récupération stockage
 
 function buildStorageTagsContext(rawTags, { canEditActiveSession = false, voterActorUuid = "" } = {}) {
   if (!canEditActiveSession || !voterActorUuid) return []
@@ -391,6 +399,8 @@ function assignSubcategoryIconClasses(products) {
   return products
 }
 
+// MTT shop — services boutique
+
 export function prepareServices(actor, serviceSellPercent, { includeHidden = false } = {}) {
   const entries = getMerchantData(actor)?.catalog?.services ?? []
   return entries
@@ -609,10 +619,6 @@ export function resolveDroppedItemSourceUuid(event, document) {
   return String(document?.uuid ?? "").trim()
 }
 
-export function findMergeableMerchantItemBySourceUuid(actor, sourceUuid) {
-  return findMergeableCatalogItemBySourceUuid(actor, sourceUuid)
-}
-
 export async function addOrMergeProduct(
   actor,
   sourceItem,
@@ -649,16 +655,6 @@ export async function addOrMergeProduct(
 
 export async function moveProductToCategory(actor, productId, categoryValue) {
   await updateCatalogProduct(actor, productId, { category: categoryValue ?? "" })
-}
-
-// TODO étape 9 : supprimer quand l'exécution des transactions sera adaptée au catalogue flags.
-// Utilisé uniquement dans buildMerchantReceivedItemData (merchant-trade.mjs) pour la vente PJ→marchand.
-export function prepareMerchantCatalogItemData(sourceItem, _options = {}) {
-  const rawItemData = sourceItem?.toObject ? sourceItem.toObject() : foundry.utils.deepClone(sourceItem ?? {})
-  delete rawItemData._id
-  delete rawItemData.uuid
-  if (rawItemData.flags?.[MTT.ID]) delete rawItemData.flags[MTT.ID]
-  return rawItemData
 }
 
 export async function createServiceFromItem(actor, item) {

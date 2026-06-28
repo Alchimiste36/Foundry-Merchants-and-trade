@@ -1,13 +1,10 @@
 import { MTT } from "../config/constants.mjs"
-import { getMerchantData, updateMerchantData } from "./merchant-flags.mjs"
+import { getMerchantData, updateMerchantData } from "./shop-flags.mjs"
+import { getMTTEntityType } from "./mtt-flags.mjs"
 
 // MTT storage — helpers de flags propres au stockage
 
 export const STORAGE_IGNORE_CATEGORY_ID = "mtt-storage-ignore"
-
-export function getMTTEntityType(actor) {
-  return String(actor?.getFlag?.(MTT.ID, MTT.FLAGS.TYPE) ?? "").trim()
-}
 
 export function getStorageFlagPath(path = "") {
   const suffix = String(path ?? "").trim()
@@ -206,12 +203,6 @@ export function getStorageAccessActorUuids(actor) {
     })
 }
 
-export function isStorageTradeResponsibleActor(actor, actorUuid) {
-  const normalizedActorUuid = String(actorUuid ?? "").trim()
-  if (!normalizedActorUuid) return false
-  return getStorageTradeResponsibleActorUuids(actor).includes(normalizedActorUuid)
-}
-
 export function canActorTradeWithMerchantAsStorage(storageActor, actorUuid) {
   const normalizedActorUuid = String(actorUuid ?? "").trim()
   if (!normalizedActorUuid) return false
@@ -235,14 +226,6 @@ export function getStorageItemFlags(item) {
     blocked: Boolean(raw.blocked),
     ignoreOriginalCategory: String(raw.ignoreOriginalCategory ?? "").trim()
   }
-}
-
-export function isStorageItemBlocked(item) {
-  return getStorageItemFlags(item).blocked
-}
-
-export function isStorageItemWarningGM(item) {
-  return getStorageItemFlags(item).warningGM
 }
 
 export async function setStorageItemBlocked(item, blocked) {
@@ -416,7 +399,7 @@ export function getStorageClaimQuantityBlockReasonKey(intentState, requestedQuan
   return ""
 }
 
-export function getStorageAddBlockReasonKey(intentState) {
+function getStorageAddBlockReasonKey(intentState) {
   if (intentState?.activeActorTag === "ignore") return "mtt.storage.intent.block.activeActorIgnored"
   if (!intentState?.hasWant) return ""
 

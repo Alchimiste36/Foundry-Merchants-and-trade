@@ -1,8 +1,8 @@
 import { MTT } from "../../config/constants.mjs"
-import { normalizeSession } from "./merchant-trade.mjs"
-import { getMerchantData, getMerchantFlagPath } from "../../documents/merchant-flags.mjs"
+import { normalizeSession } from "./merchant-session.mjs"
+import { getMerchantData, getMerchantFlagPath } from "../../documents/shop-flags.mjs"
+import { getMTTEntityType } from "../../documents/mtt-flags.mjs"
 import {
-  getMTTEntityType,
   getStorageData,
   getStorageFlagPath,
   applyStorageIgnoreAutoCategory,
@@ -11,7 +11,7 @@ import {
   getStorageTradeResponsibleActorUuids,
   canActorTradeWithMerchantAsStorage
 } from "../../documents/storage-flags.mjs"
-import { getMerchantPermissions } from "../../documents/merchant-access.mjs"
+import { getMerchantPermissions } from "../../documents/merchant-permissions.mjs"
 
 const SOCKET_NAME = `module.${MTT.ID}`
 const REQUEST_TIMEOUT = 10000

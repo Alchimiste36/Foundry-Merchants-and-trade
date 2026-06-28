@@ -1,7 +1,7 @@
 import { MTT } from "./constants.mjs"
 import { MttConfigApp } from "../applications/mtt-config-app.mjs"
 import { MttGlobalJournalApp, MttGlobalStorageJournalApp } from "../applications/mtt-global-journal-app.mjs"
-import { MERCHANT_DEFAULT_PERMISSION_PROFILES } from "../documents/merchant-access.mjs"
+import { MERCHANT_DEFAULT_PERMISSION_PROFILES } from "../documents/merchant-permissions.mjs"
 
 export function registerSettings() {
   game.settings.register(MTT.ID, "debug", {
@@ -258,17 +258,4 @@ export function getCurrencies() {
   }
 }
 
-export function parseDefaultCustomCategories(value) {
-  const seen = new Set()
 
-  return String(value ?? "")
-    .split(/\r?\n/)
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .filter((entry) => {
-      const key = entry.toLocaleLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-}

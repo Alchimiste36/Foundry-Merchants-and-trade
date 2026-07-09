@@ -227,7 +227,6 @@ export function prepareItems(
       const activeSession = Array.isArray(sessionEntries)
         ? sessionEntries.find((session) => String(session?.id ?? "") === String(activeSessionId ?? ""))
         : null
-      const isActiveSessionSubmitted = Boolean(activeSession?.isSubmitted)
       const storageIntentState = buildStorageItemIntentState({
         rawTags: rawStorageTags,
         sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
@@ -243,12 +242,12 @@ export function prepareItems(
         ? game.i18n.localize(storageAddIntentBlockState.storageAddBlockReasonKey)
         : ""
       const canShowAddToSessionButton =
-        canEditActiveSession && ((isVisible && !product.isBlocked && !isActiveSessionSubmitted) || isEditable)
+        canEditActiveSession && !activeSession?.isSubmitted && ((isVisible && !product.isBlocked) || isEditable)
       const isAddToSessionDangerVisible =
         isEditable &&
         (!isVisible ||
           product.isBlocked ||
-          isActiveSessionSubmitted ||
+          Boolean(activeSession?.isSubmitted) ||
           storageAddIntentBlockState.isStorageAddBlockedForCurrentUser)
       const addToSessionTooltip =
         storageAddIntentBlockState.isStorageAddBlockedForCurrentUser && storageAddBlockReasonLabel

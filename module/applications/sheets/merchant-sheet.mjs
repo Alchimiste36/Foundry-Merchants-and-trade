@@ -291,10 +291,14 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     context.canEditActiveSession = canEditActiveSession
     const canEditActiveSessionItems = this.#prepareActiveSessionAccess(activeSession).canEditActiveSession
     const effectiveRates = this.#getEffectiveRatesForSession(activeSession)
+    const catalogSessionEntries = isStorage
+      ? (storageData?.sessions?.entries ?? [])
+      : (merchantContext?.sessions?.entries ?? [])
+
     context.items = prepareItems(this.actor, effectiveRates.productSellPercent, {
       includeHidden: isEditable,
-      sessionEntries: isStorage ? (storageData?.sessions?.entries ?? []) : null,
-      activeSessionId: isStorage ? (activeSession?.id ?? "") : "",
+      sessionEntries: catalogSessionEntries,
+      activeSessionId: activeSession?.id ?? "",
       canEditActiveSession: canEditActiveSessionItems,
       voterActorUuid: canEditActiveSession ? activeSession.actorUuid : "",
       isEditable

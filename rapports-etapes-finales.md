@@ -322,3 +322,48 @@ Suppression de trois imports inutilisés après le nettoyage MJS : `getReference
 - Pas de déplacement de fonctions
 - Pas de modification de la preview, validation ou exécution des sessions
 - Pas de modification HBS / LESS / lang
+
+---
+
+## Correction — Bouton ajout session masqué quand session submitted
+
+### Todo
+- [x] Transmettre les sessions shop actives au contexte catalogue.
+- [x] Exposer `item.isActiveSessionSubmitted` dans les items préparés.
+- [x] Masquer le bouton `addProductToSession` dans le HBS si la session active est `submitted`.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `templates/actors/parts/merchant-products.hbs`
+
+### Résumé
+Le catalogue shop connaît maintenant la session active et masque le bouton d'ajout quand cette session est soumise.
+
+### Hors périmètre volontaire
+- Pas de modification de la validation, de la preview, des sockets ou des statuts de session.
+- Pas de modification des règles storage hors utilisation du contexte commun existant.
+
+---
+
+## Correction — Simplification du bouton d'ajout shop submitted
+
+### Todo
+- [x] Remplacer la donnée redondante `isActiveSessionSubmitted`.
+- [x] Utiliser `activeSession.isSubmitted` comme source de vérité unique dans la condition d'ajout déjà existante.
+- [x] Adapter le HBS du catalogue shop.
+- [x] Vérifier qu'il ne reste aucune occurrence de l'ancien nom.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-catalog.mjs`
+- `templates/actors/parts/merchant-products.hbs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Suppression de la variable locale `isActiveSessionSubmitted` dans `prepareItems(...)`. Le statut `submitted` de la session active (`activeSession.isSubmitted`, déjà normalisé dans `merchant-session.mjs`) est désormais lu directement là où il est utilisé, en intégrant `!activeSession?.isSubmitted` dans la condition existante `canShowAddToSessionButton` (au lieu d'être uniquement `OR`-contourné par `isEditable`) et dans `isAddToSessionDangerVisible`. Comme `canShowAddToSessionButton` porte désormais correctement ce garde-fou pour tous les profils, y compris en mode édition, le wrapper HBS `{{#unless item.isActiveSessionSubmitted}}` ajouté par le correctif précédent n'est plus nécessaire : `templates/actors/parts/merchant-products.hbs` revient à sa structure d'origine à deux niveaux (`canEditActiveSession` puis `canShowAddToSessionButton`), sans propriété d'item dédiée au statut de session.
+
+### Hors périmètre volontaire
+- Pas de modification des statuts de session.
+- Pas de modification des sockets.
+- Pas de modification de la validation, preview ou exécution.
+- Pas de modification storage : comportement vérifié comme inchangé, `isAddToSessionDangerVisible` continue de couvrir le cas storage via `activeSession?.isSubmitted`.

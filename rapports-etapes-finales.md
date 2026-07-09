@@ -389,3 +389,46 @@ La zone de drop seller refuse maintenant les Items dont le type n'est pas autori
 - Pas de nouvelle option de configuration.
 - Pas de modification HBS/LESS/lang.
 - Pas de changement sur la validation, la preview ou l'exécution des sessions.
+
+---
+
+## Correction — Tri ajustement monétaire journal Storage local
+
+### Todo
+- [x] Ajouter la clé locale `adjustment` au tri des journaux locaux.
+- [x] Trier `adjustment` avec `moneyAdjustmentValue`.
+- [x] Faire pointer le bouton d'ajustement du journal Storage vers `adjustment`.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-journal.mjs`
+- `templates/actors/parts/storage-journal.hbs`
+
+### Résumé
+Le bouton d'ajustement monétaire du journal Storage local trie maintenant la colonne affichée via `moneyAdjustmentValue`, comme les journaux globaux Storage.
+
+### Hors périmètre volontaire
+- Pas de modification du journal Shop local.
+- Pas de modification des journaux globaux.
+- Pas de modification CSS/lang/configuration.
+
+---
+
+## Correction — Tri Ajustement monétaire Storage local
+
+### Todo
+- [x] Vérifier le bouton `adjustment` dans `storage-journal.hbs`
+- [x] Vérifier le tri `adjustment` dans `merchant-journal.mjs`
+- [x] Ajouter `adjustment` à la whitelist de `#onSortJournal(...)`
+- [x] Contrôler la syntaxe
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+
+### Résumé
+Le bouton et le comparateur `adjustment` étaient déjà corrects depuis le correctif précédent, mais le handler local `#onSortJournal(...)` dans `merchant-sheet.mjs` filtrait encore la clé reçue via une whitelist `["date", "buyer", "status", "total"]` qui ne contenait pas `adjustment` : le clic était donc ignoré avant même de mettre à jour `this.#journalSort`. La whitelist accepte maintenant `adjustment`, sans autre changement dans la fonction.
+
+### Hors périmètre volontaire
+- Pas de modification du journal Shop local.
+- Pas de modification des journaux globaux.
+- Pas de nouveau système de tri.
+- Pas de modification HBS/LESS/lang.

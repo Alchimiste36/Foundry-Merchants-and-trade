@@ -4742,7 +4742,7 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     event.preventDefault()
 
     const key = target.dataset.sortKey
-    if (!["date", "buyer", "status", "total"].includes(key)) return
+    if (!["date", "buyer", "status", "total", "adjustment"].includes(key)) return
 
     const direction = this.#journalSort.key === key && this.#journalSort.direction === "asc" ? "desc" : "asc"
     this.#journalSort = { key, direction }

@@ -1543,6 +1543,12 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       return
     }
 
+    const droppedDocument = droppedItem?.item?.documentName === "Item" ? droppedItem.item : droppedItem
+    if (!isItemTypeAllowed(droppedDocument, "allowedProductTypes")) {
+      ui.notifications.warn(game.i18n.localize("mtt.notifications.productTypeNotAllowed"))
+      return
+    }
+
     if (this.#isStorageEntity()) {
       const session = await this.#getOrCreateStorageSessionForAddingItem()
       if (!session) return

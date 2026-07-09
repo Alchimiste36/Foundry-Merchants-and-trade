@@ -367,3 +367,25 @@ Suppression de la variable locale `isActiveSessionSubmitted` dans `prepareItems(
 - Pas de modification des sockets.
 - Pas de modification de la validation, preview ou exécution.
 - Pas de modification storage : comportement vérifié comme inchangé, `isAddToSessionDangerVisible` continue de couvrir le cas storage via `activeSession?.isSubmitted`.
+
+---
+
+## Correction — Blocage des types d'Item sur les zones seller
+
+### Todo
+- [x] Réutiliser le helper existant `isItemTypeAllowed(...)`.
+- [x] Ajouter le contrôle de type dans `#onSessionSellerDrop(...)`.
+- [x] Réutiliser `allowedProductTypes` et le message `productTypeNotAllowed`.
+- [x] Ne pas modifier les HBS, LESS, lang, validation ou preview.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+
+### Résumé
+La zone de drop seller refuse maintenant les Items dont le type n'est pas autorisé par la configuration `allowedProductTypes`, pour les shops comme pour les storages. Le contrôle est ajouté juste après la résolution du document droppé dans `#onSessionSellerDrop(...)`, avant la branche storage/shop, en réutilisant `isItemTypeAllowed(...)` (déjà importé) et la clé de langue existante `mtt.notifications.productTypeNotAllowed`.
+
+### Hors périmètre volontaire
+- Pas de nouvelle fonction de validation.
+- Pas de nouvelle option de configuration.
+- Pas de modification HBS/LESS/lang.
+- Pas de changement sur la validation, la preview ou l'exécution des sessions.

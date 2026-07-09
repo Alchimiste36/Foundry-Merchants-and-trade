@@ -98,7 +98,12 @@
       "Bash(npx eslint *)",
       "Bash(echo \"---grep exit: $?\")",
       "Bash(npx prettier *)",
-      "Bash(echo \"grep exit: $?\")"
+      "Bash(echo \"grep exit: $?\")",
+      "Bash(cp module/applications/sheets/merchant-sheet.mjs /tmp/merchant-sheet-before.mjs)",
+      "Read(//tmp/**)",
+      "Bash(file module/applications/sheets/merchant-sheet.mjs)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const b=fs.readFileSync\\('module/applications/sheets/merchant-sheet.mjs'\\); console.log\\('hasCRLF', b.includes\\('\\\\r\\\\n'\\), 'size', b.length\\)\")",
+      "Bash(git stash *)"
     ],
     "additionalDirectories": [
       "\\tmp"

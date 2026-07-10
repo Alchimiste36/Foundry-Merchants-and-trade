@@ -2,7 +2,7 @@
   "id": "mtt-merchants",
   "title": "Merchants, Trades and Transactions",
   "description": "A Foundry VTT module for managing merchants, trade sessions, shops, services, and transactions.",
-  "version": "0.9.5",
+  "version": "1.0.0",
   "compatibility": {
     "minimum": "14",
     "verified": "14"

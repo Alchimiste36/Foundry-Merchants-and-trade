@@ -956,6 +956,10 @@
       "submitSession": "Session submitted",
       "unlockSubmittedSession": "Unlock session",
       "submittedMessage": "This session is submitted and awaiting the merchant's decision.",
+      "submitChat": {
+        "title": "Session submitted",
+        "waitingDecision": "The session is waiting for a decision."
+      },
       "actions": {
         "propose": "Propose",
         "validate": "Validate",

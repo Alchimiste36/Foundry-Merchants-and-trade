@@ -531,3 +531,77 @@ L'export/import de configuration MTT inclut désormais les catégories Storage p
 - Pas de modification HBS, LESS ou lang.
 - Pas de refactor des settings.
 - Pas de changement métier.
+
+---
+
+## Amélioration — Notification tchat MJ au submit de session
+
+### Todo
+- [x] Ajouter un message tchat MJ lors du submit d'une session Shop.
+- [x] Ajouter le même message lors du submit d'une session Storage.
+- [x] Afficher le nom et l'image du Shop/Storage.
+- [x] Afficher le nom et l'image de l'acteur client.
+- [x] Ajouter un lien cliquable vers l'acteur support Shop/Storage.
+- [x] Limiter le message aux MJ.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `lang/fr.json`
+- `lang/en.json`
+
+### Résumé
+Un message tchat chuchoté aux MJ (`ChatMessage.getWhisperRecipients("GM")`) est maintenant envoyé quand une session Shop ou Storage est submit via `#onSubmitSession(...)`. Le nouveau helper d'instance `#sendSubmittedSessionGmChatMessage(session)` récupère le nom/image du Shop (`getMerchantData(...)?.shop`) ou du Storage (`#buildStorageMerchantContext(getStorageData(...))?.shop`, déjà existant) ainsi que l'acteur client via `#getActorByUuid(session.actorUuid)` déjà existant, et construit deux liens d'acteur cliquables via le nouveau helper `#buildSubmitChatActorLink(...)` (classe Foundry standard `content-link`, pas de nouveau CSS). `#onSubmitSession(...)` mémorise `wasSubmitted` avant de changer le statut, pour n'envoyer le message qu'une seule fois même si le bouton est cliqué plusieurs fois sur une session déjà submitted. `#onSetSessionStatus(...)` (changement de statut manuel) n'appelle pas ce helper, donc un changement manuel vers `submitted` ne déclenche pas la notification. Deux clés de langue `mtt.sessions.submitChat.title`/`waitingDecision` ont été ajoutées dans `fr.json` et `en.json`, distinctes de `submittedMessage` (affichage feuille, pas tchat).
+
+### Hors périmètre volontaire
+- Pas de modification des sockets.
+- Pas de modification de la validation/refus.
+- Pas de modification de la preview.
+- Pas de modification HBS.
+- Pas de modification CSS/LESS.
+
+---
+
+## Correction — Liens acteurs dans le tchat submit MJ
+
+### Todo
+- [x] Remplacer le lien HTML manuel par un lien Foundry enrichi via `TextEditor.enrichHTML(...)`.
+- [x] Adapter les appels dans `#sendSubmittedSessionGmChatMessage(...)`.
+- [x] Vérifier que le submit Shop ouvre le Shop et l'acteur client depuis le tchat.
+- [x] Vérifier que le submit Storage ouvre le Storage et l'acteur client depuis le tchat.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+`#buildSubmitChatActorLink(...)` est devenu asynchrone et construit désormais un texte `@UUID[...]{label}` enrichi via `foundry.applications.ux.TextEditor.implementation.enrichHTML(...)` (avec repli sur le nom échappé en cas d'erreur), au lieu de fabriquer manuellement une balise `<a class="content-link">`. Les deux appels dans `#sendSubmittedSessionGmChatMessage(...)` (lien du Shop/Storage et lien du client) sont maintenant `await`és. `#onSubmitSession(...)` n'a pas eu besoin d'être modifié, car il appelait déjà `#sendSubmittedSessionGmChatMessage(...)` avec `await` et cette dernière est déjà `async`.
+
+### Hors périmètre volontaire
+- Pas de modification des sockets.
+- Pas de modification de la validation/refus.
+- Pas de modification de la preview.
+- Pas de modification HBS/LESS/lang.
+- Pas de nouveau système de notification.
+
+---
+
+## Correction — Message submit visible uniquement MJ
+
+### Todo
+- [x] Remplacer le whisper simple par un message blind GM Foundry.
+- [x] Conserver le contenu et les liens existants du message.
+- [x] Vérifier que le joueur submitter ne voit plus le contenu du message.
+- [x] Vérifier que les MJ voient encore le message et les liens cliquables.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-sheet.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+Le message tchat envoyé lors du submit d'une session Shop ou Storage utilise maintenant le mode Foundry `blind` (`ChatMessage.applyMode(chatData, "blind")` puis `ChatMessage.create(chatData)`), afin que seuls les MJ voient le contenu de la notification — y compris le joueur qui a cliqué sur submit. La construction du contenu, des images et des liens d'acteurs (`#buildSubmitChatActorLink(...)`) reste inchangée. Le garde `const gmRecipients = ChatMessage.getWhisperRecipients("GM"); if (!gmRecipients.length) return` a été supprimé car devenu inutile : `applyMode(..., "blind")` calcule lui-même le whisper vers les MJ.
+
+### Hors périmètre volontaire
+- Pas de socket ajouté.
+- Pas de hook tchat ajouté.
+- Pas de CSS/HBS/lang modifié.
+- Pas de changement sur la validation, le refus, la preview ou les sessions.

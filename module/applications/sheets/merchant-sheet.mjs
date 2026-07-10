@@ -44,7 +44,8 @@ import {
   productHasSecretInfo,
   normalizeEffectiveDeliveryQuantityPerLot,
   formatProductNameWithLotQuantity,
-  buildProductAvailabilityMap
+  buildProductAvailabilityMap,
+  escapeHTML
 } from "./merchant-utils.mjs"
 import {
   renderMttDialogContent,
@@ -673,6 +674,24 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       game.actors?.get?.(uuid.replace(/^Actor\./, "")) ??
       null
     )
+  }
+
+  // MTT base — lien d'acteur cliquable réutilisé pour la notification tchat MJ de submit de session.
+  async #buildSubmitChatActorLink(actor, label = "") {
+    const safeLabel = String(label || actor?.name || "").trim()
+    if (!actor?.uuid) return escapeHTML(safeLabel)
+
+    const linkLabel = safeLabel || actor.name || actor.uuid
+    const linkText = `@UUID[${actor.uuid}]{${linkLabel}}`
+
+    try {
+      return await foundry.applications.ux.TextEditor.implementation.enrichHTML(linkText, {
+        async: true,
+        documents: true
+      })
+    } catch {
+      return escapeHTML(linkLabel)
+    }
   }
 
   #userOwnsActorUuid(actorUuid, user = game.user) {
@@ -4295,15 +4314,64 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
     await openPreviewDialog(preview, { isStorage: this.#isStorageEntity() })
   }
 
+  // MTT base — notification tchat MJ quand une session shop/storage est envoyée en décision.
+  async #sendSubmittedSessionGmChatMessage(session) {
+    const entityType = getMTTEntityType(this.actor) || MTT.ENTITY_TYPES.MERCHANT
+    const isStorage = entityType === MTT.ENTITY_TYPES.STORAGE
+    const merchantData = isStorage
+      ? this.#buildStorageMerchantContext(getStorageData(this.actor))
+      : getMerchantData(this.actor)
+
+    const sheetName = String(merchantData?.shop?.name ?? this.actor?.name ?? "").trim()
+    const sheetImg = String(merchantData?.shop?.img ?? this.actor?.img ?? "icons/svg/mystery-man.svg").trim()
+    const clientActor = this.#getActorByUuid(session?.actorUuid)
+    const clientName = String(clientActor?.name ?? session?.actorName ?? session?.actorUuid ?? "").trim()
+    const clientImg = String(clientActor?.img ?? "icons/svg/mystery-man.svg").trim()
+
+    const sheetLink = await this.#buildSubmitChatActorLink(this.actor, sheetName)
+    const clientLink = clientActor ? await this.#buildSubmitChatActorLink(clientActor, clientName) : escapeHTML(clientName)
+
+    const content = `
+      <div class="mtt-chat-session-submitted">
+        <p><strong>${game.i18n.localize("mtt.sessions.submitChat.title")}</strong></p>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin:0.25rem 0;">
+          <img src="${escapeHTML(sheetImg)}" alt="${escapeHTML(sheetName)}" width="36" height="36" style="border:0;object-fit:cover;" />
+          <div>${sheetLink}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin:0.25rem 0;">
+          <img src="${escapeHTML(clientImg)}" alt="${escapeHTML(clientName)}" width="36" height="36" style="border:0;object-fit:cover;" />
+          <div>${clientLink}</div>
+        </div>
+        <p>${game.i18n.localize("mtt.sessions.submitChat.waitingDecision")}</p>
+      </div>
+    `
+
+    const chatData = {
+      content,
+      speaker: ChatMessage.getSpeaker({ actor: this.actor })
+    }
+
+    ChatMessage.applyMode(chatData, "blind")
+
+    await ChatMessage.create(chatData)
+  }
+
   static async #onSubmitSession(event) {
     event.preventDefault()
 
     const session = this.#getActiveSessionForInteraction()
     if (!session) return
 
+    const wasSubmitted = session.isSubmitted || session.status === "submitted"
+
     session.status = "submitted"
     session.isSubmitted = true
     await this.#saveSession(session)
+
+    if (!wasSubmitted) {
+      await this.#sendSubmittedSessionGmChatMessage(session)
+    }
+
     this.render()
   }
 

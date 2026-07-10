@@ -955,6 +955,10 @@
       "submitSession": "Session terminée",
       "unlockSubmittedSession": "Débloquer la session",
       "submittedMessage": "Cette session est terminée et attend la décision du marchand.",
+      "submitChat": {
+        "title": "Session envoyée",
+        "waitingDecision": "La session attend une décision."
+      },
       "actions": {
         "propose": "Proposer",
         "validate": "Valider",

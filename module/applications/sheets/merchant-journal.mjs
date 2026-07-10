@@ -12,7 +12,7 @@ import { canUserViewClientJournalEntries } from "../../documents/merchant-permis
 const JOURNAL_STATUSES = ["validated", "refused"]
 const JOURNAL_ENTRY_TYPES = ["product", "service", "item", "money"]
 const JOURNAL_ENTRY_SIDES = ["buyer", "seller"]
-const JOURNAL_SORT_KEYS = ["date", "buyer", "status", "total"]
+const JOURNAL_SORT_KEYS = ["date", "buyer", "status", "total", "adjustment"]
 const JOURNAL_EMPTY_LABEL = "-"
 
 function normalizeJournalNumber(value, fallback = 0) {
@@ -424,6 +424,12 @@ function compareJournalTransactions(a, b, sort) {
   if (sort.key === "total") {
     return (
       (normalizeJournalNumber(a.totalReferenceValue, 0) - normalizeJournalNumber(b.totalReferenceValue, 0)) * direction
+    )
+  }
+
+  if (sort.key === "adjustment") {
+    return (
+      (normalizeJournalNumber(a.moneyAdjustmentValue, 0) - normalizeJournalNumber(b.moneyAdjustmentValue, 0)) * direction
     )
   }
 

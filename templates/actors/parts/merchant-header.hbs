@@ -65,22 +65,24 @@
       </div>
 
       {{#if isStorage}}
-        {{#if mtt.isEditable}}
-          <div class="mtt-merchant-header-wallet-summary">
-            {{#if mtt.hasHeaderCurrencies}}
-              {{#each mtt.headerCurrencies as |currency|}}
-                <span class="mtt-merchant-header-wallet-currency">
-                  <strong>{{currency.label}}</strong>
-                  {{currency.amount}}
+        <div class="mtt-merchant-header-wallet-bloc">
+          {{#if mtt.isEditable}}
+            <div class="mtt-merchant-header-wallet-summary">
+              {{#if mtt.hasHeaderCurrencies}}
+                {{#each mtt.headerCurrencies as |currency|}}
+                  <span class="mtt-merchant-header-wallet-currency">
+                    <strong>{{currency.label}}</strong>
+                    {{currency.amount}}
+                  </span>
+                {{/each}}
+              {{else}}
+                <span class="mtt-merchant-header-wallet-empty">
+                  {{localize "mtt.configuration.walletSummaryEmpty"}}
                 </span>
-              {{/each}}
-            {{else}}
-              <span class="mtt-merchant-header-wallet-empty">
-                {{localize "mtt.configuration.walletSummaryEmpty"}}
-              </span>
-            {{/if}}
-          </div>
-        {{/if}}
+              {{/if}}
+            </div>
+          {{/if}}
+        </div>
       {{/if}}
 
       <div class="mtt-merchant-nav-row {{#if isStorage}}mtt-merchant-nav-row-storage{{/if}}">

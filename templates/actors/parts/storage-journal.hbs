@@ -45,9 +45,9 @@
       <span class="mtt-merchant-journal-paid">{{localize "mtt.storage.journal.columns.recovered"}}</span>
       <span class="mtt-merchant-journal-received">{{localize "mtt.storage.journal.columns.deposited"}}</span>
 
-      <button type="button" data-action="sortJournal" data-sort-key="total">
+      <button type="button" data-action="sortJournal" data-sort-key="adjustment">
         <span class="mtt-merchant-journal-adjustment">{{localize "mtt.journal.columns.adjustment"}}</span>
-        {{#if (eq mtt.journal.sort.key "total")}}
+        {{#if (eq mtt.journal.sort.key "adjustment")}}
           {{#if (eq mtt.journal.sort.direction "asc")}}
             <i class="fas fa-arrow-up"></i>
           {{else}}

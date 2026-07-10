@@ -50,7 +50,6 @@ export const MTT = {
     quantity: null,
     isHidden: false,
     requiresApproval: false,
-    isExpanded: true,
     sourceUuid: null,
     sourceName: "",
     sourceType: "",

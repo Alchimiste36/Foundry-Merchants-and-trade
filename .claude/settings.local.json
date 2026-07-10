@@ -94,7 +94,24 @@
       "Bash(node --check module/applications/sheets/merchant-dialogs.mjs)",
       "Bash(node --check module/applications/sheets/merchant-utils.mjs)",
       "Bash(node --check module/documents/merchant-products.mjs)",
-      "Bash(xargs -0 -n1 node --check)"
+      "Bash(xargs -0 -n1 node --check)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"---grep exit: $?\")",
+      "Bash(npx prettier *)",
+      "Bash(echo \"grep exit: $?\")",
+      "Bash(cp module/applications/sheets/merchant-sheet.mjs /tmp/merchant-sheet-before.mjs)",
+      "Read(//tmp/**)",
+      "Bash(file module/applications/sheets/merchant-sheet.mjs)",
+      "Bash(node -e \"const fs=require\\('fs'\\); const b=fs.readFileSync\\('module/applications/sheets/merchant-sheet.mjs'\\); console.log\\('hasCRLF', b.includes\\('\\\\r\\\\n'\\), 'size', b.length\\)\")",
+      "Bash(git stash *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -Rn \"mtt-merchant-service-expanded\" styles css)",
+      "Bash(node --check module/config/constants.mjs)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/fr.json', 'utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json', 'utf8'\\)\\); console.log\\('JSON OK'\\)\")",
+      "Bash(npm run *)",
+      "Bash(node \"C:/Users/Alchi/AppData/Local/Temp/claude/f--dataPath-dataPath14dev-Data-modules-mtt-merchants/6530a22e-c257-4d9f-8729-c379cf3bd3c5/scratchpad/sim-shop-simple.mjs\")",
+      "Bash(node \"C:/Users/Alchi/AppData/Local/Temp/claude/f--dataPath-dataPath14dev-Data-modules-mtt-merchants/6530a22e-c257-4d9f-8729-c379cf3bd3c5/scratchpad/sim-shop-integer.mjs\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/fr.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json','utf8'\\)\\); console.log\\('lang ok'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp"

@@ -7,6 +7,7 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "itemDeliveryQuantityPerLotPath",
   "deliveryItemQuantityPath",
   "deliveryItemMaxQuantityPath",
+  "allowExtendedItemMerge",
   "writeDeliveryDescriptionInfo",
   "itemDescriptionPath",
   "itemSecretDescriptionPath",
@@ -16,13 +17,15 @@ export const MTT_EXPORTABLE_CONFIG_SETTINGS = [
   "useItemTypeAsCategoryFallback",
   "categoryLabelMap",
   "defaultCustomCategories",
+  "defaultStorageCategories",
   "currencies",
   "itemSubcategoryPath",
   "itemCategoryI18nPrefix",
   "itemSubcategoryI18nPrefix",
   "allowedMerchantActorTypes",
   "allowedStorageActorTypes",
-  "merchantPermissionProfiles"
+  "merchantPermissionProfiles",
+  "deleteEmptySystemActorItems"
 ]
 
 export function buildModuleConfigurationExport() {

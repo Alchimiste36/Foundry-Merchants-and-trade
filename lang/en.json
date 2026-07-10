@@ -728,8 +728,6 @@
       "linkedItem": "Service linked to an item",
       "sourceType": "Source type",
       "sourceName": "Source",
-      "toggleShow": "Show service details",
-      "toggleHide": "Hide service details",
       "hide": "Hide service",
       "show": "Show service",
       "requireApproval": "Require GM approval",
@@ -958,6 +956,10 @@
       "submitSession": "Session submitted",
       "unlockSubmittedSession": "Unlock session",
       "submittedMessage": "This session is submitted and awaiting the merchant's decision.",
+      "submitChat": {
+        "title": "Session submitted",
+        "waitingDecision": "The session is waiting for a decision."
+      },
       "actions": {
         "propose": "Propose",
         "validate": "Validate",

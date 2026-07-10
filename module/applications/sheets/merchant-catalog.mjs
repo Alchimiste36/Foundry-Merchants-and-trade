@@ -227,7 +227,6 @@ export function prepareItems(
       const activeSession = Array.isArray(sessionEntries)
         ? sessionEntries.find((session) => String(session?.id ?? "") === String(activeSessionId ?? ""))
         : null
-      const isActiveSessionSubmitted = Boolean(activeSession?.isSubmitted)
       const storageIntentState = buildStorageItemIntentState({
         rawTags: rawStorageTags,
         sessions: Array.isArray(sessionEntries) ? sessionEntries : [],
@@ -243,12 +242,12 @@ export function prepareItems(
         ? game.i18n.localize(storageAddIntentBlockState.storageAddBlockReasonKey)
         : ""
       const canShowAddToSessionButton =
-        canEditActiveSession && ((isVisible && !product.isBlocked && !isActiveSessionSubmitted) || isEditable)
+        canEditActiveSession && !activeSession?.isSubmitted && ((isVisible && !product.isBlocked) || isEditable)
       const isAddToSessionDangerVisible =
         isEditable &&
         (!isVisible ||
           product.isBlocked ||
-          isActiveSessionSubmitted ||
+          Boolean(activeSession?.isSubmitted) ||
           storageAddIntentBlockState.isStorageAddBlockedForCurrentUser)
       const addToSessionTooltip =
         storageAddIntentBlockState.isStorageAddBlockedForCurrentUser && storageAddBlockReasonLabel
@@ -446,7 +445,6 @@ export function prepareServices(actor, serviceSellPercent, { includeHidden = fal
         isHidden,
         isVisible,
         requiresApproval: service.requiresApproval ?? MTT.SERVICE_DEFAULTS.requiresApproval,
-        isExpanded: service.isExpanded ?? MTT.SERVICE_DEFAULTS.isExpanded,
         sourceUuid: service.sourceUuid ?? null,
         sourceName: service.sourceName ?? "",
         sourceType: service.sourceType ?? "",
@@ -694,7 +692,6 @@ export async function createServiceFromItem(actor, item) {
     quantity: null,
     isHidden: false,
     requiresApproval: false,
-    isExpanded: true,
     sourceUuid: item.uuid ?? null,
     sourceName: item.name ?? "",
     sourceType: item.type ?? "",

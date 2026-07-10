@@ -571,6 +571,148 @@ function buildInternalConversionDeltas(currentAmounts, targetAmounts, currencies
     .filter(Boolean)
 }
 
+// MTT shop — le wallet shop est une caisse physique : jamais de redistribution globale, jamais de rendu de monnaie simulé côté receveur.
+
+function findShopAdjustmentCurrency(adjustment, currencies) {
+  return currencies.find((c) => {
+    const candidates = [c.id, c.abbreviation, c.name].map((v) => normalizeCurrencyText(v)).filter(Boolean)
+    return candidates.includes(normalizeCurrencyText(adjustment.currency))
+  })
+}
+
+function ensureShopPayerHasAmount(payerAmounts, targetCurrency, requiredAmount, currenciesSortedAsc) {
+  const targetId = String(targetCurrency.id ?? "").trim()
+  const targetRate = Number(targetCurrency.rate)
+  if ((payerAmounts[targetId] ?? 0) + 0.0001 >= requiredAmount) return true
+
+  for (const higherCurrency of currenciesSortedAsc) {
+    const higherId = String(higherCurrency.id ?? "").trim()
+    const higherRate = Number(higherCurrency.rate)
+    if (!higherId || !Number.isFinite(higherRate) || higherRate <= targetRate) continue
+
+    while ((payerAmounts[higherId] ?? 0) >= 1 && (payerAmounts[targetId] ?? 0) + 0.0001 < requiredAmount) {
+      payerAmounts[higherId] = Number((payerAmounts[higherId] - 1).toFixed(4))
+      const convertedValue = Number((higherRate / targetRate).toFixed(4))
+      payerAmounts[targetId] = Number(((payerAmounts[targetId] ?? 0) + convertedValue).toFixed(4))
+    }
+
+    if ((payerAmounts[targetId] ?? 0) + 0.0001 >= requiredAmount) break
+  }
+
+  return (payerAmounts[targetId] ?? 0) + 0.0001 >= requiredAmount
+}
+
+function buildShopPhysicalCurrencyParts(amount, currency, currencies) {
+  const rate = Number(currency?.rate)
+  if (!Number.isFinite(rate) || rate <= 0) return []
+
+  const amountReference = roundToSmallestCurrencyUnit(Math.abs(Number(amount) || 0) * rate, currencies)
+  const distributed = distributeReferenceValueToCurrencies(amountReference, currencies)
+
+  return currencies
+    .map((entryCurrency) => {
+      const currId = String(entryCurrency.id ?? "").trim()
+      if (!currId) return null
+
+      const partAmount = Number(distributed[currId] ?? 0)
+      if (!Number.isFinite(partAmount) || partAmount <= 0) return null
+
+      return {
+        currency: entryCurrency,
+        amount: partAmount
+      }
+    })
+    .filter(Boolean)
+}
+
+function buildShopCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies, result) {
+  const currenciesSortedAsc = [...currencies].sort((a, b) => Number(a.rate) - Number(b.rate))
+
+  const clientAmountsStart = getActorCurrencyAmounts(clientActor, currencies)
+  const merchantAmountsStart = getActorCurrencyAmounts(merchantActor, currencies)
+  const clientAmounts = { ...clientAmountsStart }
+  const merchantAmounts = { ...merchantAmountsStart }
+
+  const payerRemovals = []
+  const receiverAdditions = []
+  let hasAnyTransfer = false
+
+  for (const adjustment of moneyAdjustments) {
+    if (adjustment.currency === "__none") {
+      result.warnings.push(game.i18n.localize("mtt.sessions.check.undefinedCurrency"))
+      continue
+    }
+
+    const targetCurrency = findShopAdjustmentCurrency(adjustment, currencies)
+    if (!targetCurrency) {
+      result.warnings.push(
+        game.i18n.format("mtt.sessions.check.unknownCurrency", { currency: formatCurrencyLabel(adjustment.currency) })
+      )
+      continue
+    }
+
+    const amount = Number(Math.abs(Number(adjustment.amount) || 0).toFixed(4))
+    if (amount < 0.0001) continue
+
+    const payerIsClient = adjustment.side === "seller"
+    const payerActor = payerIsClient ? clientActor : merchantActor
+    const receiverActor = payerIsClient ? merchantActor : clientActor
+    const payerAmounts = payerIsClient ? clientAmounts : merchantAmounts
+    const receiverAmounts = payerIsClient ? merchantAmounts : clientAmounts
+
+    // MTT shop — décomposer l'ajustement en pièces physiques entières avant toute modification de wallet.
+    const parts = buildShopPhysicalCurrencyParts(amount, targetCurrency, currencies)
+    if (!parts.length) continue
+
+    for (const part of parts) {
+      if (!ensureShopPayerHasAmount(payerAmounts, part.currency, part.amount, currenciesSortedAsc)) {
+        result.errors.push(game.i18n.format("mtt.sessions.errors.payerInsufficientFunds", { actor: payerActor.name }))
+        return result
+      }
+    }
+
+    for (const part of parts) {
+      const partId = String(part.currency.id ?? "").trim()
+      if (!partId) continue
+
+      payerAmounts[partId] = Number(((payerAmounts[partId] ?? 0) - part.amount).toFixed(4))
+      receiverAmounts[partId] = Number(((receiverAmounts[partId] ?? 0) + part.amount).toFixed(4))
+
+      payerRemovals.push({
+        currency: part.currency,
+        amount: part.amount,
+        payerName: payerActor.name,
+        receiverName: receiverActor.name
+      })
+      receiverAdditions.push({
+        currency: part.currency,
+        amount: part.amount,
+        payerName: payerActor.name,
+        receiverName: receiverActor.name
+      })
+    }
+    hasAnyTransfer = true
+  }
+
+  if (result.errors.length > 0) return result
+
+  if (!hasAnyTransfer) {
+    result.noTransferNeeded = true
+    result.canExecute = true
+    return result
+  }
+
+  result.clientDeltas = buildInternalConversionDeltas(clientAmountsStart, clientAmounts, currencies)
+  result.merchantDeltas = buildInternalConversionDeltas(merchantAmountsStart, merchantAmounts, currencies)
+  result.payerRemovals = payerRemovals
+  result.receiverAdditions = receiverAdditions
+  result.changeRemovals = []
+  result.changeAdditions = []
+  result.hasChange = false
+  result.canExecute = true
+  return result
+}
+
 function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies) {
   const result = {
     canExecute: false,
@@ -585,6 +727,8 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
     changeAdditions: [],
     payerDeltas: [],
     receiverDeltas: [],
+    clientDeltas: [],
+    merchantDeltas: [],
     hasChange: false
   }
 
@@ -602,6 +746,13 @@ function buildCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments,
   if (!referenceCurrency) {
     result.errors.push(game.i18n.localize("mtt.sessions.errors.referenceCurrencyMissing"))
     return result
+  }
+
+  // MTT shop — traitement dédié : chaque ajustement est payé exactement dans sa devise, sans redistribution globale.
+  const merchantEntityType = getMTTEntityType(merchantActor)
+  const isShopTransaction = merchantEntityType === MTT.ENTITY_TYPES.MERCHANT
+  if (isShopTransaction) {
+    return buildShopCurrencyTransferPlan(merchantActor, clientActor, moneyAdjustments, currencies, result)
   }
 
   let netDebtReference = 0
@@ -840,9 +991,20 @@ export async function applyCurrencyTransferPlan(merchantActor, clientActor, plan
     map.set(currencyId, (map.get(currencyId) ?? 0) + delta)
   }
 
+  const hasExplicitActorDeltas = (plan.clientDeltas?.length ?? 0) > 0 || (plan.merchantDeltas?.length ?? 0) > 0
   const hasDirectDeltas = (plan.payerDeltas?.length ?? 0) > 0 || (plan.receiverDeltas?.length ?? 0) > 0
 
-  if (hasDirectDeltas) {
+  if (hasExplicitActorDeltas) {
+    // MTT shop — deltas explicites par acteur : plusieurs ajustements peuvent avoir des payeurs différents.
+    for (const { currency, delta } of plan.clientDeltas ?? []) {
+      const currId = String(currency.id ?? "").trim()
+      if (currId) applyDelta(true, currId, delta)
+    }
+    for (const { currency, delta } of plan.merchantDeltas ?? []) {
+      const currId = String(currency.id ?? "").trim()
+      if (currId) applyDelta(false, currId, delta)
+    }
+  } else if (hasDirectDeltas) {
     for (const { currency, delta } of plan.payerDeltas ?? []) {
       const currId = String(currency.id ?? "").trim()
       if (currId) applyDelta(payerIsClient, currId, delta)
@@ -1464,13 +1626,14 @@ export async function buildExecutionPreview(actor, session, options = {}) {
       const payerName = currencyTransferPlan.payer === "client" ? (preview.client?.actorName ?? "") : actor.name
       const receiverName = currencyTransferPlan.payer === "client" ? actor.name : (preview.client?.actorName ?? "")
 
-      for (const { currency, amount } of currencyTransferPlan.payerRemovals) {
+      for (const entry of currencyTransferPlan.payerRemovals) {
+        const { currency, amount } = entry
         const abbr = String(currency.abbreviation ?? currency.id ?? "").trim()
         preview.moneyTransfers.push({
           currencyLabel: abbr,
           amountLabel: formatPriceLabel(amount, abbr),
-          payer: payerName,
-          receiver: receiverName,
+          payer: entry.payerName ?? payerName,
+          receiver: entry.receiverName ?? receiverName,
           hasEnough: true,
           unknownCurrency: false,
           isChange: false

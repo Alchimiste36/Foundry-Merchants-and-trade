@@ -107,7 +107,10 @@
       "Bash(echo \"exit: $?\")",
       "Bash(grep -Rn \"mtt-merchant-service-expanded\" styles css)",
       "Bash(node --check module/config/constants.mjs)",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/fr.json', 'utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json', 'utf8'\\)\\); console.log\\('JSON OK'\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/fr.json', 'utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json', 'utf8'\\)\\); console.log\\('JSON OK'\\)\")",
+      "Bash(npm run *)",
+      "Bash(node \"C:/Users/Alchi/AppData/Local/Temp/claude/f--dataPath-dataPath14dev-Data-modules-mtt-merchants/6530a22e-c257-4d9f-8729-c379cf3bd3c5/scratchpad/sim-shop-simple.mjs\")",
+      "Bash(node \"C:/Users/Alchi/AppData/Local/Temp/claude/f--dataPath-dataPath14dev-Data-modules-mtt-merchants/6530a22e-c257-4d9f-8729-c379cf3bd3c5/scratchpad/sim-shop-integer.mjs\")"
     ],
     "additionalDirectories": [
       "\\tmp"

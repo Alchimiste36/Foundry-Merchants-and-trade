@@ -462,3 +462,48 @@ La fonctionnalité de pliage/dépliage des détails de services Shop a été sup
 - Pas de modification des catégories de produits.
 - Pas de modification des secrets produits (`isSecretExpanded` conservé).
 - Pas de refactor supplémentaire.
+
+---
+
+## Correction — Wallet shop et ajustement monétaire simple
+
+### Todo
+- [x] Empêcher la redistribution globale du wallet Shop pendant une transaction.
+- [x] Remplacer le rendu de monnaie Shop par une conversion interne du payeur.
+- [x] Afficher uniquement le paiement exact dans la preview.
+- [x] Vérifier que le Storage n'a pas été modifié volontairement.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-trade.mjs`
+
+### Résumé
+Nouvelle branche dédiée `buildShopCurrencyTransferPlan(...)` dans `buildCurrencyTransferPlan(...)`, activée dès que `getMTTEntityType(merchantActor) === MTT.ENTITY_TYPES.MERCHANT` (donc avant tout calcul de `netDebtReference` global, qui aurait noyé des ajustements multi-devises de signes opposés). Chaque entrée de `moneyAdjustments` est traitée indépendamment dans sa propre devise : le payeur (client ou shop selon `adjustment.side`) paie exactement `adjustment.amount`, en cassant au besoin une à une ses pièces de valeur supérieure la plus proche via le nouveau helper `ensureShopPayerHasAmount(...)` (jamais l'inverse, jamais de pièce de valeur inférieure). La monnaie rendue par une casse reste interne au payeur (jamais `changeRemovals`/`changeAdditions`/`hasChange`). Comme un shop peut avoir plusieurs ajustements avec des payeurs différents (le client paie dans une devise, le shop rembourse dans une autre), le plan expose des deltas explicites par acteur (`result.clientDeltas` / `result.merchantDeltas`, obtenus par diff avant/après via `buildInternalConversionDeltas(...)` déjà existant) plutôt que le couple `payerDeltas`/`receiverDeltas` à payeur unique. `applyCurrencyTransferPlan(...)` a été étendu avec une branche prioritaire `hasExplicitActorDeltas` qui applique ces deltas directement, sans dupliquer `applyCurrencyDeltasToActor(...)`. La preview (`buildExecutionPreview`) lit `payerRemovals` avec un `payerName`/`receiverName` par entrée (repli sur le payeur/receveur global existant si absent), pour rester correcte même en cas d'ajustements à sens opposés. `distributeReferenceValueToCurrencies(...)` et `buildInternalConversionDeltas(...)` en tant que redistribution globale ne sont plus utilisés pour le Shop. Storage et acteurs système : branches `payerCanUseInternalConversion`/chemin classique totalement inchangées (diff confirmé nul sur ces blocs). Les 4 cas chiffrés de la spec + un cas bonus (devises et sens opposés dans la même session) ont été rejoués dans un script Node isolé reproduisant fidèlement la logique : tous les soldes attendus sont obtenus à l'unité près.
+
+### Hors périmètre volontaire
+- Pas de modification HBS.
+- Pas de modification CSS/LESS.
+- Pas de modification lang.
+- Pas de refactor des sessions, sockets, journaux ou catalogues.
+- Pas de changement volontaire du comportement Storage.
+
+---
+
+## Correction — Ajustement monétaire Shop en pièces entières
+
+### Todo
+- [x] Décomposer les ajustements Shop décimaux en devises physiques entières.
+- [x] Empêcher l'application de montants décimaux dans les wallets.
+- [x] Conserver la non-redistribution globale du wallet Shop.
+- [x] Conserver l'absence de rendu de monnaie entre les deux parties.
+
+### Fichiers modifiés
+- `module/applications/sheets/merchant-trade.mjs`
+
+### Résumé
+Ajout du helper `buildShopPhysicalCurrencyParts(amount, currency, currencies)` juste au-dessus de `buildShopCurrencyTransferPlan(...)` : il convertit le montant d'un ajustement (encore exprimé dans sa devise d'origine) en valeur de référence via `roundToSmallestCurrencyUnit(...)`, puis décompose cette valeur en montants entiers par devise via `distributeReferenceValueToCurrencies(...)` déjà existant, en filtrant les devises à 0. Dans `buildShopCurrencyTransferPlan(...)`, le traitement qui appliquait directement `amount` dans `targetCurrency` (source des décimales du type `15.2 PA`) a été remplacé par une boucle sur les parties entières retournées par ce helper : `ensureShopPayerHasAmount(...)` est appelé pour chaque partie (donc chaque dénomination physique) avant toute écriture, puis chaque partie entière est appliquée individuellement aux wallets et ajoutée à `payerRemovals`/`receiverAdditions`. `clientDeltas`/`merchantDeltas` (calculés par diff avant/après) sont donc désormais construits à partir d'entiers uniquement. `applyCurrencyTransferPlan(...)` n'a pas été touché : la branche `hasExplicitActorDeltas` déjà en place absorbe ces nouveaux deltas entiers sans changement. Les 5 cas de décomposition de la spec (15.2 PA → 1 PO+5 PA+2 PC, 0.2 PA → 2 PC, 1.5 PO → 1 PO+5 PA, 12 PC → 1 PA+2 PC, 7 PA → 7 PA sans padding à 0) ainsi que le cas 6 (shop payeur, wallets complets 65/30/38 → 64/25/36 côté shop et +1 PO/+5 PA/+2 PC côté client) ont été rejoués dans un script Node isolé reproduisant fidèlement `roundToSmallestCurrencyUnit`/`distributeReferenceValueToCurrencies`/`ensureShopPayerHasAmount` : tous les résultats correspondent exactement à la spec, aucune décimale résiduelle. Le cas 4 (12 PC) n'était pas réellement ambigu : il se décompose proprement en 1 PA + 2 PC avec la configuration CO2 (1 PA = 10 PC).
+
+### Hors périmètre volontaire
+- Pas de modification HBS/CSS/lang.
+- Pas de changement Storage volontaire (branche `payerCanUseInternalConversion` non touchée).
+- Pas de changement des journaux.
+- Pas de réécriture de `applyCurrencyTransferPlan(...)` ni de `distributeReferenceValueToCurrencies(...)`.

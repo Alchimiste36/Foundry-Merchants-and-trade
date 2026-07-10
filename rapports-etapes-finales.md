@@ -507,3 +507,27 @@ Ajout du helper `buildShopPhysicalCurrencyParts(amount, currency, currencies)` j
 - Pas de changement Storage volontaire (branche `payerCanUseInternalConversion` non touchée).
 - Pas de changement des journaux.
 - Pas de réécriture de `applyCurrencyTransferPlan(...)` ni de `distributeReferenceValueToCurrencies(...)`.
+
+---
+
+## Correction — Export configuration : paramètres manquants
+
+### Todo
+- [x] Ajouter `defaultStorageCategories` à l'export/import de configuration.
+- [x] Ajouter `allowExtendedItemMerge` à l'export/import de configuration.
+- [x] Ajouter `deleteEmptySystemActorItems` à l'export/import de configuration.
+- [x] Vérifier que `merchantPermissionProfiles` reste exporté/importé.
+- [x] Vérifier la syntaxe du fichier modifié.
+
+### Fichiers modifiés
+- `module/config/config-export.mjs`
+- `rapports-etapes-finales.md`
+
+### Résumé
+L'export/import de configuration MTT inclut désormais les catégories Storage par défaut, l'option de fusion étendue et l'option de suppression des Items système à quantité 0. Les traitements existants des permissions et des types d'acteurs sont conservés. Vérifié que l'import générique dans `mtt-config-app.mjs` (`await game.settings.set(MTT.ID, key, data.settings[key])`) couvre déjà ces trois clés sans traitement spécial nécessaire, et que ce fichier n'a pas eu besoin d'être modifié.
+
+### Hors périmètre volontaire
+- Pas de modification de la fenêtre de configuration.
+- Pas de modification HBS, LESS ou lang.
+- Pas de refactor des settings.
+- Pas de changement métier.

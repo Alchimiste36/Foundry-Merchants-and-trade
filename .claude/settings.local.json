@@ -103,7 +103,11 @@
       "Read(//tmp/**)",
       "Bash(file module/applications/sheets/merchant-sheet.mjs)",
       "Bash(node -e \"const fs=require\\('fs'\\); const b=fs.readFileSync\\('module/applications/sheets/merchant-sheet.mjs'\\); console.log\\('hasCRLF', b.includes\\('\\\\r\\\\n'\\), 'size', b.length\\)\")",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -Rn \"mtt-merchant-service-expanded\" styles css)",
+      "Bash(node --check module/config/constants.mjs)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/fr.json', 'utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('lang/en.json', 'utf8'\\)\\); console.log\\('JSON OK'\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp"

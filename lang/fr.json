@@ -727,8 +727,6 @@
       "linkedItem": "Service lié à un item",
       "sourceType": "Type source",
       "sourceName": "Source",
-      "toggleShow": "Afficher les détails du service",
-      "toggleHide": "Masquer les détails du service",
       "hide": "Masquer le service",
       "show": "Afficher le service",
       "requireApproval": "Demander une validation MJ",

@@ -166,7 +166,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       toggleProductCategoryVisibility: MerchantSheet.#onToggleProductCategoryVisibility,
       createService: MerchantSheet.#onCreateService,
       deleteService: MerchantSheet.#onDeleteService,
-      toggleServiceExpanded: MerchantSheet.#onToggleServiceExpanded,
       toggleCatalogItemVisibility: MerchantSheet.#onToggleCatalogItemVisibility,
       toggleProductApproval: MerchantSheet.#onToggleProductApproval,
       toggleServiceApproval: MerchantSheet.#onToggleServiceApproval,
@@ -5210,26 +5209,6 @@ export class MerchantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
       entries.splice(index, 1)
       await updateMerchantData(this.actor, { catalog: { services: entries } })
     }
-  }
-
-  static async #onToggleServiceExpanded(event, target) {
-    event.preventDefault()
-
-    if (!this.isEditable) return
-
-    const serviceId = target.closest("[data-service-id]")?.dataset.serviceId
-    if (!serviceId) return
-
-    const entries = foundry.utils.deepClone(getMerchantData(this.actor)?.catalog?.services ?? [])
-    const index = entries.findIndex((s) => s.id === serviceId)
-    if (index === -1) return
-
-    entries[index].isExpanded = !entries[index].isExpanded
-
-    this.#saveScrollPositions()
-    await updateMerchantData(this.actor, { catalog: { services: entries } })
-
-    this.render()
   }
 
   static async #onToggleCatalogItemVisibility(event, target) {

@@ -432,3 +432,33 @@ Le bouton et le comparateur `adjustment` étaient déjà corrects depuis le corr
 - Pas de modification des journaux globaux.
 - Pas de nouveau système de tri.
 - Pas de modification HBS/LESS/lang.
+
+---
+
+## Correction — Suppression du pliage des services Shop
+
+### Todo
+- [x] Suppression du bouton chevron dans le template des services.
+- [x] Affichage permanent des détails de service.
+- [x] Suppression de l'action et du handler `toggleServiceExpanded`.
+- [x] Suppression de `isExpanded` côté services.
+- [x] Suppression des clés de langue inutilisées.
+- [x] Vérifications syntaxiques effectuées.
+
+### Fichiers modifiés
+- `templates/actors/parts/merchant-services.hbs`
+- `module/applications/sheets/merchant-sheet.mjs`
+- `module/applications/sheets/merchant-catalog.mjs`
+- `module/config/constants.mjs`
+- `lang/fr.json`
+- `lang/en.json`
+
+### Résumé
+La fonctionnalité de pliage/dépliage des détails de services Shop a été supprimée. Les détails des services sont maintenant toujours visibles et les chevrons ne sont plus affichés. Aucune règle CSS dédiée à `.mtt-merchant-service-expanded` n'existait, donc les fichiers de styles n'ont pas eu besoin d'être touchés.
+
+### Hors périmètre volontaire
+- Pas de modification des sessions.
+- Pas de modification du stockage.
+- Pas de modification des catégories de produits.
+- Pas de modification des secrets produits (`isSecretExpanded` conservé).
+- Pas de refactor supplémentaire.

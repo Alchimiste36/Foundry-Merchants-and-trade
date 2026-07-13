@@ -222,9 +222,14 @@ Pour les Boutique MTT, le MJ peut facilement écrire un formule de jet de dé po
 
 <h2>Auteur</h2>
 
-Module développé par **Alchimiste36**. Vous pouvez me contacter sur Discord (l.alchimiste) ou via les issues du dépôt GitHub.
+Module développé par **L'Alchimiste**. Vous pouvez me contacter sur Discord (l.alchimiste) ou via les issues du dépôt GitHub.
 J'ai utilisé, en parti, les agents IA Codex de chatGPT et Claude Code pour le développement de ce module MTT.
 
-Dépôt GitHub :
+<ul>
+<li><a href="https://github.com/Alchimiste36/Foundry-Merchants-and-trade">Dépôt GitHub du projet</a></p></li>
+<li><a href="https://www.youtube.com/@AlchimisteFoundry">Chaine YouTube Alchimiste Foundry</a></p></li>
+<li><a href="https://ko-fi.com/lalchimiste">Pour m'offrir un petit café pour le travail effectué. Merci d'avance !</a></p></li>
+</ul>
 
-<a href="https://github.com/Alchimiste36/Foundry-Merchants-and-trade">Dépôt GitHub du projet</a></p>
+<p align="center">J'espère que ce module vous plaira et vous sera utile pour vos partie de JDR !</p>
+<p align="center"><strong>Faites-moi des retours et des remarques sur vos expériences avec le module MTT afin que je puisse le corriger ou l'améliorer à l'avenir. Bonnes aventures à toutes et tous.</strong></p>

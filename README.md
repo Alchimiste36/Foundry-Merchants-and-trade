@@ -59,13 +59,13 @@ Dans Foundry VTT :
 <li>Aller dans **Add-on Modules**.</li>
 <li>Cliquer sur **Install Module**.</li>
 <li>Coller l’URL du manifeste :</li>
-</ol>
 
 ```text
 https://raw.githubusercontent.com/Alchimiste36/Foundry-Merchants-and-trade/main/module.json
 ```
 
 <li>Installer puis activer le module dans le monde souhaité.</li>
+</ol>
 
 <h3>Installation manuelle par archive</h3>
 

@@ -105,8 +105,8 @@ Cette configuration permet d’adapter le module à plusieurs systèmes de jeu s
 <h3>Fichiers de configuration pour les Systèmes de Jeu</h3>
 
 <ul>
-<li>Système Chroniques Oubliées 2ème Édition : <a href="modules\mtt-merchants\system_configure\mtt-config-co2.json" download="mtt-config-co2.json">Télécharger le fichier de configuration pour CO2</a></li>
-<li>Système Chroniques Oubliées 2ème Édition : <a href="modules\mtt-merchants\system_configure\mtt-config-dnd5e.json" download="mtt-config-dnd5e.json">Télécharger le fichier de configuration pour DND5E</a></li>
+<li>Système Chroniques Oubliées 2ème Édition : <a href="https://github.com/Alchimiste36/Foundry-Merchants-and-trade/blob/main/system_configure/mtt-config-co2.json" download="mtt-config-co2.json">Télécharger le fichier de configuration pour CO2</a></li>
+<li>Système Chroniques Oubliées 2ème Édition : <a href="https://github.com/Alchimiste36/Foundry-Merchants-and-trade/blob/main/system_configure/mtt-config-dnd5e.json" download="mtt-config-dnd5e.json">Télécharger le fichier de configuration pour DND5E</a></li>
 </ul>
 
 ---

@@ -106,7 +106,7 @@ Cette configuration permet d’adapter le module à plusieurs systèmes de jeu s
 
 <h2>Les Boutiques MTT</h2>
 <p align="center">
-  <img src="./assets/mtt-shop-preview.webp" style="height:250px;">
+  <img src="./assets/mtt-shop-preview.webp" style="height:500px;">
 </p>
 
 Les acteurs convertis en Boutique permettent de simuler un marchand, un magasin, une échope... pour votre système de jeu. Les sessions de transactions permettent d'acheter, de vendre, de proposer un prix, de négocier... avec le marchand. Il reste uniquement après à valider ou refuser la session de transaction.
@@ -161,7 +161,7 @@ Quand une session de transaction est validée, les objets sont transférés du m
 
 <h2>Les Stockages MTT</h2>
 <p align="center">
-  <img src="./assets/mtt-storage-preview.webp" style="height:250px;">
+  <img src="./assets/mtt-storage-preview.webp" style="height:500px;">
 </p>
 
 Les acteurs convertis en Stockage MTT permettent de simuler un coffre trouvé dans un donjon, une réserve personnelle d'un personnage, un stockage commun pour le groupe de joueur, un butin récupéré sur un groupe d'ennemis... Les sessions d'Échange permettent de récupérer ou de déposer des objets ou de la trésorerie.

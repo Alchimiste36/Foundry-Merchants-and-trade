@@ -1,0 +1,32 @@
+{
+  "module": "mtt-merchants",
+  "type": "module-configuration",
+  "schemaVersion": 1,
+  "exportedAt": "2026-06-27T23:04:55.303Z",
+  "foundryVersion": "14.363",
+  "moduleVersion": "0.9.2",
+  "systemId": "dnd5e",
+  "systemTitle": "Dungeons & Dragons Fifth Edition",
+  "settings": {
+    "itemQuantityPath": "system.quantity",
+    "itemDeliveryQuantityPerLotPath": "",
+    "deliveryItemQuantityPath": "system.quantity",
+    "deliveryItemMaxQuantityPath": "",
+    "writeDeliveryDescriptionInfo": true,
+    "itemDescriptionPath": "system.description.value",
+    "itemSecretDescriptionPath": "system.unidentified.description",
+    "allowedProductTypes": "consumable, container, equipment, loot, tool, weapon",
+    "allowedServiceTypes": "loot",
+    "itemCategoryPaths": "type",
+    "useItemTypeAsCategoryFallback": false,
+    "categoryLabelMap": "",
+    "defaultCustomCategories": "",
+    "currencies": "[{\"id\":\"SLpxUnFIkojCh1bJ\",\"name\":\"Pièce de platine\",\"abbreviation\":\"PP\",\"actorPath\":\"system.currency.pp\",\"itemPricePath\":\"system.price.value\",\"itemCurrencyPath\":\"system.price.denomination\",\"itemCurrencyValues\":\"pp\",\"rate\":10,\"isDefault\":false},{\"id\":\"smCixyxQOpJB4L0U\",\"name\":\"Pièce d'or\",\"abbreviation\":\"PO\",\"actorPath\":\"system.currency.gp\",\"itemPricePath\":\"system.price.value\",\"itemCurrencyPath\":\"system.price.denomination\",\"itemCurrencyValues\":\"gp\",\"rate\":1,\"isDefault\":false},{\"id\":\"gvMiO98MldBo8ypi\",\"name\":\"Pièce d'argent\",\"abbreviation\":\"PA\",\"actorPath\":\"system.currency.sp\",\"itemPricePath\":\"system.price.value\",\"itemCurrencyPath\":\"system.price.denomination\",\"itemCurrencyValues\":\"sp\",\"rate\":0.1,\"isDefault\":false},{\"id\":\"5WTxwkm1bvojIYY4\",\"name\":\"Pièce de cuivre\",\"abbreviation\":\"PC\",\"actorPath\":\"system.currency.cp\",\"itemPricePath\":\"system.price.value\",\"itemCurrencyPath\":\"system.price.denomination\",\"itemCurrencyValues\":\"cp\",\"rate\":0.01,\"isDefault\":false},{\"id\":\"SWxOqzJsAKSLk6wO\",\"name\":\"Pièce Eternal\",\"abbreviation\":\"PE\",\"actorPath\":\"system.currency.ep\",\"itemPricePath\":\"system.price.value\",\"itemCurrencyPath\":\"system.price.denomination\",\"itemCurrencyValues\":\"ep\",\"rate\":100,\"isDefault\":false}]",
+    "itemSubcategoryPath": "system.type.value",
+    "itemCategoryI18nPrefix": "TYPES.Item.",
+    "itemSubcategoryI18nPrefix": "DND5E.Weapon",
+    "allowedMerchantActorTypes": "[]",
+    "allowedStorageActorTypes": "[]",
+    "merchantPermissionProfiles": "{\"limited\":{\"canViewConfigTab\":false,\"canViewApprovalStatus\":false,\"canViewPrices\":false,\"canOpenProduct\":false,\"canInteractWithSession\":false,\"canAddActorToMerchantRail\":false,\"canViewOtherActorsInRail\":false,\"canViewObserverActorSessions\":false,\"canValidateOrRefuseSessions\":false,\"canViewObserverActorJournalEntries\":false},\"observer\":{\"canViewConfigTab\":false,\"canViewApprovalStatus\":true,\"canViewPrices\":true,\"canOpenProduct\":true,\"canInteractWithSession\":true,\"canAddActorToMerchantRail\":false,\"canViewOtherActorsInRail\":false,\"canViewObserverActorSessions\":true,\"canValidateOrRefuseSessions\":false,\"canViewObserverActorJournalEntries\":true},\"owner\":{\"canViewConfigTab\":true,\"canViewApprovalStatus\":true,\"canViewPrices\":true,\"canOpenProduct\":true,\"canInteractWithSession\":true,\"canAddActorToMerchantRail\":true,\"canViewOtherActorsInRail\":true,\"canViewObserverActorSessions\":true,\"canValidateOrRefuseSessions\":true,\"canViewObserverActorJournalEntries\":true}}"
+  }
+}

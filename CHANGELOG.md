@@ -1,5 +1,9 @@
 # Module MTT - Merchants, Trades and Transactions
 
+# Version 1.1.0 - juillet 2026
+
+Version définitive avec les fonctionnalités de base.
+
 # Version 0.8.0 - juin 2026
 
 Fonctionnalités actuelles :

@@ -103,6 +103,8 @@ La configuration permet notamment de définir :
 Cette configuration permet d’adapter le module à plusieurs systèmes de jeu sans coder de logique système directement dans le cœur de MTT.
 
 <h3>Fichiers de configuration pour les Systèmes de Jeu</h3>
+Ils sont placés dans le dossier : system_configure
+Si vous configurez le Module MTT pour un système de jeu qui n'a pas encore de configuration paratgée, contactez-moi pour ajouter le fichier à la liste suivante. Merci pour votre contribution.
 
 <ul>
 <li>Système Chroniques Oubliées 2ème Édition : <a href="https://github.com/Alchimiste36/Foundry-Merchants-and-trade/blob/main/system_configure/mtt-config-co2.json">Télécharger le fichier de configuration pour CO2</a></li>

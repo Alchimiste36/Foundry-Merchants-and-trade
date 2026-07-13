@@ -234,6 +234,6 @@ J'ai utilisé, en parti, les agents IA Codex de chatGPT et Claude Code pour le d
 <p align="center">J'espère que ce module vous plaira et vous sera utile pour vos partie de JDR !</p>
 <p align="center"><strong>Faites-moi des retours et des remarques sur vos expériences avec le module MTT afin que je puisse le corriger ou l'améliorer à l'avenir. Bonnes aventures à toutes et tous.</strong></p>
 
-<p align="right">
+<p align="center">
   <img src="./assets/lalchimiste_avatar.webp" style="height:200px;">
 </p>

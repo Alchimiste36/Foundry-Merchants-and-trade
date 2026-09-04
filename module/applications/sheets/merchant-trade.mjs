@@ -1937,6 +1937,56 @@ function simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemD
   return result
 }
 
+function normalizeActionSources(actions, source) {
+  if (!Array.isArray(actions)) return false
+  let changed = false
+
+  for (const action of actions) {
+    if (!action || typeof action !== "object") continue
+
+    if (Object.prototype.hasOwnProperty.call(action, "source") && action.source !== source) {
+      action.source = source
+      changed = true
+    }
+
+    if (!Array.isArray(action.modifiers)) continue
+
+    for (const modifier of action.modifiers) {
+      if (!modifier || typeof modifier !== "object") continue
+      if (!Object.prototype.hasOwnProperty.call(modifier, "source")) continue
+      if (modifier.source === source) continue
+
+      modifier.source = source
+      changed = true
+    }
+  }
+
+  return changed
+}
+
+// MTT base — normalisation générique des sources d'actions avant livraison
+function normalizeDeliveryItemActionSourcesData(itemData, actor, itemId) {
+  if (!itemData || typeof itemData !== "object") return false
+  if (!actor?.id || !itemId) return false
+
+  const actions = foundry.utils.getProperty(itemData, "system.actions")
+  return normalizeActionSources(actions, `Actor.${actor.id}.Item.${itemId}`)
+}
+
+async function normalizeDeliveredItemActionSourcesFromCreatedItem(item) {
+  if (!item?.uuid || !item?.id || !item?.parent) return
+
+  const actions = foundry.utils.deepClone(item.toObject?.()?.system?.actions ?? [])
+  if (!normalizeActionSources(actions, item.uuid)) return
+
+  await item.parent.updateEmbeddedDocuments("Item", [
+    {
+      _id: item.id,
+      "system.actions": actions
+    }
+  ])
+}
+
 // MTT base — livraison vers acteur du système de jeu
 async function deliverPurchasedItemToActor(actor, productData, deliveredItemData, quantityToDeliver) {
   const simulation = simulatePurchasedItemDeliveryToActor(actor, productData, deliveredItemData, quantityToDeliver)
@@ -1973,9 +2023,13 @@ async function deliverPurchasedItemToActor(actor, productData, deliveredItemData
         sourceUuid: nextSourceUuid,
         isCommerciallyModified: false
       })
-      const documents = await actor.createEmbeddedDocuments("Item", [itemData])
+      const itemId = foundry.utils.randomID()
+      itemData._id = itemId
+      normalizeDeliveryItemActionSourcesData(itemData, actor, itemId)
+      const documents = await actor.createEmbeddedDocuments("Item", [itemData], { keepId: true })
       const item = documents[0]
       if (!item) throw new Error(game.i18n.localize("mtt.sessions.errors.deliveryCreationFailed"))
+      if (item.id !== itemId) await normalizeDeliveredItemActionSourcesFromCreatedItem(item)
 
       result.created.push({
         item,

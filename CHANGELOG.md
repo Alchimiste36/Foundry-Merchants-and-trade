@@ -1,5 +1,9 @@
 # Module MTT - Merchants, Trades and Transactions
 
+# Version 1.1.1 - septembre 2026
+
+Correction d'un erreur de mise à jour des ID des Items livrés. Les items achetés n'étaient pas activables car l'ID source était mal mise à jour.
+
 # Version 1.1.0 - juillet 2026
 
 Version définitive avec les fonctionnalités de base.

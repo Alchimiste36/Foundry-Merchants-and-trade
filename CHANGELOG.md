@@ -2,6 +2,10 @@
 
 # Version 1.1.1 - septembre 2026
 
+Modification du fichier de configuration pour le système CO2 en ajoutant le type "container" dans le type d'Item vendable et stockable pour les produits et les services.
+
+# Version 1.1.1 - septembre 2026
+
 Correction d'un erreur de mise à jour des ID des Items livrés. Les items achetés n'étaient pas activables car l'ID source était mal mise à jour.
 
 # Version 1.1.0 - juillet 2026
